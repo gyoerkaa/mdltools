@@ -337,60 +337,60 @@ class NVBAuroraMDLExport(bpy.types.Operator, ExportHelper):
 class NVBAuroraParticlePropertyGroup(bpy.types.PropertyGroup):
     # For Emitters 
         
-    birthrate     = bpy.props.IntProperty(name = 'Birthrate', description = '???', default = 10, min = 0)
+    birthrate     = bpy.props.IntProperty(name = 'Birthrate', description = 'Birthrate', default = 10, min = 0)
         
     # Inheritance props
-    inherit       = bpy.props.BoolProperty(name = 'Inherit', description = '???', default = False)
+    inherit       = bpy.props.BoolProperty(name = 'Inherit', description = 'Inherit', default = False)
     inherit_vel   = bpy.props.BoolProperty(name = 'Velocity', description = 'Inherit Velocity', default = False)    
     inherit_local = bpy.props.BoolProperty(name = 'Local', description = '???', default = False)    
     inherit_part  = bpy.props.BoolProperty(name = 'Part', description = '???', default = False)
        
     # Blast props
-    blastradius = bpy.props.FloatProperty(name = 'Radius', description = '???', default = 0.0, min = 0.0)
-    blastlength = bpy.props.FloatProperty(name = 'Length', description = '???', default = 0.0, min = 0.0)
+    blastradius = bpy.props.FloatProperty(name = 'Radius', description = 'Radius', default = 0.0, min = 0.0)
+    blastlength = bpy.props.FloatProperty(name = 'Length', description = 'Length', default = 0.0, min = 0.0)
     
     # Particle props
     colorstart  = bpy.props.FloatVectorProperty(name = 'Color start',
-                                                description = 'Start color',
+                                                description = 'Color start',
                                                 subtype = 'COLOR_GAMMA', 
                                                 default = (1.0, 1.0, 1.0), 
                                                 min = 0.0, max = 1.0, 
                                                 soft_min = 0.0, soft_max = 1.0)
     colorend    = bpy.props.FloatVectorProperty(name = 'Color end',
-                                                description = 'End Color',
+                                                description = 'Color end',
                                                 subtype = 'COLOR_GAMMA', 
                                                 default = (1.0, 1.0, 1.0), 
                                                 min = 0.0, max = 1.0, 
                                                 soft_min = 0.0, soft_max = 1.0)
-    alphastart  = bpy.props.FloatProperty(name = 'Alpha start', default = 1.0, min = 0.0, max = 1.0)
-    alphaend    = bpy.props.FloatProperty(name = 'Alpha end', default = 1.0, min = 0.0, max = 1.0)   
-    sizestart   = bpy.props.FloatProperty(name = 'Size start', default = 1.0, min = 0.0)
-    sizeend     = bpy.props.FloatProperty(name = 'Size end', default = 1.0, min = 0.0)    
-    sizestart_y = bpy.props.FloatProperty(name = 'Sizestart_y', default = 0.0, min = 0.0)
-    sizeend_y   = bpy.props.FloatProperty(name = 'Sizeend_y', default = 0.0, min = 0.0)
+    alphastart  = bpy.props.FloatProperty(name = 'Alpha start', description = 'Alpha start', default = 1.0, min = 0.0, max = 1.0)
+    alphaend    = bpy.props.FloatProperty(name = 'Alpha end', description = 'Alpha end', default = 1.0, min = 0.0, max = 1.0)   
+    sizestart   = bpy.props.FloatProperty(name = 'Size start', description = 'x size start', default = 1.0, min = 0.0)
+    sizeend     = bpy.props.FloatProperty(name = 'Size end', description = 'x size end', default = 1.0, min = 0.0)    
+    sizestart_y = bpy.props.FloatProperty(name = 'Sizestart_y', description = 'y size start', default = 0.0, min = 0.0)
+    sizeend_y   = bpy.props.FloatProperty(name = 'Sizeend_y', description = 'y size end', default = 0.0, min = 0.0)
     
     # Misc props
     lifeexp     = bpy.props.FloatProperty(name = 'Life Exp.', description = 'Life Expectancy', default = 1.0, min = 0.0, update=nvb_update_lifeexp_prop)
     istinted    = bpy.props.BoolProperty(name = 'Tinted', description = 'Tint texture with start- and end color', default = False)
-    bounce      = bpy.props.BoolProperty(name = 'Bounce type', description = '???', default = False)
-    random      = bpy.props.BoolProperty(name = 'Random', description = '???', default = False)    
-    splat       = bpy.props.BoolProperty(name = 'Splat', description = '???', default = False) 
-    renderorder = bpy.props.IntProperty(name = 'Render order', description = '???', default = 0, min = 0)
+    bounce      = bpy.props.BoolProperty(name = 'Bounce type', description = 'Bounce On/Off', default = False)
+    random      = bpy.props.BoolProperty(name = 'Random', description = 'Random', default = False)    
+    splat       = bpy.props.BoolProperty(name = 'Splat', description = 'Splat', default = False) 
+    renderorder = bpy.props.IntProperty(name = 'Render order', description = 'Render Order', default = 0, min = 0)
     chunkname   = bpy.props.StringProperty(name = 'Name', description = 'Chunk Name', default = '')
-    loop        = bpy.props.BoolProperty(name = 'Loop', description = '???', default = False)
+    loop        = bpy.props.BoolProperty(name = 'Loop', description = 'Loop', default = False)
     deadspace   = bpy.props.FloatProperty(name = 'Dead space', description = '???', default = 0.0, min = 0.0)
     twosidedtex = bpy.props.BoolProperty(name = 'Two Sided Texture', description = '???', default = False)    
     bounce_co   = bpy.props.FloatProperty(name = 'Coeff.', description = 'Bounce coefficient', default = 0.0, min = 0.0)
-    spread      = bpy.props.FloatProperty(name = 'Spread', description = '???', default = 0.0, min = 0.0)
+    spread      = bpy.props.FloatProperty(name = 'Spread', description = 'Spread', default = 0.0, min = 0.0)
     particlerot = bpy.props.FloatProperty(name = 'Rotation', description = 'Particle Rotation', default = 0.0, min = -360.0, max = 360.0)
-    fps         = bpy.props.IntProperty(name = 'Fps', description = '???', default = 24, min = 0)
-    blurlength  = bpy.props.FloatProperty(name = 'Blur Length', description = '???', default = 10.0)
+    fps         = bpy.props.IntProperty(name = 'Fps', description = 'Fps', default = 24, min = 0)
+    blurlength  = bpy.props.FloatProperty(name = 'Blur Length', description = 'Blur Length', default = 10.0)
     
     # Lighting props
-    lightningdelay  = bpy.props.FloatProperty(name = 'Delay', description = '???', default = 0.0, min = 0.0, max = 1000.0)
-    lightningradius = bpy.props.FloatProperty(name = 'Radius', description = '???', default = 0.0, min = 0.0, max = 1000.0)
-    lightningsubdiv = bpy.props.IntProperty(name = 'Subdivs.', description = '???', default = 0, min = 0, max = 12)
-    lightningscale  = bpy.props.FloatProperty(name = 'Scale', description = '???', default = 1.0, min = 0.0, max = 1.0)
+    lightningdelay  = bpy.props.FloatProperty(name = 'Delay', description = 'Delay', default = 0.0, min = 0.0, max = 1000.0)
+    lightningradius = bpy.props.FloatProperty(name = 'Radius', description = 'Radius', default = 0.0, min = 0.0, max = 1000.0)
+    lightningsubdiv = bpy.props.IntProperty(name = 'Subdivs.', description = 'Subdivisions', default = 0, min = 0, max = 12)
+    lightningscale  = bpy.props.FloatProperty(name = 'Scale', description = 'Scale', default = 1.0, min = 0.0, max = 1.0)
     
     # Emitter Style
     blend       = bpy.props.EnumProperty(name  = 'Blend',
@@ -431,8 +431,8 @@ class NVBAuroraParticlePropertyGroup(bpy.types.PropertyGroup):
                                          default = 'BEZIER')
     p2p_bezier2 = bpy.props.FloatProperty(name = 'Bezier 2', description = '???', default = 0.0)
     p2p_bezier3 = bpy.props.FloatProperty(name = 'Bezier 3', description = '???', default = 0.0)
-    threshold   = bpy.props.FloatProperty(name = 'Threshold', description = '???', default = 0.0)    
-    combinetime = bpy.props.FloatProperty(name = 'Combinetime', description = '???', default = 0.0)
+    threshold   = bpy.props.FloatProperty(name = 'Threshold', description = 'Threshold', default = 0.0)    
+    combinetime = bpy.props.FloatProperty(name = 'Combinetime', description = 'Combinetime', default = 0.0)
     
 
 class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
@@ -510,16 +510,21 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             col.prop(partsys_settings.effector_weights, 'gravity')
             
             layout.separator()
+            
+            # Chunk
             row = layout.row()
-            row.label(text='Chunk')             
-            row = layout.row()
+            box = row.box()
+            box.label(text='Chunk')             
+            row = box.row()
             row.prop(partsys_settings.auroraprops, 'chunkname', text = 'Name')
             
-            # Particle properties
             layout.separator()
+            
+            # Particle properties
             row = layout.row()
-            row.label(text='Animation')            
-            split = layout.split()
+            box = row.box()            
+            box.label(text='Animation: ')            
+            split = box.split()
             col = split.column(align=True)
             col.prop(partsys_settings.auroraprops, 'colorstart', text='')
             col.prop(partsys_settings.auroraprops, 'colorend', text='')
@@ -528,7 +533,7 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             col.prop(partsys_settings.auroraprops, 'alphastart')
             col.prop(partsys_settings.auroraprops, 'alphaend')
 
-            split = layout.split()
+            split = box.split()
             col = split.column(align=True)
             col.prop(partsys_settings.auroraprops, 'sizestart')
             col.prop(partsys_settings.auroraprops, 'sizeend')
@@ -537,29 +542,36 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             col.prop(partsys_settings.auroraprops, 'sizestart_y')
             col.prop(partsys_settings.auroraprops, 'sizeend_y')
   
-            # Blast props
             layout.separator()
+            
+            # Blast props
             row = layout.row()
-            row.label(text='Blast properties')
-            row = layout.row()
+            box = row.box()
+            box.label(text='Blast properties: ')
+            row =  box.row()
             row.prop(partsys_settings.auroraprops, 'blastradius')
+            row =  box.row()
             row.prop(partsys_settings.auroraprops, 'blastlength')
             
-            # Misc props
             layout.separator()
-            row = layout.row()
-            row.label(text='Misc. properties')                     
-            split = layout.split()
-            col = split.column()
-            col.prop(partsys_settings.auroraprops, 'spread')
-            col.prop(partsys_settings.auroraprops, 'particlerot')
-            col.prop(partsys_settings.auroraprops, 'blurlength')
-            col = split.column()
-            col.prop(partsys_settings.auroraprops, 'deadspace')
-            col.prop(partsys_settings.auroraprops, 'renderorder')
-            col.prop(partsys_settings.auroraprops, 'fps')
             
-            split = layout.split()
+            # Misc props
+            row = layout.row()
+            box = row.box()            
+            box.label(text='Misc. properties: ')                     
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'spread')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'particlerot')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'blurlength')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'deadspace')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'renderorder')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'fps')            
+            split = box.split()
             col = split.column()
             col.prop(partsys_settings.auroraprops, 'istinted')
             col.prop(partsys_settings.auroraprops, 'twosidedtex')
@@ -568,52 +580,62 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             col.prop(partsys_settings.auroraprops, 'loop')
             col.prop(partsys_settings.auroraprops, 'random')
             
-            # Inheritance
             layout.separator()
+            
+            # Inheritance
             row = layout.row()
-            row.label(text='Inheritance')            
-            split = layout.split()
-            col = split.column()            
-            col.prop(partsys_settings.auroraprops, 'inherit')
-            col.prop(partsys_settings.auroraprops, 'inherit_vel') 
-            col = split.column()
-            col.prop(partsys_settings.auroraprops, 'inherit_local')
-            col.prop(partsys_settings.auroraprops, 'inherit_part')
+            box = row.box()
+            box.label(text = 'Inheritance: ')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'inherit')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'inherit_vel') 
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'inherit_local')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'inherit_part')
+            
+            layout.separator()
             
             # p2p settings
-            layout.separator()
             row = layout.row()
-            row.label(text='p2p Settings')            
-            split = layout.split()
-            col = split.column()            
-            col.prop(partsys_settings.auroraprops, 'p2p')
-            col.prop(partsys_settings.auroraprops, 'p2p_type') 
-            col = split.column()
-            col.prop(partsys_settings.auroraprops, 'p2p_bezier2')
-            col.prop(partsys_settings.auroraprops, 'p2p_bezier3')
-            
-            row = layout.row()
+            box = row.box()  
+            box.label(text='p2p Settings')            
+            row = box.row()           
+            row.prop(partsys_settings.auroraprops, 'p2p')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'p2p_type') 
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'p2p_bezier2')
+            row = box.row()
+            row.prop(partsys_settings.auroraprops, 'p2p_bezier3')           
+            row = box.row()
             row.prop(partsys_settings.auroraprops, 'threshold')
-            row = layout.row()
+            row = box.row()
             row.prop(partsys_settings.auroraprops, 'combinetime')
     
-            # Lightning
             layout.separator()
+            
+            # Lightning
             row = layout.row()
-            row.label(text='Lightning')            
-            split = layout.split()
-            col = split.column()            
-            col.prop(partsys_settings.auroraprops, 'lightningdelay')
-            col.prop(partsys_settings.auroraprops, 'lightningradius') 
-            col = split.column()
-            col.prop(partsys_settings.auroraprops, 'lightningsubdiv')
-            col.prop(partsys_settings.auroraprops, 'lightningscale')
+            box = row.box()            
+            box.label(text='Lightning: ')            
+            row = box.row()            
+            row.prop(partsys_settings.auroraprops, 'lightningdelay')
+            row = box.row()  
+            row.prop(partsys_settings.auroraprops, 'lightningradius') 
+            row = box.row()  
+            row.prop(partsys_settings.auroraprops, 'lightningsubdiv')
+            row = box.row()  
+            row.prop(partsys_settings.auroraprops, 'lightningscale')
+            
+            layout.separator()
             
             # Bounce
-            layout.separator()
             row = layout.row()
-            row.label(text='Bounce') 
-            factor_but(layout, partsys_settings.auroraprops, 'bounce', 'bounce_co', 'Coeff.')
+            box = row.box()
+            box.label(text = 'Bounce: ')            
+            factor_but(box, partsys_settings.auroraprops, 'bounce', 'bounce_co', 'Coeff.')
 
 
 class NVBAuroraObjectPropertyGroup(bpy.types.PropertyGroup):
@@ -748,7 +770,7 @@ class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
                 row = box.row()
                 row.prop(object.auroraprops, 'minimapsize', text = 'Minimap size')                
                 row = box.row()
-                row.operator('nvb.render_minimap', text = 'Render Minimap', icon='NONE')
+                row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
                 
             elif (object.auroraprops.dummytype in {'PWKBASE', 'DWKBASE'}):
                 pass
