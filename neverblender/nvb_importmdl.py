@@ -487,20 +487,44 @@ def animnode2objectaction(parsed_node):
     node_action               = bpy.data.actions.new(name=action_name)
     node_action.use_fake_user = True # We want this action to be saved, even if it isn't attached to an object
     
-    # Set rotation channels if there are rotation keys
+    # Set rotation channels if rotation keys exist
     if (parsed_node['orientationkey']):
-        # convert nwn format(axis-angle) to euler
-        euler_rotations = []
-        for key in parsed_node['orientationkey']:
-            euler_rotations.append(nvb_utils.nwangle2euler((key[1], key[2], key[3], key[4])))
         
-        # for each axis (too lazy to check if there is actually a rotation for every axis)
-        for c in range(3):
-            curve = node_action.fcurves.new(data_path='rotation_euler', index=c)
-            #curve.keyframe_points.add(len(parsed_node['orientationkey'])) # May create fucked up curves
+        ######################################
+        # Euler
+        ######################################
+        # convert nwn format(axis-angle) to euler       
+        #euler_rotations = []
+        #for key in parsed_node['orientationkey']:
+        #    euler_rotations.append(nvb_utils.nwangle2euler((key[1], key[2], key[3], key[4])))
+        
+        # for each axis
+        #for c in range(3):
+        #    curve = node_action.fcurves.new(data_path='rotation_euler', index=c)
+        #    for i in range(len(parsed_node['orientationkey'])):
+        #        curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), euler_rotations[i][c])
+        ######################################
+        # Euler
+        ######################################
+        
+        ######################################
+        # Axis angle
+        ######################################        
+        # Set angle
+        # In mdl format the angle is the last value, in 
+        # blender it must the first
+        curve = node_action.fcurves.new(data_path='rotation_axis_angle', index=0)
+        for i in range(len(parsed_node['orientationkey'])):
+            curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), parsed_node['orientationkey'][i][4])
+                
+        # Now set the axes
+        for c in range(1,4):
+            curve = node_action.fcurves.new(data_path='rotation_axis_angle', index=c)
             for i in range(len(parsed_node['orientationkey'])):
-                curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), euler_rotations[i][c])
-                #curve.keyframe_points[i].co = nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0]), euler_rotations[i][c] # May create fucked up curves
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), parsed_node['orientationkey'][i][c])
+        ######################################
+        # Axis Angle
+        ######################################    
     
     # This means that there is only one orientation key (presumably)
     elif ('orientation' in parsed_node):
@@ -1641,8 +1665,12 @@ def parse_geometry(ascii_geom):
             node_object = bpy.data.objects.new(parsed_node['name'], None)
             
             # Set properties
-            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-            node_object.location       = parsed_node['position'] 
+            nvb_utils.setRotationAurora(node_object, \
+                                        parsed_node['orientation'])           
+            node_object.scale    = (parsed_node['scale'], \
+                                    parsed_node['scale'], \
+                                    parsed_node['scale'])
+            node_object.location = parsed_node['position'] 
             
             # Set additional data
             if (node_object.name == glob_modelname):
@@ -1666,9 +1694,12 @@ def parse_geometry(ascii_geom):
             node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
             # Set properties
-            node_object.scale          = (parsed_node['scale'], parsed_node['scale'], parsed_node['scale'])
-            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-            node_object.location       = parsed_node['position']
+            nvb_utils.setRotationAurora(node_object, \
+                                        parsed_node['orientation'])           
+            node_object.scale    = (parsed_node['scale'], \
+                                    parsed_node['scale'], \
+                                    parsed_node['scale'])
+            node_object.location = parsed_node['position']
             
             # Add shading groups
             add_shading_groups(node_object, parsed_node)
@@ -1700,9 +1731,12 @@ def parse_geometry(ascii_geom):
             node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
             # Set properties
-            node_object.scale          = (parsed_node['scale'], parsed_node['scale'], parsed_node['scale'])
-            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-            node_object.location       = parsed_node['position']
+            nvb_utils.setRotationAurora(node_object, \
+                                        parsed_node['orientation'])           
+            node_object.scale    = (parsed_node['scale'], \
+                                    parsed_node['scale'], \
+                                    parsed_node['scale'])
+            node_object.location = parsed_node['position']
             
             # Add shading groups
             add_shading_groups(node_object, parsed_node)
@@ -1741,9 +1775,12 @@ def parse_geometry(ascii_geom):
             node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
             # Set properties
-            node_object.scale          = (parsed_node['scale'], parsed_node['scale'], parsed_node['scale'])
-            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-            node_object.location       = parsed_node['position']
+            nvb_utils.setRotationAurora(node_object, \
+                                        parsed_node['orientation'])           
+            node_object.scale    = (parsed_node['scale'], \
+                                    parsed_node['scale'], \
+                                    parsed_node['scale'])
+            node_object.location = parsed_node['position']
             
             # Add shading groups
             add_shading_groups(node_object, parsed_node)
@@ -1780,9 +1817,12 @@ def parse_geometry(ascii_geom):
             add_particle_system(node_object, parsed_node)
             
             # Set properties
-            node_object.scale          = (parsed_node['scale'], parsed_node['scale'], parsed_node['scale'])
-            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-            node_object.location       = parsed_node['position']
+            nvb_utils.setRotationAurora(node_object, \
+                                        parsed_node['orientation'])           
+            node_object.scale    = (parsed_node['scale'], \
+                                    parsed_node['scale'], \
+                                    parsed_node['scale'])
+            node_object.location = parsed_node['position']
             
             # Aurora properties
             node_object.auroraprops.meshtype     = 'EMITTER'
@@ -1800,8 +1840,9 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_lamp)
             
                 # Set properties
-                node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-                node_object.location       = parsed_node['position']  
+                nvb_utils.setRotationAurora(node_object, \
+                                            parsed_node['orientation']) 
+                node_object.location = parsed_node['position']  
             
                 # Aurora properties
                 node_object.auroraprops.tilelight     = get_tilelight_type(node_object)
@@ -1825,8 +1866,9 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
                 
                 # Set properties
-                node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
-                node_object.location       = parsed_node['position']
+                nvb_utils.setRotationAurora(node_object, \
+                                            parsed_node['orientation']) 
+                node_object.location = parsed_node['position']
                 
                 # Aurora properties
                 node_object.auroraprops.meshtype         = 'AABB'
@@ -1851,7 +1893,8 @@ def parse_geometry(ascii_geom):
         parent_name = node_info[1]
         if (parent_name.lower() != 'null'):
             if parent_name in object_dict:
-                node_object.parent = object_dict[parent_name][0]
+                node_object.parent                = object_dict[parent_name][0]
+                node_object.matrix_parent_inverse = object_dict[parent_name][0].matrix_world.inverted()
             else:
                 print('WARNING: Object ' + node_name + ' has no parent ' +  parent_name)
 

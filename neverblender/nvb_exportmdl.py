@@ -703,11 +703,11 @@ def get_ascii_geometry(mesh_object, textured = True):
         mesh = None
     
     if mesh is not None:
-        # We need only to scale (no rotation or location)
+        # We need only to scale (rotation & location will be stored in the model)
         scale_matrix = mathutils.Matrix([[mesh_object.scale.x,0,0,0],
-                                          [0,mesh_object.scale.y,0,0],
-                                          [0,0,mesh_object.scale.z,0],
-                                          [0,0,0,1]])
+                                         [0,mesh_object.scale.y,0,0],
+                                         [0,0,mesh_object.scale.z,0],
+                                         [0,0,0,1]])
         trans_matrix = mesh_object.matrix_parent_inverse.copy()*scale_matrix 
         mesh.transform(trans_matrix)
         
@@ -913,14 +913,9 @@ def get_material_properties(mesh_object):
         else:
             ascii_props.append('  alpha 1.0')
         
-        if True:
-            ascii_props.append('  ambient ' + str(round(active_mat.diffuse_color[0], glob_color_digits)) + ' ' + 
-                                              str(round(active_mat.diffuse_color[1], glob_color_digits)) + ' ' + 
-                                              str(round(active_mat.diffuse_color[2], glob_color_digits))  )
-        else:
-            ascii_props.append('  ambient ' + str(round(mesh_object.auroraprops.ambientcolor[0], glob_color_digits)) + ' ' + 
-                                              str(round(mesh_object.auroraprops.ambientcolor[1], glob_color_digits)) + ' ' + 
-                                              str(round(mesh_object.auroraprops.ambientcolor[2], glob_color_digits))  )
+        ascii_props.append('  ambient ' + str(round(mesh_object.auroraprops.ambientcolor[0], glob_color_digits)) + ' ' + 
+                                          str(round(mesh_object.auroraprops.ambientcolor[1], glob_color_digits)) + ' ' + 
+                                          str(round(mesh_object.auroraprops.ambientcolor[2], glob_color_digits))  )
                                               
         ascii_props.append('  diffuse ' + str(round(active_mat.diffuse_color[0], glob_color_digits)) + ' ' + 
                                           str(round(active_mat.diffuse_color[1], glob_color_digits)) + ' ' + 
@@ -968,7 +963,7 @@ def lamp2lightnode(lamp_object):
                                       str(round(lamp_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(lamp_object.location[2], glob_gen_digits)) )
     
-    tmp = nvb_utils.euler2nwangle(lamp_object.rotation_euler)
+    tmp = nvb_utils.getRotationAurora(lamp_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' +
                                          str(round(tmp[1], glob_angle_digits)) + ' ' +
                                          str(round(tmp[2], glob_angle_digits)) + ' ' +
@@ -1035,7 +1030,7 @@ def mesh2meshnode(mesh_object, export_object_list = []):
                                       str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(mesh_object.location[2], glob_gen_digits)) )
     
-    tmp = nvb_utils.euler2nwangle(mesh_object.rotation_euler)
+    tmp = nvb_utils.getRotationAurora(mesh_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1216,12 +1211,12 @@ def mesh2walkmeshmeshnode(mesh_object):
                                       str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(mesh_object.location[2], glob_gen_digits)) )
     
-    tmp = nvb_utils.euler2nwangle(mesh_object.rotation_euler)
+    tmp = nvb_utils.getRotationAurora(mesh_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[2], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[3], glob_angle_digits)) )
-     
+    
     ascii_node.append('  wirecolor ' + str(round(mesh_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                        str(round(mesh_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
                                        str(round(mesh_object.auroraprops.wirecolor[2], glob_color_digits))  )
@@ -1253,11 +1248,11 @@ def empty2dummynode(empty_object):
                                           str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
                                           str(round(empty_object.location[2], glob_gen_digits)) )
         
-        tmp = nvb_utils.euler2nwangle(empty_object.rotation_euler)
+        tmp = nvb_utils.getRotationAurora(empty_object)
         ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[2], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[3], glob_angle_digits)) )  
+                                             str(round(tmp[3], glob_angle_digits)) ) 
         
         ascii_node.append('  wirecolor ' + str(round(empty_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                            str(round(empty_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
@@ -1286,7 +1281,7 @@ def empty2walkmeshdummynode(empty_object):
                                           str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
                                           str(round(empty_object.location[2], glob_gen_digits)) )
         
-        tmp = nvb_utils.euler2nwangle(empty_object.rotation_euler)
+        tmp = nvb_utils.getRotationAurora(empty_object)
         ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1425,6 +1420,7 @@ def animdata2asciikeys(anim_object, anim_scene):
                     
     # Generate ascii keys from animation_key dict
     nwnprop_dict = {'rotation_euler'             : ['orientation', glob_angle_digits, 4],
+                    'rotation_axis_angle'        : ['orientation', glob_angle_digits, 4],
                     'location'                   : ['position', glob_gen_digits, 3],
                     'scale'                      : ['scale', glob_gen_digits, 3],
                     'auroraprops.selfillumcolor' : ['selfillumcolor', glob_color_digits, 3],
@@ -1452,6 +1448,14 @@ def animdata2asciikeys(anim_object, anim_scene):
                                  str(round(nwrot[2], rnd_digs)) +
                                  ' ' +
                                  str(round(nwrot[3], rnd_digs)) )
+                if (blend_name == 'rotation_axis_angle'):
+                    str_vals = ( str(round(values[1], rnd_digs)) +
+                                 ' ' +
+                                 str(round(values[2], rnd_digs)) +
+                                 ' ' +
+                                 str(round(values[3], rnd_digs)) +
+                                 ' ' +
+                                 str(round(values[0], rnd_digs)) )                                 
                 elif (blend_name == 'alpha'):
                     str_vals = str(round(values[0], rnd_digs))
                 else:
@@ -1476,6 +1480,14 @@ def animdata2asciikeys(anim_object, anim_scene):
                                      str(round(nwrot[2], rnd_digs)) +
                                      ' ' +
                                      str(round(nwrot[3], rnd_digs)) )
+                    if (blend_name == 'rotation_axis_angle'):
+                        str_vals = ( str(round(values[1], rnd_digs)) +
+                                    ' ' +
+                                    str(round(values[2], rnd_digs)) +
+                                    ' ' +
+                                    str(round(values[3], rnd_digs)) +
+                                    ' ' +
+                                    str(round(values[0], rnd_digs)) )                                      
                     elif (blend_name == 'auroraprops.birthrate'):
                         str_vals = str(int(values[0]))                                     
                     elif (blend_name == 'alpha'):

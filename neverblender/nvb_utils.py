@@ -1,4 +1,5 @@
 ﻿import math
+import mathutils
 import bpy
 from . import nvb_presets
  
@@ -9,7 +10,38 @@ def get_is_shadinggr(vertex_group):
     '''
     return (nvb_presets.shading_group_name in vertex_group.name)
  
- 
+
+def getRotationAurora(object):    
+    auroraRot    = [0.0, 0.0, 0.0, 0.0]
+    oldRotMode = object.rotation_mode
+    
+    object.rotation_mode = 'AXIS_ANGLE'
+    auroraRot[0] = object.rotation_axis_angle[1]
+    auroraRot[1] = object.rotation_axis_angle[2]
+    auroraRot[2] = object.rotation_axis_angle[3]
+    auroraRot[3] = object.rotation_axis_angle[0]
+    object.rotation_mode = oldRotMode
+    
+    return auroraRot
+
+    
+def setRotationAurora(object, auroraRot):    
+    
+    # Save old rotation mode so we are able restore it afterwars
+    oldRotMode = object.rotation_mode 
+    # Change to axis-angle mode, else the change will not show
+    # in 3D view    
+    object.rotation_mode = 'AXIS_ANGLE'
+    object.rotation_axis_angle = [auroraRot[3], \
+                                  auroraRot[0], \
+                                  auroraRot[1], \
+                                  auroraRot[2]]
+    # This will convert axis-angle to euler xyz
+    #object.rotation_mode = 'XYZ'
+    # Restore the old mode now
+    #object.rotation_mode = oldRotMode
+
+    
 def nwtime2frame(time, fps):
     '''
     For animations: Convert key time to frame number
@@ -19,8 +51,9 @@ def nwtime2frame(time, fps):
 
 def frame2nwtime(frame, fps):
     return round(frame / fps, 7)
-
-
+    
+    
+    
 def euler2nwangle(eulerangle):
 
     nwangle = (0.0, 0.0, 0.0, 0.0)
@@ -50,17 +83,13 @@ def euler2nwangle(eulerangle):
         nwangle = (tmp * qx, tmp * qy, tmp * qz, 2.0 * phi2)
     
     return nwangle
-
-
-def nwangle2euler(nwangle):
-    '''
-    For some reason converting directly to euler angles
-    doesn't seem to work 100% right
-    '''
-    euler_angle = [0.0,0.0,0.0]
     
+   
+def nwangle2euler(nwangle):  
+    eulerRot = [0.0,0.0,0.0]
+
     try:
-        # Axis-angle to quaternion
+        # Axis-angle to quaternion        
         phi2 = 0.5 * nwangle[3]
     
         tmp = math.sin(phi2)
@@ -77,11 +106,11 @@ def nwangle2euler(nwangle):
         phi_y = math.asin( 2.0 * (qw*qy - qx*qz))
         phi_x = math.atan2(2.0 * (qw*qx + qy*qz), r-  2.0 * tmp)
         
-        euler_angle = [phi_x, phi_y, phi_z]
+        eulerRot = [phi_x, phi_y, phi_z]
     except:
         pass
-            
-    return euler_angle
+
+    return eulerRot
 
 
 def get_mdlbase(scene):
@@ -143,7 +172,7 @@ def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
     render_scene.render.resolution_x               = mdlbase.auroraprops.minimapsize
     render_scene.render.resolution_y               = mdlbase.auroraprops.minimapsize
     render_scene.render.resolution_percentage      = 100
-    render_scene.render.image_settings.color_mode  = 'RGBA'
+    render_scene.render.image_settings.color_mode  = 'RGB'
     render_scene.render.image_settings.file_format = 'TARGA_RAW'
     
     
