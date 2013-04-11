@@ -22,13 +22,12 @@ bl_info = {
     "author": "Attila Györkös",
     "blender": (2, 6, 3),
     "location": "File > Import-Export, Object Properties",
-    "description": "Import, Export and edit Neverwinter Nights models"
-                   "and effects",
+    "description": "Import, export and edit aurora mdl format",
     "warning": "",
     "wiki_url": ""
                 "",
     "tracker_url": "",
-    "category": "Game Engine"}
+    "category": "Import-Export"}
 
 
 if "bpy" in locals():
@@ -49,13 +48,12 @@ def nvb_update_shadow_prop(self, context):
     '''
     Set the lamps shadow to match the aurora shadow property
     '''  
-    object = context.object
-    if (object):
-        if (object.type == 'LAMP'):
-            if (object.auroraprops.shadow):
-                object.data.shadow_method = 'RAY_SHADOW'
-            else:
-                object.data.shadow_method = 'NOSHADOW'
+    selected_object = context.object
+    if (selected_object) and (selected_object.type == 'LAMP'):
+        if (object.auroraprops.shadow):
+            object.data.shadow_method = 'RAY_SHADOW'
+        else:
+            object.data.shadow_method = 'NOSHADOW'
 
 
 def nvb_update_lighttype_prop(self, context):
@@ -82,6 +80,9 @@ def nvb_update_lifeexp_prop(self, context):
 
     
 class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
+    '''
+    This oper
+    '''
     bl_idname = "nvb.load_wok_mats"
     bl_label  = "Load walkmesh materials"
     
@@ -90,19 +91,20 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
         - Deletes all current materials
         - adds walkmesh materials
         '''
-        walkmesh_object = context.object
-        if (walkmesh_object):
+        selected_object = context.object
+        if (selected_object) and (selected_object.type == 'MESH'):
             object_mesh = walkmesh_object.data
             
             # Remove all current material slots
-            for i in range(len(walkmesh_object.material_slots)):
+            for i in range(len(selected_object.material_slots)):
                 bpy.ops.object.material_slot_remove()
                 
-            # Create walkmesh materials
+            # Create materials
             for i in range(len(nvb_presets.wok_materials)):
                 mat_name = nvb_presets.wok_materials[i][0] +'.mat'
         
-                # Walkmesh materials should be shared across multiple walkmesh objects
+                # Walkmesh materials should be shared across multiple 
+                # walkmeshes, as they always identical
                 if mat_name in bpy.data.materials.keys():
                     walkmesh_mat = bpy.data.materials[mat_name]
                 else:
@@ -112,11 +114,13 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
                     walkmesh_mat.diffuse_intensity  = 1.0 
                     walkmesh_mat.specular_color     = (0.0,0.0,0.0)
                     walkmesh_mat.specular_intensity = nvb_presets.wok_materials[i][2]
-        
+                
                 object_mesh.materials.append(walkmesh_mat)
-                       
+        else:           
+            self.report({'INFO'}, 'A mesh must be selected')
+            return {'CANCELLED'}              
 
-        return{'FINISHED'}
+        return {'FINISHED'}
         
 
 class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
@@ -128,13 +132,19 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         - Creates an camera and a lamp
         - Renders Minimap 
         '''
-        mdlbase = context.object
-        if (mdlbase):
-            if (mdlbase.type == 'EMPTY') and (mdlbase.auroraprops.dummytype == 'MDLBASE'):          
+        selected_object = context.object
+        if (selected_object) and (selected_object.type == 'EMPTY'):
+            if (mdlbase.auroraprops.dummytype == 'MDLBASE'):          
                 nvb_utils.nvb_minimap_render_setup(mdlbase, bpy.context.scene)
-                bpy.ops.render.render()            
+                bpy.ops.render.render()
+            else:
+                self.report({'INFO'}, 'A MDLBASE must be selected')
+                return {'CANCELLED'}             
+        else:
+            self.report({'INFO'}, 'An Empty must be selected')
+            return {'CANCELLED'}        
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
         
 class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
@@ -272,9 +282,20 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
             default=True,
             )
             
+    # Hidden option, only used for minimap creation
     import_lights = BoolProperty(
             name='Import Light',
             description='Wether to import lights' \
+                        '(Useful for rendering minmaps)',
+            default=True,
+            options={'HIDDEN'},
+            )
+            
+    # Hidden option, only used for minimap creation        
+    import_fading_obj = BoolProperty(
+            name='Import Fading Objects',
+            description='Wether to import objects with' \
+                        'activated tilefade' \
                         '(Useful for rendering minmaps)',
             default=True,
             options={'HIDDEN'},
@@ -436,6 +457,12 @@ class NVBAuroraParticlePropertyGroup(bpy.types.PropertyGroup):
     
 
 class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
+    ''' 
+    Property panel for additional properties needed for the mdl file
+    format. This is only available for particle systems.
+    It is located under the particle panel in the properties window 
+    ''' 
+    
     bl_idname      = 'nvb.propertypanel.particlesystem'
     bl_label       = 'Aurora Particle Properties'
     bl_space_type  = 'PROPERTIES'
@@ -639,7 +666,11 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
 
 
 class NVBAuroraObjectPropertyGroup(bpy.types.PropertyGroup):
-
+    ''' 
+    This class defines all additional properties needed by the mdl file 
+    format. It hold the properties for meshes, lamps and empties.
+    '''
+    
     # For all objects
     wirecolor = bpy.props.FloatVectorProperty(name = 'Wirecolor',
                                               description = 'Color of the wireframe',
@@ -711,7 +742,12 @@ class NVBAuroraObjectPropertyGroup(bpy.types.PropertyGroup):
     
 
 class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
-
+    ''' 
+    Property panel for additional properties needed for the mdl file
+    format. This is only available for EMPTY objects.
+    It is located under the object data panel in the properties window 
+    '''
+    
     bl_idname = 'nvb.propertypanel.dummy'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
@@ -781,7 +817,14 @@ class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
 
 
 class NVBAuroraPropertyPanelLight(bpy.types.Panel):
-
+    ''' 
+    Property panel for additional light or lamp properties. This
+    holds all properties not supported by blender at the moment,
+    but used by OpenGL and the aurora engine. This is only available 
+    for LAMP objects.
+    It is located under the object data panel in the properties window 
+    '''
+    
     bl_idname = 'nvb.propertypanel.light'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
@@ -821,7 +864,14 @@ class NVBAuroraPropertyPanelLight(bpy.types.Panel):
     
 
 class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
-
+    ''' 
+    Property panel for additional mesh properties. This
+    holds all properties not supported by blender at the moment,
+    but used by OpenGL and the aurora engine. This is only available 
+    for MESH objects.
+    It is located under the object data panel in the properties window
+    '''  
+    
     bl_idname = 'nvb.propertypanel.mesh'
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
@@ -913,7 +963,7 @@ class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
                 row.prop_search(object.auroraprops, 'new_skingroupname', context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text = '', icon='ZOOMIN')           
             
-            # Additional props for asabb walkmeshes
+            # Additional props for aabb walkmeshes
             elif (object.auroraprops.meshtype == 'AABB'):
                 row = layout.row()
                 box = row.box()
@@ -921,6 +971,7 @@ class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
                 row.operator('nvb.load_wok_mats', text = 'Load walkmesh materials', icon='NONE')
                 row = box.row()
                 row.label(text = '(Warning: Removes current materials)')               
+
 
 # Add to a menu
 def menu_func_export(self, context):

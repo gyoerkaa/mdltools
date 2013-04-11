@@ -112,14 +112,24 @@ def nwangle2euler(nwangle):
 
     return eulerRot
 
+ 
+def getIsMdlBase(object):
+    if (object is not None):
+        if (object.parent is None) and \
+           (object.type == 'EMPTY') and \
+           (object.auroraprops.dummytype == 'MDLBASE'):
+            return True
+        
+    return False
+    
+    
 
 def get_mdlbase(scene):
     if scene is None:
         return None
         
     for object in scene.objects:
-        if (object.type == 'EMPTY'):
-            if (object.auroraprops.dummytype == 'MDLBASE'):
+        if getIsMdlBase(object):
                 return object
     
     return None

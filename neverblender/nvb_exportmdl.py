@@ -116,18 +116,17 @@ def get_export_objects():
     global glob_supermodel
     global glob_mdl_animationscale
     
-    # Search for the mdl base object (take the first found root object)
-    
+    # Search for the mdl base object (take the first found root object)    
     if (glob_export_selection == 'SELECTION'):
-        # Export selected objects only
+        # Search for mdl base in the current selection
         for object in glob_export_scene.objects:
-            if (not object.parent) and (object.select):
-                if (object.type == 'EMPTY') and (object.auroraprops.dummytype == 'MDLBASE'):
+            if (object.select):
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     
     elif (glob_export_selection == 'LAYER'):
-        # Export all objects from active layers in current scene
+        # Search for mdl base in the active layers of the current scene
         for object in glob_export_scene.objects:
             # Check if the object is on an active layer
             is_active = False
@@ -136,16 +135,20 @@ def get_export_objects():
                 is_active = (glob_export_scene.layers[i] == True) and (object.layers[i] == True)
                 i += 1
             
-            if (not object.parent) and (is_active):
-                if (object.type == 'EMPTY') and (object.auroraprops.dummytype == 'MDLBASE'):
+            if (is_active):
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     
     else:
-        # Export everything in current scene
-        for object in glob_export_scene.objects:
-            if (not object.parent):
-                if (object.type == 'EMPTY') and (object.auroraprops.dummytype == 'MDLBASE'):
+        # Is the currently selected object a mdl base ?
+        # If so, take that one
+        if (nvb_utils.getIsMdlBase(bpy.context.object)):
+            mdlbase_object = bpy.context.object         
+        else:           
+            # Search for mdl base in the current scene
+            for object in glob_export_scene.objects:
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     

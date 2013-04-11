@@ -26,7 +26,7 @@ from . import nvb_utils
 from . import nvb_presets
 
 ###########################################################
-## Variables
+## Globals
 ###########################################################
 
 
@@ -40,6 +40,7 @@ glob_import_shading_groups = False
 glob_use_image_search      = False
 glob_one_tex_per_image     = True
 glob_import_lights         = True
+glob_import_fading_obj     = True
 
 
 # Will be read from file
@@ -49,6 +50,7 @@ glob_supermodel         = 'NULL'
 glob_animationscale     = 1.0
 
 
+# 
 glob_import_scene = None
 
 
@@ -1686,126 +1688,129 @@ def parse_geometry(ascii_geom):
             glob_import_scene.objects.link(node_object)
             object_dict[parsed_node['name']] = [node_object, parsed_node['parent']]
             
-        elif (parsed_node['type'] == 'trimesh'):
-            # Create the mesh
-            node_mesh = trimeshnode2mesh(parsed_node) 
+        elif (parsed_node['type'] == 'trimesh'):           
+            if (parsed_node['tilefade'] == 0) or (glob_import_fading_obj):            
+                # Create the mesh
+                node_mesh = trimeshnode2mesh(parsed_node) 
             
-            # Create the object
-            node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
+                # Create the object
+                node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
-            # Set properties
-            nvb_utils.setRotationAurora(node_object, \
-                                        parsed_node['orientation'])           
-            node_object.scale    = (parsed_node['scale'], \
-                                    parsed_node['scale'], \
-                                    parsed_node['scale'])
-            node_object.location = parsed_node['position']
+                # Set properties
+                nvb_utils.setRotationAurora(node_object, \
+                                            parsed_node['orientation'])           
+                node_object.scale = (parsed_node['scale'], \
+                                     parsed_node['scale'], \
+                                     parsed_node['scale'])
+                node_object.location = parsed_node['position']
             
-            # Add shading groups
-            add_shading_groups(node_object, parsed_node)
+                # Add shading groups
+                add_shading_groups(node_object, parsed_node)
             
-            # Aurora properties
-            node_object.auroraprops.meshtype         = 'TRIMESH'
-            node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-            node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
-            #node_object.auroraprops.scale            = parsed_node['scale']
-            node_object.auroraprops.render           = (parsed_node['render'] == 1)
-            node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
-            node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
-            node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
-            node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
-            node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
-            node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
-            node_object.auroraprops.ambientcolor     = parsed_node['ambient']
-            node_object.auroraprops.shininess        = parsed_node['shininess']
+                # Aurora properties
+                node_object.auroraprops.meshtype         = 'TRIMESH'
+                node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
+                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                #node_object.auroraprops.scale            = parsed_node['scale']
+                node_object.auroraprops.render           = (parsed_node['render'] == 1)
+                node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
+                node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
+                node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
+                node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
+                node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
+                node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
+                node_object.auroraprops.ambientcolor     = parsed_node['ambient']
+                node_object.auroraprops.shininess        = parsed_node['shininess']
             
-            # Link object to scene
-            glob_import_scene.objects.link(node_object)
-            object_dict[node_object.name] = [node_object, parsed_node['parent']]
+                # Link object to scene
+                glob_import_scene.objects.link(node_object)
+                object_dict[node_object.name] = [node_object, parsed_node['parent']]
         
         elif (parsed_node['type'] == 'danglymesh'):
-             # Create the mesh
-            node_mesh        = danglymeshnode2mesh(parsed_node)              
+            if (parsed_node['tilefade'] == 0) or (glob_import_fading_obj):
+                # Create the mesh
+                node_mesh = danglymeshnode2mesh(parsed_node)              
             
-            # Create the object
-            node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
+                # Create the object
+                node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
-            # Set properties
-            nvb_utils.setRotationAurora(node_object, \
-                                        parsed_node['orientation'])           
-            node_object.scale    = (parsed_node['scale'], \
-                                    parsed_node['scale'], \
-                                    parsed_node['scale'])
-            node_object.location = parsed_node['position']
+                # Set properties
+                nvb_utils.setRotationAurora(node_object, \
+                                            parsed_node['orientation'])           
+                node_object.scale = (parsed_node['scale'], \
+                                     parsed_node['scale'], \
+                                     parsed_node['scale'])
+                node_object.location = parsed_node['position']
             
-            # Add shading groups
-            add_shading_groups(node_object, parsed_node)
+                # Add shading groups
+                add_shading_groups(node_object, parsed_node)
             
-            # Add a vertex group for the danglymesh
-            danglegroup = add_danglegroup(node_object, parsed_node)
-            node_object.auroraprops.danglegroup = danglegroup.name
+                # Add a vertex group for the danglymesh
+                danglegroup = add_danglegroup(node_object, parsed_node)
+                node_object.auroraprops.danglegroup = danglegroup.name
             
-            # Aurora properties
-            node_object.auroraprops.meshtype         = 'DANGLYMESH'
-            node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-            node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
-            #node_object.auroraprops.scale            = parsed_node['scale']
-            node_object.auroraprops.render           = (parsed_node['render'] == 1)
-            node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
-            node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
-            node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
-            node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
-            node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
-            node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
-            node_object.auroraprops.ambientcolor     = parsed_node['ambient']
-            node_object.auroraprops.shininess        = parsed_node['shininess']
-            node_object.auroraprops.period           = parsed_node['period']
-            node_object.auroraprops.tightness        = parsed_node['tightness']
-            node_object.auroraprops.displacement     = parsed_node['displacement']
+                # Aurora properties
+                node_object.auroraprops.meshtype         = 'DANGLYMESH'
+                node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
+                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                #node_object.auroraprops.scale            = parsed_node['scale']
+                node_object.auroraprops.render           = (parsed_node['render'] == 1)
+                node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
+                node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
+                node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
+                node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
+                node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
+                node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
+                node_object.auroraprops.ambientcolor     = parsed_node['ambient']
+                node_object.auroraprops.shininess        = parsed_node['shininess']
+                node_object.auroraprops.period           = parsed_node['period']
+                node_object.auroraprops.tightness        = parsed_node['tightness']
+                node_object.auroraprops.displacement     = parsed_node['displacement']
             
-            # Link object to scene
-            glob_import_scene.objects.link(node_object)    
-            object_dict[node_object.name] = [node_object, parsed_node['parent']]
+                # Link object to scene
+                glob_import_scene.objects.link(node_object)    
+                object_dict[node_object.name] = [node_object, parsed_node['parent']]
         
         elif (parsed_node['type'] == 'skin'):
-            # Create the mesh
-            node_mesh        = skinmeshnode2mesh(parsed_node) 
+            if (parsed_node['tilefade'] == 0) or (glob_import_fading_obj):             
+                # Create the mesh
+                node_mesh = skinmeshnode2mesh(parsed_node) 
             
-            # Create the object
-            node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
+                # Create the object
+                node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
-            # Set properties
-            nvb_utils.setRotationAurora(node_object, \
+                # Set properties
+                nvb_utils.setRotationAurora(node_object, \
                                         parsed_node['orientation'])           
-            node_object.scale    = (parsed_node['scale'], \
-                                    parsed_node['scale'], \
-                                    parsed_node['scale'])
-            node_object.location = parsed_node['position']
+                node_object.scale = (parsed_node['scale'], \
+                                     parsed_node['scale'], \
+                                     parsed_node['scale'])
+                node_object.location = parsed_node['position']
             
-            # Add shading groups
-            add_shading_groups(node_object, parsed_node)
+                # Add shading groups
+                add_shading_groups(node_object, parsed_node)
             
-            # Add a vertex group for the skin
-            add_skingroups(node_object, parsed_node)
+                # Add a vertex group for the skin
+                add_skingroups(node_object, parsed_node)
             
-            # Aurora properties
-            node_object.auroraprops.meshtype         = 'SKIN'
-            node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-            node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
-            #node_object.auroraprops.scale            = parsed_node['scale']
-            node_object.auroraprops.render           = (parsed_node['render'] == 1)
-            node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
-            node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
-            node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
-            node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
-            node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
-            node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
-            node_object.auroraprops.ambientcolor     = parsed_node['ambient']
-            node_object.auroraprops.shininess        = parsed_node['shininess']
+                # Aurora properties
+                node_object.auroraprops.meshtype         = 'SKIN'
+                node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
+                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                #node_object.auroraprops.scale            = parsed_node['scale']
+                node_object.auroraprops.render           = (parsed_node['render'] == 1)
+                node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
+                node_object.auroraprops.beaming          = (parsed_node['beaming'] == 1)
+                node_object.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
+                node_object.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
+                node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']
+                node_object.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
+                node_object.auroraprops.ambientcolor     = parsed_node['ambient']
+                node_object.auroraprops.shininess        = parsed_node['shininess']
             
-            # Link object to scene
-            glob_import_scene.objects.link(node_object)
-            object_dict[node_object.name] = [node_object, parsed_node['parent']]
+                # Link object to scene
+                glob_import_scene.objects.link(node_object)
+                object_dict[node_object.name] = [node_object, parsed_node['parent']]
         
         elif (parsed_node['type'] == 'emitter'):
             # Create the mesh for the emitter
@@ -2348,6 +2353,7 @@ def load(operator,
          use_image_search = False,
          one_texture_per_image = True,
          import_lights = True,
+         import_fading_obj = True,
          ):    
     '''
     Called by the user interface or another script.
@@ -2364,6 +2370,7 @@ def load(operator,
     global glob_import_scene
     global glob_one_tex_per_image
     global glob_import_lights
+    global glob_import_fading_obj
     
     glob_mdl_filepath          = os.fsencode(filepath)
     glob_mdl_filename          = os.path.splitext(os.path.basename(filepath))[0]
@@ -2374,6 +2381,7 @@ def load(operator,
     glob_use_image_search      = use_image_search
     glob_one_tex_per_image     = one_texture_per_image
     glob_import_lights         = import_lights
+    glob_import_fading_obj     = import_fading_obj
     
     glob_import_scene         = bpy.context.scene
     

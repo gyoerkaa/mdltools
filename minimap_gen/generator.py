@@ -8,13 +8,14 @@ import blf
 import neverblender
 
 # Globals
-minimap_size = 32
-z_offset     = 0.0
-input_path   = 'in'
-output_path  = 'out'
-emtpy_blend  = os.fsencode('.\\empty.blend')
-light_color  = (1.0,1.0,1.0)
-lightsrc_imp = False
+minimap_size   = 32
+z_offset       = 0.0
+input_path     = 'in'
+output_path    = 'out'
+emtpy_blend    = os.fsencode('.\\empty.blend')
+light_color    = (1.0,1.0,1.0)
+lightsrc_imp   = False
+fading_obj_imp = True
 
 def processfile(filepath):
     '''
@@ -23,7 +24,7 @@ def processfile(filepath):
      - Render minimap
     '''
     # Import mdl file
-    bpy.ops.nvb.importmdl(filepath=mdlfile, import_items={'GEOMETRY'}, import_walkmesh=False, import_lights=lightsrc_imp)
+    bpy.ops.nvb.importmdl(filepath=mdlfile, import_items={'GEOMETRY'}, import_walkmesh=False, import_lights=lightsrc_imp, import_fading_obj=fading_obj_imp)
     
     # Render minimap
     render_scene = bpy.context.scene   
@@ -63,6 +64,12 @@ for arg in sys.argv:
         except:
             print('ERROR: Could not read IMPORT_LIGHTS from generator.ini')
             lightscr_im = False
+    elif (words[0] == 'nvb_impfade'):
+        try:    
+            fading_obj_imp = (int(words[1]) >= 1)
+        except:
+            print('ERROR: Could not read IMPORT_FADING_OBJ from generator.ini')
+            fading_obj_imp = True           
     elif (words[0] == 'nvb_lcolor'):
         print(words[1])
         cval_string = words[1].split(',')

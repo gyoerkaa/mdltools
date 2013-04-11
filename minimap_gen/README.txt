@@ -41,8 +41,16 @@ LIGHT_COLOR=1.0,1.0,1.0
 
 Whether to import the light sources from the models. It is not recommended
 to do so. The color of the light sources may affect the render result, 
-while in-game their color depends on the settings made by the builder.
+while in-game their color depends on the settings chosen by the builder.
 1 = Light source will be imported
-0 = No import (recommended)
+0 = No import (recommended, default)
 [MINIMAP]
 IMPORT_LIGHTS=0
+
+Wether to ignore objects with activated tilefade. Recommended for
+tilesets with ceilings, as blender's renderer does not support 
+backface culling, which would result in only the ceiling being rendered.
+1 = Fading objects will be imported (default)
+0 = Fading objects will NOT be imported (recommended for tilesets with ceiling)
+[MINIMAP]
+IMPORT_FADING_OBJ=1
