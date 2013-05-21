@@ -581,7 +581,7 @@ def get_ascii_emitter(mesh_object):
             if (active_tex.type == 'IMAGE'):
                 # There should be an image assigned
                 if (active_tex.image):
-                    tmp = active_tex.image.name
+                    tmp = nvb_utils.get_image_filename(active_tex.image)
     ascii_emitter.append('  texture ' + tmp)
     tmp = ps_settings.billboard_uv_split
     ascii_emitter.append('  xgrid ' + str(tmp))
@@ -844,7 +844,7 @@ def get_ascii_weights(mesh_object, export_object_list = []):
     Values of the skingroups
     '''   
     
-    # Get a list of skindgroups for this object:  
+    # Get a list of skingroups for this object:  
     # To find out if a group is a skingroup check for objects
     # in the mdl list with the same name
     skingroup_list = []    
@@ -938,7 +938,7 @@ def get_material_properties(mesh_object):
             if (active_tex.type == 'IMAGE'):
                 # There should be an image assigned
                 if (active_tex.image):
-                    image_name = active_tex.image.name
+                    image_name = nvb_utils.get_image_filename(active_tex.image)
         ascii_props.append('  bitmap ' + image_name)
     else:
         # No material, set some default values
@@ -1140,8 +1140,9 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         tmp = '1' if (mesh_object.auroraprops.render) else '0'
         ascii_node.append('  render ' + tmp)  
         
-        tmp = '1' if (mesh_object.auroraprops.shadow) else '0'
-        ascii_node.append('  shadow ' + tmp)
+        # No shadows on skinmeshes
+        #tmp = '1' if (mesh_object.auroraprops.shadow) else '0'
+        #ascii_node.append('  shadow ' + tmp)
         
         tmp = str(mesh_object.auroraprops.transparencyhint)
         ascii_node.append('  transparencyhint ' + tmp)

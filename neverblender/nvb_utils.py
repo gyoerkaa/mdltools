@@ -1,8 +1,19 @@
 ﻿import math
 import mathutils
 import bpy
+import os
 from . import nvb_presets
  
+ 
+def get_image_filename(image):
+    '''
+    '''
+    filename = os.path.splitext(os.path.basename(image.filepath))[0]
+    if (filename == ''):
+        return image.name
+    
+    return filename
+
 
 def get_is_shadinggr(vertex_group):
     '''
@@ -52,8 +63,7 @@ def nwtime2frame(time, fps):
 def frame2nwtime(frame, fps):
     return round(frame / fps, 7)
     
-    
-    
+        
 def euler2nwangle(eulerangle):
 
     nwangle = (0.0, 0.0, 0.0, 0.0)
@@ -123,7 +133,6 @@ def getIsMdlBase(object):
     return False
     
     
-
 def get_mdlbase(scene):
     if scene is None:
         return None

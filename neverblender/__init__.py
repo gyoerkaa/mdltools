@@ -93,7 +93,7 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
         '''
         selected_object = context.object
         if (selected_object) and (selected_object.type == 'MESH'):
-            object_mesh = walkmesh_object.data
+            object_mesh = selected_object.data
             
             # Remove all current material slots
             for i in range(len(selected_object.material_slots)):
@@ -134,8 +134,8 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         '''
         selected_object = context.object
         if (selected_object) and (selected_object.type == 'EMPTY'):
-            if (mdlbase.auroraprops.dummytype == 'MDLBASE'):          
-                nvb_utils.nvb_minimap_render_setup(mdlbase, bpy.context.scene)
+            if (selected_object.auroraprops.dummytype == 'MDLBASE'):          
+                nvb_utils.nvb_minimap_render_setup(selected_object, bpy.context.scene)
                 bpy.ops.render.render()
             else:
                 self.report({'INFO'}, 'A MDLBASE must be selected')

@@ -858,7 +858,7 @@ def parse_geom_node(ascii_node):
     parsed_node['weights']          = []
     # For Emitters
     parsed_node['affectedbywind']   = 0.0
-    parsed_node['m_isTinted']       = 1
+    parsed_node['m_istinted']       = 1
     parsed_node['bounce']           = 0
     parsed_node['random']           = 0
     parsed_node['inherit']          = 1
