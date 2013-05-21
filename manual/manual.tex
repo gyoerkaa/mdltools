@@ -25,17 +25,8 @@
 The only requirement is Blender 2.6x. It will not work with 2.5x or earlier versions.
 
 \subsection{Installation}
-Put the Neverblender folder into the scripts/addons directory of your Blender directory. Open blender and navigate to File, User Preferences, Addons and enable Neverblender by ticking the check box (It is located under Game Engine category). Make sure to click on the {\itshape{Save as Default}} Button, if you want Neverblender to be enabled by default, else you will have to re-enable it after every startup.
+Put the Neverblender folder into the scripts/addons directory of your Blender directory. Open blender and navigate to File, User Preferences, Addons and enable Neverblender by ticking the check box (It is located under Import-Export category). Make sure to click on the {\itshape{Save as Default}} Button, if you want Neverblender to be enabled by default, else you will have to re-enable it after every startup.
 
-
-subsubsection{}
-
-\begin{figure}
-  \centering
-  \includegraphics[trim=0 0 0 0, clip, width=\textwidth]{installation01}
-  \caption[Installation]{Activation of the Neverblender addon}
-  \label{fig:Installation01}
-\end{figure}
 
 \section{Import \& Export}
 
@@ -147,8 +138,8 @@ There a two ways to add skin groups:
 \end{enumerate}
 
 \subsubsection{aabb Walkmesh}
-The walkmesh must be parented to the the {\itshape{mdl base}} object. No overlapping faces are allowed. To specify the surface type, it is necessary to add the walkmesh materials to the object. You can add all walkmesh materials by clicking on the {\itshape{Load walkmesh materials}} Button in the Aurora mesh properties panel. The walkmesh materials are than added as materials slots and accessible through the materials tab in the object properties. \\ \\
-The export script will create an aabb tree from the walkmesh during export and save in the {\itshape{*.mdl}} file. It will also create a matching {\itshape{*.wok}} file.
+The walkmesh must be parented to the the {\itshape{mdl base}} object. No overlapping faces are allowed. To specify the surface type, it is necessary to add the walkmesh materials to the object. You can add all walkmesh materials by clicking on the {\itshape{Load walkmesh materials}} Button in the Aurora mesh properties panel. The walkmesh materials are then added as materials slots and accessible through the materials tab in the object properties. \\ \\
+The export script will create an aabb tree from the walkmesh during export and save it the {\itshape{*.mdl}} file. It will also create a matching {\itshape{*.wok}} file.
 
 
 
@@ -157,7 +148,7 @@ The export script will create an aabb tree from the walkmesh during export and s
 \subsection{Animations}
 
 \subsection{Emitter}
-Unfortunately Neverblender offers very limited support for emitters, due to the fact that blenders particle system is too  different from the system used in 3ds max.
+Unfortunately Neverblender offers very limited support for emitters, due to the fact that blenders particle system is too different from the system used in 3ds max.
 \section{Tutorials}
 
 \subsection{Blender}
@@ -187,7 +178,7 @@ You can specify some of the render options in the {\itshape{generator.ini}} :
 \item[LIGHT COLOR] A single light source will be placed above the center of the tile. 
 You can change the color of this light. The color has to be given in RGB format (values ranging from 0.0 to 1.0), separated by colons (without whitespaces)
 \item[IMPORT LIGHTS] Whether to import the light sources from the models. It is not recommended
-to do so. The color of the light sources may affect the render result, while in-game their color depends on the settings made by the builder.
+to do so. The color of the light sources may affect the render result, while in the engine their color is ignored and instead depending on the settings made by the builder.
 \end{description}
 
 
