@@ -48,32 +48,35 @@ def nvb_update_shadow_prop(self, context):
     '''
     Set the lamps shadow to match the aurora shadow property
     '''  
-    selected_object = context.object
-    if (selected_object) and (selected_object.type == 'LAMP'):
-        if (object.auroraprops.shadow):
-            object.data.shadow_method = 'RAY_SHADOW'
-        else:
-            object.data.shadow_method = 'NOSHADOW'
-
+    select_object = context.object
+    if (select_object) and (select_object.type == 'LAMP'):
+        try:
+            if (select_object.auroraprops.shadow):
+                select_object.data.shadow_method = 'RAY_SHADOW'
+            else:
+                select_object.data.shadow_method = 'NOSHADOW'
+        except:
+            pass # just do nothing
 
 def nvb_update_lighttype_prop(self, context):
     '''
     Renames lamp acording to match selected light type
     '''
-    object = context.object
-    if (object):    
-        if (object.type == 'LAMP'):
-            if (object.auroraprops.lighttype == 'NONE'):
+    select_object = context.object
+    if (select_object) and (select_object.type == 'LAMP'):
+        try:    
+            if (select_object.auroraprops.lighttype == 'NONE'):
                 pass
-            elif (object.auroraprops.lighttype == 'MAINLIGHT1'):
+            elif (select_object.auroraprops.lighttype == 'MAINLIGHT1'):
                 pass         
-            elif (object.auroraprops.lighttype == 'MAINLIGHT2'):
+            elif (select_object.auroraprops.lighttype == 'MAINLIGHT2'):
                 pass
-            elif (object.auroraprops.lighttype == 'SOURCELIGHT1'):
+            elif (select_object.auroraprops.lighttype == 'SOURCELIGHT1'):
                 pass                
-            elif (object.auroraprops.lighttype == 'SOURCELIGHT2'):
+            elif (select_object.auroraprops.lighttype == 'SOURCELIGHT2'):
                 pass 
-
+        except:
+            pass # just do nothing
 
 def nvb_update_lifeexp_prop(self, context):
     pass

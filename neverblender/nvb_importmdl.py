@@ -381,8 +381,26 @@ def create_mesh_material(parsed_node):
         else:
             image = load_material_image(parsed_node['bitmap'],'.tga')
             if image:
-                image.use_premultiply = True
                 node_tex.texture.image = image
+                # Alpha settings
+                if (parsed_node['alpha'] >= 0.00001):
+                    node_tex.alpha_factor = 1.0
+                    node_tex.use_map_alpha = True
+                    #################################
+                    # Blender 2.60 - 2.66
+                    try:
+                        image.use_premultiply = True
+                    except:
+                        pass # just do nothing
+                    #################################
+                    # Blender 2.67 - XXX
+                    try:
+                        image.alpha_mode = 'PREMUL'
+                        image.use_alpha = True
+                    except:
+                        pass # just do nothing                        
+                    #################################               
+                
     
     return node_mat
 
