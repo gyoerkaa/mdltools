@@ -685,7 +685,7 @@ class NVBAuroraObjectPropertyGroup(bpy.types.PropertyGroup):
     shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)                                              
     
     # For emptys
-    dummytype        = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple dummy object', 0), ('MDLBASE', 'Mdl Base', 'All objects have to parented to this', 1), ('PWKBASE', 'Pwk Base', 'Placeable walkmesh', 2), ('DWKBASE', 'Dwk Base', 'Door walkmesh', 3)], default = 'NONE')
+    dummytype        = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple dummy object', 0), ('MDLBASE', 'Mdl Rootdummy', 'All objects have to parented to this', 1), ('PWKBASE', 'Pwk Rootdummy', 'Placeable walkmesh', 2), ('DWKBASE', 'Dwk Rootdummy', 'Door walkmesh', 3)], default = 'NONE')
     
     
     # For mdl base
