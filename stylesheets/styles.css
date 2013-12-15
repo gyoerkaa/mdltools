@@ -316,7 +316,11 @@ a.buttons:hover {
 	text-decoration: none;
 }
 
-
+span.literal {
+    color: rgb(85, 85, 85);
+    white-space: nowrap;
+    font-style:italic;
+}
 /* Section - for main page content */
 
 section {
