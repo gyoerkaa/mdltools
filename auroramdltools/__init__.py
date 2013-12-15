@@ -18,11 +18,11 @@
 
 
 bl_info = {
-    "name": "Aurora mdl Tools",
+    "name": "Aurora MDL Format",
     "author": "Attila Györkös",
     "blender": (2, 6, 3),
     "location": "File > Import-Export, Object Properties",
-    "description": "Import, export and edit aurora mdl format",
+    "description": "Import, export and edit Aurora MDL format",
     "warning": "",
     "wiki_url": ""
                 "",
