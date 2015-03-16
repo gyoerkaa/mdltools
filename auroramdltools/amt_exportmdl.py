@@ -185,11 +185,11 @@ def get_walkmesh_objects():
         for object in glob_export_scene.objects:
             if (not object.parent) and (object.select):
                 if (object.type == 'EMPTY'):
-                    if (object.auroraprops.dummytype == 'PWKBASE') and (glob_mdl_classification == 'CHARACTER'):
+                    if (object.auroraprops.dummytype == 'PWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'PWK'
                         break
-                    elif (object.auroraprops.dummytype == 'DWKBASE') and (glob_mdl_classification == 'DOOR'):
+                    elif (object.auroraprops.dummytype == 'DWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'DWK'
                         break
@@ -206,11 +206,11 @@ def get_walkmesh_objects():
             
             if (not object.parent) and (is_active):
                 if (object.type == 'EMPTY'):
-                    if (object.auroraprops.dummytype == 'PWKBASE') and (glob_mdl_classification == 'CHARACTER'):
+                    if (object.auroraprops.dummytype == 'PWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'PWK'
                         break
-                    elif (object.auroraprops.dummytype == 'DWKBASE') and (glob_mdl_classification == 'DOOR'):
+                    elif (object.auroraprops.dummytype == 'DWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'DWK'
                         break
@@ -220,11 +220,11 @@ def get_walkmesh_objects():
         for object in glob_export_scene.objects:
             if (not object.parent):
                 if (object.type == 'EMPTY'):
-                    if (object.auroraprops.dummytype == 'PWKBASE') and (glob_mdl_classification == 'CHARACTER'):
+                    if (object.auroraprops.dummytype == 'PWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'PWK'
                         break
-                    elif (object.auroraprops.dummytype == 'DWKBASE') and (glob_mdl_classification == 'DOOR'):
+                    elif (object.auroraprops.dummytype == 'DWKBASE'):
                         base_object = object
                         glob_walkmesh_type = 'DWK'
                         break
