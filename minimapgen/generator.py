@@ -1,29 +1,11 @@
 import os
 import sys
 
-# ##### BEGIN GPL LICENSE BLOCK #####
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software Foundation,
-#  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-#
-# ##### END GPL LICENSE BLOCK #####
-
-import amt_
+import bpy
 import bgl
 import blf
 
-import auroramdltools
+import neverblender
 
 # Globals
 minimap_size   = 32
@@ -42,18 +24,18 @@ def processfile(filepath):
      - Render minimap
     '''
     # Import mdl file
-    amt_.ops.amt.importmdl(filepath=mdlfile, import_items={'GEOMETRY'}, import_walkmesh=False, import_lights=lightsrc_imp, import_fading_obj=fading_obj_imp)
+    bpy.ops.nvb.importmdl(filepath=mdlfile, import_items={'GEOMETRY'}, import_walkmesh=False, import_lights=lightsrc_imp, import_fading_obj=fading_obj_imp)
     
     # Render minimap
-    render_scene = amt_.context.scene   
-    mdlbase = auroramdltools.nvb_utils.get_mdlbase(render_scene) 
+    render_scene = bpy.context.scene   
+    mdlbase = neverblender.nvb_utils.get_mdlbase(render_scene) 
     if (mdlbase is not None):
         filename = 'mi_' + mdlbase.name
         render_scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
         mdlbase.auroraprops.minimapsize    = minimap_size
         mdlbase.auroraprops.minimapzoffset = z_offset
-        auroramdltools.nvb_utils.nvb_minimap_render_setup(mdlbase, render_scene, light_color)
-        amt_.ops.render.render(write_still=True)
+        neverblender.nvb_utils.nvb_minimap_render_setup(mdlbase, render_scene, light_color)
+        bpy.ops.render.render(write_still=True)
     else:
         print('WARNING: ');
 
@@ -104,8 +86,8 @@ for arg in sys.argv:
                 cval_list[idx] = 0.0
             elif cval > 1.0:
                 cval_list[idx] = 1.0
-        light_color = tuple(cval_list)
-        
+        light_color = tuple(cval_list)        
+            
         
 # Get all mdl files in the input directory
 for filename in os.listdir(input_path):
@@ -113,5 +95,5 @@ for filename in os.listdir(input_path):
         mdlfile = os.fsencode(os.path.join(input_path, filename))
         print('Processing ' + filename)
         # Load an empty file
-        amt_.ops.wm.open_mainfile(filepath=emtpy_blend)
+        bpy.ops.wm.open_mainfile(filepath=emtpy_blend)
         processfile(mdlfile)       
