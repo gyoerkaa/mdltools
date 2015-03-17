@@ -2,7 +2,7 @@
 import mathutils
 import bpy
 import os
-from . import amt_presets
+from . import nvb_presets
  
  
 def get_image_filename(image):
@@ -19,7 +19,7 @@ def get_is_shadinggr(vertex_group):
     '''
     Determines wether vertex_group ist a shading group or not
     '''
-    return (amt_presets.shading_group_name in vertex_group.name)
+    return (nvb_presets.shading_group_name in vertex_group.name)
  
 
 def getRotationAurora(object):    
@@ -144,7 +144,7 @@ def get_mdlbase(scene):
     return None
 
     
-def amt_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
+def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
     # Create the lamp if not already present in scene
     if 'MinimapLamp' in render_scene.objects:
         MinimapLampObject = render_scene.objects['MinimapLamp']

@@ -22,8 +22,8 @@ import os
 import math
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 from bpy_extras.image_utils import load_image
-from . import amt_utils
-from . import amt_presets
+from . import nvb_utils
+from . import nvb_presets
 
 ###########################################################
 ## Globals
@@ -291,7 +291,7 @@ def add_danglegroup(node_object, parsed_node):
     in NWN are in [0.0, 255.0] as oppossed to [0.0, 1.0] in Blender
     '''
     
-    vert_group = node_object.vertex_groups.new(amt_presets.danglymesh_group_name)
+    vert_group = node_object.vertex_groups.new(nvb_presets.danglymesh_group_name)
     for vert_num, nw_constraint in enumerate(parsed_node['constraints']):
         vert_weight = nw_constraint/255
         vert_group.add([vert_num], vert_weight, 'REPLACE')
@@ -318,7 +318,7 @@ def add_shading_groups(node_object, parsed_node):
     
     # Add vertices to previously created vertex groups
     for group_id, group_members in shading_groups_dict.items():
-        vert_group = node_object.vertex_groups.new(amt_presets.shading_group_name + str(group_id))
+        vert_group = node_object.vertex_groups.new(nvb_presets.shading_group_name + str(group_id))
         vert_group.add(group_members, 1.0, 'REPLACE')    
 
 
@@ -458,7 +458,7 @@ def animnode2partsysaction(parsed_node, partsys_name = ''):
     curve = node_action.fcurves.new(data_path='auroraprops.birthratekey')     
         
     for i, key in enumerate(parsed_node['birthratekey']):
-        curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[1])   
+        curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[1])   
             
     return node_action
 
@@ -482,7 +482,7 @@ def animnode2mataction(parsed_node, mat_name = ''):
     curve = node_action.fcurves.new(data_path='alpha')     
         
     for i, key in enumerate(parsed_node['alphakey']):
-        curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[1])   
+        curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[1])   
             
     return node_action
 
@@ -516,13 +516,13 @@ def animnode2objectaction(parsed_node):
         # convert nwn format(axis-angle) to euler       
         #euler_rotations = []
         #for key in parsed_node['orientationkey']:
-        #    euler_rotations.append(amt_utils.nwangle2euler((key[1], key[2], key[3], key[4])))
+        #    euler_rotations.append(nvb_utils.nwangle2euler((key[1], key[2], key[3], key[4])))
         
         # for each axis
         #for c in range(3):
         #    curve = node_action.fcurves.new(data_path='rotation_euler', index=c)
         #    for i in range(len(parsed_node['orientationkey'])):
-        #        curve.keyframe_points.insert(amt_utils.nwtime2frame(parsed_node['orientationkey'][i][0], amt_presets.render_fps), euler_rotations[i][c])
+        #        curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), euler_rotations[i][c])
         ######################################
         # Euler
         ######################################
@@ -535,13 +535,13 @@ def animnode2objectaction(parsed_node):
         # blender it must the first
         curve = node_action.fcurves.new(data_path='rotation_axis_angle', index=0)
         for i in range(len(parsed_node['orientationkey'])):
-            curve.keyframe_points.insert(amt_utils.nwtime2frame(parsed_node['orientationkey'][i][0], amt_presets.render_fps), parsed_node['orientationkey'][i][4])
+            curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), parsed_node['orientationkey'][i][4])
                 
         # Now set the axes
         for c in range(1,4):
             curve = node_action.fcurves.new(data_path='rotation_axis_angle', index=c)
             for i in range(len(parsed_node['orientationkey'])):
-                curve.keyframe_points.insert(amt_utils.nwtime2frame(parsed_node['orientationkey'][i][0], amt_presets.render_fps), parsed_node['orientationkey'][i][c])
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(parsed_node['orientationkey'][i][0], nvb_presets.render_fps), parsed_node['orientationkey'][i][c])
         ######################################
         # Axis Angle
         ######################################    
@@ -549,7 +549,7 @@ def animnode2objectaction(parsed_node):
     # This means that there is only one orientation key (presumably)
     elif ('orientation' in parsed_node):
         # convert nwn format(axis-angle) to euler
-        euler_rotation = amt_utils.nwangle2euler((parsed_node['orientation'][0], parsed_node['orientation'][1], parsed_node['orientation'][2], parsed_node['orientation'][3]))
+        euler_rotation = nvb_utils.nwangle2euler((parsed_node['orientation'][0], parsed_node['orientation'][1], parsed_node['orientation'][2], parsed_node['orientation'][3]))
         
         # for each axis (too lazy to check if there is actually a rotation for every axis)
         for c in range(3):
@@ -563,7 +563,7 @@ def animnode2objectaction(parsed_node):
             curve = node_action.fcurves.new(data_path='location', index=c)
             
             for i, key in enumerate(parsed_node['positionkey']):
-                curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[c+1])
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[c+1])
     
     # This means that there is only one position key (presumably)
     elif ('position' in parsed_node):
@@ -578,7 +578,7 @@ def animnode2objectaction(parsed_node):
             curve = node_action.fcurves.new(data_path='scale', index=c)     
             
             for i, key in enumerate(parsed_node['scalekey']):
-                curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[c+1])   
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[c+1])   
     
     # Set color channels if there are color keys
     if (parsed_node['colorkey']):
@@ -587,7 +587,7 @@ def animnode2objectaction(parsed_node):
             curve = node_action.fcurves.new(data_path='color', index=c)     
             
             for i, key in enumerate(parsed_node['colorkey']):
-                curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[c+1])      
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[c+1])      
     
     # Set alpha channels if there are alpha keys
     if (parsed_node['selfillumcolorkey']):
@@ -595,7 +595,7 @@ def animnode2objectaction(parsed_node):
         for c in range(3):
             curve = node_action.fcurves.new(data_path='auroraprops.selfillumcolor', index=c)     
             for i, key in enumerate(parsed_node['selfillumcolorkey']):
-                curve.keyframe_points.insert(amt_utils.nwtime2frame(key[0], amt_presets.render_fps), key[c+1])
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[c+1])
     
     return node_action
 
@@ -675,9 +675,9 @@ def woknode2mesh(parsed_node, override_name = ''):
     node_mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(parsed_node['faces'])) 
     
     # Create walkmesh materials
-    for i in range(len(amt_presets.wok_materials)):
+    for i in range(len(nvb_presets.wok_materials)):
     
-        mat_name = amt_presets.wok_materials[i][0] +'.mat'
+        mat_name = nvb_presets.wok_materials[i][0] +'.mat'
         
         # Walkmesh materials should be shared across multiple walkmesh objects
         if mat_name in bpy.data.materials.keys():
@@ -685,10 +685,10 @@ def woknode2mesh(parsed_node, override_name = ''):
         else:
             node_mat = bpy.data.materials.new(mat_name)
         
-            node_mat.diffuse_color      = amt_presets.wok_materials[i][1]
+            node_mat.diffuse_color      = nvb_presets.wok_materials[i][1]
             node_mat.diffuse_intensity  = 1.0 
             node_mat.specular_color     = (0.0,0.0,0.0)
-            node_mat.specular_intensity = amt_presets.wok_materials[i][2]
+            node_mat.specular_intensity = nvb_presets.wok_materials[i][2]
         
         node_mesh.materials.append(node_mat)
     
@@ -1325,8 +1325,8 @@ def parse_geom_node(ascii_node):
         
         elif (first_word == 'colorend'):
             parsed_node['colorend'] = ( float(line[1]), 
-                                          float(line[2]), 
-                                          float(line[3]) )
+                                        float(line[2]), 
+                                        float(line[3]) )
         
         elif (first_word == 'alphastart'):
             parsed_node['alphastart'] = float(line[1])
@@ -1685,7 +1685,7 @@ def parse_geometry(ascii_geom):
             node_object = bpy.data.objects.new(parsed_node['name'], None)
             
             # Set properties
-            amt_utils.setRotationAurora(node_object, \
+            nvb_utils.setRotationAurora(node_object, \
                                         parsed_node['orientation'])           
             node_object.scale    = (parsed_node['scale'], \
                                     parsed_node['scale'], \
@@ -1710,12 +1710,12 @@ def parse_geometry(ascii_geom):
             if (parsed_node['tilefade'] == 0) or (glob_import_fading_obj):            
                 # Create the mesh
                 node_mesh = trimeshnode2mesh(parsed_node) 
-            
+                
                 # Create the object
                 node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
-            
+                
                 # Set properties
-                amt_utils.setRotationAurora(node_object, \
+                nvb_utils.setRotationAurora(node_object, \
                                             parsed_node['orientation'])           
                 node_object.scale = (parsed_node['scale'], \
                                      parsed_node['scale'], \
@@ -1728,7 +1728,7 @@ def parse_geometry(ascii_geom):
                 # Aurora properties
                 node_object.auroraprops.meshtype         = 'TRIMESH'
                 node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                node_object.auroraprops.tilefade         = parsed_node['tilefade']
                 #node_object.auroraprops.scale            = parsed_node['scale']
                 node_object.auroraprops.render           = (parsed_node['render'] == 1)
                 node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
@@ -1753,7 +1753,7 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
                 # Set properties
-                amt_utils.setRotationAurora(node_object, \
+                nvb_utils.setRotationAurora(node_object, \
                                             parsed_node['orientation'])           
                 node_object.scale = (parsed_node['scale'], \
                                      parsed_node['scale'], \
@@ -1770,7 +1770,7 @@ def parse_geometry(ascii_geom):
                 # Aurora properties
                 node_object.auroraprops.meshtype         = 'DANGLYMESH'
                 node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                node_object.auroraprops.tilefade         = parsed_node['tilefade']
                 #node_object.auroraprops.scale            = parsed_node['scale']
                 node_object.auroraprops.render           = (parsed_node['render'] == 1)
                 node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
@@ -1798,7 +1798,7 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
                 # Set properties
-                amt_utils.setRotationAurora(node_object, \
+                nvb_utils.setRotationAurora(node_object, \
                                         parsed_node['orientation'])           
                 node_object.scale = (parsed_node['scale'], \
                                      parsed_node['scale'], \
@@ -1814,7 +1814,7 @@ def parse_geometry(ascii_geom):
                 # Aurora properties
                 node_object.auroraprops.meshtype         = 'SKIN'
                 node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                node_object.auroraprops.tilefade         = parsed_node['tilefade']
                 #node_object.auroraprops.scale            = parsed_node['scale']
                 node_object.auroraprops.render           = (parsed_node['render'] == 1)
                 node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
@@ -1840,7 +1840,7 @@ def parse_geometry(ascii_geom):
             add_particle_system(node_object, parsed_node)
             
             # Set properties
-            amt_utils.setRotationAurora(node_object, \
+            nvb_utils.setRotationAurora(node_object, \
                                         parsed_node['orientation'])           
             node_object.scale    = (parsed_node['scale'], \
                                     parsed_node['scale'], \
@@ -1863,7 +1863,7 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_lamp)
             
                 # Set properties
-                amt_utils.setRotationAurora(node_object, \
+                nvb_utils.setRotationAurora(node_object, \
                                             parsed_node['orientation']) 
                 node_object.location = parsed_node['position']  
             
@@ -1889,14 +1889,14 @@ def parse_geometry(ascii_geom):
                 node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
                 
                 # Set properties
-                amt_utils.setRotationAurora(node_object, \
+                nvb_utils.setRotationAurora(node_object, \
                                             parsed_node['orientation']) 
                 node_object.location = parsed_node['position']
                 
                 # Aurora properties
                 node_object.auroraprops.meshtype         = 'AABB'
                 node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-                node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+                node_object.auroraprops.tilefade         = parsed_node['tilefade']
                 #node_object.auroraprops.scale            = parsed_node['scale']
                 node_object.auroraprops.render           = (parsed_node['render'] == 1)
                 node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
@@ -1920,6 +1920,8 @@ def parse_geometry(ascii_geom):
                 node_object.matrix_parent_inverse = object_dict[parent_name][0].matrix_world.inverted()
             else:
                 print('WARNING: Object ' + node_name + ' has no parent ' +  parent_name)
+    
+    glob_import_scene.update()
 
 
 def parse_animation_scene(ascii_anim):
@@ -1996,7 +1998,7 @@ def create_anims_scene(animation_dict):
         anim_scene = bpy.data.scenes[animation_dict['anim_name']]
     
     # Set fps    
-    anim_scene.render.fps  = amt_presets.render_fps
+    anim_scene.render.fps  = nvb_presets.render_fps
     
     # Now we create copies of the required objects in the scene
     anim_objects_parent = {}
@@ -2103,7 +2105,7 @@ def create_anims_scene(animation_dict):
     
     # Set Scene Start/End
     anim_scene.frame_start   = 0
-    anim_scene.frame_end     = amt_utils.nwtime2frame(animation_dict['anim_length'], amt_presets.render_fps)
+    anim_scene.frame_end     = nvb_utils.nwtime2frame(animation_dict['anim_length'], nvb_presets.render_fps)
     anim_scene.frame_current = 0
 
 
@@ -2244,7 +2246,7 @@ def parse_ascii_walkmesh(ascii_walkmesh, walkmesh_dummy_type):
             # Create the object (no mesh needed for a dummy)
             node_object = bpy.data.objects.new(parsed_node['name'], None)
             # Set properties
-            node_object.rotation_euler = amt_utils.nwangle2euler(parsed_node['orientation'])
+            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
             node_object.location       = parsed_node['position'] 
             
             node_object.auroraprops.dummytype = 'NONE'
@@ -2262,7 +2264,7 @@ def parse_ascii_walkmesh(ascii_walkmesh, walkmesh_dummy_type):
             
             # Set properties
             node_object.scale          = (parsed_node['scale'], parsed_node['scale'], parsed_node['scale'])
-            node_object.rotation_euler = amt_utils.nwangle2euler(parsed_node['orientation'])
+            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
             node_object.location       = parsed_node['position']
             
             # Add shading groups
@@ -2271,7 +2273,7 @@ def parse_ascii_walkmesh(ascii_walkmesh, walkmesh_dummy_type):
             # Aurora properties
             node_object.auroraprops.meshtype         = 'TRIMESH'
             node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-            node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+            node_object.auroraprops.tilefade         = parsed_node['tilefade']
             #node_object.auroraprops.scale            = parsed_node['scale']
             node_object.auroraprops.render           = (parsed_node['render'] == 1)
             node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
@@ -2293,13 +2295,13 @@ def parse_ascii_walkmesh(ascii_walkmesh, walkmesh_dummy_type):
             node_object = bpy.data.objects.new(parsed_node['name'], node_mesh)
             
             # Set properties
-            node_object.rotation_euler = amt_utils.nwangle2euler(parsed_node['orientation'])
+            node_object.rotation_euler = nvb_utils.nwangle2euler(parsed_node['orientation'])
             node_object.location       = parsed_node['position']
             
             # Aurora properties
             node_object.auroraprops.meshtype         = 'AABB'
             node_object.auroraprops.wirecolor        = parsed_node['wirecolor']
-            node_object.auroraprops.tilefade         = (parsed_node['tilefade'] == 1)
+            node_object.auroraprops.tilefade         = parsed_node['tilefade']
             node_object.auroraprops.render           = (parsed_node['render'] == 1)
             node_object.auroraprops.shadow           = (parsed_node['shadow'] == 1)
             node_object.auroraprops.transparencyhint = parsed_node['transparencyhint']

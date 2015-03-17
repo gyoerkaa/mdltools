@@ -23,8 +23,8 @@ import math
 import mathutils
 import collections
 from datetime import datetime
-from . import amt_utils
-from . import amt_presets
+from . import nvb_utils
+from . import nvb_presets
 
 ###########################################################
 ## Variables
@@ -121,7 +121,7 @@ def get_export_objects():
         # Search for mdl base in the current selection
         for object in glob_export_scene.objects:
             if (object.select):
-                if (amt_utils.getIsMdlBase(object)):
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     
@@ -136,19 +136,19 @@ def get_export_objects():
                 i += 1
             
             if (is_active):
-                if (amt_utils.getIsMdlBase(object)):
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     
     else:
         # Is the currently selected object a mdl base ?
         # If so, take that one
-        if (amt_utils.getIsMdlBase(bpy.context.object)):
+        if (nvb_utils.getIsMdlBase(bpy.context.object)):
             mdlbase_object = bpy.context.object         
         else:           
             # Search for mdl base in the current scene
             for object in glob_export_scene.objects:
-                if (amt_utils.getIsMdlBase(object)):
+                if (nvb_utils.getIsMdlBase(object)):
                     mdlbase_object = object
                     break
     
@@ -581,7 +581,7 @@ def get_ascii_emitter(mesh_object):
             if (active_tex.type == 'IMAGE'):
                 # There should be an image assigned
                 if (active_tex.image):
-                    tmp = amt_utils.get_image_filename(active_tex.image)
+                    tmp = nvb_utils.get_image_filename(active_tex.image)
     ascii_emitter.append('  texture ' + tmp)
     tmp = ps_settings.billboard_uv_split
     ascii_emitter.append('  xgrid ' + str(tmp))
@@ -595,9 +595,9 @@ def get_ascii_emitter(mesh_object):
     ascii_emitter.append('  colorStart ' + str(round(ps_settings.auroraprops.colorstart[0], glob_color_digits)) + ' ' + 
                                            str(round(ps_settings.auroraprops.colorstart[1], glob_color_digits)) + ' ' + 
                                            str(round(ps_settings.auroraprops.colorstart[2], glob_color_digits))  )
-    ascii_emitter.append('  colorEnd ' + str(round(ps_settings.auroraprops.colorstart[0], glob_color_digits)) + ' ' + 
-                                         str(round(ps_settings.auroraprops.colorstart[1], glob_color_digits)) + ' ' + 
-                                         str(round(ps_settings.auroraprops.colorstart[2], glob_color_digits))  )                                         
+    ascii_emitter.append('  colorEnd ' + str(round(ps_settings.auroraprops.colorend[0], glob_color_digits)) + ' ' + 
+                                         str(round(ps_settings.auroraprops.colorend[1], glob_color_digits)) + ' ' + 
+                                         str(round(ps_settings.auroraprops.colorend[2], glob_color_digits))  )                                         
     ascii_emitter.append('  alphaStart ' + str(round(ps_settings.auroraprops.alphastart, glob_gen_digits)))
     ascii_emitter.append('  alphaEnd ' + str(round(ps_settings.auroraprops.alphaend, glob_gen_digits)))
     ascii_emitter.append('  sizeStart ' + str(round(ps_settings.auroraprops.sizestart, glob_gen_digits)))
@@ -679,7 +679,7 @@ def get_face_shadinggr(tface, mesh_object):
             vertex_vgroups = set([])
             for vgroup_element in vertex.groups:
                 vgroup = mesh_object.vertex_groups[vgroup_element.group]
-                if amt_utils.get_is_shadinggr(vgroup):
+                if nvb_utils.get_is_shadinggr(vgroup):
                     vertex_vgroups.add(vgroup.name)
             common_vgroups = common_vgroups & vertex_vgroups
     
@@ -689,7 +689,7 @@ def get_face_shadinggr(tface, mesh_object):
             # group id
             
             try:
-                shadegr_id = int(common_vgroups.pop().replace(amt_presets.shading_group_name,''))
+                shadegr_id = int(common_vgroups.pop().replace(nvb_presets.shading_group_name,''))
             except:
                 print('WARNING: Unable to get shading group.')
             
@@ -938,7 +938,7 @@ def get_material_properties(mesh_object):
             if (active_tex.type == 'IMAGE'):
                 # There should be an image assigned
                 if (active_tex.image):
-                    image_name = amt_utils.get_image_filename(active_tex.image)
+                    image_name = nvb_utils.get_image_filename(active_tex.image)
         ascii_props.append('  bitmap ' + image_name)
     else:
         # No material, set some default values
@@ -966,7 +966,7 @@ def lamp2lightnode(lamp_object):
                                       str(round(lamp_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(lamp_object.location[2], glob_gen_digits)) )
     
-    tmp = amt_utils.getRotationAurora(lamp_object)
+    tmp = nvb_utils.getRotationAurora(lamp_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' +
                                          str(round(tmp[1], glob_angle_digits)) + ' ' +
                                          str(round(tmp[2], glob_angle_digits)) + ' ' +
@@ -1033,7 +1033,7 @@ def mesh2meshnode(mesh_object, export_object_list = []):
                                       str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(mesh_object.location[2], glob_gen_digits)) )
     
-    tmp = amt_utils.getRotationAurora(mesh_object)
+    tmp = nvb_utils.getRotationAurora(mesh_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1060,8 +1060,8 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         
         # For tiles only
         if (glob_mdl_classification == 'TILE'): 
-            tmp = '1' if (mesh_object.auroraprops.tilefade) else '0'
-            ascii_node.append('  tilefade ' + tmp)
+            if (mesh_object.auroraprops.tilefade):
+                ascii_node.append('  tilefade ' + mesh_object.auroraprops.tilefade)
             
             tmp = '1' if (mesh_object.auroraprops.rotatetexture) else '0'
             ascii_node.append('  rotatetexture ' + tmp)
@@ -1099,8 +1099,8 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         
         # For tiles only
         if (glob_mdl_classification == 'TILE'):
-            tmp = '1' if (mesh_object.auroraprops.tilefade) else '0'
-            ascii_node.append('  tilefade ' + tmp)
+            if (mesh_object.auroraprops.tilefade):
+                ascii_node.append('  tilefade ' + mesh_object.auroraprops.tilefade)
             
             tmp = '1' if (mesh_object.auroraprops.rotatetexture) else '0'
             ascii_node.append('  rotatetexture ' + tmp)
@@ -1149,8 +1149,8 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         
         # For tiles only
         if (glob_mdl_classification == 'TILE'):
-            tmp = '1' if (mesh_object.auroraprops.tilefade) else '0'
-            ascii_node.append('  tilefade ' + tmp)
+            if (mesh_object.auroraprops.tilefade):
+                ascii_node.append('  tilefade ' + mesh_object.auroraprops.tilefade)
             
             tmp = '1' if (mesh_object.auroraprops.rotatetexture) else '0'
             ascii_node.append('  rotatetexture ' + tmp)
@@ -1215,7 +1215,7 @@ def mesh2walkmeshmeshnode(mesh_object):
                                       str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
                                       str(round(mesh_object.location[2], glob_gen_digits)) )
     
-    tmp = amt_utils.getRotationAurora(mesh_object)
+    tmp = nvb_utils.getRotationAurora(mesh_object)
     ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                          str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1252,7 +1252,7 @@ def empty2dummynode(empty_object):
                                           str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
                                           str(round(empty_object.location[2], glob_gen_digits)) )
         
-        tmp = amt_utils.getRotationAurora(empty_object)
+        tmp = nvb_utils.getRotationAurora(empty_object)
         ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1285,7 +1285,7 @@ def empty2walkmeshdummynode(empty_object):
                                           str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
                                           str(round(empty_object.location[2], glob_gen_digits)) )
         
-        tmp = amt_utils.getRotationAurora(empty_object)
+        tmp = nvb_utils.getRotationAurora(empty_object)
         ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[1], glob_angle_digits)) + ' ' + 
                                              str(round(tmp[2], glob_angle_digits)) + ' ' + 
@@ -1444,7 +1444,7 @@ def animdata2asciikeys(anim_object, anim_scene):
                 values   = list(key_dict.values())[0]
                 str_vals = ''
                 if (blend_name == 'rotation_euler'):
-                    nwrot = amt_utils.euler2nwangle(values)
+                    nwrot = nvb_utils.euler2nwangle(values)
                     str_vals = ( str(round(nwrot[0], rnd_digs)) +
                                  ' ' +
                                  str(round(nwrot[1], rnd_digs)) +
@@ -1476,7 +1476,7 @@ def animdata2asciikeys(anim_object, anim_scene):
                 for frame_idx, values in key_dict.items():
                     str_vals = ''
                     if (blend_name == 'rotation_euler'):
-                        nwrot = amt_utils.euler2nwangle(values)
+                        nwrot = nvb_utils.euler2nwangle(values)
                         str_vals = ( str(round(nwrot[0], rnd_digs)) +
                                      ' ' +
                                      str(round(nwrot[1], rnd_digs)) +
@@ -1504,7 +1504,7 @@ def animdata2asciikeys(anim_object, anim_scene):
                                      str(round(values[2], rnd_digs)) )
                     
                     ascii_keys.append('      ' + 
-                                      str(amt_utils.frame2nwtime(frame_idx, scene_fps)) + 
+                                      str(nvb_utils.frame2nwtime(frame_idx, scene_fps)) + 
                                       ' ' + 
                                       str_vals)
                 ascii_keys.append('    ' + 'endlist')
@@ -1538,7 +1538,7 @@ def get_animation_data(export_object_list):
                                   ' ' + 
                                   glob_modelname)
                 
-                ascii_anim.append('  length '    + str(amt_utils.frame2nwtime(scene.frame_end, scene.render.fps)))
+                ascii_anim.append('  length '    + str(nvb_utils.frame2nwtime(scene.frame_end, scene.render.fps)))
                 ascii_anim.append('  transtime ' + str(anim_mdl_base.auroraprops.transtime))
                 ascii_anim.append('  animroot '  + glob_modelname)
                 
