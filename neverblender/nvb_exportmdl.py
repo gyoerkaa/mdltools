@@ -50,7 +50,7 @@ glob_mdl_animationscale   = 1.0
 glob_ascii_aabb_node      = [] # Needed for mdl and walkmesh
 glob_export_scene         = None
 glob_mdl_object_name_list = [] # Needed for skinmeshes and animations
-
+glob_scale                = None
 
 glob_gen_digits    = 4
 glob_angle_digits  = 4
@@ -160,6 +160,11 @@ def get_export_objects():
         # Save some general model data for later use
         glob_mdl_classification = mdlbase_object.auroraprops.classification
         glob_modelname          = mdlbase_object.name
+        glob_scale              = mathutils.Matrix([[mdlbase_object.scale.x,0,0,0],
+                                                    [0,mdlbase_object.scale.y,0,0],
+                                                    [0,0,mdlbase_object.scale.z,0],
+                                                    [0,0,0                  ,1]])
+        glob_scale              = mdlbase_object.
         if mdlbase_object.auroraprops.supermodel:
             glob_supermodel         = mdlbase_object.auroraprops.supermodel        
         glob_mdl_animationscale = mdlbase_object.auroraprops.animationscale
@@ -710,7 +715,7 @@ def get_ascii_geometry(mesh_object, textured = True):
         scale_matrix = mathutils.Matrix([[mesh_object.scale.x,0,0,0],
                                          [0,mesh_object.scale.y,0,0],
                                          [0,0,mesh_object.scale.z,0],
-                                         [0,0,0,1]])
+                                         [0,0,0                  ,1]])
         trans_matrix = mesh_object.matrix_parent_inverse.copy()*scale_matrix 
         mesh.transform(trans_matrix)
         
@@ -1515,7 +1520,7 @@ def get_animation_data(export_object_list):
     animation_data = {}
     
     # Loop thorugh all scenes and check if they contain a root dummy
-    # Each scene with a rootdummy is an scene
+    # Each scene with a rootdummy is a scene
     if (export_object_list):
         # Mdl base comes first in export list
         mdl_base_name = export_object_list[0].name
