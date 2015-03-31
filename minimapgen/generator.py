@@ -12,7 +12,8 @@ minimap_size   = 32
 z_offset       = 0.0
 input_path     = 'in'
 output_path    = 'out'
-emtpy_blend    = os.fsencode('.\\empty.blend')
+emtpy_filename = 'empty.blend'
+empty_path     = os.path.join(os.path.dirname(__file__), emtpy_filename) 
 light_color    = (1.0,1.0,1.0)
 lightsrc_imp   = False
 fading_obj_imp = True
@@ -95,5 +96,5 @@ for filename in os.listdir(input_path):
         mdlfile = os.fsencode(os.path.join(input_path, filename))
         print('Processing ' + filename)
         # Load an empty file
-        bpy.ops.wm.open_mainfile(filepath=emtpy_blend)
+        bpy.ops.wm.open_mainfile(filepath=empty_path)
         processfile(mdlfile)       
