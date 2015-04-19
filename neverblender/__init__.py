@@ -40,8 +40,8 @@ else:
 
     
 import bpy
-from bpy.props import StringProperty, FloatProperty, BoolProperty, EnumProperty
-from bpy_extras.io_utils import ImportHelper, ExportHelper
+#from bpy.props import StringProperty, FloatProperty, BoolProperty, EnumProperty
+#from bpy_extras.io_utils import ImportHelper, ExportHelper
 
 
 def nvb_update_shadow_prop(self, context):
@@ -235,7 +235,7 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
         return{'FINISHED'}
 
         
-class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
+class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import from Neverwinter Nights file format (.mdl)'''
     
     bl_idname  = 'nvb.importmdl'
@@ -243,12 +243,12 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
     bl_options = {'UNDO'}
     
     filename_ext = '.mdl'
-    filter_glob = StringProperty(
+    filter_glob = bpy.props.StringProperty(
             default = '*.mdl', 
             options = {'HIDDEN'},
             )
            
-    import_items = EnumProperty(
+    import_items = bpy.props.EnumProperty(
             name = 'Import',
             options = {'ENUM_FLAG'},
             items = (('GEOMETRY', 'Geometry', ''),
@@ -257,28 +257,28 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
             default = {'GEOMETRY', 'ANIMATIONS'},
             )
     
-    import_walkmesh = BoolProperty(
+    import_walkmesh = bpy.props.BoolProperty(
             name='Import walkmesh',
             description='Import walkmesh, if applicable' \
                         '(.pwk, .dwk or .mdl depending on classification)',
             default=True,
             ) 
     
-    import_shading_groups = BoolProperty(
+    import_shading_groups = bpy.props.BoolProperty(
             name='Import Shading Groups',
             description='Import shading groups as vertex groups ' \
                         '(Unused by blender)',
             default=False,
             )
     
-    use_image_search = BoolProperty(
+    use_image_search = bpy.props.BoolProperty(
             name='Image Search',
             description='Search subdirectories for any associated images ' \
                         '(Warning, may be slow)',
             default=False,
             )
             
-    one_texture_per_image = BoolProperty(
+    one_texture_per_image = bpy.props.BoolProperty(
             name='One Texture per Image',
             description='Create only one texture per Image' \
                         '(Will result in one texture for every node)',
@@ -286,7 +286,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
             )
             
     # Hidden option, only used for minimap creation
-    import_lights = BoolProperty(
+    import_lights = bpy.props.BoolProperty(
             name='Import Light',
             description='Wether to import lights' \
                         '(Useful for rendering minmaps)',
@@ -295,7 +295,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
             )
             
     # Hidden option, only used for minimap creation        
-    import_fading_obj = BoolProperty(
+    import_fading_obj = bpy.props.BoolProperty(
             name='Import Fading Objects',
             description='Wether to import objects with' \
                         'activated tilefade' \
@@ -314,7 +314,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, ImportHelper):
         return nvb_importmdl.load(self, context, **keywords)
 
 
-class NVBAuroraMDLExport(bpy.types.Operator, ExportHelper):
+class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     '''Export to Neverwinter Nights file format (.mdl)'''
     bl_idname = 'nvb.exportmdl'
     bl_label  = 'Export NwN MDL'
@@ -325,7 +325,7 @@ class NVBAuroraMDLExport(bpy.types.Operator, ExportHelper):
             options={'HIDDEN'},
             )
     
-    export_selection = EnumProperty(
+    export_selection = bpy.props.EnumProperty(
             name='Export',
             items=(('ALL', 'All', ''),
                    ('SELECTION', 'Selection only', ''),
@@ -334,21 +334,21 @@ class NVBAuroraMDLExport(bpy.types.Operator, ExportHelper):
             default='ALL',
             )
     
-    export_walkmesh = BoolProperty(
+    export_walkmesh = bpy.props.BoolProperty(
             name='Export walkmesh',
             description='Export walkmesh, if applicable' \
                         '(.pwk, .dwk or .wok depending on classification)',
             default=True,
             )
     
-    export_shading_groups = BoolProperty(
+    export_shading_groups = bpy.props.BoolProperty(
             name='Export Shading groups',
             description='Export Shading Groups' \
                         '(When disabled, every face belongs to the same group)',
             default=False,
             )
             
-    apply_modifiers = BoolProperty(
+    apply_modifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting.' \
                         '(When disabled, every face belongs to the same group)',
