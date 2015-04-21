@@ -40,6 +40,7 @@ else:
 
     
 import bpy
+import bpy_extras
 #from bpy.props import StringProperty, FloatProperty, BoolProperty, EnumProperty
 #from bpy_extras.io_utils import ImportHelper, ExportHelper
 
@@ -320,7 +321,7 @@ class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     bl_label  = 'Export NwN MDL'
     
     filename_ext = '.mdl'
-    filter_glob = StringProperty(
+    filter_glob = bpy.props.StringProperty(
             default='*.mdl',
             options={'HIDDEN'},
             )

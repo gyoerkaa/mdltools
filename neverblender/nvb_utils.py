@@ -21,7 +21,20 @@ def get_is_shadinggr(vertex_group):
     '''
     return (nvb_presets.shading_group_name in vertex_group.name)
  
+ 
+def getRotationAurora2(trans_mat):    
+    auroraRot    = [0.0, 0.0, 0.0, 0.0]
+    
+    aa = trans_mat.to_quaternion().to_axis_angle()
 
+    auroraRot[0] = aa[1]
+    auroraRot[1] = aa[2]
+    auroraRot[2] = aa[3]
+    auroraRot[3] = aa[0]
+       
+    return auroraRot
+ 
+ 
 def getRotationAurora(object):    
     auroraRot    = [0.0, 0.0, 0.0, 0.0]
     oldRotMode = object.rotation_mode

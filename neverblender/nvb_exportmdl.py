@@ -105,6 +105,27 @@ def add_child_objects(object, object_list):
     
     return object_list
 
+    
+def get_adjusted_matrix(object):
+    
+    if object.parent:
+        parent_mw = object.parent.matrix_world
+    else:
+        parent_mw = matutils.matrix()
+           
+    p_mw_scale = parent_mw.to_scale()    
+
+    #scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
+    #                            [0,p_mw_scale[1],0,0],
+    #                            [0,0,p_mw_scale[2],0],
+    #                            [0,0,0            ,1]])
+    
+    scaled = object.matrix_local.copy()
+    scaled[0][3] = scaled[0][3] * p_mw_scale[0]
+    scaled[1][3] = scaled[1][3] * p_mw_scale[1]
+    scaled[2][3] = scaled[2][3] * p_mw_scale[2]
+    return scaled
+         
 
 def get_export_objects():
     '''
@@ -163,10 +184,9 @@ def get_export_objects():
         glob_scale              = mathutils.Matrix([[mdlbase_object.scale.x,0,0,0],
                                                     [0,mdlbase_object.scale.y,0,0],
                                                     [0,0,mdlbase_object.scale.z,0],
-                                                    [0,0,0                  ,1]])
-        glob_scale              = mdlbase_object.
+                                                    [0,0,0                     ,1]])
         if mdlbase_object.auroraprops.supermodel:
-            glob_supermodel         = mdlbase_object.auroraprops.supermodel        
+            glob_supermodel    = mdlbase_object.auroraprops.supermodel        
         glob_mdl_animationscale = mdlbase_object.auroraprops.animationscale
         
         object_list.append(mdlbase_object)
@@ -703,7 +723,7 @@ def get_face_shadinggr(tface, mesh_object):
     
 def get_ascii_geometry(mesh_object, textured = True):
     ascii_geometry = []
-    
+       
     try:
         mesh = mesh_object.to_mesh(glob_export_scene, glob_apply_modifiers, 'PREVIEW')
     except RuntimeError:
@@ -712,12 +732,18 @@ def get_ascii_geometry(mesh_object, textured = True):
     
     if mesh is not None:
         # We need only to scale (rotation & location will be stored in the model)
-        scale_matrix = mathutils.Matrix([[mesh_object.scale.x,0,0,0],
-                                         [0,mesh_object.scale.y,0,0],
-                                         [0,0,mesh_object.scale.z,0],
-                                         [0,0,0                  ,1]])
-        trans_matrix = mesh_object.matrix_parent_inverse.copy()*scale_matrix 
-        mesh.transform(trans_matrix)
+        #scale_matrix = mathutils.Matrix([[mesh_object.scale.x,0,0,0],
+        #                                 [0,mesh_object.scale.y,0,0],
+        #                                 [0,0,mesh_object.scale.z,0],
+        #                                 [0,0,0                  ,1]])
+        #trans_matrix = mesh_object.matrix_parent_inverse.copy()*scale_matrix
+        #mesh.transform(trans_matrix)
+        scale = mesh_object.matrix_world.to_scale()
+        scale_matrix = mathutils.Matrix([[scale[0],0,0,0],
+                                         [0,scale[1],0,0],
+                                         [0,0,scale[2],0],
+                                         [0,0,0       ,1]])
+        mesh.transform(scale_matrix)
         
         vert_list       = [] # Vertex coordinates
         face_list       = [] # Indices of 3 verts pointing to the tvert_list
@@ -897,12 +923,18 @@ def get_ascii_aabb_tree(walkmesh_object):
     
     if walkmesh is not None:
         # We need only to scale (no rotation or location)
-        scale_matrix = mathutils.Matrix([[walkmesh_object.scale.x,0,0,0],
-                                          [0,walkmesh_object.scale.y,0,0],
-                                          [0,0,walkmesh_object.scale.z,0],
-                                          [0,0,0,1]])
-        trans_matrix = walkmesh_object.matrix_parent_inverse.copy()*scale_matrix 
-        walkmesh.transform(trans_matrix)
+        #scale_matrix = mathutils.Matrix([[walkmesh_object.scale.x,0,0,0],
+        #                                  [0,walkmesh_object.scale.y,0,0],
+        #                                  [0,0,walkmesh_object.scale.z,0],
+        #                                  [0,0,0,1]])
+        #trans_matrix = walkmesh_object.matrix_parent_inverse.copy()*scale_matrix 
+        #walkmesh.transform(trans_matrix)
+        
+        scale_matrix = mathutils.Matrix([[walkmesh_object.matrix_world.to_scale()[0],0,0,0],
+                                         [0,walkmesh_object.matrix_world.to_scale()[1],0,0],
+                                         [0,0,walkmesh_object.matrix_world.to_scale()[2],0],
+                                         [0,0,0                                         ,1]])       
+        walkmesh.transform(scale_matrix)
         
         ascii_aabb_tree = generate_ascii_aabbtree(walkmesh)
     
@@ -967,15 +999,18 @@ def lamp2lightnode(lamp_object):
         tmp = lamp_object.parent.name
     ascii_node.append('  parent ' + tmp) 
     
-    ascii_node.append('  position ' + str(round(lamp_object.location[0], glob_gen_digits)) + ' ' + 
-                                      str(round(lamp_object.location[1], glob_gen_digits)) + ' ' + 
-                                      str(round(lamp_object.location[2], glob_gen_digits)) )
-    
-    tmp = nvb_utils.getRotationAurora(lamp_object)
-    ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' +
-                                         str(round(tmp[1], glob_angle_digits)) + ' ' +
-                                         str(round(tmp[2], glob_angle_digits)) + ' ' +
-                                         str(round(tmp[3], glob_angle_digits)) )
+    # Transformation matrix (matrix_local) without scaling
+    adj_transmat = get_adjusted_matrix(lamp_object)
+    adj_loc = adj_transmat.to_translation()
+    q       = adj_transmat.to_quaternion()
+    adj_rot = q.to_axis_angle()
+    ascii_node.append('  position ' + str(round(adj_loc[0], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[1], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[2], glob_gen_digits)) )   
+    ascii_node.append('  orientation ' + str(round(adj_rot[0][0], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][1], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][2], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[1], glob_angle_digits)) )
     
     ascii_node.append('  wirecolor ' + str(round(lamp_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                        str(round(lamp_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
@@ -1033,16 +1068,19 @@ def mesh2meshnode(mesh_object, export_object_list = []):
     else:
         tmp = 'NULL'
     ascii_node.append('  parent ' + tmp)
-     
-    ascii_node.append('  position ' + str(round(mesh_object.location[0], glob_gen_digits)) + ' ' + 
-                                      str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
-                                      str(round(mesh_object.location[2], glob_gen_digits)) )
     
-    tmp = nvb_utils.getRotationAurora(mesh_object)
-    ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[1], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[2], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[3], glob_angle_digits)) )
+    # Transformation matrix (matrix_local) without scaling
+    adj_transmat = get_adjusted_matrix(mesh_object)
+    adj_loc = adj_transmat.to_translation()
+    q       = adj_transmat.to_quaternion()
+    adj_rot = q.to_axis_angle()
+    ascii_node.append('  position ' + str(round(adj_loc[0], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[1], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[2], glob_gen_digits)) )   
+    ascii_node.append('  orientation ' + str(round(adj_rot[0][0], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][1], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][2], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[1], glob_angle_digits)) )    
     
     if (mesh_type == 'TRIMESH'):
         ascii_node.append('  wirecolor ' + str(round(mesh_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
@@ -1143,7 +1181,7 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         ascii_node.append('  scale ' + tmp)
         
         tmp = '1' if (mesh_object.auroraprops.render) else '0'
-        ascii_node.append('  render ' + tmp)  
+        ascii_node.append('  render ' + tmp)
         
         # No shadows on skinmeshes
         #tmp = '1' if (mesh_object.auroraprops.shadow) else '0'
@@ -1216,15 +1254,18 @@ def mesh2walkmeshmeshnode(mesh_object):
         tmp = 'NULL'
     ascii_node.append('  parent ' + tmp)
     
-    ascii_node.append('  position ' + str(round(mesh_object.location[0], glob_gen_digits)) + ' ' + 
-                                      str(round(mesh_object.location[1], glob_gen_digits)) + ' ' + 
-                                      str(round(mesh_object.location[2], glob_gen_digits)) )
-    
-    tmp = nvb_utils.getRotationAurora(mesh_object)
-    ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[1], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[2], glob_angle_digits)) + ' ' + 
-                                         str(round(tmp[3], glob_angle_digits)) )
+    # Transformation matrix (matrix_local) without scaling
+    adj_transmat = get_adjusted_matrix(mesh_object)
+    adj_loc = adj_transmat.to_translation()
+    q       = adj_transmat.to_quaternion()
+    adj_rot = q.to_axis_angle()
+    ascii_node.append('  position ' + str(round(adj_loc[0], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[1], glob_gen_digits)) + ' ' + 
+                                      str(round(adj_loc[2], glob_gen_digits)) )   
+    ascii_node.append('  orientation ' + str(round(adj_rot[0][0], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][1], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[0][2], glob_angle_digits)) + ' ' +
+                                         str(round(adj_rot[1], glob_angle_digits)) )
     
     ascii_node.append('  wirecolor ' + str(round(mesh_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                        str(round(mesh_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
@@ -1253,15 +1294,18 @@ def empty2dummynode(empty_object):
         # Root dummy, no additional data here
         pass
     else:
-        ascii_node.append('  position ' + str(round(empty_object.location[0], glob_gen_digits)) + ' ' + 
-                                          str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
-                                          str(round(empty_object.location[2], glob_gen_digits)) )
-        
-        tmp = nvb_utils.getRotationAurora(empty_object)
-        ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[1], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[2], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[3], glob_angle_digits)) ) 
+        # Transformation matrix (matrix_local) without scaling
+        adj_transmat = get_adjusted_matrix(empty_object)
+        adj_loc = adj_transmat.to_translation()
+        q       = adj_transmat.to_quaternion()
+        adj_rot = q.to_axis_angle()
+        ascii_node.append('  position ' + str(round(adj_loc[0], glob_gen_digits)) + ' ' + 
+                                          str(round(adj_loc[1], glob_gen_digits)) + ' ' + 
+                                          str(round(adj_loc[2], glob_gen_digits)) )   
+        ascii_node.append('  orientation ' + str(round(adj_rot[0][0], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[0][1], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[0][2], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[1], glob_angle_digits)) )
         
         ascii_node.append('  wirecolor ' + str(round(empty_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                            str(round(empty_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
@@ -1286,15 +1330,18 @@ def empty2walkmeshdummynode(empty_object):
             tmp = empty_object.parent.name
         ascii_node.append('  parent ' + tmp)
         
-        ascii_node.append('  position ' + str(round(empty_object.location[0], glob_gen_digits)) + ' ' + 
-                                          str(round(empty_object.location[1], glob_gen_digits)) + ' ' + 
-                                          str(round(empty_object.location[2], glob_gen_digits)) )
-        
-        tmp = nvb_utils.getRotationAurora(empty_object)
-        ascii_node.append('  orientation ' + str(round(tmp[0], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[1], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[2], glob_angle_digits)) + ' ' + 
-                                             str(round(tmp[3], glob_angle_digits)) )  
+        # Transformation matrix (matrix_local) without scaling
+        adj_transmat = get_adjusted_matrix(empty_object)
+        adj_loc = adj_transmat.to_translation()
+        q       = adj_transmat.to_quaternion()
+        adj_rot = q.to_axis_angle()
+        ascii_node.append('  position ' + str(round(adj_loc[0], glob_gen_digits)) + ' ' + 
+                                          str(round(adj_loc[1], glob_gen_digits)) + ' ' + 
+                                          str(round(adj_loc[2], glob_gen_digits)) )   
+        ascii_node.append('  orientation ' + str(round(adj_rot[0][0], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[0][1], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[0][2], glob_angle_digits)) + ' ' +
+                                             str(round(adj_rot[1], glob_angle_digits)) )
         
         ascii_node.append('  wirecolor ' + str(round(empty_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
                                            str(round(empty_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
