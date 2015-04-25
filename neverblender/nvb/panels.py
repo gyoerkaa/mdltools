@@ -209,7 +209,7 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             box.label(text = 'Bounce: ')            
             factor_but(box, partsys_settings.auroraprops, 'bounce', 'bounce_co', 'Coeff.')
             
-            class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
+class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
     ''' 
     Property panel for additional properties needed for the mdl file
     format. This is only available for EMPTY objects.
