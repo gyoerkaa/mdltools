@@ -19,8 +19,8 @@
 
 bl_info = {
     "name": "Neverblender",
-    "author": "Attila Györkös",
-    "blender": (2, 6, 3),
+    "author": "Attila Gyoerkoes",
+    "blender": (2, 6, 0),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit aurora mdl format",
     "warning": "",
@@ -32,8 +32,8 @@ bl_info = {
 
 if "bpy" in locals():
     import imp
-    imp.reload(neverblender.nvb.ops)
     imp.reload(neverblender.nvb.props)
+    imp.reload(neverblender.nvb.ops)
     imp.reload(neverblender.nvb.panels)    
     imp.reload(nvb_importmdl)
     imp.reload(nvb_exportmdl)
@@ -44,11 +44,10 @@ else:
     from . import nvb_importmdl
     from . import nvb_exportmdl  
 
-
 import bpy
 import bpy_extras
+   
 
-    
 class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import from Neverwinter Nights file format (.mdl)'''
     
@@ -179,7 +178,6 @@ class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         return nvb_exportmdl.save(self, context, **keywords)
 
 
-# Add to a menu
 def menu_func_export(self, context):
     self.layout.operator(NVBAuroraMDLExport.bl_idname, text="Neverwinter Nights (.mdl)")
 

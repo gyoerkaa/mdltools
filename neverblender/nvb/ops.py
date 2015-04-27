@@ -43,7 +43,7 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
             return {'CANCELLED'}              
 
         return {'FINISHED'}
-        
+
 
 class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
     bl_idname = "nvb.render_minimap"
@@ -68,7 +68,7 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
 
         return {'FINISHED'}
 
-        
+
 class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
     bl_idname = "nvb.animscene_rename"
     bl_label  = "Rename animation scene"
@@ -83,7 +83,7 @@ class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
 
         return{'FINISHED'}
 
-        
+
 class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
     bl_idname = "nvb.skingroup_add"
     bl_label  = "Add new Skingroup"
@@ -97,8 +97,8 @@ class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
             vert_group = object.vertex_groups.new(skingr_name)
             
         return{'FINISHED'}
-        
-        
+
+
 class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
     bl_idname = "nvb.animscene_add"
     bl_label  = "Add animation scene"

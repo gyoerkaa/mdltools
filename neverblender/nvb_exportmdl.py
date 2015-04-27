@@ -515,42 +515,6 @@ def get_ascii_emitter(mesh_object):
     particle_system = mesh_object.particle_systems.active
     ps_settings     = particle_system.settings
     
-    ascii_emitter.append('  xSize ' + str(round(mesh_object.dimensions[0]*100, glob_gen_digits)))
-    ascii_emitter.append('  ySize ' + str(round(mesh_object.dimensions[1]*100, glob_gen_digits)))
-    
-    ascii_emitter.append('  birthrate ' + str(ps_settings.auroraprops.birthrate)) 
-    ascii_emitter.append('  frameStart ' + str(int(ps_settings.frame_start)))    
-    ascii_emitter.append('  frameEnd ' + str(int(ps_settings.frame_end)))    
-    ascii_emitter.append('  lifeExp ' + str(round(ps_settings.auroraprops.lifeexp, glob_gen_digits)))
-    ascii_emitter.append('  mass ' + str(round(ps_settings.mass, 1)))
-    ascii_emitter.append('  velocity ' + str(round(ps_settings.normal_factor, glob_gen_digits)))
-    ascii_emitter.append('  randvel ' + str(round(ps_settings.factor_random, glob_gen_digits)))
-    tmp = '1' if (ps_settings.effector_weights.wind > 0.001) else '0'
-    ascii_emitter.append('  affectedByWind ' + tmp)    
-    tmp = '1' if (ps_settings.effector_weights.drag > 0.001) else '0'
-    ascii_emitter.append('  drag ' + tmp)
-    tmp = '1' if (ps_settings.effector_weights.gravity > 0.001) else '0'
-    ascii_emitter.append('  grav ' + tmp)
-    
-    # Inheritance props
-    tmp = '1' if (ps_settings.auroraprops.inherit) else '0'
-    ascii_emitter.append('  inherit ' + tmp) 
-    tmp = '1' if (ps_settings.auroraprops.inherit_vel) else '0'
-    ascii_emitter.append('  inheritvel ' + tmp)
-    tmp = '1' if (ps_settings.auroraprops.inherit_local) else '0'
-    ascii_emitter.append('  inherit_local ' + tmp)
-    tmp = '1' if (ps_settings.auroraprops.inherit_part) else '0'
-    ascii_emitter.append('  inherit_part ' + tmp)    
-    
-    # Spawntype
-    if (ps_settings.auroraprops.blend == 'NORMAL'):
-        tmp = 'Normal'
-    elif (ps_settings.auroraprops.blend == 'TRAIL'):
-        tmp = 'Trail'
-    else:
-        tmp = 'Normal'
-    ascii_emitter.append('  spawntype ' + tmp)
-    
     # Update type
     if (ps_settings.auroraprops.update == 'FOUNTAIN'):
         tmp = 'Fountain'
@@ -564,7 +528,7 @@ def get_ascii_emitter(mesh_object):
         tmp = 'Fountain'
     ascii_emitter.append('  update ' + tmp)
     
-    # Render type
+   # Render type
     if (ps_settings.auroraprops.render == 'NORMAL'):
         tmp = 'Normal'
     elif (ps_settings.auroraprops.render == 'LINKED'):
@@ -594,6 +558,65 @@ def get_ascii_emitter(mesh_object):
         tmp = 'Normal'
     ascii_emitter.append('  blend ' + tmp)
     
+    # Spawntype
+    if (ps_settings.auroraprops.blend == 'NORMAL'):
+        tmp = 'Normal'
+    elif (ps_settings.auroraprops.blend == 'TRAIL'):
+        tmp = 'Trail'
+    else:
+        tmp = 'Normal'
+    ascii_emitter.append('  spawnType ' + tmp)
+    
+    ascii_emitter.append('  xSize ' + str(round(mesh_object.dimensions[0]*100, glob_gen_digits)))
+    ascii_emitter.append('  ySize ' + str(round(mesh_object.dimensions[1]*100, glob_gen_digits)))    
+    # Inheritance props
+    tmp = '1' if (ps_settings.auroraprops.inherit) else '0'
+    ascii_emitter.append('  inherit ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.inherit_local) else '0'
+    ascii_emitter.append('  inherit_local ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.inherit_vel) else '0'
+    ascii_emitter.append('  inheritvel ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.inherit_part) else '0'
+    ascii_emitter.append('  inherit_part ' + tmp)
+    
+    ascii_emitter.append('  renderorder ' + str(ps_settings.auroraprops.renderorder))
+    ascii_emitter.append('  threshold ' + str(round(ps_settings.auroraprops.threshold, glob_gen_digits)))
+    ascii_emitter.append('  combinetime ' + str(round(ps_settings.auroraprops.combinetime, glob_gen_digits)))
+    ascii_emitter.append('  deadspace ' + str(round(ps_settings.auroraprops.deadspace, glob_gen_digits)))
+    ascii_emitter.append('  opacity ' + str(round(ps_settings.auroraprops.opacity, glob_gen_digits)))
+    
+    # Animation props
+    ascii_emitter.append('  colorStart ' + str(round(ps_settings.auroraprops.colorstart[0], glob_color_digits)) + ' ' + 
+                                           str(round(ps_settings.auroraprops.colorstart[1], glob_color_digits)) + ' ' + 
+                                           str(round(ps_settings.auroraprops.colorstart[2], glob_color_digits))  )
+    ascii_emitter.append('  colorEnd ' + str(round(ps_settings.auroraprops.colorend[0], glob_color_digits)) + ' ' + 
+                                         str(round(ps_settings.auroraprops.colorend[1], glob_color_digits)) + ' ' + 
+                                         str(round(ps_settings.auroraprops.colorend[2], glob_color_digits))  )
+    ascii_emitter.append('  alphaStart ' + str(round(ps_settings.auroraprops.alphastart, glob_gen_digits)))
+    ascii_emitter.append('  alphaEnd ' + str(round(ps_settings.auroraprops.alphaend, glob_gen_digits)))
+    ascii_emitter.append('  sizeStart ' + str(round(ps_settings.auroraprops.sizestart, glob_gen_digits)))
+    ascii_emitter.append('  sizeEnd ' + str(round(ps_settings.auroraprops.sizeend, glob_gen_digits)))
+    ascii_emitter.append('  sizeStart_y ' + str(round(ps_settings.auroraprops.sizestart_y, glob_gen_digits)))
+    ascii_emitter.append('  sizeEnd_y ' + str(round(ps_settings.auroraprops.sizeend_y, glob_gen_digits)))   
+    ascii_emitter.append('  birthrate ' + str(ps_settings.auroraprops.birthrate)) 
+    ascii_emitter.append('  lifeExp ' + str(round(ps_settings.auroraprops.lifeexp, glob_gen_digits)))
+    ascii_emitter.append('  mass ' + str(round(ps_settings.mass, 1)))
+    ascii_emitter.append('  spread ' + str(round(ps_settings.auroraprops.spread, glob_gen_digits)))
+    ascii_emitter.append('  particleRot ' + str(round(ps_settings.auroraprops.particlerot, glob_gen_digits))) 
+    ascii_emitter.append('  velocity ' + str(round(ps_settings.normal_factor, glob_gen_digits)))
+    ascii_emitter.append('  randvel ' + str(round(ps_settings.factor_random, glob_gen_digits)))
+    ascii_emitter.append('  bounce_co ' + str(round(ps_settings.auroraprops.bounce_co, glob_gen_digits)))
+    ascii_emitter.append('  blurLength ' + str(round(ps_settings.auroraprops.blurlength, glob_gen_digits)))
+    tmp = '1' if (ps_settings.auroraprops.loop) else '0'
+    ascii_emitter.append('  loop ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.bounce) else '0'
+    ascii_emitter.append('  bounce ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.istinted) else '0'
+    ascii_emitter.append('  m_istinted ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.splat ) else '0'
+    ascii_emitter.append('  splat ' + tmp)     
+    tmp = '1' if (ps_settings.effector_weights.wind > 0.001) else '0'
+    ascii_emitter.append('  affectedByWind ' + tmp)    
     #Texture
     tmp = 'NULL'
     # Check if this object has a material assigned to it
@@ -608,72 +631,47 @@ def get_ascii_emitter(mesh_object):
                 if (active_tex.image):
                     tmp = nvb_utils.get_image_filename(active_tex.image)
     ascii_emitter.append('  texture ' + tmp)
+    tmp = '1' if (ps_settings.auroraprops.twosidedtex) else '0'
+    ascii_emitter.append('  twosidedtex ' + tmp) 
     tmp = ps_settings.billboard_uv_split
     ascii_emitter.append('  xgrid ' + str(tmp))
     ascii_emitter.append('  ygrid ' + str(tmp))
-    
-    # Blast props
-    ascii_emitter.append('  blastRadius ' + str(round(ps_settings.auroraprops.blastradius, glob_gen_digits)))
-    ascii_emitter.append('  blastLength ' + str(round(ps_settings.auroraprops.blastlength, glob_gen_digits)))
-    
-    # Animation props
-    ascii_emitter.append('  colorStart ' + str(round(ps_settings.auroraprops.colorstart[0], glob_color_digits)) + ' ' + 
-                                           str(round(ps_settings.auroraprops.colorstart[1], glob_color_digits)) + ' ' + 
-                                           str(round(ps_settings.auroraprops.colorstart[2], glob_color_digits))  )
-    ascii_emitter.append('  colorEnd ' + str(round(ps_settings.auroraprops.colorend[0], glob_color_digits)) + ' ' + 
-                                         str(round(ps_settings.auroraprops.colorend[1], glob_color_digits)) + ' ' + 
-                                         str(round(ps_settings.auroraprops.colorend[2], glob_color_digits))  )                                         
-    ascii_emitter.append('  alphaStart ' + str(round(ps_settings.auroraprops.alphastart, glob_gen_digits)))
-    ascii_emitter.append('  alphaEnd ' + str(round(ps_settings.auroraprops.alphaend, glob_gen_digits)))
-    ascii_emitter.append('  sizeStart ' + str(round(ps_settings.auroraprops.sizestart, glob_gen_digits)))
-    ascii_emitter.append('  sizeEnd ' + str(round(ps_settings.auroraprops.sizeend, glob_gen_digits)))
-    ascii_emitter.append('  sizeStart_y ' + str(round(ps_settings.auroraprops.sizestart_y, glob_gen_digits)))
-    ascii_emitter.append('  sizeEnd_y ' + str(round(ps_settings.auroraprops.sizeend_y, glob_gen_digits)))
-    
-    # Misc props
-    tmp = '1' if (ps_settings.auroraprops.splat ) else '0'
-    ascii_emitter.append('  splat ' + tmp)     
-    tmp = '1' if (ps_settings.auroraprops.istinted) else '0'
-    ascii_emitter.append('  m_istinted ' + tmp) 
-    tmp = '1' if (ps_settings.auroraprops.bounce) else '0'
-    ascii_emitter.append('  bounce ' + tmp)
-    tmp = '1' if (ps_settings.auroraprops.random) else '0'
-    ascii_emitter.append('  random ' + tmp) 
-    ascii_emitter.append('  bounce_co ' + str(round(ps_settings.auroraprops.bounce_co, glob_gen_digits)))
-    ascii_emitter.append('  spread ' + str(round(ps_settings.auroraprops.spread, glob_gen_digits)))
-    ascii_emitter.append('  particleRot ' + str(round(ps_settings.auroraprops.particlerot, glob_gen_digits)))    
     ascii_emitter.append('  fps ' + str(ps_settings.auroraprops.fps))
-    ascii_emitter.append('  blurLength ' + str(round(ps_settings.auroraprops.blurlength, glob_gen_digits)))
-    tmp = ps_settings.auroraprops.chunkname
-    if (tmp != ''):
-        ascii_emitter.append('  chunkname ' + tmp)
-    tmp = '1' if (ps_settings.auroraprops.loop) else '0'
-    ascii_emitter.append('  loop ' + tmp)
-    ascii_emitter.append('  renderorder ' + str(ps_settings.auroraprops.renderorder))
-    ascii_emitter.append('  deadspace ' + str(round(ps_settings.auroraprops.deadspace, glob_gen_digits)))
-    tmp = '1' if (ps_settings.auroraprops.twosidedtex) else '0'
-    ascii_emitter.append('  twosidedtex ' + tmp)   
-    
+    ascii_emitter.append('  frameStart ' + str(int(ps_settings.frame_start)))    
+    ascii_emitter.append('  frameEnd ' + str(int(ps_settings.frame_end)))  
+    tmp = '1' if (ps_settings.auroraprops.random) else '0'
+    ascii_emitter.append('  random ' + tmp)
     # Lightning props
     ascii_emitter.append('  lightningDelay ' + str(round(ps_settings.auroraprops.lightningdelay, glob_gen_digits)))
     ascii_emitter.append('  lightningRadius ' + str(round(ps_settings.auroraprops.lightningradius, glob_gen_digits)))
     ascii_emitter.append('  lightningSubDiv ' + str(ps_settings.auroraprops.lightningsubdiv))
-    ascii_emitter.append('  lightningScale ' + str(round(ps_settings.auroraprops.lightningscale, glob_gen_digits)))
-
+    ascii_emitter.append('  lightningScale ' + str(round(ps_settings.auroraprops.lightningscale, glob_gen_digits)))    
+    # Blast props
+    ascii_emitter.append('  blastRadius ' + str(round(ps_settings.auroraprops.blastradius, glob_gen_digits)))
+    ascii_emitter.append('  blastLength ' + str(round(ps_settings.auroraprops.blastlength, glob_gen_digits)))
     # p2p props
     ascii_emitter.append('  p2p ' + str(ps_settings.auroraprops.p2p))
     if (ps_settings.auroraprops.p2p == 'BEZIER'):
-        tmp = '1'
+        ascii_emitter.append('  p2p_type ' + 'Bezier')
+        ascii_emitter.append('  p2p_sel ' + '1')       
     elif (ps_settings.auroraprops.p2p == 'GRAVITY'):
-        tmp = '2'
+        ascii_emitter.append('  p2p_type ' + 'Gravity')
+        ascii_emitter.append('  p2p_sel ' + '2')
     else:
-        tmp = '1'
-    ascii_emitter.append('  p2p_sel ' + tmp)
+        ascii_emitter.append('  p2p_type ' + 'Bezier')
+        ascii_emitter.append('  p2p_sel ' + '1')
     ascii_emitter.append('  p2p_bezier2 ' + str(round(ps_settings.auroraprops.p2p_bezier2, glob_gen_digits)))
     ascii_emitter.append('  p2p_bezier3 ' + str(round(ps_settings.auroraprops.p2p_bezier3, glob_gen_digits)))
-    ascii_emitter.append('  threshold ' + str(round(ps_settings.auroraprops.threshold, glob_gen_digits)))
-    ascii_emitter.append('  combinetime ' + str(round(ps_settings.auroraprops.combinetime, glob_gen_digits)))
     
+    tmp = '1' if (ps_settings.effector_weights.gravity > 0.001) else '0'
+    ascii_emitter.append('  grav ' + tmp)
+    tmp = '1' if (ps_settings.effector_weights.drag > 0.001) else '0'
+    ascii_emitter.append('  drag ' + tmp)
+    
+    tmp = ps_settings.auroraprops.chunkname
+    if (tmp != ''):
+        ascii_emitter.append('  chunkname ' + tmp)
+        
     return ascii_emitter
 
     
@@ -1226,6 +1224,9 @@ def mesh2meshnode(mesh_object, export_object_list = []):
         glob_ascii_aabb_node = ascii_node # Save aabb node for later use
     
     elif (mesh_type == 'EMITTER'):
+        ascii_node.append('  wirecolor ' + str(round(mesh_object.auroraprops.wirecolor[0], glob_color_digits)) + ' ' + 
+                                           str(round(mesh_object.auroraprops.wirecolor[1], glob_color_digits)) + ' ' + 
+                                           str(round(mesh_object.auroraprops.wirecolor[2], glob_color_digits))  )    
         ascii_node.extend(get_ascii_emitter(mesh_object))
     
     ascii_node.append('endnode')

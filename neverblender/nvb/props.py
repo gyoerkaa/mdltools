@@ -1,5 +1,6 @@
 import bpy
 
+
 def nvb_update_shadow_prop(self, context):
     '''
     Set the lamps shadow to match the aurora shadow property
@@ -12,9 +13,9 @@ def nvb_update_shadow_prop(self, context):
             else:
                 select_object.data.shadow_method = 'NOSHADOW'
         except:
-            pass # just do nothing
+            pass
 
-            
+
 def nvb_update_lighttype_prop(self, context):
     '''
     Renames lamp acording to match selected light type
@@ -33,13 +34,13 @@ def nvb_update_lighttype_prop(self, context):
             elif (select_object.auroraprops.lighttype == 'SOURCELIGHT2'):
                 pass 
         except:
-            pass # just do nothing
+            pass
 
-            
+
 def nvb_update_lifeexp_prop(self, context):
     pass
 
-    
+
 class ParticlePropertyGroup(bpy.types.PropertyGroup):
     # For Emitters 
         
@@ -91,6 +92,7 @@ class ParticlePropertyGroup(bpy.types.PropertyGroup):
     particlerot = bpy.props.FloatProperty(name = 'Rotation', description = 'Particle Rotation', default = 0.0, min = -360.0, max = 360.0)
     fps         = bpy.props.IntProperty(name = 'Fps', description = 'Fps', default = 24, min = 0)
     blurlength  = bpy.props.FloatProperty(name = 'Blur Length', description = 'Blur Length', default = 10.0)
+    opacity     = bpy.props.FloatProperty(name = 'Opacity', default = 0.00, min = 0.00, max = 1.00)
     
     # Lighting props
     lightningdelay  = bpy.props.FloatProperty(name = 'Delay', description = 'Delay', default = 0.0, min = 0.0, max = 1000.0)
@@ -137,6 +139,7 @@ class ParticlePropertyGroup(bpy.types.PropertyGroup):
                                          default = 'BEZIER')
     p2p_bezier2 = bpy.props.FloatProperty(name = 'Bezier 2', description = '???', default = 0.0)
     p2p_bezier3 = bpy.props.FloatProperty(name = 'Bezier 3', description = '???', default = 0.0)
+    
     threshold   = bpy.props.FloatProperty(name = 'Threshold', description = 'Threshold', default = 0.0)    
     combinetime = bpy.props.FloatProperty(name = 'Combinetime', description = 'Combinetime', default = 0.0)
 

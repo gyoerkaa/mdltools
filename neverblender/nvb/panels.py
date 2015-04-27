@@ -6,8 +6,7 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
     Property panel for additional properties needed for the mdl file
     format. This is only available for particle systems.
     It is located under the particle panel in the properties window 
-    ''' 
-    
+    '''    
     bl_idname      = 'nvb.propertypanel.particlesystem'
     bl_label       = 'Aurora Particle Properties'
     bl_space_type  = 'PROPERTIES'
@@ -25,7 +24,6 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
         else:
             return False
 
-    
     def draw(self, context):
     
         def factor_but(layout, target, toggle, factor, name):
@@ -58,7 +56,10 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             
             row = layout.row()
             row.prop(partsys_settings.auroraprops, 'birthrate')
-        
+            
+            row = layout.row()
+            row.prop(partsys_settings.auroraprops, 'opacity')
+            
             split = layout.split()
             col = split.column(align=True)
             col.prop(partsys_settings, 'frame_start')
@@ -208,14 +209,14 @@ class NVBAuroraPropertyPanelParticleSystem(bpy.types.Panel):
             box = row.box()
             box.label(text = 'Bounce: ')            
             factor_but(box, partsys_settings.auroraprops, 'bounce', 'bounce_co', 'Coeff.')
-            
+
+
 class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
     ''' 
     Property panel for additional properties needed for the mdl file
     format. This is only available for EMPTY objects.
     It is located under the object data panel in the properties window 
-    '''
-    
+    '''   
     bl_idname = 'nvb.propertypanel.dummy'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
@@ -291,8 +292,7 @@ class NVBAuroraPropertyPanelLight(bpy.types.Panel):
     but used by OpenGL and the aurora engine. This is only available 
     for LAMP objects.
     It is located under the object data panel in the properties window 
-    '''
-    
+    '''   
     bl_idname = 'nvb.propertypanel.light'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
@@ -329,7 +329,7 @@ class NVBAuroraPropertyPanelLight(bpy.types.Panel):
         
         row = layout.row()        
         row.prop(object.auroraprops, 'tilelight', text='Tilelight')
-    
+
 
 class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
     ''' 
@@ -338,8 +338,7 @@ class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
     but used by OpenGL and the aurora engine. This is only available 
     for MESH objects.
     It is located under the object data panel in the properties window
-    '''  
-    
+    '''   
     bl_idname = 'nvb.propertypanel.mesh'
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
@@ -360,7 +359,9 @@ class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
         row.prop(object.auroraprops, 'meshtype', text='Type')
         
         if (object.auroraprops.meshtype == 'EMITTER'):
-            pass
+            row = layout.row()
+            row.prop(object.auroraprops, 'wirecolor', text='Wirecolor')
+            
         else: # Trimesh, danglymesh, skin
             
             row = layout.row()

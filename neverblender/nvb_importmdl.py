@@ -265,6 +265,7 @@ def add_particle_system(node_object, parsed_node):
     ps_settings.auroraprops.deadspace   = parsed_node['deadspace']    
     ps_settings.auroraprops.renderorder = parsed_node['renderorder']
     ps_settings.auroraprops.twosidedtex = (parsed_node['twosidedtex'] == 1)
+    ps_settings.auroraprops.opacity     = parsed_node['opacity']
     
     # Lighting props
     ps_settings.auroraprops.lightningdelay  = parsed_node['lightningdelay']
@@ -338,8 +339,7 @@ def add_skingroups(node_object, parsed_node):
 def create_mesh_material(parsed_node):
     '''
     Creates a material from a parsed ascii node
-    '''
-    
+    '''   
     node_mat = bpy.data.materials.new(parsed_node['name']+'.mat')
     
     # Set material properties
@@ -408,23 +408,26 @@ def create_mesh_material(parsed_node):
 def create_emitter_material(parsed_node):
     '''
     Creates a material from a parsed ascii node
-    '''
-    
+    '''   
     node_mat = bpy.data.materials.new(parsed_node['name']+'.mat')
     
     # Set material properties
-    node_mat.diffuse_color      = (1.0, 1.0, 1.0)
-    node_mat.diffuse_intensity  = 1.0
-    node_mat.specular_color     = (0.0, 0.0, 0.0)
+    node_mat.diffuse_color     = (1.0, 1.0, 1.0)
+    node_mat.diffuse_intensity = 1.0
+    node_mat.specular_color    = (0.0, 0.0, 0.0)
     
     # Set alpha values. Note: Texture alpha_factor needs to be set too
     node_mat.alpha            = 0.0
     node_mat.use_transparency = True
-    
-    # Set the texture, if there is one
-    if (parsed_node['texture'].lower() != 'null'):
-        node_tex                       = node_mat.texture_slots.add()
-        node_tex.texture               = bpy.data.textures.new(parsed_node['texture'], type='IMAGE')
+     
+    # Set the texture
+    texture_name = parsed_node['texture'].lower()
+    if (texture_name != 'null'):
+        node_tex = node_mat.texture_slots.add()
+        if (glob_one_tex_per_image and (texture_name in bpy.data.textures)):
+            node_tex.texture = bpy.data.textures[texture_name]
+        else:
+            node_tex.texture = bpy.data.textures.new(texture_name, type='IMAGE')     
         node_tex.texture_coords        = 'UV'
         node_tex.use_map_color_diffuse = True
         
@@ -432,7 +435,11 @@ def create_emitter_material(parsed_node):
         node_tex.alpha_factor   = 1.0
         node_tex.use_map_alpha = True
         
-        image = load_material_image(parsed_node['texture'],'.tga')
+        if (parsed_node['texture'] in bpy.data.images):
+            image = bpy.data.images[parsed_node['texture']]
+        else:        
+            image = load_material_image(parsed_node['texture'],'.tga')
+
         if image:
             node_tex.texture.image = image
     
@@ -448,7 +455,7 @@ def animnode2partsysaction(parsed_node, partsys_name = ''):
     # Return a None object, if there is no animation data
     if not parsed_node['birthratekey']:
         return None
-    
+    print('adding birthratekey')
     action_name               = parsed_node['anim_name'] + '.' + partsys_name
     node_action               = bpy.data.actions.new(name=action_name)
     node_action.use_fake_user = True # We want this action to be saved, even if it isn't attached to an object
@@ -1242,7 +1249,10 @@ def parse_geom_node(ascii_node):
             
         elif (first_word == 'renderorder'):
             parsed_node['renderorder'] = int(line[1])
-        
+            
+        elif (first_word == 'opacity'):
+            parsed_node['opacity'] = float(line[1])
+            
         elif (first_word == 'spawntype'):            
             if (is_numeric(line[1])):
                 parsed_node['spawntype'] = int(line[1])
@@ -1846,6 +1856,7 @@ def parse_geometry(ascii_geom):
                                     parsed_node['scale'], \
                                     parsed_node['scale'])
             node_object.location = parsed_node['position']
+            node_object.auroraprops.wirecolor = parsed_node['wirecolor']
             
             # Aurora properties
             node_object.auroraprops.meshtype     = 'EMITTER'
