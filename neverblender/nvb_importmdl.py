@@ -200,7 +200,7 @@ def add_particle_system(node_object, parsed_node):
         ps_settings.auroraprops.update = 'FOUNTAIN'
     elif (parsed_node['update'] == 2):
         ps_settings.auroraprops.update = 'SINGLE'
-    elif (parsed_node['update'] == 2):
+    elif (parsed_node['update'] == 3):
         ps_settings.auroraprops.update = 'EXPLOSION'
     elif (parsed_node['update'] == 4):
         ps_settings.auroraprops.update = 'LIGHTNING'
@@ -455,14 +455,13 @@ def animnode2partsysaction(parsed_node, partsys_name = ''):
     # Return a None object, if there is no animation data
     if not parsed_node['birthratekey']:
         return None
-    print('adding birthratekey')
     action_name               = parsed_node['anim_name'] + '.' + partsys_name
     node_action               = bpy.data.actions.new(name=action_name)
     node_action.use_fake_user = True # We want this action to be saved, even if it isn't attached to an object
     
     # Set birthrate channels if there are birthrate keys
     # This should influence the birthrate value
-    curve = node_action.fcurves.new(data_path='auroraprops.birthratekey')     
+    curve = node_action.fcurves.new(data_path='auroraprops.birthrate')     
         
     for i, key in enumerate(parsed_node['birthratekey']):
         curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0], nvb_presets.render_fps), key[1])   
@@ -1268,20 +1267,14 @@ def parse_geom_node(ascii_node):
             if (is_numeric(line[1])):
                 parsed_node['update'] = int(line[1])
             else:
-                if (line[1].lower() == 'normal'):
+                if (line[1].lower() == 'fountain'):
                     parsed_node['update'] = 1
-                elif (line[1].lower() == 'linked'):
+                elif (line[1].lower() == 'single'):
                     parsed_node['update'] = 2
-                elif (line[1].lower() == 'billboard_to_local_z'):
+                elif (line[1].lower() == 'explosion'):
                     parsed_node['update'] = 3
-                elif (line[1].lower() == 'billboard_to_world_z'):
+                elif (line[1].lower() == 'lightning'):
                     parsed_node['update'] = 4
-                elif (line[1].lower() == 'aligned_to_world_z'):
-                    parsed_node['update'] = 5
-                elif (line[1].lower() == 'aligned_to_particle_dir'):
-                    parsed_node['update'] = 6
-                elif (line[1].lower() == 'motion_blur'):
-                    parsed_node['update'] = 7
                 else:
                     parsed_node['update'] = 1
             
