@@ -725,7 +725,7 @@ def get_ascii_geometry(mesh_object, textured = True):
     try:
         mesh = mesh_object.to_mesh(glob_export_scene, glob_apply_modifiers, 'PREVIEW')
     except RuntimeError:
-        printf('WARNING: Error exporting geometry from ' + mesh_object.name)
+        print('WARNING: Error exporting geometry from ' + mesh_object.name)
         mesh = None
     
     if mesh is not None:
@@ -916,7 +916,7 @@ def get_ascii_aabb_tree(walkmesh_object):
     try:
         walkmesh = walkmesh_object.to_mesh(glob_export_scene, glob_apply_modifiers, 'PREVIEW')
     except RuntimeError:
-        printf('WARNING: Error exporting geometry from ' + mesh_object.name)
+        print('WARNING: Error exporting geometry from ' + mesh_object.name)
         walkmesh = None
     
     if walkmesh is not None:

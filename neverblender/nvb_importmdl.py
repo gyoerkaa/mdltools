@@ -83,7 +83,7 @@ def get_mdl_classification():
     if (glob_classification.lower() in {'unknown', 'tile', 'character', 'door', 'effect', 'gui', 'item'}):
         return glob_classification.upper()
     else:
-        printf('WARNING: Invalid Classification')
+        print('WARNING: Invalid Classification')
         return 'UNKNOWN'
 
 
