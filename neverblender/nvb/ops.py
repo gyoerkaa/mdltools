@@ -1,9 +1,10 @@
 import bpy
-
+import neverblender.nvb.presets
 
 class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
     '''
-    This oper
+    Load all materials for aabb walkmeshes for the selected object. Current 
+    material slots will be deleted.
     '''
     bl_idname = "nvb.load_wok_mats"
     bl_label  = "Load walkmesh materials"
@@ -22,8 +23,8 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
                 bpy.ops.object.material_slot_remove()
                 
             # Create materials
-            for i in range(len(nvb_presets.wok_materials)):
-                mat_name = nvb_presets.wok_materials[i][0] +'.mat'
+            for i in range(len(neverblender.nvb.presets.wok_materials)):
+                mat_name = neverblender.nvb.presets.wok_materials[i][0] +'.mat'
         
                 # Walkmesh materials should be shared across multiple 
                 # walkmeshes, as they always identical
@@ -32,10 +33,10 @@ class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
                 else:
                     walkmesh_mat = bpy.data.materials.new(mat_name)
         
-                    walkmesh_mat.diffuse_color      = nvb_presets.wok_materials[i][1]
+                    walkmesh_mat.diffuse_color      = neverblender.nvb.presets.wok_materials[i][1]
                     walkmesh_mat.diffuse_intensity  = 1.0 
                     walkmesh_mat.specular_color     = (0.0,0.0,0.0)
-                    walkmesh_mat.specular_intensity = nvb_presets.wok_materials[i][2]
+                    walkmesh_mat.specular_intensity = neverblender.nvb.presets.wok_materials[i][2]
                 
                 object_mesh.materials.append(walkmesh_mat)
         else:           

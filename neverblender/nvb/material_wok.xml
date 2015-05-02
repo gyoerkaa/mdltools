@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<data>
+    <material id="wok_notdefined">
+        <name>NotDefined</name>
+        </diffuse color="(0.400, 0.400, 0.400)" intensity=0.0>
+        </specular color="(0.000, 0.000, 0.000)" intensity=0.0>
+    </material>
+    <material id="wok_dirt">
+        <name>Dirt</name>
+        </diffuse color="(0.400, 0.400, 0.400)" intensity=0.0>
+        </specular color="(0.610, 0.235, 0.050)" intensity=0.0>
+    </material>  
+</data>
