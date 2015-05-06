@@ -38,6 +38,7 @@ if "bpy" in locals():
     imp.reload(nvb_importmdl)
     imp.reload(nvb_exportmdl)
 else:
+
     import neverblender.nvb.props
     import neverblender.nvb.ops
     import neverblender.nvb.panels
@@ -46,7 +47,11 @@ else:
 
 import bpy
 import bpy_extras
-   
+"""
+import xml.etree.ElementTree
+import os
+import re  
+"""
 
 class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import from Neverwinter Nights file format (.mdl)'''
@@ -185,7 +190,18 @@ def menu_func_export(self, context):
 def menu_func_import(self, context):
     self.layout.operator(NVBAuroraMDLImport.bl_idname, text="Neverwinter Nights (.mdl)")
 
-
+"""    
+def xmlTest():
+    scriptDir = os.path.dirname(__file__)
+    xmlFile = r"nvb/material_wok.xml"
+    tree = xml.etree.ElementTree.parse(os.path.join(scriptDir, xmlFile))
+    root = tree.getroot()
+    for child in root:
+        print(child.find('name').text)
+        color = child.find('diffuse').get('color')
+        print([float(x.group()) for x in re.finditer('\d.\d', color)])
+"""
+        
 def register():
     bpy.utils.register_module(__name__)
     
