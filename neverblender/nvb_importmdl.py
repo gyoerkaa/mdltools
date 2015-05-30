@@ -680,7 +680,8 @@ def woknode2mesh(parsed_node, override_name = ''):
     node_mesh.tessfaces.add(len(parsed_node['faces']))
     node_mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(parsed_node['faces'])) 
     
-    # Create walkmesh materials
+    # Create walkmesh materials (use nv_presets for now)
+    # TODO: import from xml
     for i in range(len(nvb_presets.wok_materials)):
     
         mat_name = nvb_presets.wok_materials[i][0] +'.mat'
