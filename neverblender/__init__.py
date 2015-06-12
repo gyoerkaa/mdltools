@@ -57,7 +57,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import from Neverwinter Nights file format (.mdl)'''
     
     bl_idname  = 'nvb.importmdl'
-    bl_label   = 'Import NwN MDL'
+    bl_label   = 'Import Aurora MDL'
     bl_options = {'UNDO'}
     
     filename_ext = '.mdl'
@@ -135,7 +135,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     '''Export to Neverwinter Nights file format (.mdl)'''
     bl_idname = 'nvb.exportmdl'
-    bl_label  = 'Export NwN MDL'
+    bl_label  = 'Export Aurora MDL'
     
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(
@@ -184,11 +184,11 @@ class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
 
 def menu_func_export(self, context):
-    self.layout.operator(NVBAuroraMDLExport.bl_idname, text="Neverwinter Nights (.mdl)")
+    self.layout.operator(NVBAuroraMDLExport.bl_idname, text="Aurora MDL (.mdl)")
 
 
 def menu_func_import(self, context):
-    self.layout.operator(NVBAuroraMDLImport.bl_idname, text="Neverwinter Nights (.mdl)")
+    self.layout.operator(NVBAuroraMDLImport.bl_idname, text="Aurora MDL (.mdl)")
 
 """    
 def xmlTest():
