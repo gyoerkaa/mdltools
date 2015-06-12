@@ -1,51 +1,60 @@
-import bpy
 import os
 import math
 import collections
 
+import bpy
+
 #import neverblender.nvb.walkmesh
+#import neverblender.nvb.node
+
+class MalformedMdlFile(Exception):
+    def __init__(self, value):
+        self.parameter = value
+    def __str__(self):
+        return repr(self.parameter)
+
 
 class Mdlfile():
     __debug = True
     
-    def __init__(self, filepath = None):
-        if filepath:
-           open()
+    def __init__(self):
+        pass
       
-      
-    def open(self, 
-             filepath = '',
-             import_objects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'SHADING_GROUP', 'EMITTER'},
-             one_texture_per_image = True,
-             use_image_search      = False,
-             import_fading_obj     = True):
+    def import_(self, 
+               filepath = '',
+               importObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'EMITTER', 'SHADINGGROUP'},
+               duplicateTextures = False,
+               imageSearch       = False,
+               skipFadingObj     = False):
                   
         self.filepath = os.fsencode(filepath)
         self.filename = os.path.splitext(os.path.basename(filepath))[0]
         self.filedir  = os.path.dirname(filepath)
         
         # Import options (WHAT to import)
-        self.import_geometry = True;
-        self.import_anims    = True;
-        self.import_walkmesh = True;
-        self.import_light    = True;
-        self.import_emitter  = True;
+        self.importGeometry  = 'GEOMETRY'     in importObjects;
+        self.importAnims     = 'ANIMATION'    in importObjects;
+        self.importWalkmesh  = 'WALKMESH'     in importObjects;
+        self.importLight     = 'LIGHT'        in importObjects;
+        self.importEmitter   = 'EMITTER'      in importObjects;
+        self.importShadingGr = 'SHADINGGROUP' in importObjects;
         # Import options (HOW to import)
-        self.image_search = use_image_search
-        self.one_texture  = one_texture_per_image
-        self.import_fading_obj = True; # Used for minimaps
+        self.duplicateTextures = duplicateTextures # use 1 texture for each img
+        self.imageSearch       = imageSearch # search in subfolders
+        self.skipFadingObj     = skipFadingObj; # for minimaps
         
         # Where to put the imported stuff (additional scenes may be created for
         # animations)
         self.scene = bpy.context.scene
         
-        ascii_mdl = read_ascii_mdl(self.filepath)
+        self.nodelist = collections.OrderedDict()
+        self.animlist = dict() # No need to retain order
+        parseAsciiMdl(self.filepath)
     
-    
-    def save(self,
-             filepath = '',
-             export_objects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'SHADING_GROUP', 'EMITTER'},
-             apply_modifiers = True):
+    def export_(self,
+                filepath = '',
+                exportObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'SHADING_GROUP', 'EMITTER'},
+                applyModifiers = True):
         
         self.filepath = os.fsencode(filepath)
         self.filename = os.path.splitext(os.path.basename(filepath))[0]
@@ -54,44 +63,98 @@ class Mdlfile():
         # Exit edit mode before exporting, so current object states are exported properly
         if bpy.ops.object.mode_set.poll():
             bpy.ops.object.mode_set(mode='OBJECT')                
-    
-    
-    def read_ascii_mdl(self, filepath = ''):
-        '''
-        Opens file in ascii format and puts its
-        contents into a list    
-        '''
-        separated_values = []
-    
-        with open(filepath, 'r') as file:
-            for line in file:
-                line = line.strip()
-                # Skip empty lines & comments
-                if (line and line[0] != '#'):
-                    separated_values.append(line.split())
-                        
-        return separated_values
-    
-    
-    def parse_modelgeom(self, modelgeom):
-        '''
+        
+    def writeAsciiMdl(self, filepath = ''):
+        pass
+       
+    def parseAsciiMdl(self, filepath = ''):
+        """
+        Opens file in ascii format and puts its nodes into lists 
+        (one for geometry & aninms each)
+        """
+        lines = [line.strip().split() for line in open(filepath, 'r')]
+
+        # Read some metadata frist
+        geomBlockStart = None
+        geomBlockEnd   = None
+        animBlockStart = None 
+        animBlockEnd   = None
+        animBlockList  = []
+        for idx, line in enumerate(lines):
+            if (line[0] == 'newmodel'):
+                try:
+                    self.modelname = line[1]
+                except IndexError:
+                    self.modelname = 'UNKNOWN'
+            elif (line[0] == 'setsupermodel'): 
+                try:
+                   self.supermodel = line[1]
+                except IndexError:
+                   self.supermodel = 'NULL'
+            elif (line[0] == 'classification'):
+                try:
+                    self.classification = line[1]
+                except IndexError:
+                    self.classification = 'UNKNOWN'
+            elif (line[0] == 'setanimationscale'):
+                try:
+                    self.animScale = line[1]
+                except IndexError:
+                    self.animScale = 1.0
+            elif (line[0] == 'beginmodelgeom'):
+                if (geomBlockStart):
+                     # There can only be one
+                    raise MalformedMdlFile('Unexpected "beginmodelgeom"')
+                geomBlockStart = idx;                    
+            elif (line[0] == 'endmodelgeom'):
+                if (geomBlockEnd):
+                    # There can only be one
+                    raise MalformedMdlFile('Unexpected "endmodelgeom"')
+                geomBlockEnd = idx; 
+            elif (line[0] == 'newanim'):               
+                if animBlockStart:
+                    # Trying to start a new anim before finishing the old
+                    raise MalformedMdlFile('Unexpected "newanim"') 
+                animBlockStart = idx                    
+            elif (line[0] == 'doneanim'):               
+                if not animBlockStart:
+                    # Trying to end an anim before starting one
+                    raise MalformedMdlFile('Unexpected "doneanim"') 
+                animBlockEnd = idx
+                animBlockList.append((animBlockStart, animBlockEnd))
+                animBlockStart = None
+                animBlockEnd   = None
+        
+        # Parse Geometry
+        
+        
+        # Parse Animations
+        
+              
+    def parseGeomBlock(self, geomBlockStart):
+        """
         Returns an ordered list of geometry nodes.
         Nodes are orderered "parent-first", i.e. a child will never come before
         its parent.   
-        '''
+        """
         
-        geomnodes = collections.OrderedDict()
-        
-        if modegeom is None:
-            return geomnodes
+        geomNodes = collections.OrderedDict()
+
+        if geomBlock is None:
+            return geomNodes
             
-        for line in modegeom:
-            if line[0] = 'node'
-    
-    
-    def parse_geom_node(self, geomnode):
+        # For nodes, whose parents haven't been inserted yet
+        geomQueue = collection.deque()
+        
+        for line in modelGeom:
+            if line[0] = 'node':
+                pass
+                    
+    def parseGeomNode(self, geomNode):
         pass
     
-    
-    def parse_anim(self, anim):
+    def parseAnimBlock(self, animBlock):
+        pass
+     
+    def parseAnimNode(self, animNode):
         pass
