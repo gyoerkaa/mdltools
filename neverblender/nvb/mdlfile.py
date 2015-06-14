@@ -105,7 +105,7 @@ class Mdlfile():
                 if (geomBlockStart):
                      # There can only be one
                     raise MalformedMdlFile('Unexpected "beginmodelgeom"')
-                geomBlockStart = idx;                    
+                geomBlockStart = idx;                   
             elif (line[0] == 'endmodelgeom'):
                 if (geomBlockEnd):
                     # There can only be one
@@ -126,12 +126,14 @@ class Mdlfile():
                 animBlockEnd   = None
         
         # Parse Geometry
-        
+        parseGeomBlock(geomBlockStart,geomBlockEnd)
         
         # Parse Animations
+        for anim in animBlockList:
+            pass
         
               
-    def parseGeomBlock(self, geomBlockStart):
+    def parseGeomBlock(self, geomBlockStart, geomBlockEnd):
         """
         Returns an ordered list of geometry nodes.
         Nodes are orderered "parent-first", i.e. a child will never come before
