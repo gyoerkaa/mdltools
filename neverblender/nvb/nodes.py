@@ -15,7 +15,7 @@ class Dummy():
     def from_object(self, object):
         pass
         
-    def to_ascii():
+    def to_ascii(self):
         lines = []
         return lines
 
@@ -46,8 +46,8 @@ class Trimesh(Dummy):
         self.faces           = []
         self.tverts          = []
         
-    def to_ascii():
-        lines = []
+    def to_ascii(self):
+        lines = Dummy.to_ascii(self)
         return lines;
 
 
