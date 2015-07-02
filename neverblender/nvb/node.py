@@ -15,6 +15,12 @@ class Dummy():
     def from_object(self, object):
         pass
         
+    def to_object(self):
+        pass
+        
+    def from_ascii(self, asciiNode):
+        pass   
+    
     def to_ascii(self):
         lines = []
         return lines

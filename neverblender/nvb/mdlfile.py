@@ -5,7 +5,7 @@ import collections
 import bpy
 
 #import neverblender.nvb.walkmesh
-#import neverblender.nvb.node
+import neverblender.nvb.node
 
 class MalformedMdlFile(Exception):
     def __init__(self, value):
@@ -16,10 +16,10 @@ class MalformedMdlFile(Exception):
 
 class Mdlfile():
     __debug = True
-    
+
     def __init__(self):
         pass
-      
+
     def import_(self, 
                filepath = '',
                importObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'EMITTER', 'SHADINGGROUP'},
@@ -50,7 +50,8 @@ class Mdlfile():
         self.nodelist = collections.OrderedDict()
         self.animlist = dict() # No need to retain order
         parseAsciiMdl(self.filepath)
-    
+
+
     def export_(self,
                 filepath = '',
                 exportObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'SHADING_GROUP', 'EMITTER'},
@@ -63,10 +64,12 @@ class Mdlfile():
         # Exit edit mode before exporting, so current object states are exported properly
         if bpy.ops.object.mode_set.poll():
             bpy.ops.object.mode_set(mode='OBJECT')                
-        
+
+
     def writeAsciiMdl(self, filepath = ''):
         pass
-       
+
+
     def parseAsciiMdl(self, filepath = ''):
         """
         Opens file in ascii format and puts its nodes into lists 
@@ -74,12 +77,9 @@ class Mdlfile():
         """
         lines = [line.strip().split() for line in open(filepath, 'r')]
 
-        # Read some metadata frist
+        # Parse metadata
         geomBlockStart = None
-        geomBlockEnd   = None
-        animBlockStart = None 
-        animBlockEnd   = None
-        animBlockList  = []
+        animBlockStart = None       
         for idx, line in enumerate(lines):
             if (line[0] == 'newmodel'):
                 try:
@@ -103,60 +103,90 @@ class Mdlfile():
                     self.animScale = 1.0
             elif (line[0] == 'beginmodelgeom'):
                 if (geomBlockStart):
-                     # There can only be one
+                    # Trying to start a new geometry block before ending one
+                    # (or trying to start a second block)
                     raise MalformedMdlFile('Unexpected "beginmodelgeom"')
-                geomBlockStart = idx;                   
+                geomBlockStart = idx;
             elif (line[0] == 'endmodelgeom'):
-                if (geomBlockEnd):
-                    # There can only be one
+                if not geomBlockStart:
+                    # Trying to end a geometry block before starting one
                     raise MalformedMdlFile('Unexpected "endmodelgeom"')
-                geomBlockEnd = idx; 
+                parseAsciiGeomBlock(lines[geomBlockStart:idx]) 
             elif (line[0] == 'newanim'):               
                 if animBlockStart:
-                    # Trying to start a new anim before finishing the old
+                    # Trying to start a new anim before ending one
                     raise MalformedMdlFile('Unexpected "newanim"') 
                 animBlockStart = idx                    
             elif (line[0] == 'doneanim'):               
                 if not animBlockStart:
                     # Trying to end an anim before starting one
                     raise MalformedMdlFile('Unexpected "doneanim"') 
-                animBlockEnd = idx
-                animBlockList.append((animBlockStart, animBlockEnd))
+                parseAsciiAnimBlock(lines[animBlockStart:idx])
+                # Reset back to None, as there can be more than one anim block
                 animBlockStart = None
-                animBlockEnd   = None
-        
-        # Parse Geometry
-        parseGeomBlock(geomBlockStart,geomBlockEnd)
-        
-        # Parse Animations
-        for anim in animBlockList:
-            pass
-        
-              
-    def parseGeomBlock(self, geomBlockStart, geomBlockEnd):
+
+
+    def parseAsciiGeomBlock(self, geomBlock):
         """
         Returns an ordered list of geometry nodes.
         Nodes are orderered "parent-first", i.e. a child will never come before
         its parent.   
         """
         
-        geomNodes = collections.OrderedDict()
+        nodeList = collections.OrderedDict()
 
         if geomBlock is None:
-            return geomNodes
+            return nodeList
             
         # For nodes, whose parents haven't been inserted yet
         geomQueue = collection.deque()
         
-        for line in modelGeom:
+        nodeStart = None
+        for idx, line in enumerate(geomBlock):
             if line[0] = 'node':
-                pass
-                    
-    def parseGeomNode(self, geomNode):
+                if nodeStart:
+                    # Trying to start a new node before ending one
+                    raise MalformedMdlFile('Unexpected "node"')
+                nodeStart = idx;
+            elif line[0] = 'endnode':
+                if not nodeStart:
+                    # Trying to end a node before starting one
+                    raise MalformedMdlFile('Unexpected "endnode"')
+                nodeList.append(parseGeomNode(geomBlock[nodeStart:idx]))
+                nodeStart = None
+
+
+    def parseAsciiGeomNode(self, asciiNode):
+        """
+        Parse a single geometry node  
+        """
+        if asciiNode is None:
+            raise MalformedMdlFile('Empty Node')
+        
+        type = ''
+        try:
+            type = asciiNode[0][1].upper()
+        except IndexError, AttributeError:
+            raise MalformedMdlFile('Invalid node type')
+            
+        switch={'DUMMY':      nvb.node.Dummy, 
+                'TRIMESH':    nvb.node.Trimesh, 
+                'DANGLYMESH': nvb.node.Danglymesh, 
+                'SKIN':       nvb.node.Skinmesh,
+                'EMITTER':    nvb.node.Emitter,
+                'LIGHT':      nvb.node.Light, 
+                'AABB':       nvb.node.Aabb}
+        try:
+            node = switch[type](asciiNode)
+        except KeyError:
+            raise MalformedMdlFile('Invalid node type')
+            
+        return node
+
+
+    def parseAsciiAnimBlock(self, animBlock):
         pass
-    
-    def parseAnimBlock(self, animBlock):
-        pass
-     
-    def parseAnimNode(self, animNode):
+
+
+    def parseAsciiAnimNode(self, animNode):
         pass
