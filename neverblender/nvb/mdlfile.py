@@ -26,18 +26,13 @@ class Mdlfile():
                duplicateTextures = False,
                imageSearch       = False,
                skipFadingObj     = False):
-                  
+        
         self.filepath = os.fsencode(filepath)
         self.filename = os.path.splitext(os.path.basename(filepath))[0]
         self.filedir  = os.path.dirname(filepath)
         
         # Import options (WHAT to import)
-        self.importGeometry  = 'GEOMETRY'     in importObjects;
-        self.importAnims     = 'ANIMATION'    in importObjects;
-        self.importWalkmesh  = 'WALKMESH'     in importObjects;
-        self.importLight     = 'LIGHT'        in importObjects;
-        self.importEmitter   = 'EMITTER'      in importObjects;
-        self.importShadingGr = 'SHADINGGROUP' in importObjects;
+        self.imports = importObjects;
         # Import options (HOW to import)
         self.duplicateTextures = duplicateTextures # use 1 texture for each img
         self.imageSearch       = imageSearch # search in subfolders
@@ -77,7 +72,18 @@ class Mdlfile():
         """
         lines = [line.strip().split() for line in open(filepath, 'r')]
 
-        # Parse metadata
+        #newmodel X
+        #    beginmodelgeom X
+        #        node G      
+        #        endnode G
+        #        node H
+        #        endnode H
+        #    endmodelgeom X
+        #    newanim A
+        #    doneanim A
+        #    newanim B
+        #    doneanim B
+        #donemodel X          
         geomBlockStart = None
         animBlockStart = None       
         for idx, line in enumerate(lines):
@@ -103,8 +109,7 @@ class Mdlfile():
                     self.animScale = 1.0
             elif (line[0] == 'beginmodelgeom'):
                 if (geomBlockStart):
-                    # Trying to start a new geometry block before ending one
-                    # (or trying to start a second block)
+                    # Trying to start a 2nd geometry block (only 1 allowed)
                     raise MalformedMdlFile('Unexpected "beginmodelgeom"')
                 geomBlockStart = idx;
             elif (line[0] == 'endmodelgeom'):
@@ -112,12 +117,12 @@ class Mdlfile():
                     # Trying to end a geometry block before starting one
                     raise MalformedMdlFile('Unexpected "endmodelgeom"')
                 parseAsciiGeomBlock(lines[geomBlockStart:idx]) 
-            elif (line[0] == 'newanim'):               
+            elif (line[0] == 'newanim'):
                 if animBlockStart:
                     # Trying to start a new anim before ending one
                     raise MalformedMdlFile('Unexpected "newanim"') 
                 animBlockStart = idx                    
-            elif (line[0] == 'doneanim'):               
+            elif (line[0] == 'doneanim'):
                 if not animBlockStart:
                     # Trying to end an anim before starting one
                     raise MalformedMdlFile('Unexpected "doneanim"') 
@@ -125,19 +130,17 @@ class Mdlfile():
                 # Reset back to None, as there can be more than one anim block
                 animBlockStart = None
 
-
     def parseAsciiGeomBlock(self, geomBlock):
         """
         Returns an ordered list of geometry nodes.
         Nodes are orderered "parent-first", i.e. a child will never come before
         its parent.   
         """
-        
         nodeList = collections.OrderedDict()
 
         if geomBlock is None:
             return nodeList
-            
+        
         # For nodes, whose parents haven't been inserted yet
         geomQueue = collection.deque()
         
@@ -165,22 +168,23 @@ class Mdlfile():
         
         type = ''
         try:
-            type = asciiNode[0][1].upper()
+            type = asciiNode[0][1].lower()
         except IndexError, AttributeError:
             raise MalformedMdlFile('Invalid node type')
-            
-        switch={'DUMMY':      nvb.node.Dummy, 
-                'TRIMESH':    nvb.node.Trimesh, 
-                'DANGLYMESH': nvb.node.Danglymesh, 
-                'SKIN':       nvb.node.Skinmesh,
-                'EMITTER':    nvb.node.Emitter,
-                'LIGHT':      nvb.node.Light, 
-                'AABB':       nvb.node.Aabb}
+        
+        switch={'dummy':      nvb.node.Dummy, 
+                'trimesh':    nvb.node.Trimesh,
+                'danglymesh': nvb.node.Danglymesh,
+                'skin':       nvb.node.Skinmesh,
+                'emitter':    nvb.node.Emitter,
+                'light':      nvb.node.Light,
+                'aabb':       nvb.node.Aabb}
         try:
-            node = switch[type](asciiNode)
+            node = switch[type]()
         except KeyError:
             raise MalformedMdlFile('Invalid node type')
-            
+        
+        node.from_ascii(asciiNode)
         return node
 
 

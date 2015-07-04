@@ -4,7 +4,7 @@ class Dummy():
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         self.name   = name
         self.parent = 'null'
         self.position    = (0.0, 0.0, 0.0)
@@ -19,7 +19,27 @@ class Dummy():
         pass
         
     def from_ascii(self, asciiNode):
-        pass   
+        for line in asciiNode:
+            property = line[0]
+            if   (property == 'node'):
+                self.name = line[2].lower()
+            elif (property == 'parent'):
+                self.parent = line[1].lower()
+            elif (property == 'position'):
+                self.position = ( float(line[1]),
+                                  float(line[2]),
+                                  float(line[3]) )
+            elif (property == 'orientation'):
+                self.orientation = ( float(line[1]),
+                                     float(line[2]),
+                                     float(line[3]),
+                                     float(line[4]) )
+            elif (first_word == 'scale'):
+                self.scale = float(line[1])
+            elif (property == 'wirecolor'):
+                self.wirecolor = ( float(line[1]),
+                                   float(line[2]),
+                                   float(line[3]) )
     
     def to_ascii(self):
         lines = []
@@ -30,15 +50,15 @@ class Trimesh(Dummy):
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
         
-        self.center   = (0.0, 0.0, 0.0)
+        self.center   = (0.0, 0.0, 0.0) # Unused ?
         self.tilefade = True
         self.render   = True
         self.shadow   = True
         self.beaming  = True
-        self.inheritcolor     = 0  #Unused ?     
+        self.inheritcolor     = 0  # Unused ?     
         self.alpha            = 1.0
         self.transparencyhint = 0
         self.selfillumcolor = (0.0, 0.0, 0.0)
@@ -52,17 +72,61 @@ class Trimesh(Dummy):
         self.faces           = []
         self.tverts          = []
         
-    def to_ascii(self):
-        lines = Dummy.to_ascii(self)
-        return lines;
-
+    def from_ascii(self, asciiNode):
+        Dummy.from_ascii(self, asciiNode)
+        for line in asciiNode:
+            property = line[0]        
+            if   (property == 'tilefade'): 
+                self.tilefade = int(line[1])
+            elif (property == 'render'):
+                pass # TODO
+            elif (property == 'shadow'):
+                self.shadow = int(line[1])
+            elif (property == 'beaming'):
+                self.beaming = int(line[1])       
+            elif (property == 'inheritcolor '):
+                self.inheritcolor = int(line[1])        
+            elif (property == 'rotatetexture'):
+                 self.rotatetexture = int(line[1])         
+            elif (property == 'alpha'): 
+                self.alpha = float(line[1])       
+            elif (property == 'transparencyhint'):
+                 self.transparencyhint = int(line[1])
+            elif (property == 'selfillumcolor'): # Self illumination color
+                self.selfillumcolor = ( float(line[1]), 
+                                        float(line[2]), 
+                                        float(line[3]) )
+            elif (property == 'ambient'): 
+                self.ambient = ( float(line[1]), 
+                                 float(line[2]), 
+                                 float(line[3]) )
+            elif (property == 'diffuse'): 
+                self.diffuse = ( float(line[1]), 
+                                 float(line[2]), 
+                                 float(line[3]) )  
+            elif (property == 'specular'):   
+                self.specular = ( float(line[1]), 
+                                  float(line[2]), 
+                                  float(line[3]) )
+            elif (property == 'shininess'): 
+                self.shininess = int(float(line[1]))        
+            elif (property == 'center'):
+                pass # TODO # Unused ?
+            elif (property == 'bitmap'): 
+                self.bitmap = line[1] 
+            elif (property == 'verts'): 
+                pass # TODO 
+            elif (property == 'faces'): 
+                pass # TODO 
+            elif (property == 'tverts'):
+                pass # TODO             
 
 class Danglymesh(Trimesh):
     """
     Danglymeshes are Trimeshes with some additional
     parameters.
     """
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
         
         self.period       = 1.0
@@ -75,14 +139,14 @@ class Skinmesh(Trimesh):
     Skinmeshes are Trimeshes where every vertex
     has a weight.
     """
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
         
         self.weights = []
 
 
 class Emitter(Dummy):
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
         
         self.affectedbywind  = 0.0
@@ -145,7 +209,7 @@ class Emitter(Dummy):
 
 
 class Light(Dummy):
-    def __init__(self, name):
+    def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
         
         self.radius           = 5.0
