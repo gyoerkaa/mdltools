@@ -1,4 +1,4 @@
-
+import neverblender.nvb.presets
 
 class Dummy():
     """
@@ -40,10 +40,6 @@ class Dummy():
                 self.wirecolor = ( float(line[1]),
                                    float(line[2]),
                                    float(line[3]) )
-    
-    def to_ascii(self):
-        lines = []
-        return lines
 
 
 class Trimesh(Dummy):

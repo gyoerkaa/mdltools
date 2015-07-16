@@ -22,7 +22,7 @@ bl_info = {
     "author": "Attila Gyoerkoes",
     "blender": (2, 6, 0),
     "location": "File > Import-Export, Object Properties",
-    "description": "Import, export and edit aurora mdl format",
+    "description": "Import, export and edit Aurora mdl format",
     "warning": "",
     "wiki_url": ""
                 "",
@@ -69,35 +69,36 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     import_items = bpy.props.EnumProperty(
             name = 'Import',
             options = {'ENUM_FLAG'},
-            items = (('GEOMETRY', 'Geometry', ''),
-                     ('ANIMATIONS', 'Animations', ''),
+            items = (('GEOMETRY', 'Geometry', 'Import dummys and meshes'),
+                     ('ANIMATION', 'Animations', 'Import animations'),
+                     ('WALKMESH', 'Walkmesh', 'Import walkmeshes'),
                      ),
-            default = {'GEOMETRY', 'ANIMATIONS'},
+            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
             )
-    
-    import_walkmesh = bpy.props.BoolProperty(
-            name='Import walkmesh',
-            description='Import walkmesh, if applicable' \
-                        '(.pwk, .dwk or .mdl depending on classification)',
-            default=True,
-            ) 
-    
+
     import_shading_groups = bpy.props.BoolProperty(
-            name='Import Shading Groups',
+            name='Import shading groups',
             description='Import shading groups as vertex groups ' \
                         '(Unused by blender)',
             default=False,
             )
     
     use_image_search = bpy.props.BoolProperty(
-            name='Image Search',
+            name='Image search',
             description='Search subdirectories for any associated images ' \
                         '(Warning, may be slow)',
             default=False,
             )
             
     one_texture_per_image = bpy.props.BoolProperty(
-            name='One Texture per Image',
+            name='One texture per image',
+            description='Create only one texture per Image' \
+                        '(Will result in one texture for every node)',
+            default=True,
+            )
+            
+    one_mesh_per_object = bpy.props.BoolProperty(
+            name='One mesh per object',
             description='Create only one texture per Image' \
                         '(Will result in one texture for every node)',
             default=True,
@@ -184,11 +185,11 @@ class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
 
 def menu_func_export(self, context):
-    self.layout.operator(NVBAuroraMDLExport.bl_idname, text="Aurora MDL (.mdl)")
+    self.layout.operator(NVBAuroraMDLExport.bl_idname, text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
-    self.layout.operator(NVBAuroraMDLImport.bl_idname, text="Aurora MDL (.mdl)")
+    self.layout.operator(NVBAuroraMDLImport.bl_idname, text="Aurora (.mdl)")
 
 """    
 def xmlTest():

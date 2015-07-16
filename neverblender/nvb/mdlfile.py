@@ -18,11 +18,20 @@ class Mdlfile():
     __debug = True
 
     def __init__(self):
+        self.nodelist = collections.OrderedDict()
+        self.animlist = dict() # No need to retain order
+        
+        # in {'unknown', 'tile', 'character', 'door', 'effect', 'gui', 'item'}
+        self.classification = 'unknown'
+        self.supermodel     = 'null'
+        self.animationscale = 1.0 # Unused ?
+        
+    def addNode(self, node):
         pass
-
+    
     def import_(self, 
                filepath = '',
-               importObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'LIGHT', 'EMITTER', 'SHADINGGROUP'},
+               importObjects = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
                duplicateTextures = False,
                imageSearch       = False,
                skipFadingObj     = False):

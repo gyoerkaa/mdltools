@@ -1,4 +1,11 @@
-﻿# Some presets
+﻿# Rounding
+round_gen    = 4
+round_angle  = 4
+round_weight = 3
+round_color  = 3
+round_aabb   = 2
+
+# Some presets
 render_fps = 30
 danglymesh_group_name = 'danglegroup'
 shading_group_name = 'shadegr_'

@@ -132,7 +132,7 @@ def read_ascii_mdl(filepath):
 
 def find_line(str, ascii_mdl, start):
     '''
-    Returns the number of the line beginning with the string 
+    Returns number of the line beginning with the string 
     str
     '''
     for pos in range(start,len(ascii_mdl)):
@@ -680,8 +680,7 @@ def woknode2mesh(parsed_node, override_name = ''):
     node_mesh.tessfaces.add(len(parsed_node['faces']))
     node_mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(parsed_node['faces'])) 
     
-    # Create walkmesh materials (use nv_presets for now)
-    # TODO: import from xml
+    # Create walkmesh materials
     for i in range(len(nvb_presets.wok_materials)):
     
         mat_name = nvb_presets.wok_materials[i][0] +'.mat'
