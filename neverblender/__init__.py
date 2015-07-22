@@ -34,16 +34,11 @@ if "bpy" in locals():
     import imp
     imp.reload(neverblender.nvb.props)
     imp.reload(neverblender.nvb.ops)
-    imp.reload(neverblender.nvb.panels)    
-    imp.reload(nvb_importmdl)
-    imp.reload(nvb_exportmdl)
+    imp.reload(neverblender.nvb.panels)
 else:
-
     import neverblender.nvb.props
     import neverblender.nvb.ops
     import neverblender.nvb.panels
-    from . import nvb_importmdl
-    from . import nvb_exportmdl  
 
 import bpy
 import bpy_extras
@@ -66,71 +61,54 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             options = {'HIDDEN'},
             )
            
-    import_items = bpy.props.EnumProperty(
+    imports = bpy.props.EnumProperty(
             name = 'Import',
             options = {'ENUM_FLAG'},
             items = (('GEOMETRY', 'Geometry', 'Import dummys and meshes'),
                      ('ANIMATION', 'Animations', 'Import animations'),
                      ('WALKMESH', 'Walkmesh', 'Import walkmeshes'),
+                     ('LIGHT', 'Light', 'Import lights'),
+                     ('EMITTER', 'Emitter', 'Import emitters'),
                      ),
-            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'EMITTER'},
             )
 
-    import_shading_groups = bpy.props.BoolProperty(
+    importShadingGroups = bpy.props.BoolProperty(
             name='Import shading groups',
             description='Import shading groups as vertex groups ' \
                         '(Unused by blender)',
             default=False,
             )
+           
+    uniqueTexture = bpy.props.BoolProperty(
+            name='One texture per image',
+            description='Create only one texture for each image',
+            default=True,
+            )
     
-    use_image_search = bpy.props.BoolProperty(
+    imageSearch = bpy.props.BoolProperty(
             name='Image search',
             description='Search subdirectories for any associated images ' \
                         '(Warning, may be slow)',
             default=False,
             )
             
-    one_texture_per_image = bpy.props.BoolProperty(
-            name='One texture per image',
-            description='Create only one texture per Image' \
-                        '(Will result in one texture for every node)',
-            default=True,
-            )
-            
-    one_mesh_per_object = bpy.props.BoolProperty(
-            name='One mesh per object',
-            description='Create only one texture per Image' \
-                        '(Will result in one texture for every node)',
-            default=True,
-            )
-            
-    # Hidden option, only used for minimap creation
-    import_lights = bpy.props.BoolProperty(
-            name='Import Light',
-            description='Wether to import lights' \
-                        '(Useful for rendering minmaps)',
-            default=True,
-            options={'HIDDEN'},
-            )
-            
     # Hidden option, only used for minimap creation        
-    import_fading_obj = bpy.props.BoolProperty(
-            name='Import Fading Objects',
-            description='Wether to import objects with' \
-                        'activated tilefade' \
-                        '(Useful for rendering minmaps)',
-            default=True,
+    minimapMode = bpy.props.BoolProperty(
+            name='Minimap Mode',
+            description='Skip lights and fading objects',
+            default=False,
             options={'HIDDEN'},
             )
             
     def execute(self, context):
-        from . import nvb_importmdl
+        import neverblender.nvb.importer
         
         keywords = self.as_keywords(ignore=('filter_glob',
                                             'check_existing',
                                             ))
         
-        return nvb_importmdl.load(self, context, **keywords)
+        return nvb.importer.import_(self, context, **keywords)
 
 
 class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
@@ -175,13 +153,13 @@ class NVBAuroraMDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             )            
             
     def execute(self, context):
-        from . import nvb_exportmdl
+        import neverblender.nvb.export_
 
         keywords = self.as_keywords(ignore=('filter_glob',
                                             'check_existing',
                                             ))
         
-        return nvb_exportmdl.save(self, context, **keywords)
+        return nvb.export_.do(self, context, **keywords)
 
 
 def menu_func_export(self, context):
