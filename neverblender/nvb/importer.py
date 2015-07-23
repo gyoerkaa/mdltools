@@ -39,16 +39,14 @@ class Importer():
         self.minimapMode         = minimapMode
         
         self.scene = bpy.context.scene
+        self.mdl = nvb.mdl.Mdl()
         
-        self.mdl      = nvb.mdl.Mdl()
-        
-    
-    
+
     def parseMdl():
         lines = [line.strip().split() for line in open(filepath, 'r')]
         
-        nodelist = collections.OrderedDict()
-        animlist = dict() # No need to retain order
+        nodeList = collections.OrderedDict()
+        animList = dict() # No need to retain order
         
         State = enum.Enum('State', 'HEAD MDL GEOM GEOMNODE ANIM ANIMNODE')
         cs = State.HEAD
@@ -94,8 +92,15 @@ class Importer():
                     
             elif cs == State.ANIM:
                 if (line[0] == 'doneanim'):
-                    cs = State.ANIM            
+                    cs = State.ANIM
+
+        for lineRange in nodeList:
+            node = parseGeomNode(lines[lineRange[0]:lineRange[1]])
+            self.mdl.addNode(node)
             
+        for lineRange in animList:
+            anim = parseAnim(lines[lineRange[0]:lineRange[1]])       
+            self.mdl.addAnim(anim)
         
     
     def parseGeomNode(self, geomBlock):

@@ -6,12 +6,16 @@ class Dummy():
     """
     def __init__(self, name = 'UNNAMED'):
         self.name   = name
-        self.parent = 'null'
+        self.parent = nvb.presets.null
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
         self.wirecolor   = (0.0, 0.0, 0.0) #Unused ?
         
+    def __eq__(self, other):
+        if isinstance(other, Dummy):
+            return self.name == other.name
+            
     def from_object(self, object):
         pass
         
@@ -62,7 +66,7 @@ class Trimesh(Dummy):
         self.diffuse        = (0.0, 0.0, 0.0)
         self.specular       = (0.0, 0.0, 0.0)
         self.shininess      = 0       
-        self.bitmap         = 'null'
+        self.bitmap         = nvb.presets.null
         self.rotatetexture  = 0
         self.verts           = []
         self.faces           = []
@@ -117,6 +121,7 @@ class Trimesh(Dummy):
             elif (property == 'tverts'):
                 pass # TODO             
 
+
 class Danglymesh(Trimesh):
     """
     Danglymeshes are Trimeshes with some additional
@@ -129,6 +134,9 @@ class Danglymesh(Trimesh):
         self.tightness    = 1.0
         self.displacement = 1.0
 
+    def from_ascii(self, asciiNode):
+        Trimesh.from_ascii(self, asciiNode)
+
 
 class Skinmesh(Trimesh):
     """
@@ -139,6 +147,9 @@ class Skinmesh(Trimesh):
         Trimesh.__init__(self, name)
         
         self.weights = []
+
+    def from_ascii(self, asciiNode):
+        Trimesh.from_ascii(self, asciiNode)
 
 
 class Emitter(Dummy):
@@ -159,7 +170,7 @@ class Emitter(Dummy):
         self.update          = 1
         self.render          = 0
         self.blend           = 1
-        self.texture         = 'NULL'
+        self.texture         = nvb.presets.null
         self.chunkname       = ''
         self.xgrid           = 5
         self.ygrid           = 5
@@ -202,6 +213,9 @@ class Emitter(Dummy):
         self.p2p_sel         = 1
         self.p2p_bezier2     = 0.0
         self.p2p_bezier3     = 0.0
+        
+    def from_ascii(self, asciiNode):
+        Dummy.from_ascii(self, asciiNode)
 
 
 class Light(Dummy):
@@ -219,3 +233,5 @@ class Light(Dummy):
         self.fadinglight      = 1
         self.flareradius      = 1
 
+    def from_ascii(self, asciiNode):
+        Dummy.from_ascii(self, asciiNode)
