@@ -20,7 +20,8 @@ class Mdl():
         self.supermodel     = nvb.presets.null
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
-        
+    
+    
     def addNode(self, newNode):
         if newNode:
             if (newNode.parent == nvb.presets.null) or 
@@ -40,6 +41,7 @@ class Mdl():
             return self.nodeList[id]
         else
             return False
-       
+    
+    
     def addAnim(self, anim):
         pass

@@ -133,6 +133,8 @@ class Danglymesh(Trimesh):
         self.period       = 1.0
         self.tightness    = 1.0
         self.displacement = 1.0
+        
+        self.constraints  = []
 
     def from_ascii(self, asciiNode):
         Trimesh.from_ascii(self, asciiNode)
@@ -235,3 +237,17 @@ class Light(Dummy):
 
     def from_ascii(self, asciiNode):
         Dummy.from_ascii(self, asciiNode)
+
+        
+class Aabb(Dummy):
+    def __init__(self, name = 'UNNAMED'):
+        Dummy.__init__(self, name)
+        
+        self.ambient        = (0.0, 0.0, 0.0)
+        self.diffuse        = (0.0, 0.0, 0.0)
+        self.specular       = (0.0, 0.0, 0.0)
+        self.shininess      = 0       
+        self.bitmap         = nvb.presets.null
+        
+     def from_ascii(self, asciiNode):
+        Dummy.from_ascii(self, asciiNode)       

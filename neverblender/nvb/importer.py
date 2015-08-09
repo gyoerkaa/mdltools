@@ -46,54 +46,69 @@ class Importer():
         lines = [line.strip().split() for line in open(filepath, 'r')]
         
         nodeList = collections.OrderedDict()
+        nodeStart = -1
         animList = dict() # No need to retain order
+        animStart = -1
         
-        State = enum.Enum('State', 'HEAD MDL GEOM GEOMNODE ANIM ANIMNODE')
-        cs = State.HEAD
-        for line in lines:
-            if (cs == State.HEAD):
-                if (line[0] == 'newmodel'):
+        State = enum.Enum('State', 'START READHEAD READGEOM READGEOMNODE READANIM')
+        cs = State.START
+        for idx, line in enumerate(lines):
+            tag = line[0]
+            if (cs == State.START):
+                if (tag == 'newmodel'):
                     try:
                         self.mdl.name = line[1]
                     except IndexError:
                         warnings.warn("WARNING: Unable to read model name. Default value: " + self.mdl.name)
-                    cs = State.MDL
-                
-            elif (cs = State.MDL):
-                if (line[0] == 'beginmodelgeom'):
-                    cs = State.GEOM
-                elif (line[0] == 'setsupermodel'): 
+                    cs = State.READHEAD  
+                    
+            if (cs == State.READHEAD):
+                if (tag == 'beginmodelgeom')
+                    cs == State.READGEOM
+                elif (tag == 'setsupermodel'): 
                     try:
                        self.mdl.supermodel = line[1]
                     except IndexError:
                        warnings.warn("WARNING: Unable to read supermodel. Default value: " + self.mdl.supermodel)
-                elif (line[0] == 'classification'):
+                elif (tag == 'classification'):
                     try:
                         self.mdl.classification = line[1]
                     except IndexError:
                         warnings.warn("WARNING: Unable to read classification. Default value: " + self.mdl.classification)
-                elif (line[0] == 'setanimationscale'):
+                elif (tag == 'setanimationscale'):
                     try:
                         self.mdl.animScale = line[1]
                     except IndexError:
-                        warnings.warn("WARNING: Unable to read animationscale. Default value: " + self.mdl.animScale)
+                        warnings.warn("WARNING: Unable to read animationscale. Default value: " + self.mdl.animScale) 
                         
-            elif cs == State.GEOM:
-                if (line[0] == 'endmodelgeom'):
-                    cs = State.ANIM
-                elif (line[0] == 'node'):
-                    cs = State.GEOMNODE
-                
-            elif (cs == State.GEOMNODE):   
-                if (line[0] == 'endmodegeom'):
-                    cs = State.ANIM
-                elif (line[0] == 'endnode'):
-                    cs = State.GEOM 
+            elif (cs == State.READGEOM):
+                if (tag == 'node'):
+                    nodeStart = idx
+                    cs = State.READGEOMNODE
+                if (tag == 'endmodelgeom'):
+                    cs = State.READANIM  
                     
-            elif cs == State.ANIM:
-                if (line[0] == 'doneanim'):
-                    cs = State.ANIM
-
+            elif (cs == State.READGEOMNODE):
+                if (tag == 'endnode'):
+                    nodeList.append((nodeStart, idx))
+                    nodeStart = -1
+                    cs = State.READGEOM
+                elif (tag == 'node'):
+                    raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
+                    
+            elif (cs == State.READANIM):
+                if (tag == 'newanim'):
+                    if (nodeStart < 0):
+                        nodeStart = idx
+                    else:
+                        raise MalformedMdlFile('Unexpected "newanim" at line' + idx)  
+                if (tag == 'doneanim'):
+                    if (nodeStart > 0):
+                        nodeList.append((nodeStart, idx))
+                        nodeStart = -1
+                    else:
+                        raise MalformedMdlFile('Unexpected "doneanim" at line' + idx)                    
+                        
         for lineRange in nodeList:
             node = parseGeomNode(lines[lineRange[0]:lineRange[1]])
             self.mdl.addNode(node)
