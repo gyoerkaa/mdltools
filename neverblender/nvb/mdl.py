@@ -31,6 +31,7 @@ class Mdl():
                     newNode.name = newNode.parent + newNode.name
                 self.nodeList[newNode.name] = newNode
                 if newNode.name in self:
+                    pass
                     
             else:
                 self.tmpnodes[newNode.parent] = newNode
