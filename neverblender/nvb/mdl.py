@@ -15,34 +15,32 @@ class Mdl():
         self.nodeList = collections.OrderedDict()
         self.tmpnodes = collections.OrderedDict()
         self.animlist = dict() # No need to retain order
-        
+
         self.name           = 'UNNAMED'
         self.supermodel     = nvb.presets.null
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
-    
-    
+
+
     def addNode(self, newNode):
+        # Resolve naming conflicts by using name+parent as key
+        # names alone are not unique, but they are unique under each parent
+
         if newNode:
-            if (newNode.parent == nvb.presets.null) or 
-               (newNode.parent in self.nodeList):
-                # try to resolve naming conflicts (blender requires unique names)
-                if newNode.name in self.nodeList:
-                    newNode.name = newNode.parent + newNode.name
-                self.nodeList[newNode.name] = newNode
-                if newNode.name in self:
-                    pass
-                    
+            key = newNode.parent + newNode.name
+            if key in self.nodeList:
+                self.nodeList[key] = newNode
             else:
-                self.tmpnodes[newNode.parent] = newNode
-    
-    
+                #TODO: Should probably raise an error
+                pass
+
+
     def getNode(self, id)
         if id in self.nodeList:
             return self.nodeList[id]
         else
             return False
-    
-    
+
+
     def addAnim(self, anim):
         pass

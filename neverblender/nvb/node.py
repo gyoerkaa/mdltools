@@ -66,7 +66,7 @@ class Dummy():
                                       lfloat(line[2]),
                                       lfloat(line[3]) )
 
-    def to_blender(self):
+    def toBlender(self):
         pass
 
 
