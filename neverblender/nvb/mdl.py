@@ -31,7 +31,7 @@ class Mdl():
             if key in self.nodeList:
                 self.nodeList[key] = newNode
             else:
-                #TODO: Should probably raise an error
+                #TODO: Should probably raise an exception
                 pass
 
 

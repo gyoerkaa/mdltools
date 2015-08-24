@@ -100,14 +100,14 @@ class Trimesh(Dummy):
         Dummy.fromAscii(self, asciiNode)
         lint   = int
         lfloat = float
-        if not isNumber(label):
-            for idx, line in enumerate(asciiNode):
-                try:
-                    label = line[0].lower()
-                except IndexError:
-                    # Probably empty line or whatever, skip it
-                    continue
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
 
+            if not isNumber(label):
                 if   (label == 'tilefade'):
                     self.tilefade = lint(line[1])
                 elif (label == 'render'):
@@ -193,14 +193,14 @@ class Danglymesh(Trimesh):
         Trimesh.fromAscii(self, asciiNode)
         lint   = int
         lfloat = float
-        if not isNumber(label):
-            for idx, line in enumerate(asciiNode):
-                try:
-                    label = line[0].lower()
-                except IndexError:
-                    # Probably empty line or whatever, skip it
-                    continue
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
 
+            if not isNumber(label):
                 if   (label == 'period'):
                     self.tilefade = lfloat(line[1])
                 elif (label == 'tightness'):
@@ -230,15 +230,14 @@ class Skinmesh(Trimesh):
     def fromAscii(self, asciiNode):
         Trimesh.fromAscii(self, asciiNode)
         lint   = int
-        lfloat = float
-        if not isNumber(label):
-            for idx, line in enumerate(asciiNode):
-                try:
-                    label = line[0].lower()
-                except IndexError:
-                    # Probably empty line or whatever, skip it
-                    continue
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
 
+            if not isNumber(label):
                 if (label == 'weights'):
                     numVals = lint(line[1])
                     self.getAsciiWeights(asciiNode[idx+1:idx+numVals])
@@ -334,16 +333,57 @@ class Light(Dummy):
         self.multiplier       = 1
         self.color            = (0.0, 0.0, 0.0)
         self.ambientonly      = 1
-        self.ndynamictype     = 0 #unused ?
-        self.isdynamic        = 0
-        self.affectdynamic    = 0
+        self.ndynamictype     = 1
+        self.isdynamic        = 1
+        self.affectdynamic    = 1
         self.lightpriority    = 5
         self.fadinglight      = 1
         self.flareradius      = 1
 
     def fromAscii(self, asciiNode):
         Dummy.fromAscii(self, asciiNode)
-        #TODO
+        lint   = int
+        lfloat = float
+
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if not isNumber(label):
+                if (label == 'radius'):
+                    self.radius = lfloat(line[1])
+
+                elif (label == 'multiplier'):
+                    self.multiplier = lfloat(line[1])
+
+                elif (label == 'color'):
+                    self.color = ( lfloat(line[1]),
+                                   lfloat(line[2]),
+                                   lfloat(line[3]) )
+
+                elif (label== 'ambientonly'):
+                     self.ambientonly = lint(line[1])
+
+                elif (label == 'ndynamictype'):
+                    self.ndynamictype = lint(line[1])
+
+                elif (label == 'isdynamic'):
+                    self.isdynamic = lint(line[1])
+
+                elif (label == 'flareradius'):
+                    self.flareradius = lint(line[1])
+
+                elif (label == 'affectdynamic'):
+                    pself.affectdynamic = lint(line[1])
+
+                elif (label == 'lightpriority'):
+                    self.lightpriority = lint(line[1])
+
+                elif (label == 'fadinglight'):
+                    self.fadinglight = lint(line[1])
 
 
 class Aabb(Trimesh):
