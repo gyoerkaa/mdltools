@@ -13,7 +13,6 @@ class Mdl():
 
     def __init__(self):
         self.nodeList = collections.OrderedDict()
-        self.tmpnodes = collections.OrderedDict()
         self.animlist = dict() # No need to retain order
 
         self.name           = 'UNNAMED'

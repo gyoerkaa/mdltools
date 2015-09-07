@@ -322,7 +322,178 @@ class Emitter(Dummy):
 
     def fromAscii(self, asciiNode):
         Dummy.fromAscii(self, asciiNode)
-        #TODO
+        lint   = int
+        lfloat = float
+
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if not isNumber(label):
+                if (label == 'affectedbywind'):
+                    if (isNumber(line[1])):
+                        self.affectedbywind = float(line[1])
+                    else:
+                        if (line[1].lower() == 'false'):
+                            self.affectedbywind = 0.0
+                        else:
+                            self.affectedbywind = 1.0
+                elif (label == 'm_istinted'):
+                    self.m_istinted = int(line[1])
+                elif (label == 'random'):
+                    self.random = int(line[1])
+                elif (label == 'inherit'):
+                    self.inherit = int(line[1])
+                elif (label == 'inheritvel'):
+                    self.inheritvel = int(line[1])
+
+                elif (label == 'inherit_local'):
+                    self.inherit_local = int(line[1])
+                elif (label == 'inherit_part'):
+                    self.inherit_part = int(line[1])
+                elif (label == 'splat'):
+                    self.splat = int(line[1])
+                elif (label == 'renderorder'):
+                    self.renderorder = int(line[1])
+                elif (label == 'opacity'):
+                    self.opacity = float(line[1])
+                elif (label == 'spawntype'):
+                    if (isNumber(line[1])):
+                        self.spawntype = int(line[1])
+                    else:
+                        if (line[1].lower() == 'normal'):
+                            self.spawntype = 1
+                        elif (line[1].lower() == 'trail'):
+                            self.spawntype = 2
+                        else:
+                            self.spawntype = 1
+                elif (label == 'update'):
+                    if (isNumber(line[1])):
+                        self.update = int(line[1])
+                    else:
+                        if (line[1].lower() == 'fountain'):
+                            self.update = 1
+                        elif (line[1].lower() == 'single'):
+                            self.update = 2
+                        elif (line[1].lower() == 'explosion'):
+                            self.update = 3
+                        elif (line[1].lower() == 'lightning'):
+                            self.update = 4
+                        else:
+                            self.update = 1
+                elif (label == 'blend'):
+                    if (isNumber(line[1])):
+                        self.blend = int(line[1])
+                    else:
+                        if (line[1].lower() == 'normal'):
+                            self.blend = 1
+                        elif (line[1].lower() == 'punch-through'):
+                            self.blend = 2
+                        elif (line[1].lower() == 'lighten'):
+                            self.blend = 3
+                        else:
+                            self.blend = 1
+                elif (label == 'bounce'):
+                    self.bounce = int(line[1])
+                elif (label == 'texture'):
+                    self.texture = line[1]
+                elif (label == 'chunkname'):
+                    self.chunkname = line[1]
+                elif (label == 'xgrid'):
+                    self.xgrid = int(line[1])
+                elif (label == 'ygrid'):
+                    self.ygrid = int(line[1])
+                elif (label == 'loop'):
+                    self.loop = int(line[1])
+                elif (label == 'deadspace'):
+                    self.deadspace = float(line[1])
+                elif (label == 'twosidedtex'):
+                    self.twosidedtex = int(line[1])
+                elif (label == 'blastradius'):
+                    self.blastradius = float(line[1])
+                elif (label == 'blastlength'):
+                    self.blastlength = float(line[1])
+                elif (label == 'colorstart'):
+                    self.colorstart = ( float(line[1]),
+                                                  float(line[2]),
+                                                  float(line[3]) )
+                elif (label == 'colorend'):
+                    self.colorend = ( float(line[1]),
+                                                float(line[2]),
+                                                float(line[3]) )
+                elif (label == 'alphastart'):
+                    self.alphastart = float(line[1])
+                elif (label == 'alphaend'):
+                    self.alphaend = float(line[1])
+                elif (label == 'sizestart'):
+                    self.sizestart = float(line[1])
+                elif (label == 'sizeend'):
+                    self.sizeend = float(line[1])
+                elif (label == 'sizestart_y'):
+                    self.sizestart_y = float(line[1])
+                elif (label == 'sizeend_y'):
+                    self.sizeEnd_y = float(line[1])
+                elif (label == 'framestart'):
+                    self.framestart = int(line[1])
+                elif (label == 'frameend'):
+                    self.frameend = int(line[1])
+                elif (label == 'birthrate'):
+                    self.birthrate = int(line[1])
+                elif (label == 'lifeexp'):
+                    self.lifeexp = float(line[1])
+                elif (label == 'mass'):
+                    self.mass = float(line[1])
+                elif (label == 'spread'):
+                    self.spread = float(line[1])
+                elif (label == 'particlerot'):
+                    self.particlerot = float(line[1])
+                elif (label == 'velocity'):
+                    self.velocity = float(line[1])
+                elif (label == 'randvel'):
+                    self.randvel = float(line[1])
+                elif (label == 'fps'):
+                    self.fps = int(line[1])
+                elif (label == 'xsize'):
+                    self.xsize = float(line[1])
+                elif (label == 'ysize'):
+                    self.ysize = float(line[1])
+                elif (label == 'bounce_co'):
+                    self.bounce_co = float(line[1])
+                elif (label == 'blurlength'):
+                    self.blurlength = float(line[1])
+                elif (label == 'lightningdelay'):
+                    self.lightningdelay = float(line[1])
+                elif (label == 'lightningradius'):
+                    self.lightningradius = float(line[1])
+                elif (label == 'lightningsubdiv'):
+                    self.lightningsubdiv = int(line[1])
+                elif (label == 'lightningscale'):
+                    self.lightningscale = float(line[1])
+                elif (label == 'combinetime'):
+                    self.combinetime = float(line[1])
+                elif (label == 'drag'):
+                    self.drag = float(line[1])
+                elif (label == 'grav'):
+                    self.grav = float(line[1])
+                elif (label == 'threshold'):
+                    self.threshold = float(line[1])
+                elif (label == 'p2p'):
+                    if (isNumber(line[1])):
+                        self.p2p = int(line[1])
+                    else:
+                        self.p2p = 0
+                elif (label == 'p2p_sel'):
+                    if (isNumber(line[1])):
+                        self.p2p_sel = int(line[1])
+                    else:
+                        self.p2p_sel = 1
+                elif (label == 'p2p_bezier2'):
+                    self.p2p_bezier2 = float(line[1])
+                elif (label == 'p2p_bezier3'):
+                    self.p2p_bezier3 = float(line[1])
 
 
 class Light(Dummy):
@@ -355,33 +526,24 @@ class Light(Dummy):
             if not isNumber(label):
                 if (label == 'radius'):
                     self.radius = lfloat(line[1])
-
                 elif (label == 'multiplier'):
                     self.multiplier = lfloat(line[1])
-
                 elif (label == 'color'):
                     self.color = ( lfloat(line[1]),
                                    lfloat(line[2]),
                                    lfloat(line[3]) )
-
                 elif (label== 'ambientonly'):
                      self.ambientonly = lint(line[1])
-
                 elif (label == 'ndynamictype'):
                     self.ndynamictype = lint(line[1])
-
                 elif (label == 'isdynamic'):
                     self.isdynamic = lint(line[1])
-
                 elif (label == 'flareradius'):
                     self.flareradius = lint(line[1])
-
                 elif (label == 'affectdynamic'):
                     pself.affectdynamic = lint(line[1])
-
                 elif (label == 'lightpriority'):
                     self.lightpriority = lint(line[1])
-
                 elif (label == 'fadinglight'):
                     self.fadinglight = lint(line[1])
 

@@ -120,7 +120,6 @@ class Importer():
                     else:
                         raise MalformedMdlFile('Unexpected "doneanim" at line' + idx)
 
-
         for lineRange in nodeList:
             node = self.parseGeomNode(lines[lineRange[0]:lineRange[1]])
             self.mdl.addNode(node)
@@ -171,7 +170,7 @@ def import_(operator,
             minimapMode         = False,
             ):
     '''
-    Called by the user interface or another script.
+    Called from blender ui
     '''
     importer = Importer(filepath,
                         imports,
