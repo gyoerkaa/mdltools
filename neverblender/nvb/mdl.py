@@ -34,12 +34,30 @@ class Mdl():
                 pass
 
 
-    def getNode(self, id)
-        if id in self.nodeList:
-            return self.nodeList[id]
+    def getNode(self, nodeId)
+        if nodeId in self.nodeList:
+            return self.nodeList[nodeId]
         else
             return False
 
 
     def addAnim(self, anim):
         pass
+
+
+    def import_(self):
+        for node in self.nodelist:
+            nodeType = type(node)
+            if nodeType == nvb.node.trimesh:
+                mesh = bpy.data.meshes.new(node.name)
+            
+                mesh.vertices.add(len(node.verts))
+                mesh.vertices.foreach_set('co', unpack_list(node.verts))
+                mesh.tessfaces.add(len(node.faces))
+                mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(node.faces))
+
+                material = bpy.data.materials.new(node.name+'.mat')
+                # Set material properties
+                material.diffuse_color      = node.diffuse
+                material.diffuse_intensity  = 1.0
+                material.specular_color     = node.specular
