@@ -3,6 +3,8 @@ import math
 import collections
 
 import bpy
+from bpy_extras.io_utils import unpack_list, unpack_face_list
+from bpy_extras.image_utils import load_image
 
 import neverblender.nvb.walkmesh
 import neverblender.nvb.node
@@ -48,16 +50,69 @@ class Mdl():
     def import_(self):
         for node in self.nodelist:
             nodeType = type(node)
-            if nodeType == nvb.node.trimesh:
-                mesh = bpy.data.meshes.new(node.name)
-            
+            nodeName = node.name
+            if  isinstance(nodeType, nvb.node.trimesh:
+                # Create mesh
+                mesh = bpy.data.meshes.new(nodeName)
                 mesh.vertices.add(len(node.verts))
                 mesh.vertices.foreach_set('co', unpack_list(node.verts))
                 mesh.tessfaces.add(len(node.faces))
                 mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(node.faces))
 
-                material = bpy.data.materials.new(node.name+'.mat')
-                # Set material properties
+                # Create material
+                material = bpy.data.materials.new(nodeName+'.mat')
                 material.diffuse_color      = node.diffuse
                 material.diffuse_intensity  = 1.0
                 material.specular_color     = node.specular
+                texName = node.bitmap
+                if (texName != nvb.presets.null):
+                    texture = material.texture_slots.add()
+                    # Make sure textures are unique
+                    if (texName in bpy.data.textures)):
+                        texture.texture = bpy.data.textures[texName]
+                    else:
+                        pass
+                        
+                mesh.materials.append(material)
+    
+                # Add the texture coordinates 
+                # ( Also check if bitmap is NULL, some joker put in texture coordinates while the texture is null, wich results in an error)
+                if ( len(node.tverts) > 0 and
+                     mesh.tessfaces and
+                     texName != nvb.presets.null ):   
+                    uv_name = nodeName+'_uv'
+                    node_uv = node_mesh.tessface_uv_textures.new(uv_name)
+                    node_mesh.tessface_uv_textures.active = node_uv
+
+                    for i in range(len(pnode['faces_tverts'])):
+                        # Get a face
+                        blender_face = mesh.tessfaces[i]
+                        
+                        # Apply material to face
+                        blender_face.material_index = 0
+                        
+                        # Get a tessface
+                        blender_tface = node_mesh.tessface_uv_textures[0].data[i]
+                        
+                        # Get the indices of the tverts for this face
+                        tvert_idx = parsed_node['faces_tverts'][i]
+                        
+                        # Get the indices of the verts (for eekadoodle fix)
+                        tvert_idx  = node.faces[i]
+                        
+                        # BUG - Evil eekadoodle problem where faces that have vert index 0 at location 3 are shuffled.
+                        if tvert_idx[2] == 0:
+                            tvert_idx = tvert_idx[1], tvert_idx[2], tvert_idx[0]
+                        # END EEEKADOODLE FIX    
+                        
+                        # Add uv coordinates to face
+                        blender_tface.uv1 = node.tverts[tvert_idx[0]]
+                        blender_tface.uv2 = node.tverts[tvert_idx[1]]
+                        blender_tface.uv3 = node.tverts[tvert_idx[2]]
+                        
+                        # Apply texture to face
+                        blender_tface.image = node_mat.texture_slots[0].texture.image
+    
+                # After calling update() tessfaces become inaccessible
+                #node_mesh.validate()    
+                mesh.update()

@@ -3,6 +3,7 @@ import os
 import collections
 import enum
 import warnings
+import math
 
 import neverblender.nvb.mdl
 import neverblender.nvb.node
