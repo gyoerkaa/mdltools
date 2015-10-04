@@ -23,7 +23,7 @@ class Mdl():
         self.classification = 'UNKNOWN'
 
 
-    def addNode(self, newNode):
+    def insertNode(self, newNode):
         # Resolve naming conflicts by using name+parent as key
         # names alone are not unique, but they are unique under each parent
 
@@ -47,11 +47,11 @@ class Mdl():
         pass
 
 
-    def import_(self):
+    def createObjects(self):
         for node in self.nodelist:
-            nodeType = type(node)
+            #nodeType = type(node)
             nodeName = node.name
-            if  isinstance(nodeType, nvb.node.trimesh:
+            if isinstance(node, nvb.node.Trimesh):
                 # Create mesh
                 mesh = bpy.data.meshes.new(nodeName)
                 mesh.vertices.add(len(node.verts))
@@ -76,7 +76,9 @@ class Mdl():
                 mesh.materials.append(material)
     
                 # Add the texture coordinates 
-                # ( Also check if bitmap is NULL, some joker put in texture coordinates while the texture is null, wich results in an error)
+                # Check if bitmap is NULL. Some jokers put in texture
+                # coordinates whithout textures, which results
+                # in an error
                 if ( len(node.tverts) > 0 and
                      mesh.tessfaces and
                      texName != nvb.presets.null ):   
@@ -116,3 +118,7 @@ class Mdl():
                 # After calling update() tessfaces become inaccessible
                 #node_mesh.validate()    
                 mesh.update()
+            elif isinstance(node, nvb.node.Light):
+                pass
+            elif isinstance(node, nvb.node.Emitter):
+                pass

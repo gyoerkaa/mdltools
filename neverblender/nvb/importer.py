@@ -18,7 +18,7 @@ class MalformedMdlFile(Exception):
         return repr(self.parameter)
 
 
-class Importer():
+class Parser():
     __debug = True
 
     def __init__(self,
@@ -40,13 +40,15 @@ class Importer():
         self.minimapMode         = minimapMode
 
         self.scene = bpy.context.scene
-        self.mdl = nvb.mdl.Mdl()
+        self.mdl   = nvb.mdl.Mdl()
 
 
-    def import_():
+    def load(self, filepath):
+        self.filepath = os.fsencode(filepath)
+        self.filename = os.path.splitext(os.path.basename(filepath))[0]
+        self.filedir  = os.path.dirname(filepath)
+        
         parseMdl();
-        createObjects();
-        createAnims();
 
 
     def parseMdl():
@@ -123,7 +125,7 @@ class Importer():
 
         for lineRange in nodeList:
             node = self.parseGeomNode(lines[lineRange[0]:lineRange[1]])
-            self.mdl.addNode(node)
+            self.mdl.insertNode(node)
 
         for lineRange in animList:
             anim = self.parseAnim(lines[lineRange[0]:lineRange[1]])
@@ -173,12 +175,11 @@ def import_(operator,
     '''
     Called from blender ui
     '''
-    importer = Importer(filepath,
-                        imports,
-                        uniqueTexture,
-                        importShadingGroups,
-                        imageSearch,
-                        minimapMode)
-    importer.import_()
+    parser = Parser(imports,
+                    uniqueTexture,
+                    importShadingGroups,
+                    imageSearch,
+                    minimapMode)
+    parser.load(filepath)
 
     return {'FINISHED'}
