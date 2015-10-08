@@ -87,12 +87,9 @@ class Mdl():
                     node_mesh.tessface_uv_textures.active = node_uv
 
                     for i in range(len(pnode['faces_tverts'])):
-                        # Get a face
-                        blender_face = mesh.tessfaces[i]
+                        blender_face = mesh.tessfaces[i] # New Face
                         
-                        # Apply material to face
                         blender_face.material_index = 0
-                        
                         # Get a tessface
                         blender_tface = node_mesh.tessface_uv_textures[0].data[i]
                         
@@ -111,8 +108,7 @@ class Mdl():
                         blender_tface.uv1 = node.tverts[tvert_idx[0]]
                         blender_tface.uv2 = node.tverts[tvert_idx[1]]
                         blender_tface.uv3 = node.tverts[tvert_idx[2]]
-                        
-                        # Apply texture to face
+                        # Link texture to face
                         blender_tface.image = node_mat.texture_slots[0].texture.image
     
                 # After calling update() tessfaces become inaccessible
