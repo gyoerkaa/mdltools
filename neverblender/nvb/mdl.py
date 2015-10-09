@@ -112,9 +112,52 @@ class Mdl():
                         blender_tface.image = node_mat.texture_slots[0].texture.image
     
                 # After calling update() tessfaces become inaccessible
-                #node_mesh.validate()    
+                #mesh.validate()    
                 mesh.update()
+                
             elif isinstance(node, nvb.node.Light):
-                pass
+                lamp = bpy.data.lamps.new(nodeName, 'POINT')                
+                lamp.use_diffuse = node.ambientonly
+                lamp.color       = node.color
+                lamp.energy      = node.multiplier
+                lamp.distance    = node.radius
+                #node_lamp_use_negative = parsed_node['negative'] # Doesn't matter
+                #node_lamp.use_sphere  = True # Doesn't matter
+                
             elif isinstance(node, nvb.node.Emitter):
-                pass
+                mesh  = bpy.data.meshes.new(nodeName)
+                xsize = node.xsize/100
+                ysize = node.ysize/100
+                
+                mesh.vertices.add(4)
+                mesh.vertices[0].co = ( xsize/2,  ysize/2, 0.0)
+                mesh.vertices[1].co = ( xsize/2, -ysize/2, 0.0)
+                mesh.vertices[2].co = (-xsize/2, -ysize/2, 0.0)
+                mesh.vertices[3].co = (-xsize/2,  ysize/2, 0.0)
+                
+                mesh.tessfaces.add(1)
+                mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])     
+
+                material = 0 # TODO: create emitter material
+                mesh.materials.append(material)
+
+                # Add simple uv layer
+                if (node.texture != nvb.presets.null):
+                    uv = mesh.tessface_uv_textures.new(nodeName+'_uv')
+                    mesh.tessface_uv_textures.active = uv
+
+                    blender_face = mesh.tessfaces[0] # We created one face above
+                    # Apply material to face
+                    blender_face.material_index = 0
+                    # Get the tessface
+                    blender_tface = mesh.tessface_uv_textures[0].data[0]
+                    # Add uv coordinates to face
+                    blender_tface.uv1 = ( xsize/2,  ysize/2)
+                    blender_tface.uv2 = ( xsize/2, -ysize/2)
+                    blender_tface.uv3 = (-xsize/2, -ysize/2)
+                    blender_tface.uv4 = (-xsize/2,  ysize/2)
+                    # Apply texture to face
+                    blender_tface.image = material.texture_slots[0].texture.image
+                           
+                mesh.validate()    
+                mesh.update()
