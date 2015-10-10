@@ -159,5 +159,5 @@ class Mdl():
                     # Apply texture to face
                     blender_tface.image = material.texture_slots[0].texture.image
                            
-                mesh.validate()    
+                #mesh.validate()    
                 mesh.update()
