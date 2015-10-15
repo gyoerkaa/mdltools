@@ -91,7 +91,7 @@ class Mdl():
                         
                         blender_face.material_index = 0
                         # Get a tessface
-                        blender_tface = node_mesh.tessface_uv_textures[0].data[i]
+                        blender_tface = mesh.tessface_uv_textures[0].data[i]
                         
                         # Get the indices of the tverts for this face
                         tvert_idx = parsed_node['faces_tverts'][i]
@@ -109,7 +109,12 @@ class Mdl():
                         blender_tface.uv2 = node.tverts[tvert_idx[1]]
                         blender_tface.uv3 = node.tverts[tvert_idx[2]]
                         # Link texture to face
-                        blender_tface.image = node_mat.texture_slots[0].texture.image
+                        blender_tface.image = material.texture_slots[0].texture.image
+
+                    if type(node) == nvb.node.Danglymesh:
+                        pass
+                    elif type(node) == nvb.node.Skinmesh:
+                        pass
     
                 # After calling update() tessfaces become inaccessible
                 #mesh.validate()    
