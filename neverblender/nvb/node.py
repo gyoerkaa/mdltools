@@ -36,7 +36,7 @@ class Dummy():
         if isinstance(other, Dummy):
             return self.name == other.name
 
-    def fromAscii(self, asciiNode):
+    def loadAscii(self, asciiNode):
         lfloat = float
         for line in asciiNode:
             try:
@@ -96,8 +96,8 @@ class Trimesh(Dummy):
         self.faces          = FaceList()
         self.tverts         = []
 
-    def fromAscii(self, asciiNode):
-        Dummy.fromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Dummy.loadAscii(self, asciiNode)
         lint   = int
         lfloat = float
         for idx, line in enumerate(asciiNode):
@@ -189,8 +189,8 @@ class Danglymesh(Trimesh):
 
         self.constraints  = []
 
-    def fromAscii(self, asciiNode):
-        Trimesh.fromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
         lint   = int
         lfloat = float
         for idx, line in enumerate(asciiNode):
@@ -227,8 +227,8 @@ class Skinmesh(Trimesh):
 
         self.weights = []
 
-    def fromAscii(self, asciiNode):
-        Trimesh.fromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
         lint   = int
         for idx, line in enumerate(asciiNode):
             try:
@@ -320,8 +320,8 @@ class Emitter(Dummy):
         self.p2p_bezier2     = 0.0
         self.p2p_bezier3     = 0.0
 
-    def fromAscii(self, asciiNode):
-        Dummy.fromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Dummy.loadAscii(self, asciiNode)
         lint   = int
         lfloat = float
 
@@ -511,8 +511,8 @@ class Light(Dummy):
         self.fadinglight      = 1
         self.flareradius      = 1
 
-    def fromAscii(self, asciiNode):
-        Dummy.fromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Dummy.loadAscii(self, asciiNode)
         lint   = int
         lfloat = float
 
@@ -556,5 +556,5 @@ class Aabb(Trimesh):
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
 
-     def fromAscii(self, asciiNode):
-        Trimesh.fromAscii(self, asciiNode)
+     def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)

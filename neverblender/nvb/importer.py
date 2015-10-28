@@ -18,21 +18,16 @@ class MalformedMdlFile(Exception):
         return repr(self.parameter)
 
 
-class Parser():
+class Importer():
     __debug = True
 
     def __init__(self,
-                 filepath,
                  imports,
-                 uniqueTexture       = False,
-                 importShadingGroups = False,
-                 imageSearch         = False,
-                 minimapMode         = False,
+                 uniqueTexture,
+                 importShadingGroups,
+                 imageSearch,
+                 minimapMode,
                  ):
-        self.filepath = os.fsencode(filepath)
-        self.filename = os.path.splitext(os.path.basename(filepath))[0]
-        self.filedir  = os.path.dirname(filepath)
-
         self.imports = imports
         self.uniqueTexture       = uniqueTexture
         self.importShadingGroups = importShadingGroups
@@ -154,7 +149,7 @@ class Parser():
         except KeyError:
             raise MalformedMdlFile('Invalid node type')
 
-        node.fromAscii(asciiNode)
+        node.loadAscii(asciiNode)
         return node
 
 
@@ -175,11 +170,11 @@ def import_(operator,
     '''
     Called from blender ui
     '''
-    parser = Parser(imports,
-                    uniqueTexture,
-                    importShadingGroups,
-                    imageSearch,
-                    minimapMode)
-    parser.load(filepath)
+    importer = Importer(imports,
+                        uniqueTexture,
+                        importShadingGroups,
+                        imageSearch,
+                        minimapMode)
+    importer.load(filepath)
 
     return {'FINISHED'}
