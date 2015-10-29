@@ -1,4 +1,4 @@
-﻿null = 'NULL'
+﻿null = 'null'
 
 # Rounding
 round_gen    = 4

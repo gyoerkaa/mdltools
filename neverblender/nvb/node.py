@@ -1,5 +1,6 @@
 import neverblender.nvb.presets
 import neverblender.nvb.utils
+import bpy_extras.image_utils
 
 def isNumber(s):
     try:
@@ -15,10 +16,10 @@ def chunker(seq, size):
 
 class FaceList():
     def __init__(self):
-        self.face     = [] # int 3-tuple, vertex indices
-        self.shadgr   = [] # int, shading group for this face
-        self.tvertIdx = [] # int 3-tuple, texture vertex indices
-        self.matIdx   = [] # int, material index
+        self.faces = [] # int 3-tuple, vertex indices
+        self.shdgr = [] # int, shading group for this face
+        self.uvIdx = [] # int 3-tuple, texture/uv vertex indices
+        self.matId = [] # int, material index
 
 
 class Dummy():
@@ -189,41 +190,85 @@ class Trimesh(Dummy):
     def getAsciiFaces(self, asciiFaces):
         lint = int
         for line in asciiFaces:
-            self.facelist.face.append( (lint(line[0]), lint(line[1]), lint(line[2])) )
-            self.facelist.shadgr.append(lint(line[3]))
-            self.facelist.tvertIdx.append( (lint(line[4]), lint(line[5]), lint(line[6])) )
-            self.facelist.matIdx.append(lint(line[7]))
+            self.facelist.faces.append( (lint(line[0]), lint(line[1]), lint(line[2])) )
+            self.facelist.shdgr.append(lint(line[3]))
+            self.facelist.uvIdx.append( (lint(line[4]), lint(line[5]), lint(line[6])) )
+            self.facelist.matId.append(lint(line[7]))
 
     def getAsciiTexVerts(self, asciiTexVerts):
         lfloat = float
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
-    def createMesh(self, obj):
-        # Create the mesh itself
-        mesh = bpy.data.meshes.new(obj.name + '.mesh')
-        mesh.vertices.add(len(self.verts))
-        mesh.vertices.foreach_set('co', unpack_list(self.verts))
-        mesh.tessfaces.add(len(self.faces))
-        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.faces))
+    def loadImage(self, imgName):
+        image = bpy_extras.image_utils.load_image(filename + fileext,
+                                                  glob_mdl_filedir,
+                                                  recursive=glob_use_image_search,
+                                                  place_holder=False,
+                                                  ncase_cmp=False)
+        if (image is None):
+            image = bpy.data.images.new(filename, 512, 512)
+        else:
+            image.name = filename
         
-        # Create material
-        material = bpy.data.materials.new(obj.name + '.mat')
+        return image        
+
+    def createMaterial(self):
+        material = bpy.data.materials.new(self.name + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
-        if (self.bitmap != nvb.presets.null):
+        
+        # Set alpha values.
+        # Note: This is always'0.0' and 'True'
+        # MDL's alpha value = Texture alpha_factor in Blender
+        material.alpha            = 0.0
+        material.use_transparency = True
+        
+        texName = self.bitmap.lower()
+        if (texName != nvb.presets.null):
             textureSlot = material.texture_slots.add()
-            # Make sure textures are unique
-            if (self.bitmap in bpy.data.textures)):
-                textureSlot.texture = bpy.data.textures[self.bitmap]
+            # If a texture with the same name was already created treat
+            # them as if they were the same, i.e. just use the old one
+            if (texName in bpy.data.textures)):
+                textureSlot.texture = bpy.data.textures[texName]
             else:
-                pass
-                
+                textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
+            textureSlot.texture_coords        = 'UV'
+            textureSlot.use_map_color_diffuse = True
+
+            textureSlot.alpha_factor  = 1.0
+            textureSlot.use_map_alpha = True
+
+            # Load the image for the texture, but check if it was
+            # already loaded before. If so, use that one.
+            imgName = self.bitmap
+            if (imgName in bpy.data.images):
+                image = bpy.data.images[imgName]
+                textureSlot.texture.image = image
+            else:
+                image = createImage(imgName)
+                if image is not None:
+                    textureSlot.texture.image = image                
+        return material
+
+
+    def createMesh(self):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(self.name + '.mesh')
+        mesh.vertices.add(len(self.verts))
+        mesh.vertices.foreach_set('co', unpack_list(self.verts))
+        mesh.tessfaces.add(len(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+        
+        # Create material
+        material = self.createMaterial(obj.name)
+        mesh.materials.append(material)
+                        
         # Create UV map
         if ( (len(node.tverts) > 0) and
              mesh.tessfaces and
-             (self.bitmap.upper() != nvb.presets.null) ):   
+             (self.bitmap.lower() != nvb.presets.null) ):   
             uv = mesh.tessface_uv_textures.new(obj.name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
@@ -232,41 +277,39 @@ class Trimesh(Dummy):
                 tessface = mesh.tessfaces[i]
                 # Apply material (there is only ever one)
                 tessface.material_index = 0 
-                # Grab a uv
+                # Grab a uv for the face
                 tessfaceUV = mesh.tessface_uv_textures[0].data[i]
+                # Get the indices of the 3 uv's for this face
+                uvIdx = self.facelist.uvIdx[i]
                 
-                # Get the indices of the 2 tverts for this face
-                texVertIndices = self.facelist.tvertIdx[i]
-                
-                # Get the indices of the verts (for eekadoodle fix)
-                vert_idx  = self.facelist.face[i]
-                
-                # BUG - Evil eekadoodle problem where faces that have vert index 0 at location 3 are shuffled.
-                if tvert_idx[2] == 0:
-                    tvert_idx = tvert_idx[1], tvert_idx[2], tvert_idx[0]
+                # BEGIN EEEKADOODLE FIX 
+                # BUG: Evil eekadoodle problem where faces that have
+                # vert index 0 at location 3 are shuffled.
+                vertIdx = self.facelist.faces[i]                
+                if vertIdx[2] == 0:
+                    vertIdx = vertIdx[1], vertIdx[2], vertIdx[0]
                 # END EEEKADOODLE FIX    
                 
                 # Add uv coordinates to face
-                blender_tface.uv1 = node.tverts[tvert_idx[0]]
-                blender_tface.uv2 = node.tverts[tvert_idx[1]]
-                blender_tface.uv3 = node.tverts[tvert_idx[2]]
-                # Link texture to face
-                blender_tface.image = material.texture_slots[0].texture.image
-                                
-        return material
+                tessfaceUV.uv1 = node.tverts[uvIdx[0]]
+                tessfaceUV.uv2 = node.tverts[uvIdx[1]]
+                tessfaceUV.uv3 = node.tverts[uvIdx[2]]
+                # Apply texture to uv face
+                tessfaceUV.image = material.texture_slots[0].texture.image
+
+        mesh.update()                         
+        return mesh
+
 
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
 
+
     def convert(self, scene):
-        mesh     = createMesh()        
-        material = createMaterial()
-        mesh.materials.append(material)
-        
-        mesh.update()       
-        obj = bpy.data.objects.new(self.name, mesh)
-        self.setAttr(obj)
-        scene.objects.link(empty)
+        mesh = createMesh(self.name)             
+        obj  = bpy.data.objects.new(self.name, mesh)
+        self.setAttr(mesh)
+        scene.objects.link(mesh)
 
 
 class Danglymesh(Trimesh):
