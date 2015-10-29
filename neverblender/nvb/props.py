@@ -161,13 +161,21 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)                                              
     
     # For emptys
-    dummytype        = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple dummy object', 0), ('MDLBASE', 'Mdl Rootdummy', 'All objects have to parented to this', 1), ('PWKBASE', 'Pwk Rootdummy', 'Placeable walkmesh', 2), ('DWKBASE', 'Dwk Rootdummy', 'Door walkmesh', 3)], default = 'NONE')
+    dummytype      = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple dummy object', 0), ('MDLBASE', 'Mdl Rootdummy', 'All objects have to parented to this', 1), ('PWKBASE', 'Pwk Rootdummy', 'Placeable walkmesh', 2), ('DWKBASE', 'Dwk Rootdummy', 'Door walkmesh', 3)], default = 'NONE')
     
     
     # For mdl base
-    supermodel       = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the supermodel', default = 'NULL')
-    classification   = bpy.props.EnumProperty(name = 'Classification', items=[('UNKNOWN', 'Unknown', 'Unknown classification', 0),('TILE', 'Tile', 'Tile for a tileset', 1), ('CHARACTER', 'Character', 'Creature, Character', 2), ('DOOR', 'Door', 'Door Desc.', 3), ('EFFECT', 'Effect', 'Effect Desc.', 4), ('GUI', 'Gui', 'Gui Icons, etc.', 5), ('ITEM', 'Item', 'Items', 6)], default = 'UNKNOWN' )
-    animationscale   = bpy.props.FloatProperty(name = 'Animationscale', default = 1.00, min = 0.0)
+    supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the supermodel', default = 'NULL')
+    classification = bpy.props.EnumProperty(name  = 'Classification', \
+                                              items = [ ('UNKNOWN', 'Unknown', 'Unknown classification', 0), \
+                                                        ('TILE', 'Tile', 'Tile for a tileset', 1), \
+                                                        ('CHARACTER', 'Character', 'Creature, Character', 2), \
+                                                        ('DOOR', 'Door', 'Door Desc.', 3), \
+                                                        ('EFFECT', 'Effect', 'Effect Desc.', 4), \
+                                                        ('GUI', 'Gui', 'Gui Icons, etc.', 5), \
+                                                        ('ITEM', 'Item', 'Items', 6) ], \
+                                              default = 'UNKNOWN' )
+    animationscale = bpy.props.FloatProperty(name = 'Animationscale', default = 1.00, min = 0.0)
     
     # Minimap generation
     minimapzoffset   = bpy.props.FloatProperty(name = 'Minimap Z Offset', default = 0.00, min = 0.00)
@@ -204,17 +212,18 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     shininess        = bpy.props.IntProperty(name = 'Shininess', default = 1, min = 0, max = 32)
     
     # For danglymeshes (are also meshes)
-    period           = bpy.props.FloatProperty(name = 'Period', default = 1.0, min = 0.0, max = 32.0)
-    tightness        = bpy.props.FloatProperty(name = 'Tightness', default = 1.0, min = 0.0, max = 32.0)
-    displacement     = bpy.props.FloatProperty(name = 'Displacement', default = 0.5, min = 0.0, max = 32.0)
-    danglegroup      = bpy.props.StringProperty(name = 'Danglegroup', description = 'Name of the vertex group to use for the danglymesh', default = '')
+    period       = bpy.props.FloatProperty(name = 'Period', default = 1.0, min = 0.0, max = 32.0)
+    tightness    = bpy.props.FloatProperty(name = 'Tightness', default = 1.0, min = 0.0, max = 32.0)
+    displacement = bpy.props.FloatProperty(name = 'Displacement', default = 0.5, min = 0.0, max = 32.0)
+    danglegroup  = bpy.props.StringProperty(name = 'Danglegroup', description = 'Name of the vertex group to use for the danglymesh', default = '')
 
     # For skingroups (are also meshes)
     new_skingroupname = bpy.props.StringProperty(name = 'Skingroup', description = 'Bone to create the skingroup for', default = '')
     
     # For lamps
-    tilelight       = bpy.props.EnumProperty(name = 'Tilelight', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Accessible from toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Accessible from toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Accessible from toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Accessible from toolset', 4)], default = 'NONE', update=nvb_update_lighttype_prop)
-    lightpriority   = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 5)
-    fadinglight     = bpy.props.BoolProperty(name = 'Fading light', default = False)
-    isdynamic       = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
-    affectdynamic   = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)        
+    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Editable in toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Editable in toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE', update=nvb_update_lighttype_prop)
+    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 5)
+    fadinglight   = bpy.props.BoolProperty(name = 'Fading light', default = False)
+    isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
+    affectdynamic = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)        
+    flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 32.0)

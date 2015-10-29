@@ -24,17 +24,21 @@ class Mdl():
 
 
     def insertNode(self, newNode):
-        # Resolve naming conflicts by using name+parent as key
-        # names alone are not unique, but they are unique under each parent
+        # Blender requires unique object names. In mdl names are only
+        # unique for a parent, i.e. another object with the same name
+        # with a different parent may exist.
+        # We'd need to save all names starting from root to resolve
+        # this, but that's too much effort.
+        # Name + ParentName should be enough.
 
         if newNode:
             key = newNode.parent + newNode.name
             if key in self.nodeList:
-                self.nodeList[key] = newNode
-            else:
                 #TODO: Should probably raise an exception
-                pass
-
+                pass                
+            else:
+                self.nodeList[key] = newNode
+                
 
     def getNode(self, nodeId)
         if nodeId in self.nodeList:
@@ -47,8 +51,12 @@ class Mdl():
         pass
 
 
-    def createObjects(self):
+    def convert(self, imageSearch, shadingGroups, uniqueTexture):
+        
         for node in self.nodelist:
+            if node.type
+            node.convert()
+            '''
             #nodeType = type(node)
             nodeName = node.name
             if isinstance(node, nvb.node.Trimesh):
@@ -166,3 +174,4 @@ class Mdl():
                            
                 #mesh.validate()    
                 mesh.update()
+             '''

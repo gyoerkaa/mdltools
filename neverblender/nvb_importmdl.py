@@ -1683,7 +1683,7 @@ def parse_geometry(ascii_geom):
     dummy_mesh = bpy.data
     for parsed_node in node_list:
         # First get the node type
-        if (parsed_node['type'] == 'dummy'):    
+        if (parsed_node['type'] == 'dummy'):
             # Create the object (no mesh needed for a dummy)
             node_object = bpy.data.objects.new(parsed_node['name'], None)
             

@@ -1,6 +1,5 @@
 ﻿null = 'NULL'
 
-
 # Rounding
 round_gen    = 4
 round_angle  = 4

@@ -1,4 +1,5 @@
 import neverblender.nvb.presets
+import neverblender.nvb.utils
 
 def isNumber(s):
     try:
@@ -14,10 +15,10 @@ def chunker(seq, size):
 
 class FaceList():
     def __init__(self):
-        self.face = [] # int 3-tuple, vertex indices
-        self.shgr = [] # int, shading group for this face
-        self.texv = [] # int 3-tuple, texture vertex indices
-        self.mat  = [] # int, material index
+        self.face     = [] # int 3-tuple, vertex indices
+        self.shadgr   = [] # int, shading group for this face
+        self.tvertIdx = [] # int 3-tuple, texture vertex indices
+        self.matIdx   = [] # int, material index
 
 
 class Dummy():
@@ -25,18 +26,28 @@ class Dummy():
     Basic node from which every other is derived
     """
     def __init__(self, name = 'UNNAMED'):
-        self.name   = name
-        self.parent = nvb.presets.null
+        self.name        = name
+        self.parent      = nvb.presets.null
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
         self.wirecolor   = (0.0, 0.0, 0.0) #Unused ?
 
+        # Name of the corresponding object in blender
+        # (used to resolve naming conflicts)
+        self.objRef  = ''
+
+    def __repr__(self):
+        return 'DUMMY'
+
     def __eq__(self, other):
         if isinstance(other, Dummy):
             return self.name == other.name
 
-    def loadAscii(self, asciiNode):
+    def __ne__(self, other):
+        return 
+
+    def load(self, asciiNode):
         lfloat = float
         for line in asciiNode:
             try:
@@ -65,9 +76,20 @@ class Dummy():
                     self.wirecolor = (lfloat(line[1]),
                                       lfloat(line[2]),
                                       lfloat(line[3]) )
-
-    def toBlender(self):
-        pass
+        
+    def setAttrCommon(self, obj):
+        self.objRef = obj.name # For naming conflict resolution
+        nvb.utils.setRotationAurora(obj, self.orientation)           
+        obj.scale                 = (self.scale, self.scale, self.scale)
+        obj.location              = self.position 
+        obj.auroraprops.wirecolor = self.wirecolor        
+        
+        
+    def convert(self, scene):
+        empty = bpy.data.objects.new(self.name, None)
+        self.setAttr(empty)
+        empty.auroraprops.dummytype = 'NONE'
+        scene.objects.link(empty)
 
 
 class Trimesh(Dummy):
@@ -77,27 +99,30 @@ class Trimesh(Dummy):
     def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
 
-        self.center   = (0.0, 0.0, 0.0) # Unused ?
-        self.tilefade = True
-        self.render   = True
-        self.shadow   = True
-        self.beaming  = True
+        self.center           = (0.0, 0.0, 0.0) # Unused ?
+        self.tilefade         = 0
+        self.render           = 1
+        self.shadow           = 1
+        self.beaming          = 0
         self.inheritcolor     = 0  # Unused ?
         self.alpha            = 1.0
         self.transparencyhint = 0
-        self.selfillumcolor = (0.0, 0.0, 0.0)
-        self.ambient        = (0.0, 0.0, 0.0)
-        self.diffuse        = (0.0, 0.0, 0.0)
-        self.specular       = (0.0, 0.0, 0.0)
-        self.shininess      = 0
-        self.bitmap         = nvb.presets.null
-        self.rotatetexture  = 0
-        self.verts          = []
-        self.faces          = FaceList()
-        self.tverts         = []
-
-    def loadAscii(self, asciiNode):
-        Dummy.loadAscii(self, asciiNode)
+        self.selfillumcolor   = (0.0, 0.0, 0.0)
+        self.ambient          = (0.0, 0.0, 0.0)
+        self.diffuse          = (0.0, 0.0, 0.0)
+        self.specular         = (0.0, 0.0, 0.0)
+        self.shininess        = 0
+        self.bitmap           = nvb.presets.null
+        self.rotatetexture    = 0
+        self.verts            = [] # list of vertices
+        self.facelist         = FaceList()
+        self.tverts           = [] # list of texture vertices
+        
+    def __repr__(self):
+        return 'TRIMESH'
+        
+    def load(self, asciiNode):
+        Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
         for idx, line in enumerate(asciiNode):
@@ -164,15 +189,84 @@ class Trimesh(Dummy):
     def getAsciiFaces(self, asciiFaces):
         lint = int
         for line in asciiFaces:
-            self.faces.face.append( (lint(line[0]), lint(line[1]), lint(line[2])) )
-            self.faces.shgr.append(lint(line[3]))
-            self.faces.texv.append( (lint(line[4]), lint(line[5]), lint(line[6])) )
-            self.faces.mat.append(lint(line[7]))
+            self.facelist.face.append( (lint(line[0]), lint(line[1]), lint(line[2])) )
+            self.facelist.shadgr.append(lint(line[3]))
+            self.facelist.tvertIdx.append( (lint(line[4]), lint(line[5]), lint(line[6])) )
+            self.facelist.matIdx.append(lint(line[7]))
 
     def getAsciiTexVerts(self, asciiTexVerts):
         lfloat = float
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
+
+    def createMesh(self, obj):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(obj.name + '.mesh')
+        mesh.vertices.add(len(self.verts))
+        mesh.vertices.foreach_set('co', unpack_list(self.verts))
+        mesh.tessfaces.add(len(self.faces))
+        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.faces))
+        
+        # Create material
+        material = bpy.data.materials.new(obj.name + '.mat')
+        material.diffuse_color     = self.diffuse
+        material.diffuse_intensity = 1.0
+        material.specular_color    = self.specular
+        if (self.bitmap != nvb.presets.null):
+            textureSlot = material.texture_slots.add()
+            # Make sure textures are unique
+            if (self.bitmap in bpy.data.textures)):
+                textureSlot.texture = bpy.data.textures[self.bitmap]
+            else:
+                pass
+                
+        # Create UV map
+        if ( (len(node.tverts) > 0) and
+             mesh.tessfaces and
+             (self.bitmap.upper() != nvb.presets.null) ):   
+            uv = mesh.tessface_uv_textures.new(obj.name + '.uv')
+            mesh.tessface_uv_textures.active = uv
+
+            for i in range(len(self.tverts)):
+                # Get a tessface
+                tessface = mesh.tessfaces[i]
+                # Apply material (there is only ever one)
+                tessface.material_index = 0 
+                # Grab a uv
+                tessfaceUV = mesh.tessface_uv_textures[0].data[i]
+                
+                # Get the indices of the 2 tverts for this face
+                texVertIndices = self.facelist.tvertIdx[i]
+                
+                # Get the indices of the verts (for eekadoodle fix)
+                vert_idx  = self.facelist.face[i]
+                
+                # BUG - Evil eekadoodle problem where faces that have vert index 0 at location 3 are shuffled.
+                if tvert_idx[2] == 0:
+                    tvert_idx = tvert_idx[1], tvert_idx[2], tvert_idx[0]
+                # END EEEKADOODLE FIX    
+                
+                # Add uv coordinates to face
+                blender_tface.uv1 = node.tverts[tvert_idx[0]]
+                blender_tface.uv2 = node.tverts[tvert_idx[1]]
+                blender_tface.uv3 = node.tverts[tvert_idx[2]]
+                # Link texture to face
+                blender_tface.image = material.texture_slots[0].texture.image
+                                
+        return material
+
+    def setAttr(self, obj):
+        Dummy.setAttr(self, obj)
+
+    def convert(self, scene):
+        mesh     = createMesh()        
+        material = createMaterial()
+        mesh.materials.append(material)
+        
+        mesh.update()       
+        obj = bpy.data.objects.new(self.name, mesh)
+        self.setAttr(obj)
+        scene.objects.link(empty)
 
 
 class Danglymesh(Trimesh):
@@ -188,9 +282,12 @@ class Danglymesh(Trimesh):
         self.displacement = 1.0
 
         self.constraints  = []
-
-    def loadAscii(self, asciiNode):
-        Trimesh.loadAscii(self, asciiNode)
+        
+    def __repr__(self):
+        return 'DANGLYMESH'
+        
+    def load(self, asciiNode):
+        Trimesh.load(self, asciiNode)
         lint   = int
         lfloat = float
         for idx, line in enumerate(asciiNode):
@@ -226,9 +323,12 @@ class Skinmesh(Trimesh):
         Trimesh.__init__(self, name)
 
         self.weights = []
-
-    def loadAscii(self, asciiNode):
-        Trimesh.loadAscii(self, asciiNode)
+        
+    def __repr__(self):
+        return 'SKIN'
+        
+    def load(self, asciiNode):
+        Trimesh.load(self, asciiNode)
         lint   = int
         for idx, line in enumerate(asciiNode):
             try:
@@ -319,9 +419,12 @@ class Emitter(Dummy):
         self.p2p_sel         = 1
         self.p2p_bezier2     = 0.0
         self.p2p_bezier3     = 0.0
-
-    def loadAscii(self, asciiNode):
-        Dummy.loadAscii(self, asciiNode)
+        
+    def __repr__(self):
+        return 'EMITTER'
+        
+    def load(self, asciiNode):
+        Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
 
@@ -500,6 +603,7 @@ class Light(Dummy):
     def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
 
+        self.shadow           = 1
         self.radius           = 5.0
         self.multiplier       = 1
         self.color            = (0.0, 0.0, 0.0)
@@ -509,10 +613,13 @@ class Light(Dummy):
         self.affectdynamic    = 1
         self.lightpriority    = 5
         self.fadinglight      = 1
-        self.flareradius      = 1
-
-    def loadAscii(self, asciiNode):
-        Dummy.loadAscii(self, asciiNode)
+        self.flareradius      = 1.0
+        
+    def __repr__(self):
+        return 'LIGHT'
+        
+    def load(self, asciiNode):
+        Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
 
@@ -526,6 +633,8 @@ class Light(Dummy):
             if not isNumber(label):
                 if (label == 'radius'):
                     self.radius = lfloat(line[1])
+                elif (label == 'shadow'):
+                    self.shadow = lint(line[1])
                 elif (label == 'multiplier'):
                     self.multiplier = lfloat(line[1])
                 elif (label == 'color'):
@@ -539,13 +648,41 @@ class Light(Dummy):
                 elif (label == 'isdynamic'):
                     self.isdynamic = lint(line[1])
                 elif (label == 'flareradius'):
-                    self.flareradius = lint(line[1])
+                    self.flareradius = lfloat(line[1])
                 elif (label == 'affectdynamic'):
-                    pself.affectdynamic = lint(line[1])
+                    self.affectdynamic = lint(line[1])
                 elif (label == 'lightpriority'):
                     self.lightpriority = lint(line[1])
                 elif (label == 'fadinglight'):
                     self.fadinglight = lint(line[1])
+                    
+
+    def setAttr(self, obj):
+        Dummy.setAttr(self, obj)
+                             
+        obj.use_diffuse = self.ambientonly
+        obj.color       = self.color
+        obj.energy      = self.multiplier
+        obj.distance    = self.radius
+        #obj.use_negative = self.negative # No effect ?
+        #obj.use_sphere   = True # No effect ?
+
+        switch = {'ml1': 'MAINLIGHT1',
+                  'ml2': 'MAINLIGHT2',
+                  'sl1': 'SOURCELIGHT1',
+                  'sl2': 'SOURCELIGHT2'}
+        obj.auroraprops.lighttype = switch.get(self.name[-2:0], 'NONE')
+        obj.auroraprops.shadow        = (self.shadow == 1) 
+        obj.auroraprops.lightpriority = self.lightpriority
+        obj.auroraprops.fadinglight   = (self.fadinglight == 1)
+        obj.auroraprops.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
+        obj.auroraprops.affectdynamic = (self.affectdynamic == 1)
+        obj.auroraprops.flareradius   = (self.affectdynamic == 1)
+                               
+    def convert(self):
+        lamp = bpy.data.lamps.new(nodeName, 'POINT')
+        self.setAttr(lamp)
+        scene.objects.link(lamp)
 
 
 class Aabb(Trimesh):
@@ -555,6 +692,9 @@ class Aabb(Trimesh):
     '''
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-
-     def loadAscii(self, asciiNode):
-        Trimesh.loadAscii(self, asciiNode)
+        
+    def __repr__(self):
+        return 'AABB'
+        
+     def load(self, asciiNode):
+        Trimesh.load(self, asciiNode)
