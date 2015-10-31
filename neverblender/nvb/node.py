@@ -1,17 +1,12 @@
-import neverblender.nvb.presets
-import neverblender.nvb.utils
 import bpy_extras.image_utils
 
-def isNumber(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
+import neverblender.nvb.glob
+import neverblender.nvb.presets
+import neverblender.nvb.utils
+import neverblender.nvb.anim
 
 
-def chunker(seq, size):
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
 
 
 class FaceList():
@@ -26,7 +21,7 @@ class Dummy():
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name = 'UNNAMED'):
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
         self.name        = name
         self.parent      = nvb.presets.null
         self.position    = (0.0, 0.0, 0.0)
@@ -36,20 +31,24 @@ class Dummy():
 
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
-        self.objRef  = ''
+        self.objRef     = ''
+        self.isWalkmesh = isWalkmesh
 
-    def __repr__(self):
-        return 'DUMMY'
+    def nodeType(self):
+        return 'dummy'
 
     def __eq__(self, other):
         if isinstance(other, Dummy):
             return self.name == other.name
 
     def __ne__(self, other):
-        return 
+        return not self.__eq__(self, other)
 
     def load(self, asciiNode):
         lfloat = float
+        lisNumber = nvb.utils.isNumber
+
+        self.isWalkmesh = isWalkmesh
         for line in asciiNode:
             try:
                 label = line[0].lower()
@@ -57,7 +56,7 @@ class Dummy():
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if   (label  == 'node'):
                     self.name = line[2].lower()
                 elif (label  == 'parent'):
@@ -77,28 +76,35 @@ class Dummy():
                     self.wirecolor = (lfloat(line[1]),
                                       lfloat(line[2]),
                                       lfloat(line[3]) )
-        
-    def setAttrCommon(self, obj):
-        self.objRef = obj.name # For naming conflict resolution
-        nvb.utils.setRotationAurora(obj, self.orientation)           
+
+    def setAttr(self, obj):
+        self.objRef = obj.name # used to resolve naming conflicts
+        nvb.utils.setRotationAurora(obj, self.orientation)
         obj.scale                 = (self.scale, self.scale, self.scale)
-        obj.location              = self.position 
-        obj.auroraprops.wirecolor = self.wirecolor        
-        
-        
+        obj.location              = self.position
+        obj.auroraprops.wirecolor = self.wirecolor
+
     def convert(self, scene):
-        empty = bpy.data.objects.new(self.name, None)
-        self.setAttr(empty)
-        empty.auroraprops.dummytype = 'NONE'
-        scene.objects.link(empty)
+        obj = bpy.data.objects.new(self.name, None)
+        self.setAttr(obj)
+
+        types = {'use01':    'USE01',
+                 'use02':    'USE02',
+                 'head' :    'HEAD',
+                 'head_hit': 'HEAD_HIT',
+                 'impact':   'IMPACT',
+                 'ground' :  'GROUND'}
+        obj.auroraprops.dummytype = switch.get(self.name[-3:], 'NONE')
+        scene.objects.link(obj)
+        return obj
 
 
 class Trimesh(Dummy):
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name = 'UNNAMED'):
-        Dummy.__init__(self, name)
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+        Dummy.__init__(self, name, isWalkmesh)
 
         self.center           = (0.0, 0.0, 0.0) # Unused ?
         self.tilefade         = 0
@@ -118,14 +124,15 @@ class Trimesh(Dummy):
         self.verts            = [] # list of vertices
         self.facelist         = FaceList()
         self.tverts           = [] # list of texture vertices
-        
-    def __repr__(self):
-        return 'TRIMESH'
-        
+
+    def nodeType(self):
+        return 'trimesh'
+
     def load(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
+        lisNumber = nvb.utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -133,7 +140,7 @@ class Trimesh(Dummy):
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if   (label == 'tilefade'):
                     self.tilefade = lint(line[1])
                 elif (label == 'render'):
@@ -200,31 +207,31 @@ class Trimesh(Dummy):
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
-    def loadImage(self, imgName):
-        image = bpy_extras.image_utils.load_image(filename + fileext,
-                                                  glob_mdl_filedir,
-                                                  recursive=glob_use_image_search,
+    def createImage(self, imgName, imgPath, searchRecursive = False):
+        image = bpy_extras.image_utils.load_image(imgName + '.tga',
+                                                  imgPath,
+                                                  recursive=searchRecursive,
                                                   place_holder=False,
                                                   ncase_cmp=False)
         if (image is None):
-            image = bpy.data.images.new(filename, 512, 512)
+            image = bpy.data.images.new(imgName, 512, 512)
         else:
-            image.name = filename
-        
-        return image        
+            image.name = imgName
 
-    def createMaterial(self):
-        material = bpy.data.materials.new(self.name + '.mat')
+        return image
+
+    def createMaterial(self, obj):
+        material = bpy.data.materials.new(obj.name + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
-        
+
         # Set alpha values.
         # Note: This is always'0.0' and 'True'
         # MDL's alpha value = Texture alpha_factor in Blender
         material.alpha            = 0.0
         material.use_transparency = True
-        
+
         texName = self.bitmap.lower()
         if (texName != nvb.presets.null):
             textureSlot = material.texture_slots.add()
@@ -247,9 +254,10 @@ class Trimesh(Dummy):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
             else:
-                image = createImage(imgName)
+                image = self.createImage(imgName)
                 if image is not None:
-                    textureSlot.texture.image = image                
+                    textureSlot.texture.image = image
+
         return material
 
 
@@ -260,15 +268,15 @@ class Trimesh(Dummy):
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
-        
+
         # Create material
         material = self.createMaterial(obj.name)
         mesh.materials.append(material)
-                        
+
         # Create UV map
         if ( (len(node.tverts) > 0) and
              mesh.tessfaces and
-             (self.bitmap.lower() != nvb.presets.null) ):   
+             (self.bitmap.lower() != nvb.presets.null) ):
             uv = mesh.tessface_uv_textures.new(obj.name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
@@ -276,20 +284,20 @@ class Trimesh(Dummy):
                 # Get a tessface
                 tessface = mesh.tessfaces[i]
                 # Apply material (there is only ever one)
-                tessface.material_index = 0 
+                tessface.material_index = 0
                 # Grab a uv for the face
                 tessfaceUV = mesh.tessface_uv_textures[0].data[i]
                 # Get the indices of the 3 uv's for this face
                 uvIdx = self.facelist.uvIdx[i]
-                
-                # BEGIN EEEKADOODLE FIX 
+
+                # BEGIN EEEKADOODLE FIX
                 # BUG: Evil eekadoodle problem where faces that have
                 # vert index 0 at location 3 are shuffled.
-                vertIdx = self.facelist.faces[i]                
+                vertIdx = self.facelist.faces[i]
                 if vertIdx[2] == 0:
                     vertIdx = vertIdx[1], vertIdx[2], vertIdx[0]
-                # END EEEKADOODLE FIX    
-                
+                # END EEEKADOODLE FIX
+
                 # Add uv coordinates to face
                 tessfaceUV.uv1 = node.tverts[uvIdx[0]]
                 tessfaceUV.uv2 = node.tverts[uvIdx[1]]
@@ -297,42 +305,53 @@ class Trimesh(Dummy):
                 # Apply texture to uv face
                 tessfaceUV.image = material.texture_slots[0].texture.image
 
-        mesh.update()                         
+        mesh.update()
         return mesh
 
 
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
-
+        # Aurora properties
+        obj.auroraprops.meshtype         = 'TRIMESH'
+        obj.auroraprops.tilefade         = self.tilefade
+        obj.auroraprops.render           = (parsed_node['render'] == 1)
+        obj.auroraprops.shadow           = (parsed_node['shadow'] == 1)
+        obj.auroraprops.beaming          = (parsed_node['beaming'] == 1)
+        obj.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
+        obj.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
+        obj.auroraprops.transparencyhint = parsed_node['transparencyhint']
+        obj.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
+        obj.auroraprops.ambientcolor     = parsed_node['ambient']
+        obj.auroraprops.shininess        = parsed_node['shininess']
 
     def convert(self, scene):
-        mesh = createMesh(self.name)             
+        mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        self.setAttr(mesh)
+        self.setAttr(obj)
         scene.objects.link(mesh)
 
 
 class Danglymesh(Trimesh):
     """
-    Danglymeshes are Trimeshes with some additional
-    parameters.
+
     """
-    def __init__(self, name = 'UNNAMED'):
-        Trimesh.__init__(self, name)
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+        Trimesh.__init__(self, name, isWalkmesh)
 
         self.period       = 1.0
         self.tightness    = 1.0
         self.displacement = 1.0
 
         self.constraints  = []
-        
-    def __repr__(self):
-        return 'DANGLYMESH'
-        
+
+    def nodeType(self):
+        return 'dangylmesh'
+
     def load(self, asciiNode):
         Trimesh.load(self, asciiNode)
         lint   = int
         lfloat = float
+        lisNumber = nvb.utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -340,7 +359,7 @@ class Danglymesh(Trimesh):
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if   (label == 'period'):
                     self.tilefade = lfloat(line[1])
                 elif (label == 'tightness'):
@@ -362,17 +381,18 @@ class Skinmesh(Trimesh):
     Skinmeshes are Trimeshes where every vertex
     has a weight.
     """
-    def __init__(self, name = 'UNNAMED'):
-        Trimesh.__init__(self, name)
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+        Trimesh.__init__(self, name, isWalkmesh)
 
         self.weights = []
-        
+
     def __repr__(self):
         return 'SKIN'
-        
+
     def load(self, asciiNode):
         Trimesh.load(self, asciiNode)
         lint   = int
+        lisNumber = nvb.utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -380,7 +400,7 @@ class Skinmesh(Trimesh):
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if (label == 'weights'):
                     numVals = lint(line[1])
                     self.getAsciiWeights(asciiNode[idx+1:idx+numVals])
@@ -388,7 +408,7 @@ class Skinmesh(Trimesh):
 
     def getAsciiWeights(self, asciiWeights):
         lfloat = float
-        lchunker = chunker
+        lchunker = nvb.utils.chunker
         for line in asciiWeights:
             # A line looks like this
             # [group_name, vertex_weight, group_name, vertex_weight]
@@ -402,8 +422,8 @@ class Skinmesh(Trimesh):
 
 
 class Emitter(Dummy):
-    def __init__(self, name = 'UNNAMED'):
-        Dummy.__init__(self, name)
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+        Dummy.__init__(self, name, isWalkmesh)
 
         self.affectedbywind  = 0.0
         self.m_isitinted     = False
@@ -462,15 +482,15 @@ class Emitter(Dummy):
         self.p2p_sel         = 1
         self.p2p_bezier2     = 0.0
         self.p2p_bezier3     = 0.0
-        
-    def __repr__(self):
-        return 'EMITTER'
-        
+
+    def nodeType(self):
+        return 'emitter'
+
     def load(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
-
+        lisNumber = nvb.utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -478,9 +498,9 @@ class Emitter(Dummy):
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if (label == 'affectedbywind'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.affectedbywind = float(line[1])
                     else:
                         if (line[1].lower() == 'false'):
@@ -507,7 +527,7 @@ class Emitter(Dummy):
                 elif (label == 'opacity'):
                     self.opacity = float(line[1])
                 elif (label == 'spawntype'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.spawntype = int(line[1])
                     else:
                         if (line[1].lower() == 'normal'):
@@ -517,7 +537,7 @@ class Emitter(Dummy):
                         else:
                             self.spawntype = 1
                 elif (label == 'update'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.update = int(line[1])
                     else:
                         if (line[1].lower() == 'fountain'):
@@ -531,7 +551,7 @@ class Emitter(Dummy):
                         else:
                             self.update = 1
                 elif (label == 'blend'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.blend = int(line[1])
                     else:
                         if (line[1].lower() == 'normal'):
@@ -627,12 +647,12 @@ class Emitter(Dummy):
                 elif (label == 'threshold'):
                     self.threshold = float(line[1])
                 elif (label == 'p2p'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.p2p = int(line[1])
                     else:
                         self.p2p = 0
                 elif (label == 'p2p_sel'):
-                    if (isNumber(line[1])):
+                    if (lisNumber(line[1])):
                         self.p2p_sel = int(line[1])
                     else:
                         self.p2p_sel = 1
@@ -643,8 +663,8 @@ class Emitter(Dummy):
 
 
 class Light(Dummy):
-    def __init__(self, name = 'UNNAMED'):
-        Dummy.__init__(self, name)
+    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+        Dummy.__init__(self, name, isWalkmesh)
 
         self.shadow           = 1
         self.radius           = 5.0
@@ -657,14 +677,15 @@ class Light(Dummy):
         self.lightpriority    = 5
         self.fadinglight      = 1
         self.flareradius      = 1.0
-        
-    def __repr__(self):
-        return 'LIGHT'
-        
+
+    def nodeType(self):
+        return 'light'
+
     def load(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
+        lisNumber = nvb.utils.isNumber
 
         for idx, line in enumerate(asciiNode):
             try:
@@ -673,7 +694,7 @@ class Light(Dummy):
                 # Probably empty line or whatever, skip it
                 continue
 
-            if not isNumber(label):
+            if not lisNumber(label):
                 if (label == 'radius'):
                     self.radius = lfloat(line[1])
                 elif (label == 'shadow'):
@@ -698,11 +719,11 @@ class Light(Dummy):
                     self.lightpriority = lint(line[1])
                 elif (label == 'fadinglight'):
                     self.fadinglight = lint(line[1])
-                    
+
 
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
-                             
+
         obj.use_diffuse = self.ambientonly
         obj.color       = self.color
         obj.energy      = self.multiplier
@@ -714,14 +735,14 @@ class Light(Dummy):
                   'ml2': 'MAINLIGHT2',
                   'sl1': 'SOURCELIGHT1',
                   'sl2': 'SOURCELIGHT2'}
-        obj.auroraprops.lighttype = switch.get(self.name[-2:0], 'NONE')
-        obj.auroraprops.shadow        = (self.shadow == 1) 
+        obj.auroraprops.lighttype = switch.get(self.name[-3:], 'NONE')
+        obj.auroraprops.shadow        = (self.shadow == 1)
         obj.auroraprops.lightpriority = self.lightpriority
         obj.auroraprops.fadinglight   = (self.fadinglight == 1)
         obj.auroraprops.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
         obj.auroraprops.affectdynamic = (self.affectdynamic == 1)
         obj.auroraprops.flareradius   = (self.affectdynamic == 1)
-                               
+
     def convert(self):
         lamp = bpy.data.lamps.new(nodeName, 'POINT')
         self.setAttr(lamp)
@@ -733,11 +754,17 @@ class Aabb(Trimesh):
     No need to import Aaabb's. Aabb nodes in mdl files will be
     treated as trimeshes
     '''
-    def __init__(self, name = 'UNNAMED'):
-        Trimesh.__init__(self, name)
-        
-    def __repr__(self):
-        return 'AABB'
-        
+    def __init__(self, name = 'UNNAMED', isWalkmesh = True):
+        Trimesh.__init__(self, name, isWalkmesh)
+
+    def nodeType(self):
+        return 'aabb'
+
      def load(self, asciiNode):
         Trimesh.load(self, asciiNode)
+
+    def convert(self):
+        mesh = self.createMesh(self.name)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        self.setAttr(mesh)
+        scene.objects.link(mesh)

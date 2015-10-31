@@ -11,6 +11,7 @@ import neverblender.nvb.presets
 import neverblender.nvb.walkmesh
 import neverblender.nvb.parser
 
+
 class MalformedMdlFile(Exception):
     def __init__(self, value):
         self.parameter = value
@@ -21,58 +22,70 @@ class MalformedMdlFile(Exception):
 class Importer():
     __debug = True
 
-    def __init__(self,
-                 imports,
-                 shadingGroups,
-                 uniqueTexture,
-                 imageSearch,
-                 minimapMode):
-        self.imports = imports
-        self.uniqueTexture = uniqueTexture
-        self.shadingGroups = shadingGroups
-        self.imageSearch   = imageSearch
-        self.minimapMode   = minimapMode
-
+    def __init__(self):
         self.scene = bpy.context.scene
-        
+
 
     def load(self, mdlFilepath):
 
-        self.mdl = parseMdl(os.fsencode(mdlFilepath))
-        self.walkmesh = parseWalkmesh(os.fsencode(mdlFilepath))
-            
-        self.mdl.convert()
-        self.walkmesh.convert()
+        self.mdl = nvb.mdl.Mdl()
+        parseMdl(os.fsencode(mdlFilepath))
+        self.mdl.convert(self.scene)
 
-                
-    def parseWalkmesh(filepath):
+
+    def parseWalkmesh(mdlFilepath):
         if (self.mdl.classification != 'TILE'):
             if (self.mdl.classification == 'DOOR'):
-                wkFilepath = os.path.join(os.path.dirname(filepath),
-                                          os.path.splitext(os.path.basename(filepath))[0] + '.dwk')
+                wkFilepath = os.path.join(os.path.dirname(mdlFilepath),
+                                          os.path.splitext(os.path.basename(mdlFilepath))[0] + '.dwk')
                 try:
-                    return parseDwk(os.fsencode(wkFilepath))
+                    parseDwk(os.fsencode(wkFilepath))
                 except IOError:
-                    warnings.warn("WARNING: Unable to open walkmesh: " + wkFilepath)
+                    warnings.warn("WARNING: Unable to open door walkmesh: " + wkFilepath)
             else
                 # Try looking for a placeable walkmesh
-                wkFilepath = os.path.join(os.path.dirname(filepath),
-                                          os.path.splitext(os.path.basename(filepath))[0] + '.pwk')
+                wkFilepath = os.path.join(os.path.dirname(mdlFilepath),
+                                          os.path.splitext(os.path.basename(mdlFilepath))[0] + '.pwk')
                 try:
-                    return parsePwk(os.fsencode(wkFilepath))
+                    parsePwk(os.fsencode(wkFilepath))
                 except IOError:
                     # Doesn't exist, but that's ok
                     pass
-                    
-        return nvb.mdl.Mdl()
-        
+
 
     def parseDwk(filepath):
         pass
 
 
     def parsePwk(filepath):
-        pass
+        lines = [line.strip().split() for line in open(filepath, 'r')]
+
+        nodeList = collections.OrderedDict()
+        nodeStart = -1
+
+        State = enum.Enum('State', 'READGEOM READGEOMNODE')
+        cs = State.READGEOMNODE
+        for idx, line in enumerate(lines):
+            try:
+                label = line[0]
+            except IndexError:
+                # Probably empty line or whatever, just skip it
+                continue
+            if (cs == State.READGEOM):
+                if (label == 'node'):
+                    nodeStart = idx
+                    cs = State.READGEOMNODE
+            elif (cs == State.READGEOMNODE):
+                if (label == 'endnode'):
+                    nodeList.append((nodeStart, idx))
+                    nodeStart = -1
+                    cs = State.READGEOM
+                elif (label == 'node'):
+                    raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
+
+        for boundary in nodeList:
+            node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
+            self.mdl.insertNode(node)
 
 
     def parseMdl(filepath):
@@ -80,11 +93,8 @@ class Importer():
         Loads the contents of an ascii mdl file into the
         container self.mdl
         '''
-        
         lines = [line.strip().split() for line in open(filepath, 'r')]
-        
-        mdl = nvb.mdl.Mdl()
-        
+
         nodeList = collections.OrderedDict()
         animList = dict() # No need to retain order
         nodeStart = -1
@@ -159,22 +169,20 @@ class Importer():
 
         for boundary in nodeList:
             node = self.parseGeomNode(lines[boundary[0]:boundary[1]])
-            mdl.insertNode(node)
+            self.mdl.insertNode(node)
 
         for boundary in animList:
             anim = self.parseAnim(lines[boundary[0]:boundary[1]])
-            mdl.addAnim(anim)
-
-        return mdl
+            self.mdl.addAnim(anim)
 
 
-    def parseGeomNode(self, asciiNode):
-        if asciiNode is None:
+    def parseGeomNode(self, asciiBlock, parseAsWalkmesh = False):
+        if asciiBlock is None:
             raise MalformedMdlFile('Empty Node')
 
         nodeType = ''
         try:
-            nodeType = asciiNode[0][1].lower()
+            nodeType = asciiBlock[0][1].lower()
         except IndexError, AttributeError:
             raise MalformedMdlFile('Invalid node type')
 
@@ -186,16 +194,17 @@ class Importer():
                   'light':      nvb.node.Light,
                   'aabb':       nvb.node.Aabb}
         try:
-            parsedNode = switch[nodeType]()
+            parsedNode = switch[nodeType](isWalkmesh = parseAsWalkmesh)
         except KeyError:
             raise MalformedMdlFile('Invalid node type')
 
-        parsedNode.loadAscii(asciiNode)
+        parsedNode.loadAscii(asciiBlock, isWalkmesh)
         return parsedNode
 
 
-    def parseAnim(self, animBlock):
-        pass
+    def parseAnim(self, asciiBlock):
+        if asciiBlock is None:
+            raise MalformedMdlFile('Empty Animation')
 
 
 
@@ -204,19 +213,21 @@ class Importer():
 def import_(operator,
             context,
             filepath = '',
-            imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH', 'EMITTER'},
-            shadingGroups = True,
-            uniqueTexture = True,
-            imageSearch   = False,
-            minimapMode   = False):
+            imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+            useShadingGroups = True,
+            useSingleTexture = True,
+            useImgSearch = False,
+            minimapMode = False):
     '''
     Called from blender ui
     '''
-    importer = Importer(imports,
-                        shadingGroups,
-                        uniqueTexture,
-                        imageSearch,
-                        minimapMode)
+    nvb.glob.imports          = imports
+    nvb.glob.useShadingGroups = useShadingGroups
+    nvb.glob.useSingleTexture = useSingleTexture
+    nvb.glob.useImgSearch     = useImgSearch
+    nvb.glob.minimapMode      = minimapMode
+
+    importer = Importer()
     importer.load(filepath)
 
     return {'FINISHED'}

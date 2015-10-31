@@ -9,6 +9,7 @@ from bpy_extras.image_utils import load_image
 import neverblender.nvb.walkmesh
 import neverblender.nvb.node
 import neverblender.nvb.presets
+import neverblender.nvb.glob
 
 class Mdl():
     __debug = True
@@ -35,10 +36,10 @@ class Mdl():
             key = newNode.parent + newNode.name
             if key in self.nodeList:
                 #TODO: Should probably raise an exception
-                pass                
+                pass
             else:
                 self.nodeList[key] = newNode
-                
+
 
     def getNode(self, nodeId)
         if nodeId in self.nodeList:
@@ -46,13 +47,27 @@ class Mdl():
         else
             return False
 
+    def addPwk(self, pwk):
+        pass
+
+    def addDwk(self, dwk):
+        pass
 
     def addAnim(self, anim):
         pass
 
+    def convert(self, scene):
 
-    def convert(self, imageSearch, shadingGroups, uniqueTexture):
-        
         for node in self.nodelist:
-            if node.type
-            node.convert()
+            if nvb.glob.minimapMode: #TODO
+               continue
+
+            obj = node.convert(scene)
+            if (node.parent == nvb.presets.null) and
+               (node.name == self.name)
+                obj.auroraprops.dummytype = 'MDLBASE'
+
+        if not nvb.glob.minimapMode:
+            for anim in self.animlist:
+                anim.convert()
+
