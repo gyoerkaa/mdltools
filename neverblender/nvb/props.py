@@ -170,24 +170,20 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                      ('SPECIAL', 'Special',       'Special dummies. See subtype',                               5) ],
                                             default = 'NONE')
     dummysubtype   = bpy.props.EnumProperty(name = 'Subtype',
-                                            items = [('NONE',  'None',                      'Simple dummy object',                     0), \
-                                                     ('PUSE1', 'Placeable Walkmesh: Use 1', '1st node for "Use" animation',            1), \
-                                                     ('PUSE2', 'Placeable Walkmesh: Use 2', '2nd node for "Use" animation',            2), \
-                                                     ('PHAND', 'Placeable: Hand',           'Hand node for spells and effects',        3), \
-                                                     ('PHEAD', 'Placeable: Head',           'Head node for spells and effects',        4), \
-                                                     ('PHHIT', 'Placeable: Head hit',       'Head hit node for spells and effects',    5), \
-                                                     ('PIMPC', 'Placeable: Impact',         'Impact node for spells and effects',      6), \
-                                                     ('PGRND', 'Placeable: Ground',         'Ground node for spells and effects',      7), \
-                                                     ('DHEAD', 'Door: Head',                'Head node for spells and effects',        8), \
-                                                     ('DHHIT', 'Door: Head hit',            'Head hit node for spells and effects',    9), \
-                                                     ('DIMPC', 'Door: Impact',              'Impact node for spells and effects',     10), \
-                                                     ('DGRND', 'Door: Ground',              'Ground node for spells and effects',     11), \
-                                                     ('DO101', 'Door Walkmesh: Open 1 1st', 'Open 1 State, 1st node for "Use" anim',  12), \
-                                                     ('DO102', 'Door Walkmesh: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim',  13), \
-                                                     ('DO201', 'Door Walkmesh: Open 2 1st', 'Open 2 State, 1st node for "Use" anim',  14), \
-                                                     ('DO202', 'Door Walkmesh: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim',  15), \
-                                                     ('CCL01', 'Door Walkmesh: Closed 1st', 'Closed State, 1st node for "Use" anim',  16), \
-                                                     ('CCL02', 'Door Walkmesh: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  17) ],
+                                            items = [('NONE', 'None',                      'Simple dummy object',                     0), \
+                                                     ('HAND', 'Hand',                      'Hand node for spells and effects',        1), \
+                                                     ('HEAD', 'Head',                      'Head node for spells and effects',        2), \
+                                                     ('HHIT', 'Head hit',                  'Head hit node for spells and effects',    3), \
+                                                     ('IMPC', 'Impact',                    'Impact node for spells and effects',      4), \
+                                                     ('GRND', 'Ground',                    'Ground node for spells and effects',      5), \
+                                                     ('USE1', 'Placeable Walkmesh: Use 1', '1st node for "Use" animation',            6), \
+                                                     ('USE2', 'Placeable Walkmesh: Use 2', '2nd node for "Use" animation',            7), \
+                                                     ('O101', 'Door Walkmesh: Open 1 1st', 'Open 1 State, 1st node for "Use" anim',   8), \
+                                                     ('O102', 'Door Walkmesh: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim',   9), \
+                                                     ('O201', 'Door Walkmesh: Open 2 1st', 'Open 2 State, 1st node for "Use" anim',  10), \
+                                                     ('O202', 'Door Walkmesh: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim',  11), \
+                                                     ('CL01', 'Door Walkmesh: Closed 1st', 'Closed State, 1st node for "Use" anim',  12), \
+                                                     ('CL02', 'Door Walkmesh: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13) ],
                                             default = 'NONE')
     # For mdl base
     supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the supermodel', default = nvb.presets.null)

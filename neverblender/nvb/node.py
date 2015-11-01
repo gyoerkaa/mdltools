@@ -6,9 +6,6 @@ import neverblender.nvb.utils
 import neverblender.nvb.anim
 
 
-
-
-
 class FaceList():
     def __init__(self):
         self.faces = [] # int 3-tuple, vertex indices
@@ -84,17 +81,33 @@ class Dummy():
         obj.location              = self.position
         obj.auroraprops.wirecolor = self.wirecolor
 
-    def convert(self, scene):
+    def convert(self, scene, filepath = ''):
         obj = bpy.data.objects.new(self.name, None)
         self.setAttr(obj)
 
-        types = {'use01':    'USE01',
-                 'use02':    'USE02',
-                 'head' :    'HEAD',
-                 'head_hit': 'HEAD_HIT',
-                 'impact':   'IMPACT',
-                 'ground' :  'GROUND'}
-        obj.auroraprops.dummytype = switch.get(self.name[-3:], 'NONE')
+        obj.auroraprops.dummytype = 'NONE'
+        subtypes = [ ('use01',     'USE1'), \
+                     ('use02',     'USE2'), \
+                     ('hand',      'HAND'), \
+                     ('head',      'HEAD'), \
+                     ('head_hit',  'HHIT'), \
+                     ('hhit',      'HHIT'), \
+                     ('impact',    'IMPC'), \
+                     ('impc',      'IMPC'), \
+                     ('ground',    'GRND'), \
+                     ('grnd',      'GRND'), \
+                     ('open1_01',  'O101'), \
+                     ('open1_02',  'O102'), \
+                     ('open2_01',  'O201'), \
+                     ('open2_01',  'O202'), \
+                     ('closed_01', 'CL01'), \
+                     ('closed_01', 'CL02') ]
+        self.auroraprops.dummysubtype = 'NONE'
+        for element in subtypes:
+            if self.name.endswith(element[0])
+                self.auroraprops.dummysubtype = element[1]
+                break
+
         scene.objects.link(obj)
         return obj
 
@@ -207,10 +220,10 @@ class Trimesh(Dummy):
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
-    def createImage(self, imgName, imgPath, searchRecursive = False):
+    def createImage(self, imgName, imgPath):
         image = bpy_extras.image_utils.load_image(imgName + '.tga',
                                                   imgPath,
-                                                  recursive=searchRecursive,
+                                                  recursive=nvb.glob.useImgSearch,
                                                   place_holder=False,
                                                   ncase_cmp=False)
         if (image is None):
@@ -220,7 +233,7 @@ class Trimesh(Dummy):
 
         return image
 
-    def createMaterial(self, obj):
+    def createMaterial(self, obj, filepath):
         material = bpy.data.materials.new(obj.name + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
@@ -254,14 +267,14 @@ class Trimesh(Dummy):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
             else:
-                image = self.createImage(imgName)
+                image = self.createImage(imgName, filepath)
                 if image is not None:
                     textureSlot.texture.image = image
 
         return material
 
 
-    def createMesh(self):
+    def createMesh(self, filepath = ''):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(self.name + '.mesh')
         mesh.vertices.add(len(self.verts))
@@ -270,7 +283,7 @@ class Trimesh(Dummy):
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(obj.name)
+        material = self.createMaterial(obj.name, filepath)
         mesh.materials.append(material)
 
         # Create UV map
@@ -314,21 +327,28 @@ class Trimesh(Dummy):
         # Aurora properties
         obj.auroraprops.meshtype         = 'TRIMESH'
         obj.auroraprops.tilefade         = self.tilefade
-        obj.auroraprops.render           = (parsed_node['render'] == 1)
-        obj.auroraprops.shadow           = (parsed_node['shadow'] == 1)
-        obj.auroraprops.beaming          = (parsed_node['beaming'] == 1)
-        obj.auroraprops.inheritcolor     = (parsed_node['inheritcolor'] == 1)
-        obj.auroraprops.rotatetexture    = (parsed_node['rotatetexture'] == 1)
-        obj.auroraprops.transparencyhint = parsed_node['transparencyhint']
-        obj.auroraprops.selfillumcolor   = parsed_node['selfillumcolor']
-        obj.auroraprops.ambientcolor     = parsed_node['ambient']
-        obj.auroraprops.shininess        = parsed_node['shininess']
+        obj.auroraprops.render           = (self.render == 1)
+        obj.auroraprops.shadow           = (self.shadow == 1)
+        obj.auroraprops.beaming          = (self.beaming == 1)
+        obj.auroraprops.inheritcolor     = (self.inheritcolor == 1)
+        obj.auroraprops.rotatetexture    = (self.rotatetexture == 1)
+        obj.auroraprops.transparencyhint = self.transparencyhint
+        obj.auroraprops.selfillumcolor   = self.selfillumcolor
+        obj.auroraprops.ambientcolor     = self.ambient
+        obj.auroraprops.shininess        = self.shininess
 
-    def convert(self, scene):
-        mesh = self.createMesh(self.name)
+    def convert(self, scene, filepath = ''):
+        if nvb.glob.minimapMode and self.tilefade:
+            # Fading objects won't be imported in minimap mode
+            # We may need it for the tree stucture, so import it as an empty
+            Dummy.convert(self, scene)
+            return
+
+        mesh = self.createMesh(self.name, filepath)
         obj  = bpy.data.objects.new(self.name, mesh)
         self.setAttr(obj)
-        scene.objects.link(mesh)
+        scene.objects.link(obj)
+        return obj
 
 
 class Danglymesh(Trimesh):
@@ -743,10 +763,16 @@ class Light(Dummy):
         obj.auroraprops.affectdynamic = (self.affectdynamic == 1)
         obj.auroraprops.flareradius   = (self.affectdynamic == 1)
 
-    def convert(self):
+    def convert(self, scene, filepath = ''):
+        if nvb.glob.minimapMode:
+            # We don't need lights in minimap mode
+            # We may need it for the tree stucture, so import it as an empty
+            Dummy.convert(self, scene, filepath)
+            return
         lamp = bpy.data.lamps.new(nodeName, 'POINT')
         self.setAttr(lamp)
         scene.objects.link(lamp)
+        return lamp
 
 
 class Aabb(Trimesh):
@@ -763,8 +789,9 @@ class Aabb(Trimesh):
      def load(self, asciiNode):
         Trimesh.load(self, asciiNode)
 
-    def convert(self):
+    def convert(self, scene, filepath = ''):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        self.setAttr(mesh)
-        scene.objects.link(mesh)
+        self.setAttr(obj)
+        scene.objects.link(obj)
+        return obj

@@ -25,12 +25,14 @@ class Importer():
     def __init__(self):
         self.scene = bpy.context.scene
 
+        self.mdl = nvb.mdl.Mdl() # Model
+        self.xwk = nvb.mdl.Mdl() # Walkmesh
 
     def load(self, mdlFilepath):
 
-        self.mdl = nvb.mdl.Mdl()
         parseMdl(os.fsencode(mdlFilepath))
-        self.mdl.convert(self.scene)
+        parseWalkmesh(os.fsencode(mdlFilepath))
+        self.mdl.convert(self.scene, os.path.dirname(mdlFilepath))
 
 
     def parseWalkmesh(mdlFilepath):
@@ -41,15 +43,17 @@ class Importer():
                 try:
                     parseDwk(os.fsencode(wkFilepath))
                 except IOError:
+                    # Doesn't exist. We can continue without, but print
+                    # a warning.
                     warnings.warn("WARNING: Unable to open door walkmesh: " + wkFilepath)
             else
-                # Try looking for a placeable walkmesh
+                # No tile or door. Try looking for a placeable walkmesh.
                 wkFilepath = os.path.join(os.path.dirname(mdlFilepath),
                                           os.path.splitext(os.path.basename(mdlFilepath))[0] + '.pwk')
                 try:
                     parsePwk(os.fsencode(wkFilepath))
                 except IOError:
-                    # Doesn't exist, but that's ok
+                    # Doesn't exist and that's fine in this case.
                     pass
 
 
@@ -83,9 +87,11 @@ class Importer():
                 elif (label == 'node'):
                     raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
 
+
         for boundary in nodeList:
             node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
-            self.mdl.insertNode(node)
+            #TODO: set parent to our newly created pwkroot
+            self.xwk.insertNode(node)
 
 
     def parseMdl(filepath):

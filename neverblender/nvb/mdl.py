@@ -23,6 +23,8 @@ class Mdl():
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
+        self.root = ''
+
 
     def insertNode(self, newNode):
         # Blender requires unique object names. In mdl names are only
@@ -47,25 +49,19 @@ class Mdl():
         else
             return False
 
-    def addPwk(self, pwk):
-        pass
-
-    def addDwk(self, dwk):
-        pass
 
     def addAnim(self, anim):
         pass
 
-    def convert(self, scene):
+
+    def convert(self, scene, filepath = ''):
 
         for node in self.nodelist:
-            if nvb.glob.minimapMode: #TODO
-               continue
-
-            obj = node.convert(scene)
+            obj = node.convert(scene, filepath)
             if (node.parent == nvb.presets.null) and
                (node.name == self.name)
-                obj.auroraprops.dummytype = 'MDLBASE'
+                obj.auroraprops.dummytype = 'MDLROOT'
+                self.root = obj.name
 
         if not nvb.glob.minimapMode:
             for anim in self.animlist:
