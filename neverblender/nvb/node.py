@@ -763,7 +763,7 @@ class Emitter(Dummy):
         material.alpha             = 0.0
         material.use_transparency  = True
 
-        texName = self.bitmap.lower()
+        texName = self.texture.lower()
         if (texName != nvb.presets.null):
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
@@ -780,7 +780,7 @@ class Emitter(Dummy):
 
             # Load the image for the texture, but check if it was
             # already loaded before. If so, use that one.
-            imgName = self.bitmap
+            imgName = self.texture
             if (imgName in bpy.data.images):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
@@ -830,13 +830,127 @@ class Emitter(Dummy):
 
         return mesh
 
-    def setAttr(self, obj):
-        Dummy.setAttr(self, obj)
+    def addParticles(self, obj):
+        modifier = obj.modifiers.new(obj.name + '.mod', 'PARTICLE_SYSTEM')
+        modifier.particle_system.name = obj.name + '.emit'
 
-        obj.use_diffuse = self.ambientonly
-        obj.color       = self.color
-        obj.energy      = self.multiplier
-        obj.distance    = self.radius
+        settings = modifier.particle_system.settings
+        settings.name          = obj.name + '.emitset'
+
+        settings.frame_start   = self.framestart
+        settings.frame_end     = self.frameend
+        settings.lifetime      = self.lifeexp
+        settings.mass          = self.mass
+        settings.normal_factor = self.velocity
+        settings.factor_random = self.randvel
+
+        settings.effector_weights.wind    = float(self.affectedbywind)
+        settings.effector_weights.drag    = float(self.drag)
+        settings.effector_weights.gravity = float(self.grav)
+
+        settings.auroraprops.birthrate = int(self.birthrate)
+
+        # Inheritance props
+        settings.auroraprops.inherit       = (self.inherit == 1)
+        settings.auroraprops.inherit_vel   = (self.inheritvel == 1)
+        settings.auroraprops.inherit_local = (self.inherit_local == 1)
+        settings.auroraprops.inherit_part  = (self.inherit_part == 1)
+        settings.auroraprops.splat         = (self.splat == 1)
+
+        # Spawntype
+        if (self.spawntype == 1):
+            settings.auroraprops.spawntype = 'NORMAL'
+        elif (self.spawntype == 2):
+            settings.auroraprops.spawntype = 'TRAIL'
+
+        # Update type
+        if (self.update == 1):
+            settings.auroraprops.update = 'FOUNTAIN'
+        elif (self.update == 2):
+            settings.auroraprops.update = 'SINGLE'
+        elif (self.update == 3):
+            settings.auroraprops.update = 'EXPLOSION'
+        elif (self.update == 4):
+            settings.auroraprops.update = 'LIGHTNING'
+
+        # Render type
+        if (self.render == 1):
+            settings.auroraprops.render = 'NORMAL'
+        elif (self.render == 2):
+            settings.auroraprops.render = 'LINKED'
+        elif (self.render == 3):
+            settings.auroraprops.render = 'BB2LZ'
+        elif (self.render == 4):
+            settings.auroraprops.render = 'BB2WZ'
+        elif (self.render == 5):
+            settings.auroraprops.render = 'AL2WZ'
+        elif (self.render == 6):
+            settings.auroraprops.render = 'AL2PD'
+        elif (self.render == 7):
+            settings.auroraprops.render = 'MOBLUR'
+
+        # Blend type
+        if (self.blend == 1):
+            settings.auroraprops.blend = 'NORMAL'
+        elif (self.blend == 2):
+            settings.auroraprops.blend = 'PUNCH-THROUGH'
+        elif (self.blend == 3):
+            settings.auroraprops.blend = 'LIGHTEN'
+
+        # Texture
+        if (self.texture.lower() != nvb.presets.null):
+            settings.render_type = 'BILLBOARD'
+            #settings.billboard_align = 'VIEW' # TODO
+            settings.billboard_uv_split = max([self.xgrid, self.ygrid])
+
+        # Blast props
+        settings.auroraprops.blastradius = self.blastradius
+        settings.auroraprops.blastlength = self.blastlength
+
+        # Animation props
+        settings.auroraprops.colorstart  = self.colorstart
+        settings.auroraprops.colorend    = self.colorend
+        settings.auroraprops.alphastart  = self.alphastart
+        settings.auroraprops.alphaend    = self.alphaend
+        settings.auroraprops.sizestart   = self.sizestart
+        settings.particle_size           = self.sizestart/10
+        settings.auroraprops.sizeend     = self.sizeend
+        settings.auroraprops.sizestart_y = self.sizestart_y
+        settings.auroraprops.sizeend_y   = self.sizeend_y
+
+        # Misc props
+        settings.auroraprops.lifeexp     = self.lifeexp
+        settings.auroraprops.istinted    = (self.m_istinted == 1)
+        settings.auroraprops.bounce      = (self.bounce == 1)
+        settings.auroraprops.random      = (self.random == 1)
+        settings.auroraprops.bounce_co   = self.bounce_co
+        settings.auroraprops.spread      = self.spread
+        settings.auroraprops.particlerot = self.particlerot
+        settings.auroraprops.fps         = self.fps
+        settings.auroraprops.blurlength  = self.blurlength
+        settings.auroraprops.chunkname   = self.chunkname
+        settings.auroraprops.loop        = (self.loop == 1)
+        settings.auroraprops.deadspace   = self.deadspace
+        settings.auroraprops.renderorder = self.renderorder
+        settings.auroraprops.twosidedtex = (self.twosidedtex == 1)
+        settings.auroraprops.opacity     = self.opacity
+
+        # Lighting props
+        settings.auroraprops.lightningdelay  = self.lightningdelay
+        settings.auroraprops.lightningradius = self.lightningradius
+        settings.auroraprops.lightningsubdiv = self.lightningsubdiv
+        settings.auroraprops.lightningscale  = self.lightningscale
+
+        # p2p props
+        settings.auroraprops.p2p          = self.p2p
+        if (self.p2p_sel == 1):
+            settings.auroraprops.p2p_sel = 'BEZIER'
+        elif (self.p2p_sel == 2):
+            settings.auroraprops.p2p_sel = 'GRAVITY'
+        settings.auroraprops.p2p_bezier2  = self.p2p_bezier2
+        settings.auroraprops.p2p_bezier3  = self.p2p_bezier3
+        settings.auroraprops.threshold    = self.threshold
+        settings.auroraprops.combinetime  = self.combinetime
 
     def convert(self, scene, filepath = ''):
         if nvb.glob.minimapMode:
@@ -845,7 +959,7 @@ class Emitter(Dummy):
             return Dummy.convert(self, scene, filepath)
 
         mesh = self.createMesh(self.name, filepath)
-        emitter = bpy.data.objects.new(parsed_node['name'], mesh)
+        emitter = bpy.data.objects.new(self.name, mesh)
         self.setAttr(emitter)
         scene.objects.link(emitter)
         return emitter
