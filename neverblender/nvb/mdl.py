@@ -1,6 +1,7 @@
 import os
 import math
 import collections
+import warnings
 
 import bpy
 from bpy_extras.io_utils import unpack_list, unpack_face_list
@@ -14,7 +15,7 @@ import neverblender.nvb.glob
 class Mdl():
     __debug = True
 
-    def __init__(self):
+    def __init__(self, isWalkmesh = False):
         self.nodeList = collections.OrderedDict()
         self.animlist = dict() # No need to retain order
 
@@ -23,7 +24,8 @@ class Mdl():
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
-        self.root = ''
+        self.root       = ''
+        self.isWalkmesh = isWalkmesh
 
 
     def insertNode(self, newNode):
@@ -58,10 +60,22 @@ class Mdl():
 
         for node in self.nodelist:
             obj = node.convert(scene, filepath)
-            if (node.parent == nvb.presets.null) and
-               (node.name == self.name)
-                obj.auroraprops.dummytype = 'MDLROOT'
-                self.root = obj.name
+            if (node.parent == nvb.presets.null):
+                if (node.name == self.name):
+                    if
+                    obj.auroraprops.dummytype = 'MDLROOT'
+                    self.root = obj.name
+                else:
+                    # Node without parent and not the mdl root. Problem ?
+                    warnings.warn("WARNING: " + node.name + " has no parent.")
+            else:
+                if node.parent in bpy.data.objects:
+                    obj.parent                = bpy.data.objects[node.parent]
+                    obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                else:
+                    warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parent + ")")
+
+
 
         if not nvb.glob.minimapMode:
             for anim in self.animlist:

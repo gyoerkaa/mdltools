@@ -28,37 +28,75 @@ class Importer():
         self.mdl = nvb.mdl.Mdl() # Model
         self.xwk = nvb.mdl.Mdl() # Walkmesh
 
+
     def load(self, mdlFilepath):
 
         parseMdl(os.fsencode(mdlFilepath))
         parseWalkmesh(os.fsencode(mdlFilepath))
         self.mdl.convert(self.scene, os.path.dirname(mdlFilepath))
+        self.xwk.convert(self.scene, os.path.dirname(mdlFilepath))
+
+        self.scene.update()
 
 
     def parseWalkmesh(mdlFilepath):
         if (self.mdl.classification != 'TILE'):
             if (self.mdl.classification == 'DOOR'):
+                # Doors should have a dwk file.
                 wkFilepath = os.path.join(os.path.dirname(mdlFilepath),
                                           os.path.splitext(os.path.basename(mdlFilepath))[0] + '.dwk')
                 try:
                     parseDwk(os.fsencode(wkFilepath))
                 except IOError:
-                    # Doesn't exist. We can continue without, but print
+                    # Doesn't exist. We can continue without, but it's worth
                     # a warning.
                     warnings.warn("WARNING: Unable to open door walkmesh: " + wkFilepath)
             else
-                # No tile or door. Try looking for a placeable walkmesh.
+                # Could be a placeable, try looking for a pwk file.
                 wkFilepath = os.path.join(os.path.dirname(mdlFilepath),
                                           os.path.splitext(os.path.basename(mdlFilepath))[0] + '.pwk')
                 try:
                     parsePwk(os.fsencode(wkFilepath))
                 except IOError:
-                    # Doesn't exist and that's fine in this case.
+                    # Doesn't exist and that's fine in this case as we can't
+                    # be sure if it's a placeable.
                     pass
 
 
     def parseDwk(filepath):
-        pass
+        lines = [line.strip().split() for line in open(filepath, 'r')]
+
+        nodeList = collections.OrderedDict()
+        nodeStart = -1
+
+        State = enum.Enum('State', 'READGEOM READGEOMNODE')
+        cs = State.READGEOMNODE
+        for idx, line in enumerate(lines):
+            try:
+                label = line[0]
+            except IndexError:
+                # Probably empty line or whatever, just skip it
+                continue
+            if (cs == State.READGEOM):
+                if (label == 'node'):
+                    nodeStart = idx
+                    cs = State.READGEOMNODE
+            elif (cs == State.READGEOMNODE):
+                if (label == 'endnode'):
+                    nodeList.append((nodeStart, idx))
+                    nodeStart = -1
+                    cs = State.READGEOM
+                elif (label == 'node'):
+                    raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
+
+        # dwk's don't contain a rootdummy. We need one, so we make one.
+        rootname = self.mdl.name + '_dwk'
+        node = nvb.node.Dummy(rootname, True)
+        self.xwk.insertNode(node)
+        for boundary in nodeList:
+            node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
+            node.parent = rootname
+            self.xwk.insertNode(node)
 
 
     def parsePwk(filepath):
@@ -87,10 +125,13 @@ class Importer():
                 elif (label == 'node'):
                     raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
 
-
+        # pwk's don't contain a rootdummy. We need one, so we make one.
+        rootname = self.mdl.name + '_pwk'
+        node = nvb.node.Dummy(rootname, True)
+        self.xwk.insertNode(node)
         for boundary in nodeList:
             node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
-            #TODO: set parent to our newly created pwkroot
+            node.parent = rootname
             self.xwk.insertNode(node)
 
 

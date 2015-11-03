@@ -18,7 +18,7 @@ class Dummy():
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
+    def __init__(self, name = 'UNNAMED'):
         self.name        = name
         self.parent      = nvb.presets.null
         self.position    = (0.0, 0.0, 0.0)
@@ -29,7 +29,6 @@ class Dummy():
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
         self.objRef     = ''
-        self.isWalkmesh = isWalkmesh
 
     def nodeType(self):
         return 'dummy'
@@ -45,7 +44,6 @@ class Dummy():
         lfloat = float
         lisNumber = nvb.utils.isNumber
 
-        self.isWalkmesh = isWalkmesh
         for line in asciiNode:
             try:
                 label = line[0].lower()
@@ -73,6 +71,19 @@ class Dummy():
                     self.wirecolor = (lfloat(line[1]),
                                       lfloat(line[2]),
                                       lfloat(line[3]) )
+
+    def createImage(self, imgName, imgPath):
+        image = bpy_extras.image_utils.load_image(imgName + '.tga',
+                                                  imgPath,
+                                                  recursive=nvb.glob.useImgSearch,
+                                                  place_holder=False,
+                                                  ncase_cmp=False)
+        if (image is None):
+            image = bpy.data.images.new(imgName, 512, 512)
+        else:
+            image.name = imgName
+
+        return image
 
     def setAttr(self, obj):
         self.objRef = obj.name # used to resolve naming conflicts
@@ -116,8 +127,8 @@ class Trimesh(Dummy):
     """
     Basic node from which every other is derived
     """
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
-        Dummy.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Dummy.__init__(self, name)
 
         self.center           = (0.0, 0.0, 0.0) # Unused ?
         self.tilefade         = 0
@@ -220,27 +231,34 @@ class Trimesh(Dummy):
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
-    def createImage(self, imgName, imgPath):
-        image = bpy_extras.image_utils.load_image(imgName + '.tga',
-                                                  imgPath,
-                                                  recursive=nvb.glob.useImgSearch,
-                                                  place_holder=False,
-                                                  ncase_cmp=False)
-        if (image is None):
-            image = bpy.data.images.new(imgName, 512, 512)
-        else:
-            image.name = imgName
+    def addShadingGroups(obj):
 
-        return image
+        if not nvb.glob.useShadingGroups:
+            return
 
-    def createMaterial(self, obj, filepath):
-        material = bpy.data.materials.new(obj.name + '.mat')
+        # Create a dictionary of shading groups with group id's as keys
+        # and a vertex lists as values
+        shadingGroupDict= {}
+        for faceId, groupId in enumerate(self.facelist.shdgr):
+            if groupId not in shadingGroupDict:
+                shadingGroupList[groupId] = []
+
+            shadingGroupDict[groupId].append(self.facelist.faces[faceId][0])
+            shadingGroupDict[groupId].append(self.facelist.faces[faceId][1])
+            shadingGroupDict[groupId].append(self.facelist.faces[faceId][2])
+
+        # Create vertex groups ans add vertices
+        for groupId, groupMembers in shadingGroupDict.items():
+            vgroup = obj.vertex_groups.new(nvb.presets.shadingGroupName + str(groupId))
+            vgroup.add(groupMembers, 1.0, 'REPLACE')
+
+    def createMaterial(self, objName, filepath):
+        material = bpy.data.materials.new(objName + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
 
-        # Set alpha values.
-        # Note: This is always'0.0' and 'True'
+        # Set alpha values. Note: This is always'0.0' and 'True'
         # MDL's alpha value = Texture alpha_factor in Blender
         material.alpha            = 0.0
         material.use_transparency = True
@@ -257,7 +275,7 @@ class Trimesh(Dummy):
             textureSlot.texture_coords        = 'UV'
             textureSlot.use_map_color_diffuse = True
 
-            textureSlot.alpha_factor  = 1.0
+            textureSlot.alpha_factor  = self.alpha
             textureSlot.use_map_alpha = True
 
             # Load the image for the texture, but check if it was
@@ -273,24 +291,23 @@ class Trimesh(Dummy):
 
         return material
 
-
-    def createMesh(self, filepath = ''):
+    def createMesh(self, objName, filepath = ''):
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(self.name + '.mesh')
+        mesh = bpy.data.meshes.new(objName + '.mesh')
         mesh.vertices.add(len(self.verts))
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(obj.name, filepath)
+        material = self.createMaterial(objName, filepath)
         mesh.materials.append(material)
 
         # Create UV map
         if ( (len(node.tverts) > 0) and
              mesh.tessfaces and
              (self.bitmap.lower() != nvb.presets.null) ):
-            uv = mesh.tessface_uv_textures.new(obj.name + '.uv')
+            uv = mesh.tessface_uv_textures.new(self.name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
             for i in range(len(self.tverts)):
@@ -321,11 +338,11 @@ class Trimesh(Dummy):
         mesh.update()
         return mesh
 
-
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
+
+        self.addShadingGroups(obj)
         # Aurora properties
-        obj.auroraprops.meshtype         = 'TRIMESH'
         obj.auroraprops.tilefade         = self.tilefade
         obj.auroraprops.render           = (self.render == 1)
         obj.auroraprops.shadow           = (self.shadow == 1)
@@ -341,11 +358,11 @@ class Trimesh(Dummy):
         if nvb.glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            Dummy.convert(self, scene)
-            return
+            return Dummy.convert(self, scene)
 
         mesh = self.createMesh(self.name, filepath)
         obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.meshtype = 'TRIMESH'
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj
@@ -355,8 +372,8 @@ class Danglymesh(Trimesh):
     """
 
     """
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
-        Trimesh.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
 
         self.period       = 1.0
         self.tightness    = 1.0
@@ -395,14 +412,48 @@ class Danglymesh(Trimesh):
         for line in asciiConstraints:
             self.constraints.append(lfloat(line[0]))
 
+    def addDanglyGroup(obj):
+        '''
+        Creates a vertex group for the object to contain the vertex
+        weights for the danglymesh. The weights are called "constraints"
+        in NWN. Range is [0.0, 255.0] as oppossed to [0.0, 1.0] in Blender
+        '''
+        dgroup = obj.vertex_groups.new(nvb.presets.danglyGroupName)
+        for vertex, constraint in enumerate(self.constraints):
+            weight = constraint/255
+            dgroup.add(vertex, weight, 'REPLACE')
+
+        return dgroup
+
+    def self.setAttr(self, obj):
+        Trimesh.setAttr(obj):
+        obj.auroraprops.period       = self.period
+        obj.auroraprops.tightness    = self.tightness
+        obj.auroraprops.displacement = self.displacement
+        self.addDanglyGroup(obj):
+
+    def convert(self, scene, filepath = ''):
+        if nvb.glob.minimapMode and self.tilefade:
+            # Fading objects won't be imported in minimap mode
+            # We may need it for the tree stucture, so import it as an empty
+            return Dummy.convert(self, scene)
+
+
+        mesh = self.createMesh(self.name, filepath)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.meshtype = 'DANGLYMESH'
+        self.setAttr(obj)
+        scene.objects.link(obj)
+        return obj
+
 
 class Skinmesh(Trimesh):
     """
     Skinmeshes are Trimeshes where every vertex
     has a weight.
     """
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
-        Trimesh.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
 
         self.weights = []
 
@@ -440,10 +491,30 @@ class Skinmesh(Trimesh):
 
             self.weights.append(memberships)
 
+    def addSkinGroups(obj):
+        skinGroupDict = {}
+        for vertexId, vertexMemberships in enumerate(self.weights):
+            for membership in vertexMemberships:
+                if membership[0] in skinGroupDict:
+                    skinGroupDict[membership[0]].add([vertexId], membership[1], 'REPLACE')
+                else:
+                    vgroup = obj.vertex_groups.new(membership[0])
+                    skinGroupDict[membership[0]] = vgroup
+                    vgroup.add([vertexId], membership[1], 'REPLACE')
+
+    def convert(self, scene, filepath = ''):
+        mesh = self.createMesh(self.name, filepath)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.meshtype = 'SKIN'
+        self.addSkinGroups(obj)
+        self.setAttr(obj)
+        scene.objects.link(obj)
+        return obj
+
 
 class Emitter(Dummy):
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
-        Dummy.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Dummy.__init__(self, name)
 
         self.affectedbywind  = 0.0
         self.m_isitinted     = False
@@ -681,10 +752,108 @@ class Emitter(Dummy):
                 elif (label == 'p2p_bezier3'):
                     self.p2p_bezier3 = float(line[1])
 
+    def createMaterial(self, objName, filepath):
+        material = bpy.data.materials.new(objName + '.mat')
+        material.diffuse_color     = (1.0, 1.0, 1.0)
+        material.diffuse_intensity = 1.0
+        material.specular_color    = (0.0, 0.0, 0.0)
+
+        # Set alpha values. Note: This is always'0.0' and 'True'
+        # MDL's alpha value = Texture alpha_factor in Blender
+        material.alpha             = 0.0
+        material.use_transparency  = True
+
+        texName = self.bitmap.lower()
+        if (texName != nvb.presets.null):
+            textureSlot = material.texture_slots.add()
+            # If a texture with the same name was already created treat
+            # them as if they were the same, i.e. just use the old one
+            if (texName in bpy.data.textures)):
+                textureSlot.texture = bpy.data.textures[texName]
+            else:
+                textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
+            textureSlot.texture_coords        = 'UV'
+            textureSlot.use_map_color_diffuse = True
+
+            textureSlot.alpha_factor  = 1.0
+            textureSlot.use_map_alpha = True
+
+            # Load the image for the texture, but check if it was
+            # already loaded before. If so, use that one.
+            imgName = self.bitmap
+            if (imgName in bpy.data.images):
+                image = bpy.data.images[imgName]
+                textureSlot.texture.image = image
+            else:
+                image = self.createImage(imgName, filepath)
+                if image is not None:
+                    textureSlot.texture.image = image
+
+        return material
+
+    def createMesh(self, objName, filepath = ''):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(objName + '.mesh')
+        mesh.vertices.add(4)
+        mesh.vertices[0].co = ( self.xsize/2,  self.ysize/2, 0.0)
+        mesh.vertices[1].co = ( self.xsize/2, -self.ysize/2, 0.0)
+        mesh.vertices[2].co = (-self.xsize/2, -self.ysize/2, 0.0)
+        mesh.vertices[3].co = (-self.xsize/2,  self.ysize/2, 0.0)
+        mesh.tessfaces.add(1)
+        mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
+
+        # Create material
+        material = self.createMaterial(objName, filepath)
+        mesh.materials.append(material)
+
+        # Create UV map
+        if (self.bitmap.lower() != nvb.presets.null):
+            uv = mesh.tessface_uv_textures.new(self.name + '.uv')
+            mesh.tessface_uv_textures.active = uv
+
+            tessface = mesh.tessfaces[0] # We created one face above
+            # Apply material to face
+            tessface.material_index = 0
+            # Get the tessface
+            tessfaceUV = mesh.tessface_uv_textures[0].data[0]
+            # Add uv coordinates to face
+            tessfaceUV.uv1 = ( self.xsize/2,  self.ysize/2)
+            tessfaceUV.uv2 = ( self.xsize/2, -self.ysize/2)
+            tessfaceUV.uv3 = (-self.xsize/2, -self.ysize/2)
+            tessfaceUV.uv4 = (-self.xsize/2,  self.ysize/2)
+            # Apply texture to face
+            tessfaceUV.image = material.texture_slots[0].texture.image
+
+        # After calling update() tessfaces become inaccessible
+        mesh.validate()
+        mesh.update()
+
+        return mesh
+
+    def setAttr(self, obj):
+        Dummy.setAttr(self, obj)
+
+        obj.use_diffuse = self.ambientonly
+        obj.color       = self.color
+        obj.energy      = self.multiplier
+        obj.distance    = self.radius
+
+    def convert(self, scene, filepath = ''):
+        if nvb.glob.minimapMode:
+            # We don't need lights in minimap mode
+            # We may need it for the tree stucture, so import it as an empty
+            return Dummy.convert(self, scene, filepath)
+
+        mesh = self.createMesh(self.name, filepath)
+        emitter = bpy.data.objects.new(parsed_node['name'], mesh)
+        self.setAttr(emitter)
+        scene.objects.link(emitter)
+        return emitter
+
 
 class Light(Dummy):
-    def __init__(self, name = 'UNNAMED', isWalkmesh = False):
-        Dummy.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Dummy.__init__(self, name)
 
         self.shadow           = 1
         self.radius           = 5.0
@@ -755,7 +924,7 @@ class Light(Dummy):
                   'ml2': 'MAINLIGHT2',
                   'sl1': 'SOURCELIGHT1',
                   'sl2': 'SOURCELIGHT2'}
-        obj.auroraprops.lighttype = switch.get(self.name[-3:], 'NONE')
+        obj.auroraprops.lighttype     = switch.get(self.name[-3:], 'NONE')
         obj.auroraprops.shadow        = (self.shadow == 1)
         obj.auroraprops.lightpriority = self.lightpriority
         obj.auroraprops.fadinglight   = (self.fadinglight == 1)
@@ -767,8 +936,8 @@ class Light(Dummy):
         if nvb.glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            Dummy.convert(self, scene, filepath)
-            return
+            return Dummy.convert(self, scene, filepath)
+
         lamp = bpy.data.lamps.new(nodeName, 'POINT')
         self.setAttr(lamp)
         scene.objects.link(lamp)
@@ -780,8 +949,8 @@ class Aabb(Trimesh):
     No need to import Aaabb's. Aabb nodes in mdl files will be
     treated as trimeshes
     '''
-    def __init__(self, name = 'UNNAMED', isWalkmesh = True):
-        Trimesh.__init__(self, name, isWalkmesh)
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
 
     def nodeType(self):
         return 'aabb'
@@ -792,6 +961,7 @@ class Aabb(Trimesh):
     def convert(self, scene, filepath = ''):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.meshtype = 'AABB'
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj

@@ -9,8 +9,8 @@ round_aabb   = 2
 
 # Some presets
 render_fps = 30
-danglymesh_group_name = 'danglegroup'
-shading_group_name = 'shadegr_'
+danglyGroupName  = 'danglegroup'
+shadingGroupName = 'shadegr_'
 wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
                   ['wok_Dirt'          , (0.610, 0.235, 0.050), 0.0], \
                   ['wok_Obscuring'     , (0.100, 0.100, 0.100), 0.5], \
