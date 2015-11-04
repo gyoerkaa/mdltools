@@ -864,38 +864,16 @@ class Emitter(Dummy):
             settings.auroraprops.spawntype = 'TRAIL'
 
         # Update type
-        if (self.update == 1):
-            settings.auroraprops.update = 'FOUNTAIN'
-        elif (self.update == 2):
-            settings.auroraprops.update = 'SINGLE'
-        elif (self.update == 3):
-            settings.auroraprops.update = 'EXPLOSION'
-        elif (self.update == 4):
-            settings.auroraprops.update = 'LIGHTNING'
+        switch = ['ERROR', 'FOUNTAIN', 'SINGLE', 'EXPLOSION', 'LIGHTNING']
+        settings.auroraprops.update  = switch[self.update]
 
         # Render type
-        if (self.render == 1):
-            settings.auroraprops.render = 'NORMAL'
-        elif (self.render == 2):
-            settings.auroraprops.render = 'LINKED'
-        elif (self.render == 3):
-            settings.auroraprops.render = 'BB2LZ'
-        elif (self.render == 4):
-            settings.auroraprops.render = 'BB2WZ'
-        elif (self.render == 5):
-            settings.auroraprops.render = 'AL2WZ'
-        elif (self.render == 6):
-            settings.auroraprops.render = 'AL2PD'
-        elif (self.render == 7):
-            settings.auroraprops.render = 'MOBLUR'
+        switch = ['ERROR', 'NORMAL', 'LINKED', 'BB2LZ', 'BB2WZ', 'AL2WZ', 'AL2PD', 'MOBLUR']
+        settings.auroraprops.render = switch[self.render]
 
         # Blend type
-        if (self.blend == 1):
-            settings.auroraprops.blend = 'NORMAL'
-        elif (self.blend == 2):
-            settings.auroraprops.blend = 'PUNCH-THROUGH'
-        elif (self.blend == 3):
-            settings.auroraprops.blend = 'LIGHTEN'
+        switch = ['ERROR', 'NORMAL', 'PUNCH-THROUGH', 'LIGHTEN']
+        settings.auroraprops.blend = switch[self.blend]
 
         # Texture
         if (self.texture.lower() != nvb.presets.null):
@@ -942,7 +920,7 @@ class Emitter(Dummy):
         settings.auroraprops.lightningscale  = self.lightningscale
 
         # p2p props
-        settings.auroraprops.p2p          = self.p2p
+        settings.auroraprops.p2p = self.p2p
         if (self.p2p_sel == 1):
             settings.auroraprops.p2p_sel = 'BEZIER'
         elif (self.p2p_sel == 2):
@@ -986,7 +964,7 @@ class Light(Dummy):
 
     def load(self, asciiNode):
         Dummy.load(self, asciiNode)
-        lint   = int
+        lint = int
         lfloat = float
         lisNumber = nvb.utils.isNumber
 
@@ -1023,7 +1001,6 @@ class Light(Dummy):
                 elif (label == 'fadinglight'):
                     self.fadinglight = lint(line[1])
 
-
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
 
@@ -1034,9 +1011,9 @@ class Light(Dummy):
         #obj.use_negative = self.negative # No effect ?
         #obj.use_sphere   = True # No effect ?
 
-        switch = {'ml1': 'MAINLIGHT1',
-                  'ml2': 'MAINLIGHT2',
-                  'sl1': 'SOURCELIGHT1',
+        switch = {'ml1': 'MAINLIGHT1', \
+                  'ml2': 'MAINLIGHT2', \
+                  'sl1': 'SOURCELIGHT1', \
                   'sl2': 'SOURCELIGHT2'}
         obj.auroraprops.lighttype     = switch.get(self.name[-3:], 'NONE')
         obj.auroraprops.shadow        = (self.shadow == 1)
@@ -1069,7 +1046,7 @@ class Aabb(Trimesh):
     def nodeType(self):
         return 'aabb'
 
-     def load(self, asciiNode):
+    def load(self, asciiNode):
         Trimesh.load(self, asciiNode)
 
     def convert(self, scene, filepath = ''):

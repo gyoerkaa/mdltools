@@ -77,16 +77,13 @@ class Importer():
             except IndexError:
                 # Probably empty line or whatever, just skip it
                 continue
-            if (cs == State.READGEOM):
-                if (label == 'node'):
-                    nodeStart = idx
-                    cs = State.READGEOMNODE
-            elif (cs == State.READGEOMNODE):
-                if (label == 'endnode'):
+            if (label == 'node'):
+                nodeStart = idx
+            elif (label == 'endnode'):
+                if (nodeStart < 0)
                     nodeList.append((nodeStart, idx))
                     nodeStart = -1
-                    cs = State.READGEOM
-                elif (label == 'node'):
+                else:
                     raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
 
         # dwk's don't contain a rootdummy. We need one, so we make one.
@@ -105,24 +102,19 @@ class Importer():
         nodeList = collections.OrderedDict()
         nodeStart = -1
 
-        State = enum.Enum('State', 'READGEOM READGEOMNODE')
-        cs = State.READGEOMNODE
         for idx, line in enumerate(lines):
             try:
                 label = line[0]
             except IndexError:
                 # Probably empty line or whatever, just skip it
                 continue
-            if (cs == State.READGEOM):
-                if (label == 'node'):
-                    nodeStart = idx
-                    cs = State.READGEOMNODE
-            elif (cs == State.READGEOMNODE):
-                if (label == 'endnode'):
+            if (label == 'node'):
+                nodeStart = idx
+            elif (label == 'endnode'):
+                if (nodeStart < 0)
                     nodeList.append((nodeStart, idx))
                     nodeStart = -1
-                    cs = State.READGEOM
-                elif (label == 'node'):
+                else:
                     raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
 
         # pwk's don't contain a rootdummy. We need one, so we make one.
@@ -223,7 +215,7 @@ class Importer():
             self.mdl.addAnim(anim)
 
 
-    def parseGeomNode(self, asciiBlock, parseAsWalkmesh = False):
+    def parseGeomNode(self, asciiBlock):
         if asciiBlock is None:
             raise MalformedMdlFile('Empty Node')
 
@@ -233,19 +225,19 @@ class Importer():
         except IndexError, AttributeError:
             raise MalformedMdlFile('Invalid node type')
 
-        switch = {'dummy':      nvb.node.Dummy,
-                  'trimesh':    nvb.node.Trimesh,
-                  'danglymesh': nvb.node.Danglymesh,
-                  'skin':       nvb.node.Skinmesh,
-                  'emitter':    nvb.node.Emitter,
-                  'light':      nvb.node.Light,
+        switch = {'dummy':      nvb.node.Dummy, \
+                  'trimesh':    nvb.node.Trimesh,  \
+                  'danglymesh': nvb.node.Danglymesh, \
+                  'skin':       nvb.node.Skinmesh, \
+                  'emitter':    nvb.node.Emitter, \
+                  'light':      nvb.node.Light, \
                   'aabb':       nvb.node.Aabb}
         try:
             parsedNode = switch[nodeType](isWalkmesh = parseAsWalkmesh)
         except KeyError:
             raise MalformedMdlFile('Invalid node type')
 
-        parsedNode.loadAscii(asciiBlock, isWalkmesh)
+        parsedNode.load(asciiBlock)
         return parsedNode
 
 
@@ -253,7 +245,7 @@ class Importer():
         if asciiBlock is None:
             raise MalformedMdlFile('Empty Animation')
 
-
+        return nvb.anim.load
 
 
 
