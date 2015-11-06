@@ -4,31 +4,24 @@ import collections
 import warnings
 
 import bpy
-from bpy_extras.io_utils import unpack_list, unpack_face_list
-from bpy_extras.image_utils import load_image
 
-import neverblender.nvb.walkmesh
 import neverblender.nvb.node
 import neverblender.nvb.presets
 import neverblender.nvb.glob
 
 class Mdl():
-    __debug = True
 
     def __init__(self, isWalkmesh = False):
         self.nodeList = collections.OrderedDict()
         self.animlist = dict() # No need to retain order
+        self.root       = ''
 
         self.name           = 'UNNAMED'
         self.supermodel     = nvb.presets.null
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
-        self.root       = ''
-        self.isWalkmesh = isWalkmesh
-
-
-    def insertNode(self, newNode):
+    def addNode(self, newNode):
         # Blender requires unique object names. In mdl names are only
         # unique for a parent, i.e. another object with the same name
         # with a different parent may exist.
@@ -44,17 +37,13 @@ class Mdl():
             else:
                 self.nodeList[key] = newNode
 
-
-    def getNode(self, nodeId)
-        if nodeId in self.nodeList:
-            return self.nodeList[nodeId]
-        else
-            return False
-
-
-    def addAnim(self, anim):
-        pass
-
+    def addAnimation(self, anim):
+        if anim:
+            if anim.name in self.animList:
+                #TODO: Should probably raise an exception
+                pass
+            else:
+                self.animList[anim.name] = anim
 
     def convert(self, scene, filepath = ''):
 
@@ -62,7 +51,6 @@ class Mdl():
             obj = node.convert(scene, filepath)
             if (node.parent == nvb.presets.null):
                 if (node.name == self.name):
-                    if
                     obj.auroraprops.dummytype = 'MDLROOT'
                     self.root = obj.name
                 else:
@@ -75,9 +63,7 @@ class Mdl():
                 else:
                     warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parent + ")")
 
-
-
         if not nvb.glob.minimapMode:
-            for anim in self.animlist:
-                anim.convert()
+            for animation in self.animlist:
+                animation.convert(scene, geomNodeList)
 

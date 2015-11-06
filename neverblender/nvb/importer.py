@@ -89,11 +89,11 @@ class Importer():
         # dwk's don't contain a rootdummy. We need one, so we make one.
         rootname = self.mdl.name + '_dwk'
         node = nvb.node.Dummy(rootname, True)
-        self.xwk.insertNode(node)
+        self.xwk.addNode(node)
         for boundary in nodeList:
             node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
             node.parent = rootname
-            self.xwk.insertNode(node)
+            self.xwk.addNode(node)
 
 
     def parsePwk(filepath):
@@ -120,11 +120,11 @@ class Importer():
         # pwk's don't contain a rootdummy. We need one, so we make one.
         rootname = self.mdl.name + '_pwk'
         node = nvb.node.Dummy(rootname, True)
-        self.xwk.insertNode(node)
+        self.xwk.addNode(node)
         for boundary in nodeList:
             node = self.parseGeomNode(lines[boundary[0]:boundary[1]], True)
             node.parent = rootname
-            self.xwk.insertNode(node)
+            self.xwk.addNode(node)
 
 
     def parseMdl(filepath):
@@ -134,10 +134,9 @@ class Importer():
         '''
         lines = [line.strip().split() for line in open(filepath, 'r')]
 
-        nodeList = collections.OrderedDict()
-        animList = dict() # No need to retain order
-        nodeStart = -1
-        animStart = -1
+        nodeList = []
+        animList = [] # No need to retain order
+        blockStart = -1
 
         State = enum.Enum('State', 'START READHEAD READGEOM READGEOMNODE READANIM')
         cs = State.START
@@ -179,43 +178,43 @@ class Importer():
 
             elif (cs == State.READGEOM):
                 if (label == 'node'):
-                    nodeStart = idx
+                    blockStart = idx
                     cs = State.READGEOMNODE
                 if (label == 'endmodelgeom'):
-                    # Aftert his, either animations or eof
+                    # After this, either animations or eof
                     cs = State.READANIM
 
             elif (cs == State.READGEOMNODE):
                 if (label == 'endnode'):
                     nodeList.append((nodeStart, idx))
-                    nodeStart = -1
+                    blockStart = -1
                     cs = State.READGEOM
                 elif (label == 'node'):
                     raise MalformedMdlFile('Unexpected "endnode" at line' + idx)
 
             elif (cs == State.READANIM):
                 if (label == 'newanim'):
-                    if (nodeStart < 0):
-                        nodeStart = idx
+                    if (blockStart < 0):
+                        blockStart = idx
                     else:
                         raise MalformedMdlFile('Unexpected "newanim" at line' + idx)
                 if (label == 'doneanim'):
-                    if (nodeStart > 0):
-                        nodeList.append((nodeStart, idx))
-                        nodeStart = -1
+                    if (blockStart > 0):
+                        animList.append((nodeStart, idx))
+                        blockStart = -1
                     else:
                         raise MalformedMdlFile('Unexpected "doneanim" at line' + idx)
 
         for boundary in nodeList:
-            node = self.parseGeomNode(lines[boundary[0]:boundary[1]])
-            self.mdl.insertNode(node)
+            node = self.parseGeometryNode(lines[boundary[0]:boundary[1]])
+            self.mdl.addNode(node)
 
         for boundary in animList:
-            anim = self.parseAnim(lines[boundary[0]:boundary[1]])
-            self.mdl.addAnim(anim)
+            anim = self.parseAnimation(lines[boundary[0]:boundary[1]])
+            self.mdl.addAnimation(anim)
 
 
-    def parseGeomNode(self, asciiBlock):
+    def parseGeometryNode(self, asciiBlock):
         if asciiBlock is None:
             raise MalformedMdlFile('Empty Node')
 
@@ -233,19 +232,21 @@ class Importer():
                   'light':      nvb.node.Light, \
                   'aabb':       nvb.node.Aabb}
         try:
-            parsedNode = switch[nodeType](isWalkmesh = parseAsWalkmesh)
+            node = switch[nodeType]()
         except KeyError:
             raise MalformedMdlFile('Invalid node type')
 
-        parsedNode.load(asciiBlock)
-        return parsedNode
+        node.parse(asciiBlock)
+        return node
 
 
-    def parseAnim(self, asciiBlock):
+    def parseAnimation(self, asciiBlock):
         if asciiBlock is None:
             raise MalformedMdlFile('Empty Animation')
 
-        return nvb.anim.load
+        animation = nvb.anim.Animation()
+        animation.parse(asciiBlock)
+        return animation
 
 
 

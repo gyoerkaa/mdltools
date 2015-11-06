@@ -15,28 +15,6 @@ def nvb_update_shadow_prop(self, context):
         except:
             pass
 
-
-def nvb_update_lighttype_prop(self, context):
-    '''
-    Renames lamp acording to match selected light type
-    '''
-    select_object = context.object
-    if (select_object) and (select_object.type == 'LAMP'):
-        try:
-            if (select_object.auroraprops.lighttype == 'NONE'):
-                pass
-            elif (select_object.auroraprops.lighttype == 'MAINLIGHT1'):
-                pass
-            elif (select_object.auroraprops.lighttype == 'MAINLIGHT2'):
-                pass
-            elif (select_object.auroraprops.lighttype == 'SOURCELIGHT1'):
-                pass
-            elif (select_object.auroraprops.lighttype == 'SOURCELIGHT2'):
-                pass
-        except:
-            pass
-
-
 def nvb_update_lifeexp_prop(self, context):
     pass
 
@@ -166,8 +144,9 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                      ('MDLROOT', 'MDL Rootdummy', 'All children are considered part of the mdl',                1), \
                                                      ('PWKROOT', 'PWK Rootdummy', 'All children are considered part of the placeable walkmesh', 2), \
                                                      ('DWKROOT', 'DWK Rootdummy', 'All children are considered part of the door walkmesh',      3), \
-                                                     ('ANIBASE', 'Animation',     'All children can be animated. Must be unique.',              4), \
-                                                     ('SPECIAL', 'Special',       'Special dummies. See subtype',                               5) ],
+                                                     ('ANIROOT', 'Animation Rootdummy', 'An MDL Rootdummy for animation scenes',                4), \
+                                                     ('ANIBASE', 'Animation',     'All children can be animated. Must be unique.',              5), \
+                                                     ('SPECIAL', 'Special',       'Special dummies. See subtype',                               6) ],
                                             default = 'NONE')
     dummysubtype   = bpy.props.EnumProperty(name = 'Subtype',
                                             items = [('NONE', 'None',                      'Simple dummy object',                     0), \
@@ -242,13 +221,13 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     period       = bpy.props.FloatProperty(name = 'Period', default = 1.0, min = 0.0, max = 32.0)
     tightness    = bpy.props.FloatProperty(name = 'Tightness', default = 1.0, min = 0.0, max = 32.0)
     displacement = bpy.props.FloatProperty(name = 'Displacement', default = 0.5, min = 0.0, max = 32.0)
-    danglegroup  = bpy.props.StringProperty(name = 'Danglegroup', description = 'Name of the vertex group to use for the danglymesh', default = '')
+    constraints  = bpy.props.StringProperty(name = 'Danglegroup', description = 'Name of the vertex group to use for the danglymesh', default = '')
 
     # For skingroups (are also meshes)
     new_skingroupname = bpy.props.StringProperty(name = 'Skingroup', description = 'Bone to create the skingroup for', default = '')
 
     # For lamps
-    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Editable in toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Editable in toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE', update=nvb_update_lighttype_prop)
+    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Editable in toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Editable in toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
     lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 5)
     fadinglight   = bpy.props.BoolProperty(name = 'Fading light', default = False)
     isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)

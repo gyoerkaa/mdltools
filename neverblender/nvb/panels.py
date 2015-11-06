@@ -233,9 +233,42 @@ class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
 
         layout = self.layout
 
-        if (object.auroraprops.in_animscene):
-            # This MDLBASE is in an animation scene
+        row = layout.row()
+        row.prop(object.auroraprops, 'dummytype', text='Type')#, expand=True)
 
+        if (object.auroraprops.dummytype == 'MDLROOT'):
+            row = layout.row()
+            row.prop(object.auroraprops, 'classification', text='Classification')
+
+            row = layout.row()
+            row.prop(object.auroraprops, 'supermodel', text='Supermodel')
+
+            row = layout.row()
+            row.prop(object.auroraprops, 'animationscale', text = 'Animationscale')
+
+            row = layout.row()
+            box = row.box()
+            box.label(text = 'Create animation: ')
+            row = box.row(align = True)
+            row.prop(object.auroraprops, 'newanimname', text='')
+            row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
+
+            row = layout.row()
+            box = row.box()
+            box.label(text = 'Minimap: ')
+            row = box.row()
+            row.prop(object.auroraprops, 'minimapzoffset', text = 'z Offset')
+            row = box.row()
+            row.prop(object.auroraprops, 'minimapsize', text = 'Minimap size')
+            row = box.row()
+            row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
+
+        elif (object.auroraprops.dummytype == 'PWKROOT'):
+            pass
+        elif (object.auroraprops.dummytype == 'DWKROOT'):
+            pass
+        elif (object.auroraprops.dummytype == 'ANIROOT'):
+            # This MDLBASE is in an animation scene
             row = layout.row()
             row.prop(object.auroraprops, 'transtime', text = 'Transition Time')
 
@@ -245,50 +278,12 @@ class NVBAuroraPropertyPanelEmpty(bpy.types.Panel):
             row = box.row(align = True)
             row.prop(object.auroraprops, 'newanimname', text = '')
             row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
-
+        elif (object.auroraprops.dummytype == 'SPECIAL'):
+            row = layout.row()
+            row.prop(object.auroraprops, 'dummysubtype', text='Subtype')
         else:
             row = layout.row()
-            row.prop(object.auroraprops, 'dummytype', text='Type')#, expand=True)
-
-            if (object.auroraprops.dummytype == 'MDLROOT'):
-                row = layout.row()
-                row.prop(object.auroraprops, 'classification', text='Classification')
-
-                row = layout.row()
-                row.prop(object.auroraprops, 'supermodel', text='Supermodel')
-
-                row = layout.row()
-                row.prop(object.auroraprops, 'animationscale', text = 'Animationscale')
-
-                row = layout.row()
-                box = row.box()
-                box.label(text = 'Create animation: ')
-                row = box.row(align = True)
-                row.prop(object.auroraprops, 'newanimname', text='')
-                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
-
-                row = layout.row()
-                box = row.box()
-                box.label(text = 'Minimap: ')
-                row = box.row()
-                row.prop(object.auroraprops, 'minimapzoffset', text = 'z Offset')
-                row = box.row()
-                row.prop(object.auroraprops, 'minimapsize', text = 'Minimap size')
-                row = box.row()
-                row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
-
-            elif (object.auroraprops.dummytype == 'PWKROOT'):
-                pass
-            elif (object.auroraprops.dummytype == 'DWKROOT'):
-                pass
-            elif (object.auroraprops.dummytype == 'ANIROOT'):
-                pass
-            elif (object.auroraprops.dummytype == 'SPECIAL'):
-                row = layout.row()
-                row.prop(object.auroraprops, 'dummysubtype', text='Subtype')
-            else:
-                row = layout.row()
-                row.prop(object.auroraprops, 'wirecolor', text = 'Wirecolor')
+            row.prop(object.auroraprops, 'wirecolor', text = 'Wirecolor')
 
 
 class NVBAuroraPropertyPanelLight(bpy.types.Panel):
@@ -415,7 +410,7 @@ class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
                 box = row.box()
                 box.label(text = 'Danglymesh Properties')
                 row = box.row()
-                row.prop_search(object.auroraprops, 'danglegroup', context.object, 'vertex_groups')
+                row.prop_search(object.auroraprops, 'constraints', context.object, 'vertex_groups', text='Constraints')
                 row = box.row()
                 row.prop(object.auroraprops, 'period', text='Period')
                 row = box.row()

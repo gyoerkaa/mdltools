@@ -1,9 +1,9 @@
 import bpy_extras.image_utils
+from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 import neverblender.nvb.glob
 import neverblender.nvb.presets
 import neverblender.nvb.utils
-import neverblender.nvb.anim
 
 
 class FaceList():
@@ -30,9 +30,6 @@ class Dummy():
         # (used to resolve naming conflicts)
         self.objRef     = ''
 
-    def nodeType(self):
-        return 'dummy'
-
     def __eq__(self, other):
         if isinstance(other, Dummy):
             return self.name == other.name
@@ -40,7 +37,13 @@ class Dummy():
     def __ne__(self, other):
         return not self.__eq__(self, other)
 
-    def load(self, asciiNode):
+    def __str__(self):
+        return 'node ' + self.nodeType + ' ' + self.name
+
+    def nodeType(self):
+        return 'dummy'
+
+    def parse(self, asciiNode):
         lfloat = float
         lisNumber = nvb.utils.isNumber
 
@@ -152,7 +155,7 @@ class Trimesh(Dummy):
     def nodeType(self):
         return 'trimesh'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
@@ -232,7 +235,6 @@ class Trimesh(Dummy):
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
     def addShadingGroups(obj):
-
         if not nvb.glob.useShadingGroups:
             return
 
@@ -241,8 +243,7 @@ class Trimesh(Dummy):
         shadingGroupDict= {}
         for faceId, groupId in enumerate(self.facelist.shdgr):
             if groupId not in shadingGroupDict:
-                shadingGroupList[groupId] = []
-
+                shadingGroupDict[groupId] = []
             shadingGroupDict[groupId].append(self.facelist.faces[faceId][0])
             shadingGroupDict[groupId].append(self.facelist.faces[faceId][1])
             shadingGroupDict[groupId].append(self.facelist.faces[faceId][2])
@@ -252,8 +253,8 @@ class Trimesh(Dummy):
             vgroup = obj.vertex_groups.new(nvb.presets.shadingGroupName + str(groupId))
             vgroup.add(groupMembers, 1.0, 'REPLACE')
 
-    def createMaterial(self, objName, filepath):
-        material = bpy.data.materials.new(objName + '.mat')
+    def createMaterial(self, name, filepath):
+        material = bpy.data.materials.new(name + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
@@ -274,7 +275,6 @@ class Trimesh(Dummy):
                 textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
             textureSlot.texture_coords        = 'UV'
             textureSlot.use_map_color_diffuse = True
-
             textureSlot.alpha_factor  = self.alpha
             textureSlot.use_map_alpha = True
 
@@ -291,23 +291,23 @@ class Trimesh(Dummy):
 
         return material
 
-    def createMesh(self, objName, filepath = ''):
+    def createMesh(self, name, filepath = ''):
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(objName + '.mesh')
+        mesh = bpy.data.meshes.new(name + '.mesh')
         mesh.vertices.add(len(self.verts))
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(objName, filepath)
+        material = self.createMaterial(name, filepath)
         mesh.materials.append(material)
 
         # Create UV map
         if ( (len(node.tverts) > 0) and
              mesh.tessfaces and
              (self.bitmap.lower() != nvb.presets.null) ):
-            uv = mesh.tessface_uv_textures.new(self.name + '.uv')
+            uv = mesh.tessface_uv_textures.new(name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
             for i in range(len(self.tverts)):
@@ -340,9 +340,6 @@ class Trimesh(Dummy):
 
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
-
-        self.addShadingGroups(obj)
-        # Aurora properties
         obj.auroraprops.tilefade         = self.tilefade
         obj.auroraprops.render           = (self.render == 1)
         obj.auroraprops.shadow           = (self.shadow == 1)
@@ -353,6 +350,7 @@ class Trimesh(Dummy):
         obj.auroraprops.selfillumcolor   = self.selfillumcolor
         obj.auroraprops.ambientcolor     = self.ambient
         obj.auroraprops.shininess        = self.shininess
+        self.addShadingGroups(obj)
 
     def convert(self, scene, filepath = ''):
         if nvb.glob.minimapMode and self.tilefade:
@@ -374,17 +372,15 @@ class Danglymesh(Trimesh):
     """
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-
         self.period       = 1.0
         self.tightness    = 1.0
         self.displacement = 1.0
-
         self.constraints  = []
 
     def nodeType(self):
         return 'dangylmesh'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Trimesh.load(self, asciiNode)
         lint   = int
         lfloat = float
@@ -412,32 +408,30 @@ class Danglymesh(Trimesh):
         for line in asciiConstraints:
             self.constraints.append(lfloat(line[0]))
 
-    def addDanglyGroup(obj):
+    def addConstraintGroup(obj):
         '''
         Creates a vertex group for the object to contain the vertex
         weights for the danglymesh. The weights are called "constraints"
-        in NWN. Range is [0.0, 255.0] as oppossed to [0.0, 1.0] in Blender
+        in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
         '''
-        dgroup = obj.vertex_groups.new(nvb.presets.danglyGroupName)
+        vgroup = obj.vertex_groups.new('constraints')
         for vertex, constraint in enumerate(self.constraints):
             weight = constraint/255
-            dgroup.add(vertex, weight, 'REPLACE')
-
-        return dgroup
+            vgroup.add(vertex, weight, 'REPLACE')
+         obj.auroraprops.constraints = vgroup.name
 
     def self.setAttr(self, obj):
         Trimesh.setAttr(obj):
         obj.auroraprops.period       = self.period
         obj.auroraprops.tightness    = self.tightness
         obj.auroraprops.displacement = self.displacement
-        self.addDanglyGroup(obj):
+        self.addConstraintGroup(obj):
 
     def convert(self, scene, filepath = ''):
         if nvb.glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene)
-
 
         mesh = self.createMesh(self.name, filepath)
         obj  = bpy.data.objects.new(self.name, mesh)
@@ -454,13 +448,12 @@ class Skinmesh(Trimesh):
     """
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-
         self.weights = []
 
-    def __repr__(self):
-        return 'SKIN'
+    def nodeType(self):
+        return 'skin'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Trimesh.load(self, asciiNode)
         lint   = int
         lisNumber = nvb.utils.isNumber
@@ -577,7 +570,7 @@ class Emitter(Dummy):
     def nodeType(self):
         return 'emitter'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint   = int
         lfloat = float
@@ -878,7 +871,7 @@ class Emitter(Dummy):
         # Texture
         if (self.texture.lower() != nvb.presets.null):
             settings.render_type = 'BILLBOARD'
-            #settings.billboard_align = 'VIEW' # TODO
+            settings.billboard_align = 'VIEW'
             settings.billboard_uv_split = max([self.xgrid, self.ygrid])
 
         # Blast props
@@ -962,7 +955,7 @@ class Light(Dummy):
     def nodeType(self):
         return 'light'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Dummy.load(self, asciiNode)
         lint = int
         lfloat = float
@@ -1046,7 +1039,7 @@ class Aabb(Trimesh):
     def nodeType(self):
         return 'aabb'
 
-    def load(self, asciiNode):
+    def parse(self, asciiNode):
         Trimesh.load(self, asciiNode)
 
     def convert(self, scene, filepath = ''):
