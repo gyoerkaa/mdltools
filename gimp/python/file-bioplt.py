@@ -77,7 +77,6 @@ def load_plt(filename, raw_filename):
         x = int(i % width)
         y = height - int(math.floor(i / width)) - 1
         layerList[layerIdx].set_pixel(x, y, [value, value, value, 255])
-
         gimp.progress_update(float(i)/float(numVals))
 
     img.enable_undo()
@@ -95,6 +94,9 @@ def save_plt(img, drawable, filename, raw_filename):
     pltdata = struct.pack('<II', width, height)
     pltfile .write(pltdata)
 
+    # Grab the top 10 layers and interpret them as
+    # ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', 'Leather1',
+    #  'Leather2', 'Tattoo1', 'Tattoo2']
     data = []
     gimp.progress_init("Reading pixels from Gimp layers")
     gimp.progress_update(0)
@@ -103,10 +105,6 @@ def save_plt(img, drawable, filename, raw_filename):
         x = int(i % width)
         y = height - int(math.floor(i / width)) - 1
         #layer = pdb.gimp_image_pick_correlate_layer(img, x, y)
-
-        # Grab the top 10 layers and interpret them as
-        # ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', 'Leather1',
-        #  'Leather2', 'Tattoo1', 'Tattoo2']
         pxValue = 255
         pxLayer = 3
         for idx, layer in enumerate(img.layers[0:9]):
