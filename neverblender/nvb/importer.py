@@ -254,6 +254,7 @@ def import_(operator,
             context,
             filepath = '',
             imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+            usePltTextures = False,
             useShadingGroups = True,
             useSingleTexture = True,
             useImgSearch = False,
@@ -262,6 +263,7 @@ def import_(operator,
     Called from blender ui
     '''
     nvb.glob.imports          = imports
+    nvb.glob.usePltTextures   = useShadingGroups
     nvb.glob.useShadingGroups = useShadingGroups
     nvb.glob.useSingleTexture = useSingleTexture
     nvb.glob.useImgSearch     = useImgSearch

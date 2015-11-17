@@ -71,6 +71,13 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
             )
 
+    usePltTextures = bpy.props.BoolProperty(
+            name = 'Import plt textures',
+            description = 'Imports each layer as a texture for a single material' \
+                          '(Warning: May be slow)',
+            default = False
+            )
+
     useShadingGroups = bpy.props.BoolProperty(
             name = 'Import shading groups',
             description = 'Import shading groups as vertex groups ' \
