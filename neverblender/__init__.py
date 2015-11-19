@@ -42,11 +42,6 @@ else:
 
 import bpy
 import bpy_extras
-"""
-import xml.etree.ElementTree
-import os
-import re
-"""
 
 class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import Aurora Engine model (.mdl)'''
@@ -75,7 +70,8 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             name = 'Import plt textures',
             description = 'Imports each layer as a texture for a single material' \
                           '(Warning: May be slow)',
-            default = False
+            default = False,
+            options = {'HIDDEN'},
             )
 
     useShadingGroups = bpy.props.BoolProperty(

@@ -28,7 +28,7 @@ class Dummy():
 
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
-        self.objRef     = ''
+        self.objRef  = ''
 
     def __eq__(self, other):
         if isinstance(other, Dummy):

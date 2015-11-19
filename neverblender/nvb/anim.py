@@ -62,13 +62,8 @@ class Node():
             elif (label  == 'birthratekey'):
                 pass
 
-    def cloneScene(scene):
-        objCopy = objOrig.copy()
-        objOrig
-
     def convert(self, scene):
         cloneScene(scene)
-
 
 
 
@@ -133,3 +128,7 @@ class Animation():
             else:
                 #TODO Raise an error
                 pass
+
+    def cloneScene(scene):
+        objCopy = objOrig.copy()
+        objOrig
