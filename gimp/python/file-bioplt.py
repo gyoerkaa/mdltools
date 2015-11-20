@@ -40,11 +40,11 @@ def load_plt(filename, raw_filename):
     f = open(filename, 'rb')
 
     # First 16 bytes contain header
-    #header = f.read(16)
     header = struct.unpack('<16s', f.read(16))
     if header[0][0:7] == 'PLT V1  ':
         gimp.pdb.gimp_message('Not a valid plt file' + header[0][0:8])
         return 1
+    numLayers = 10
     # Next 8 bytes contain width and height
     (width, height) = struct.unpack('<II', f.read(8))
     # The rest contains (color, layer) tuples (both unsigned char (?))
@@ -61,6 +61,8 @@ def load_plt(filename, raw_filename):
     # Create Layers
     reqLayers = ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', \
                  'Leather1', 'Leather2', 'Tattoo1', 'Tattoo2']
+    for i in range(0,numLayers-10):
+        reqLayers.append('Unknown' + str(i))
     layerList = []
     for pos, layerName in enumerate(reqLayers):
         layer = gimp.Layer(img, layerName, width, height, RGB_IMAGE, 100, NORMAL_MODE)
