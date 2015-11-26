@@ -68,7 +68,7 @@ class NVBAuroraMDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     usePltTextures = bpy.props.BoolProperty(
             name = 'Import plt textures',
-            description = 'Imports each layer as a texture for a single material' \
+            description = 'Imports all plt layers as a single image' \
                           '(Warning: May be slow)',
             default = False,
             options = {'HIDDEN'},
