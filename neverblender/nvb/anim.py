@@ -59,6 +59,12 @@ class Node():
                 pass
             elif (label  == 'orientationkey'):
                 pass
+            elif (label  == 'alphakey'):
+                pass
+            #Lights/lamps
+            elif (label  == 'colorkey'):
+                pass
+            #Emitter
             elif (label  == 'birthratekey'):
                 pass
 
