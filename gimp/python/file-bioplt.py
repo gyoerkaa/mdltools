@@ -54,7 +54,7 @@ def load_plt(filename, raw_filename):
     px   = [list(t) for t in zip(*2*[iter(data)])]
 
     # Create a new image
-    img          = gimp.Image(width, height, RGB)
+    img          = gimp.Image(width, height, GRAY)
     img.filename = os.path.split(filename)[1]
     img.disable_undo()
 
@@ -65,7 +65,7 @@ def load_plt(filename, raw_filename):
         reqLayers.append('Unknown' + str(i))
     layerList = []
     for pos, layerName in enumerate(reqLayers):
-        layer = gimp.Layer(img, layerName, width, height, RGB_IMAGE, 100, NORMAL_MODE)
+        layer = gimp.Layer(img, layerName, width, height, GRAY_IMAGE, 100, NORMAL_MODE)
         layer.add_alpha()
         layer.fill(TRANSPARENT_FILL)
         img.add_layer(layer, pos)
