@@ -24,10 +24,10 @@ from gimpfu import *
 '''
 Short plt File documentation:
 
-P  L  T     V  1        \n
-50 4C 54 20 56 31 20 20 0A
-Empty
-00 00 00 00 00 00 00
+P  L  T     V  1
+50 4C 54 20 56 31 20 20
+Random ? But this 8 byte always work
+0A 00 00 00 00 00 00 00
 width
 00 00 00 00
 height
@@ -61,8 +61,6 @@ def load_plt(filename, raw_filename):
     # Create Layers
     reqLayers = ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', \
                  'Leather1', 'Leather2', 'Tattoo1', 'Tattoo2']
-    for i in range(0,numLayers-10):
-        reqLayers.append('Unknown' + str(i))
     layerList = []
     for pos, layerName in enumerate(reqLayers):
         layer = gimp.Layer(img, layerName, width, height, GRAY_IMAGE, 100, NORMAL_MODE)
@@ -78,7 +76,7 @@ def load_plt(filename, raw_filename):
     for i, (value, layerIdx) in enumerate(px):
         x = int(i % width)
         y = height - int(math.floor(i / width)) - 1
-        layerList[layerIdx].set_pixel(x, y, [value, value, value, 255])
+        layerList[layerIdx].set_pixel(x, y, [value, 255])
         gimp.progress_update(float(i)/float(numVals))
 
     img.enable_undo()
@@ -135,8 +133,8 @@ def export_plt(filename):
 
 register(
     'file-bioplt-load', #name
-    'load a Bioware Palette (.plt) file', #description
-    'load a Bioware Palette (.plt) file',
+    'load a Bioware Packed Layer Texture (.plt)', #description
+    'load a Bioware Packed Layer Texture (.plt)',
     'Symmetric', #author
     'GPL v3', #copyright
     '2015', #year
@@ -154,8 +152,8 @@ register(
 
 register(
     'file-bioplt-save', #name
-    'save a Bioware Palette (.plt) file', #description
-    'save a Bioware Palette (.plt) file',
+    'save a Bioware Packed Layer Texture (.plt)', #description
+    'save a Bioware Packed Layer Texture (.plt)',
     'Symmetric', #author
     'GPL v3', #copyright
     '2015', #year
