@@ -73,11 +73,14 @@ def load_plt(filename, raw_filename):
     numVals = len(px)
     gimp.progress_init("Progress ...")
     gimp.progress_update(0)
+    # for speed
+    lint   = int
+    lfloat = float
     for i, (value, layerIdx) in enumerate(px):
-        x = int(i % width)
-        y = height - int(math.floor(i / width)) - 1
+        x = lint(i % width)
+        y = height - lint(math.floor(i / width)) - 1
         layerList[layerIdx].set_pixel(x, y, [value, 255])
-        gimp.progress_update(float(i)/float(numVals))
+        gimp.progress_update(lfloat(i)/lfloat(numVals))
 
     img.enable_undo()
 
@@ -101,9 +104,12 @@ def save_plt(img, drawable, filename, raw_filename):
     gimp.progress_init("Reading pixels from Gimp layers")
     gimp.progress_update(0)
     numPx = width*height
+    # for speed
+    lint   = int
+    lfloat = float
     for i in range(numPx):
-        x = int(i % width)
-        y = height - int(math.floor(i / width)) - 1
+        x = lint(i % width)
+        y = height - lint(math.floor(i / width)) - 1
         #layer = pdb.gimp_image_pick_correlate_layer(img, x, y)
         pxValue = 255
         pxLayer = 3
@@ -113,7 +119,7 @@ def save_plt(img, drawable, filename, raw_filename):
                 pxLayer = idx
                 break
         data.extend([pxValue, pxLayer])
-        gimp.progress_update(float(i)/float(numPx))
+        gimp.progress_update(lfloat(i)/lfloat(numPx))
 
     pltdata = struct.pack('<' + str(numPx*2) + 'B', *data)
     pltfile .write(pltdata)
