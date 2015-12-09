@@ -1,6 +1,7 @@
 import bpy
 import neverblender.nvb.presets
 
+
 def nvb_update_shadow_prop(self, context):
     '''
     Set the lamps shadow to match the aurora shadow property
@@ -14,112 +15,6 @@ def nvb_update_shadow_prop(self, context):
                 select_object.data.shadow_method = 'NOSHADOW'
         except:
             pass
-
-def nvb_update_lifeexp_prop(self, context):
-    pass
-
-
-class ParticlePropertyGroup(bpy.types.PropertyGroup):
-    # For Emitters
-
-    birthrate     = bpy.props.IntProperty(name = 'Birthrate', description = 'Birthrate', default = 10, min = 0)
-
-    # Inheritance props
-    inherit       = bpy.props.BoolProperty(name = 'Inherit', description = 'Inherit', default = False)
-    inherit_vel   = bpy.props.BoolProperty(name = 'Velocity', description = 'Inherit Velocity', default = False)
-    inherit_local = bpy.props.BoolProperty(name = 'Local', description = '???', default = False)
-    inherit_part  = bpy.props.BoolProperty(name = 'Part', description = '???', default = False)
-
-    # Blast props
-    blastradius = bpy.props.FloatProperty(name = 'Radius', description = 'Radius', default = 0.0, min = 0.0)
-    blastlength = bpy.props.FloatProperty(name = 'Length', description = 'Length', default = 0.0, min = 0.0)
-
-    # Particle props
-    colorstart  = bpy.props.FloatVectorProperty(name = 'Color start',
-                                                description = 'Color start',
-                                                subtype = 'COLOR_GAMMA',
-                                                default = (1.0, 1.0, 1.0),
-                                                min = 0.0, max = 1.0,
-                                                soft_min = 0.0, soft_max = 1.0)
-    colorend    = bpy.props.FloatVectorProperty(name = 'Color end',
-                                                description = 'Color end',
-                                                subtype = 'COLOR_GAMMA',
-                                                default = (1.0, 1.0, 1.0),
-                                                min = 0.0, max = 1.0,
-                                                soft_min = 0.0, soft_max = 1.0)
-    alphastart  = bpy.props.FloatProperty(name = 'Alpha start', description = 'Alpha start', default = 1.0, min = 0.0, max = 1.0)
-    alphaend    = bpy.props.FloatProperty(name = 'Alpha end', description = 'Alpha end', default = 1.0, min = 0.0, max = 1.0)
-    sizestart   = bpy.props.FloatProperty(name = 'Size start', description = 'x size start', default = 1.0, min = 0.0)
-    sizeend     = bpy.props.FloatProperty(name = 'Size end', description = 'x size end', default = 1.0, min = 0.0)
-    sizestart_y = bpy.props.FloatProperty(name = 'Sizestart_y', description = 'y size start', default = 0.0, min = 0.0)
-    sizeend_y   = bpy.props.FloatProperty(name = 'Sizeend_y', description = 'y size end', default = 0.0, min = 0.0)
-
-    # Misc props
-    lifeexp     = bpy.props.FloatProperty(name = 'Life Exp.', description = 'Life Expectancy', default = 1.0, min = 0.0, update=nvb_update_lifeexp_prop)
-    istinted    = bpy.props.BoolProperty(name = 'Tinted', description = 'Tint texture with start- and end color', default = False)
-    bounce      = bpy.props.BoolProperty(name = 'Bounce type', description = 'Bounce On/Off', default = False)
-    random      = bpy.props.BoolProperty(name = 'Random', description = 'Random', default = False)
-    splat       = bpy.props.BoolProperty(name = 'Splat', description = 'Splat', default = False)
-    renderorder = bpy.props.IntProperty(name = 'Render order', description = 'Render Order', default = 0, min = 0)
-    chunkname   = bpy.props.StringProperty(name = 'Name', description = 'Chunk Name', default = '')
-    loop        = bpy.props.BoolProperty(name = 'Loop', description = 'Loop', default = False)
-    deadspace   = bpy.props.FloatProperty(name = 'Dead space', description = '???', default = 0.0, min = 0.0)
-    twosidedtex = bpy.props.BoolProperty(name = 'Two Sided Texture', description = '???', default = False)
-    bounce_co   = bpy.props.FloatProperty(name = 'Coeff.', description = 'Bounce coefficient', default = 0.0, min = 0.0)
-    spread      = bpy.props.FloatProperty(name = 'Spread', description = 'Spread', default = 0.0, min = 0.0)
-    particlerot = bpy.props.FloatProperty(name = 'Rotation', description = 'Particle Rotation', default = 0.0, min = -360.0, max = 360.0)
-    fps         = bpy.props.IntProperty(name = 'Fps', description = 'Fps', default = 24, min = 0)
-    blurlength  = bpy.props.FloatProperty(name = 'Blur Length', description = 'Blur Length', default = 10.0)
-    opacity     = bpy.props.FloatProperty(name = 'Opacity', default = 0.00, min = 0.00, max = 1.00)
-
-    # Lighting props
-    lightningdelay  = bpy.props.FloatProperty(name = 'Delay', description = 'Delay', default = 0.0, min = 0.0, max = 1000.0)
-    lightningradius = bpy.props.FloatProperty(name = 'Radius', description = 'Radius', default = 0.0, min = 0.0, max = 1000.0)
-    lightningsubdiv = bpy.props.IntProperty(name = 'Subdivs.', description = 'Subdivisions', default = 0, min = 0, max = 12)
-    lightningscale  = bpy.props.FloatProperty(name = 'Scale', description = 'Scale', default = 1.0, min = 0.0, max = 1.0)
-
-    # Emitter Style
-    blend       = bpy.props.EnumProperty(name  = 'Blend',
-                                         description = 'Blend type',
-                                         items = [('NORMAL', 'Normal', 'Normal', 1),
-                                                  ('PUNCH-THROUGH', 'Punch-Through', 'Punch-Through',2),
-                                                  ('LIGHTEN', 'Lighten', 'Lighten', 3)],
-                                         default = 'NORMAL')
-    update      = bpy.props.EnumProperty(name  = 'Update',
-                                         description = 'Update type',
-                                         items = [('FOUNTAIN', 'Fountain', 'Fountain', 0),
-                                                  ('SINGLE', 'Single', 'Single', 1),
-                                                  ('EXPLOSION', 'Explosion', 'Explosion', 2),
-                                                  ('LIGHTNING', 'Lightning', 'Lightning', 3)],
-                                         default = 'FOUNTAIN')
-    render      = bpy.props.EnumProperty(name  = 'Render',
-                                         description = 'Render type',
-                                         items = [('NORMAL', 'Normal', 'Normal', 1),
-                                                  ('LINKED', 'Linked', 'Linked', 2),
-                                                  ('BB2LZ', 'Billboard to local Z', 'Billboard to local Z', 3),
-                                                  ('BB2WZ', 'Billboard to world Z', 'Billboard to world Z', 4),
-                                                  ('AL2WZ', 'Aligned to world Z', 'Aligned  to world Z', 5),
-                                                  ('AL2PD', 'Aligned to particle dir.', 'Aligned to particle direction', 6),
-                                                  ('MOBLUR', 'Motion Blur', 'Motion Blur', 7)],
-                                         default = 'NORMAL')
-    spawntype   = bpy.props.EnumProperty(name = 'Spawn',
-                                         description = 'Spawn type',
-                                         items = [('NORMAL', 'Normal', 'Normal', 0),
-                                                  ('TRAIL', 'Trail', 'Trail', 1)],
-                                         default = 'NORMAL')
-
-    #p2p props
-    p2p         = bpy.props.IntProperty(name = 'p2p', description = '???', default = 0, min = 0)
-    p2p_type    = bpy.props.EnumProperty(name = 'Type',
-                                         description = '???',
-                                         items = [('BEZIER', 'Bezier', 'Bezier', 0),
-                                                  ('GRAVITY', 'Gravity', 'Gravity', 1)],
-                                         default = 'BEZIER')
-    p2p_bezier2 = bpy.props.FloatProperty(name = 'Bezier 2', description = '???', default = 0.0)
-    p2p_bezier3 = bpy.props.FloatProperty(name = 'Bezier 3', description = '???', default = 0.0)
-
-    threshold   = bpy.props.FloatProperty(name = 'Threshold', description = 'Threshold', default = 0.0)
-    combinetime = bpy.props.FloatProperty(name = 'Combinetime', description = 'Combinetime', default = 0.0)
 
 
 class ObjectPropertyGroup(bpy.types.PropertyGroup):
