@@ -225,6 +225,8 @@ class Importer():
             raise MalformedMdlFile('Invalid node type')
 
         switch = {'dummy':      nvb.node.Dummy, \
+                  'patch':      nvb.node.Dummy, \
+                  'reference':  nvb.node.Reference, \
                   'trimesh':    nvb.node.Trimesh,  \
                   'danglymesh': nvb.node.Danglymesh, \
                   'skin':       nvb.node.Skinmesh, \

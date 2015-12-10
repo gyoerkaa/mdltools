@@ -61,6 +61,7 @@ class Mdl():
                     obj.parent                = bpy.data.objects[node.parent]
                     obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                 else:
+                    #TODO: Try to resolve naming conflict
                     warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parent + ")")
 
         if not nvb.glob.minimapMode:

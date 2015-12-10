@@ -55,22 +55,22 @@ class Dummy():
                 continue
 
             if not lisNumber(label):
-                if   (label  == 'node'):
+                if   (label == 'node'):
                     self.name = line[2].lower()
-                elif (label  == 'parent'):
+                elif (label == 'parent'):
                     self.parent = line[1].lower()
-                elif (label  == 'position'):
+                elif (label == 'position'):
                     self.position = (lfloat(line[1]),
                                      lfloat(line[2]),
                                      lfloat(line[3]) )
-                elif (label  == 'orientation'):
+                elif (label == 'orientation'):
                     self.orientation = (lfloat(line[1]),
                                         lfloat(line[2]),
                                         lfloat(line[3]),
                                         lfloat(line[4]) )
-                elif (label  == 'scale'):
+                elif (label == 'scale'):
                     self.scale = lfloat(line[1])
-                elif (label  == 'wirecolor'):
+                elif (label == 'wirecolor'):
                     self.wirecolor = (lfloat(line[1]),
                                       lfloat(line[2]),
                                       lfloat(line[3]) )
@@ -98,8 +98,8 @@ class Dummy():
     def convert(self, scene, filepath = ''):
         obj = bpy.data.objects.new(self.name, None)
         self.setAttr(obj)
-
         obj.auroraprops.dummytype = 'NONE'
+
         subtypes = [ ('use01',     'USE1'), \
                      ('use02',     'USE2'), \
                      ('hand',      'HAND'), \
@@ -122,6 +122,49 @@ class Dummy():
                 self.auroraprops.dummysubtype = element[1]
                 break
 
+        scene.objects.link(obj)
+        return obj
+
+
+class Reference(Dummy):
+    '''
+
+    '''
+    def __init__(self, name = 'UNNAMED'):
+        Dummy.__init__(self, name)
+        self.refmodel     = ''
+        self.reattachable = 0
+
+
+    def nodeType(self):
+        return 'reference'
+
+    def parse(self, asciiNode):
+        Dummy.parse(self, asciiNode)
+        lisNumber = nvb.utils.isNumber
+
+        for line in asciiNode:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if   (label == 'refmodel'):
+                self.name = line[1].lower()
+            elif (label == 'reattachable'):
+                self.parent = lint(line[1])
+
+    def setAttr(self, obj):
+        Dummy.setAttr(self, obj)
+
+
+    def convert(self, scene, filepath = ''):
+        mesh = self.createMesh(self.name)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.dummytype = 'REFERENCE'
+
+        self.setAttr(obj)
         scene.objects.link(obj)
         return obj
 
@@ -357,9 +400,9 @@ class Trimesh(Dummy):
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene)
-
         mesh = self.createMesh(self.name, filepath)
         obj  = bpy.data.objects.new(self.name, mesh)
+
         obj.auroraprops.meshtype = 'TRIMESH'
         self.setAttr(obj)
         scene.objects.link(obj)
@@ -495,11 +538,15 @@ class Skinmesh(Trimesh):
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertexId], membership[1], 'REPLACE')
 
+    def self.setAttr(self, obj):
+        Trimesh.setAttr(obj):
+        self.addSkinGroups(obj):
+
     def convert(self, scene, filepath = ''):
         mesh = self.createMesh(self.name, filepath)
         obj  = bpy.data.objects.new(self.name, mesh)
         obj.auroraprops.meshtype = 'SKIN'
-        self.addSkinGroups(obj)
+
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj
@@ -512,7 +559,6 @@ class Emitter(Dummy):
         self.xsize   = 100
         self.ysize   = 100
         self.txt     = ''
-        self
 
     def nodeType(self):
         return 'emitter'
@@ -522,7 +568,8 @@ class Emitter(Dummy):
         lint   = int
         lfloat = float
         lisNumber = nvb.utils.isNumber
-        for idx, line in enumerate(asciiNode):
+        self.txt = '\n'.join(asciiNode)
+        for line in asciiNode:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -551,17 +598,29 @@ class Emitter(Dummy):
 
         return mesh
 
+    def addRawAscii(self, obj):
+        txt = bpy.data.texts.new(objName + '.txt')
+        txt.write(self.txt)
+
+        obj.rawAscii =
+
+    def self.setAttr(self, obj):
+        Dummy.setAttr(obj):
+        self.addRawAscii(obj):
+
     def convert(self, scene, filepath = ''):
         if nvb.glob.minimapMode:
-            # We don't need lights in minimap mode
+            # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene, filepath)
 
         mesh = self.createMesh(self.name, filepath)
-        emitter = bpy.data.objects.new(self.name, mesh)
-        self.setAttr(emitter)
-        scene.objects.link(emitter)
-        return emitter
+        obj  = bpy.data.objects.new(self.name, mesh)
+        obj.auroraprops.meshtype = 'EMITTER'
+
+        self.setAttrc(obj)
+        scene.objects.link(obj)
+        return obj
 
 
 class Light(Dummy):
@@ -578,6 +637,7 @@ class Light(Dummy):
         self.affectdynamic    = 1
         self.lightpriority    = 5
         self.fadinglight      = 1
+        self.lensflares       = 0
         self.flareradius      = 1.0
 
     def nodeType(self):
@@ -589,7 +649,7 @@ class Light(Dummy):
         lfloat = float
         lisNumber = nvb.utils.isNumber
 
-        for idx, line in enumerate(asciiNode):
+        for line in asciiNode:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -613,6 +673,8 @@ class Light(Dummy):
                     self.ndynamictype = lint(line[1])
                 elif (label == 'isdynamic'):
                     self.isdynamic = lint(line[1])
+                elif (label == 'lensflares'):
+                    self.lensflares = lint(line[1])
                 elif (label == 'flareradius'):
                     self.flareradius = lfloat(line[1])
                 elif (label == 'affectdynamic'):
@@ -649,8 +711,8 @@ class Light(Dummy):
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene, filepath)
-
         lamp = bpy.data.lamps.new(nodeName, 'POINT')
+
         self.setAttr(lamp)
         scene.objects.link(lamp)
         return lamp
@@ -668,12 +730,16 @@ class Aabb(Trimesh):
         return 'aabb'
 
     def parse(self, asciiNode):
-        Trimesh.load(self, asciiNode)
+        Trimesh.parse(self, asciiNode)
+
+    def setAttr(self, obj):
+        Trimesh.setAttr(self, obj)
 
     def convert(self, scene, filepath = ''):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
         obj.auroraprops.meshtype = 'AABB'
+
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj

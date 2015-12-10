@@ -24,25 +24,19 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     '''
 
     # For all objects
-    wirecolor = bpy.props.FloatVectorProperty(name = 'Wirecolor',
-                                              description = 'Color of the wireframe',
-                                              subtype = 'COLOR_GAMMA',
-                                              default = (1.0, 1.0, 1.0),
-                                              min = 0.0, max = 1.0,
-                                              soft_min = 0.0, soft_max = 1.0
-                                              )
-    shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
 
-    # For emptys
+    # For all emptys
     dummytype      = bpy.props.EnumProperty(name = 'Type',
-                                            items = [('NONE',    'None',          'Simple dummy object',                                        0), \
-                                                     ('MDLROOT', 'MDL Rootdummy', 'All children are considered part of the mdl',                1), \
-                                                     ('PWKROOT', 'PWK Rootdummy', 'All children are considered part of the placeable walkmesh', 2), \
-                                                     ('DWKROOT', 'DWK Rootdummy', 'All children are considered part of the door walkmesh',      3), \
-                                                     ('ANIROOT', 'Animation Rootdummy', 'An MDL Rootdummy for animation scenes',                4), \
-                                                     ('ANIBASE', 'Animation',     'All children can be animated. Must be unique.',              5), \
-                                                     ('SPECIAL', 'Special',       'Special dummies. See subtype',                               6) ],
+                                            items = [('NONE',      'None',                'Simple dummy object',                                        0), \
+                                                     ('ANIMATION', 'Animation Rootdummy', 'An MDL Rootdummy for animation scenes',                      1), \
+                                                     ('ANIBASE',   'Animation',           'All children can be animated. Must be unique.',              2), \
+                                                     ('DWKROOT',   'DWK Rootdummy',       'All children are considered part of the door walkmesh',      3), \
+                                                     ('MDLROOT',   'MDL Rootdummy',       'All children are considered part of the mdl',                4), \
+                                                     ('PWKROOT',   'PWK Rootdummy',       'All children are considered part of the placeable walkmesh', 5), \
+                                                     ('REFERENCE', 'Reference node',      'Used in spells. Points to "fx_ref" by default',              6), \
+                                                     ('SPECIAL',   'Special',             'Special dummies. See subtype',                               7) ],
                                             default = 'NONE')
+    # For special emptys
     dummysubtype   = bpy.props.EnumProperty(name = 'Subtype',
                                             items = [('NONE', 'None',                      'Simple dummy object',                     0), \
                                                      ('HAND', 'Hand',                      'Hand node for spells and effects',        1), \
@@ -59,6 +53,10 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                      ('CL01', 'Door Walkmesh: Closed 1st', 'Closed State, 1st node for "Use" anim',  12), \
                                                      ('CL02', 'Door Walkmesh: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13) ],
                                             default = 'NONE')
+    # For reference emptys
+    refmodel     = bpy.props.StringProperty(name = 'Reference Model', description = 'Name of another mdl file', default = 'fx_ref')
+    reattachable = bpy.props.BoolProperty(name = 'Reattachable', default = False)
+
     # For mdl base
     supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the supermodel', default = nvb.presets.null)
     classification = bpy.props.EnumProperty(name  = 'Classification',
@@ -77,7 +75,7 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     minimapsize      = bpy.props.IntProperty(name = 'Size', default = 32, min = 16)
 
     # Creation and renaming of animation scenes
-    newanimname      = bpy.props.StringProperty(name = 'newanimname', description = 'Name of the new animation', default = '')
+    newanim_name      = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the new animation', default = '')
 
     # For mdl bases in animation scenes
     in_animscene     = bpy.props.BoolProperty(name = 'In Anim. Scene', description = 'Wether this dummy is in an animationscene', default = False)
@@ -85,6 +83,14 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     animname         = bpy.props.StringProperty(name = 'Animationname', description = 'Name of the animation', default = '')
 
     # For meshes
+    wirecolor = bpy.props.FloatVectorProperty(name = 'Wirecolor',
+                                              description = 'Color of the wireframe',
+                                              subtype = 'COLOR_GAMMA',
+                                              default = (1.0, 1.0, 1.0),
+                                              min = 0.0, max = 1.0,
+                                              soft_min = 0.0, soft_max = 1.0)
+    shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
+
     meshtype         = bpy.props.EnumProperty(name = 'Type',
                                               items = [ ('TRIMESH', 'Trimesh', '0 desc', 0), \
                                                         ('DANGLYMESH', 'Danglymesh', '1 desc', 1), \
@@ -112,14 +118,14 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                      soft_min = 0.0, soft_max = 1.0)
     shininess        = bpy.props.IntProperty(name = 'Shininess', default = 1, min = 0, max = 32)
 
-    # For danglymeshes (are also meshes)
+    # For danglymeshes
     period       = bpy.props.FloatProperty(name = 'Period', default = 1.0, min = 0.0, max = 32.0)
     tightness    = bpy.props.FloatProperty(name = 'Tightness', default = 1.0, min = 0.0, max = 32.0)
     displacement = bpy.props.FloatProperty(name = 'Displacement', default = 0.5, min = 0.0, max = 32.0)
     constraints  = bpy.props.StringProperty(name = 'Danglegroup', description = 'Name of the vertex group to use for the danglymesh', default = '')
 
-    # For skingroups (are also meshes)
-    new_skingroupname = bpy.props.StringProperty(name = 'Skingroup', description = 'Bone to create the skingroup for', default = '')
+    # For skingroups
+    select_object = bpy.props.StringProperty(name = 'Bone', description = 'Name of the bone to create the skingroup for', default = '')
 
     # For lamps
     lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Editable in toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Editable in toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
@@ -128,3 +134,6 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
     affectdynamic = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)
     flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 32.0)
+
+    # For emitters
+    rawascii = bpy.props.StringProperty(name = 'Text node', description = 'Name of the raw text node', default = '')
