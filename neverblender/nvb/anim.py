@@ -11,15 +11,10 @@ class Key():
         self.orientation    = []
         self.selfillumcolor = []
         self.alphakey       = []
-        #Lights/lamps
+        # Lights/lamps
         self.color = []
-        #Emitters
-        self.birthrate  = []
-        self.radius     = []
-        self.alphaStart = []
-        self.alphaEnd   = []
-        self.colorStart = []
-        self.colorEnd   = []
+        # Emitters ... incompatible, import text directly
+
 
 
 class Node():
@@ -31,6 +26,7 @@ class Node():
         self.scale       = 1.0
 
         self.key = Keys()
+        self.txtNodes = [] #Emitter anims
 
     def parse(self, asciiBlock):
         lfloat = float
@@ -64,9 +60,7 @@ class Node():
             #Lights/lamps
             elif (label  == 'colorkey'):
                 pass
-            #Emitter
-            elif (label  == 'birthratekey'):
-                pass
+            # Emitters ... incompatible, import text directly
 
     def convert(self, scene):
         cloneScene(scene)
