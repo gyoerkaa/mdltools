@@ -66,7 +66,9 @@ def load_plt(filename, raw_filename):
         layer = gimp.Layer(img, layerName, width, height, GRAY_IMAGE, 100, NORMAL_MODE)
         layer.add_alpha()
         layer.fill(TRANSPARENT_FILL)
-        img.add_layer(layer, pos)
+        # Sure, no documentation necessary. I just guess how to use this
+        # img.insert_layer(None, layer, pos)
+        img.add_layer(layer, pos) # Deprecated, but at least it works
         layerList.append(layer)
 
     # Write data to layers
@@ -83,8 +85,8 @@ def load_plt(filename, raw_filename):
         gimp.progress_update(lfloat(i)/lfloat(numVals))
 
     img.enable_undo()
-
     return img
+
 
 def save_plt(img, drawable, filename, raw_filename):
     pltfile = open(filename, 'wb')
@@ -92,10 +94,12 @@ def save_plt(img, drawable, filename, raw_filename):
     width  = img.width
     height = img.height
 
-    pltdata = struct.pack('<16s', 'PLT V1  \n       ')
-    pltfile .write(pltdata)
+    pltdata = struct.pack('<8s', 'PLT V1  ')
+    pltfile.write(pltdata)
+    pltdata = struct.pack('<II', 10, 0)
+    pltfile.write(pltdata)
     pltdata = struct.pack('<II', width, height)
-    pltfile .write(pltdata)
+    pltfile.write(pltdata)
 
     # Grab the top 10 layers and interpret them as
     # ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', 'Leather1',
@@ -104,6 +108,8 @@ def save_plt(img, drawable, filename, raw_filename):
     gimp.progress_init("Reading pixels from Gimp layers")
     gimp.progress_update(0)
     numPx = width*height
+
+
     # for speed
     lint   = int
     lfloat = float
@@ -125,17 +131,21 @@ def save_plt(img, drawable, filename, raw_filename):
     pltfile .write(pltdata)
     pltfile.close()
 
+
 def register_load_handlers():
     gimp.register_load_handler('file-bioplt-load', 'plt', '')
     pdb['gimp-register-file-handler-mime']('file-bioplt-load', 'image/plt')
     #pdb['gimp-register-thumbnail-loader']('file-bioplt-load', 'file-bioplt-load-thumb')
 
+
 def register_save_handlers():
     gimp.register_save_handler('file-bioplt-save', 'plt', '')
     pdb['gimp-register-file-handler-mime']('file-bioplt-save', 'image/plt')
 
+
 def export_plt(filename):
     pass
+
 
 register(
     'file-bioplt-load', #name
@@ -155,6 +165,7 @@ register(
     on_query = register_load_handlers,
     menu = "<Load>",
 )
+
 
 register(
     'file-bioplt-save', #name
@@ -176,5 +187,6 @@ register(
     on_query = register_save_handlers,
     menu = '<Save>'
 )
+
 
 main()
