@@ -1,11 +1,11 @@
 ﻿null = 'null'
 
 # Rounding
-round_gen    = 4
-round_angle  = 4
+round_gen    = 5
+round_angle  = 5
 round_weight = 3
 round_color  = 3
-round_aabb   = 2
+round_aabb   = 3
 
 # Some presets
 renderFps = 30
