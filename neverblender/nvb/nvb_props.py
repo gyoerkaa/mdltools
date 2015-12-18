@@ -1,6 +1,5 @@
 import bpy
-import neverblender.nvb.presets
-
+from . import nvb_presets
 
 def nvb_update_shadow_prop(self, context):
     '''
@@ -9,7 +8,7 @@ def nvb_update_shadow_prop(self, context):
     select_object = context.object
     if (select_object) and (select_object.type == 'LAMP'):
         try:
-            if (select_object.auroraprops.shadow):
+            if (select_object.nvb.shadow):
                 select_object.data.shadow_method = 'RAY_SHADOW'
             else:
                 select_object.data.shadow_method = 'NOSHADOW'
@@ -32,15 +31,33 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                               soft_min = 0.0, soft_max = 1.0)
 
     # For all emptys
-    dummytype      = bpy.props.EnumProperty(name = 'Type',
-                                            items = [('NONE',      'None',                'Simple dummy object',                                        0), \
-                                                     ('ANIMATION', 'Animation Rootdummy', 'An MDL Rootdummy for animation scenes',                      1), \
-                                                     ('DWKROOT',   'DWK Rootdummy',       'All children are considered part of the door walkmesh',      2), \
-                                                     ('MDLROOT',   'MDL Rootdummy',       'All children are considered part of the mdl',                3), \
-                                                     ('PWKROOT',   'PWK Rootdummy',       'All children are considered part of the placeable walkmesh', 4), \
-                                                     ('REFERENCE', 'Reference node',      'Used in spells. Points to "fx_ref" by default',              5), \
-                                                     ('SPECIAL',   'Special',             'Special dummies. See subtype',                               6) ],
-                                            default = 'NONE')
+    dummytype  = bpy.props.EnumProperty(name = 'Type',
+                                        items = [('NONE',      'None',                'Simple dummy object',                                        0), \
+                                                 ('DWKROOT',   'DWK Rootdummy',       'All children are considered part of a door walkmesh',        1), \
+                                                 ('MDLROOT',   'MDL Rootdummy',       'All children are considered part of a mdl',                  2), \
+                                                 ('PWKROOT',   'PWK Rootdummy',       'All children are considered part of a placeable walkmesh',   3), \
+                                                 ('REFERENCE', 'Reference node',      'Used in spells. Points to "fx_ref" by default',              4), \
+                                                 ('PATCH',     'Patch node',          'Used in spells. Unknown purpose. ',                          5), \
+                                                 ('SPECIAL',   'Special',             'Special dummies. See subtype.',                              6) ],
+                                        default = 'NONE')
+    # For MDL Rootdummy
+    supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the model to inherit animations from', default = nvb_presets.null)
+    classification = bpy.props.EnumProperty(name  = 'Classification',
+                                            items = [ ('UNKNOWN',    'Unknown',   'Unknown classification',              0), \
+                                                      ('TILE',       'Tile',      'Tiles for a tileset',                 1), \
+                                                      ('CHARACTER',  'Character', 'Creatures, characters or placeables', 2), \
+                                                      ('DOOR',       'Door',      'Doors',                               3), \
+                                                      ('EFFECT',     'Effect',    'Effects',                             4), \
+                                                      ('GUI',        'Gui',       'Gui',                                 5), \
+                                                      ('ITEM',       'Item',      'Items or placeables',                 6) ],
+                                            default = 'UNKNOWN')
+    animscale   = bpy.props.FloatProperty(name = 'Animationscale', description = 'Animation scale for all animations.', default = 1.00, min = 0.0)
+    animname    = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
+    isanimation = bpy.props.BoolProperty(name = 'Animation', description = 'Whether this dummy and it\'s children are in an animation scene.', default = False)
+
+    transtime   = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
+    animroot    = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
+
     # For special emptys
     dummysubtype   = bpy.props.EnumProperty(name = 'Subtype',
                                             items = [('NONE', 'None',                      'Simple dummy object',                     0), \
@@ -61,35 +78,12 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
     # For reference emptys
     refmodel     = bpy.props.StringProperty(name = 'Reference Model', description = 'Name of another mdl file', default = 'fx_ref')
     reattachable = bpy.props.BoolProperty(name = 'Reattachable', default = False)
-
-    # For mdl base
-    supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the supermodel', default = nvb.presets.null)
-    classification = bpy.props.EnumProperty(name  = 'Classification',
-                                            items = [ ('UNKNOWN', 'Unknown', 'Unknown classification', 0), \
-                                                      ('TILE', 'Tile', 'Tile for a tileset', 1), \
-                                                      ('CHARACTER', 'Character', 'Creature, Character', 2), \
-                                                      ('DOOR', 'Door', 'Door Desc.', 3), \
-                                                      ('EFFECT', 'Effect', 'Effect Desc.', 4), \
-                                                      ('GUI', 'Gui', 'Gui Icons, etc.', 5), \
-                                                      ('ITEM', 'Item', 'Items', 6) ],
-                                            default = 'UNKNOWN' )
-    animationscale = bpy.props.FloatProperty(name = 'Animationscale', default = 1.00, min = 0.0)
-
     # Minimap generation
-    minimapzoffset   = bpy.props.FloatProperty(name = 'Minimap Z Offset', default = 0.00, min = 0.00)
-    minimapsize      = bpy.props.IntProperty(name = 'Size', default = 32, min = 16)
+    minimapzoffset = bpy.props.FloatProperty(name = 'Minimap Z Offset', default = 0.00, min = 0.00)
+    minimapsize    = bpy.props.IntProperty(name = 'Size', default = 32, min = 16)
 
-    # Creation and renaming of animation scenes
-    newanim_name      = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the new animation', default = '')
 
-    # For mdl bases in animation scenes
-    in_animscene  = bpy.props.BoolProperty(name = 'In Anim. Scene', description = 'Wether this dummy is in an animationscene', default = False)
-    transtime     = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. \n Set it for each Scene individually', default = 1.00, min = 0.0)
-    animname      = bpy.props.StringProperty(name = 'Animationname', description = 'Name of the animation', default = '')
-
-    # For meshes
-    shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
-
+    # For mesh objects
     meshtype         = bpy.props.EnumProperty(name = 'Type',
                                               items = [ ('TRIMESH', 'Trimesh', '0 desc', 0), \
                                                         ('DANGLYMESH', 'Danglymesh', '1 desc', 1), \
@@ -97,14 +91,16 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                         ('AABB', 'AABB Walkmesh', '3 desc', 3), \
                                                         ('EMITTER', 'Emitter', '4 desc', 4)], \
                                               default = 'TRIMESH' )
-    tilefade         = bpy.props.IntProperty(name = 'Tilefade', default = 0)
+
+    shadow = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
+    tilefade         = bpy.props.BoolProperty(name = 'Tilefade', description = 'Object will fade when the player is nearby. (Tilesets only)', default = False)
     render           = bpy.props.BoolProperty(name = 'Render', description = 'Whether to render this object in the scene', default = True)
-    beaming          = bpy.props.BoolProperty(name = 'beaming', description = 'Object casts beams (see forest tileset)', default = False)
-    inheritcolor     = bpy.props.BoolProperty(name = 'Inheritcolor', description = '(Unused by NWN)', default = False)
+    beaming          = bpy.props.BoolProperty(name = 'beaming', description = 'Object casts beams (?)', default = False)
+    inheritcolor     = bpy.props.BoolProperty(name = 'Inheritcolor', description = 'Unused (?)', default = False)
     rotatetexture    = bpy.props.BoolProperty(name = 'Rotatetexture', description = 'Automatically rotates texture to prevent seams', default = False)
     transparencyhint = bpy.props.IntProperty(name = 'Transparency Hint', default = 0, min = 0, max = 32)
     selfillumcolor   = bpy.props.FloatVectorProperty(name = 'Selfilluminationcolor',
-                                                     description = 'Self illumination color',
+                                                     description = 'Makes the object seem to glow but does not emit light.',
                                                      subtype = 'COLOR_GAMMA',
                                                      default = (0.0, 0.0, 0.0),
                                                      min = 0.0, max = 1.0,

@@ -9,7 +9,6 @@ import neverblender.nvb.mdl
 import neverblender.nvb.node
 import neverblender.nvb.presets
 import neverblender.nvb.walkmesh
-import neverblender.nvb.parser
 
 
 class MalformedMdlFile(Exception):

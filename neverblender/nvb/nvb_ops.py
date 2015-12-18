@@ -1,9 +1,117 @@
 import bpy
+import bpy_extras
 
-import neverblender.nvb.presets
+from . import nvb_presets
+from . import nvb_io
+
+class MDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+    '''Import Aurora Engine model (.mdl)'''
+
+    bl_idname  = 'nvb.mdlimport'
+    bl_label   = 'Import Aurora MDL'
+    bl_options = {'UNDO'}
+
+    filename_ext = '.mdl'
+    filter_glob = bpy.props.StringProperty(
+            default = '*.mdl',
+            options = {'HIDDEN'},
+            )
+
+    imports = bpy.props.EnumProperty(
+            name = 'Import',
+            options = {'ENUM_FLAG'},
+            items = (('GEOMETRY', 'Geometry', 'Import dummys and meshes'),
+                     ('ANIMATION', 'Animations', 'Import animations'),
+                     ('WALKMESH', 'Walkmesh', 'Import walkmeshes'),
+                     ),
+            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+            )
+
+    useShadingGroups = bpy.props.BoolProperty(
+            name = 'Import shading groups',
+            description = 'Import shading groups as vertex groups ' \
+                          '(Unused by blender)',
+            default = True,
+            )
+
+    textureSingle = bpy.props.BoolProperty(
+            name = 'One texture per image',
+            description = 'Create only one texture for each image',
+            default = True,
+            )
+
+    textureSearch = bpy.props.BoolProperty(
+            name='Image search',
+            description='Search for images in subdirectories' \
+                        '(Warning, may be slow)',
+            default=False,
+            )
+
+    # Hidden option, only used for minimap creation
+    minimapMode = bpy.props.BoolProperty(
+            name = 'Minimap Mode',
+            description = 'Ignore lights and fading objects',
+            default = False,
+            options = {'HIDDEN'},
+            )
+
+    def execute(self, context):
+        keywords = self.as_keywords(ignore=('filter_glob',
+                                            'check_existing',
+                                            ))
+        return nvb_io.load(self, context, **keywords)
 
 
-class NVBOBJECT_OT_LoadWokMaterials(bpy.types.Operator):
+class MDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+    '''Export Aurora Engine model (.mdl)'''
+
+    bl_idname = 'nvb.mdlexport'
+    bl_label  = 'Export Aurora MDL'
+
+    filename_ext = '.mdl'
+    filter_glob = bpy.props.StringProperty(
+            default = '*.mdl',
+            options = {'HIDDEN'},
+            )
+
+    selection = bpy.props.EnumProperty(
+            name = 'Export',
+            items = (('ALL', 'All', ''),
+                     ('SELECTION', 'Selection only', ''),
+                     ('LAYER','Active layers', ''),
+                    ),
+            default = 'ALL',
+            )
+
+    shadingGroups = bpy.props.BoolProperty(
+            name='Export Shading groups',
+            description='Export Shading Groups' \
+                        '(When disabled, every face belongs to the same group)',
+            default=True,
+            )
+
+    createWalkmesh = bpy.props.BoolProperty(
+            name='Create walkmesh',
+            description='Create walkmesh, if applicable' \
+                        '(.pwk, .dwk or .wok depending on classification)',
+            default=True,
+            )
+
+    applyModifiers = bpy.props.BoolProperty(
+            name='Apply Modifiers',
+            description='Apply Modifiers before exporting.' \
+                        '(When disabled, every face belongs to the same group)',
+            default=True,
+            )
+
+    def execute(self, context):
+        keywords = self.as_keywords(ignore=('filter_glob',
+                                            'check_existing',
+                                            ))
+        return nvb_io.save(self, context, **keywords)
+
+
+class LoadWokMaterials(bpy.types.Operator):
     '''
     Load all materials for aabb walkmeshes for the selected object. Current
     material slots will be deleted.

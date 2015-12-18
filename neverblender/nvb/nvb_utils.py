@@ -3,7 +3,8 @@ import mathutils
 import bpy
 import os
 
-import neverblender.nvb.presets
+from . import nvb_presets
+
 
 def isNumber(s):
     try:
@@ -214,5 +215,4 @@ def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
     render_scene.render.resolution_percentage      = 100
     render_scene.render.image_settings.color_mode  = 'RGB'
     render_scene.render.image_settings.file_format = 'TARGA_RAW'
-
 

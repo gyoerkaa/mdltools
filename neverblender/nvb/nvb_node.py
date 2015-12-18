@@ -1,9 +1,10 @@
+import bpy
 import bpy_extras.image_utils
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
-import neverblender.nvb.glob
-import neverblender.nvb.presets
-import neverblender.nvb.utils
+from . import nvb_glob
+from . import nvb_presets
+from . import nvb_utils
 
 
 class FaceList():
@@ -20,7 +21,7 @@ class Dummy():
     """
     def __init__(self, name = 'UNNAMED'):
         self.name        = name
-        self.parent      = nvb.presets.null
+        self.parent      = nvb_presets.null
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
@@ -43,9 +44,12 @@ class Dummy():
     def nodeType(self):
         return 'dummy'
 
+    def parseAttr(self, obj):
+        pass
+
     def parse(self, asciiNode):
         lfloat = float
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
 
         for line in asciiNode:
             try:
@@ -57,6 +61,8 @@ class Dummy():
             if not lisNumber(label):
                 if   (label == 'node'):
                     self.name = line[2].lower()
+                elif (label  == 'endnode'):
+                    return
                 elif (label == 'parent'):
                     self.parent = line[1].lower()
                 elif (label == 'position'):
@@ -78,7 +84,7 @@ class Dummy():
     def createImage(self, imgName, imgPath):
         image = bpy_extras.image_utils.load_image(imgName + '.tga',
                                                   imgPath,
-                                                  recursive=nvb.glob.useImgSearch,
+                                                  recursive=nvb_glob.textureSearch,
                                                   place_holder=False,
                                                   ncase_cmp=False)
         if (image is None):
@@ -90,15 +96,15 @@ class Dummy():
 
     def setAttr(self, obj):
         self.objRef = obj.name # used to resolve naming conflicts
-        nvb.utils.setRotationAurora(obj, self.orientation)
+        nvb_utils.setRotationAurora(obj, self.orientation)
         obj.scale                 = (self.scale, self.scale, self.scale)
         obj.location              = self.position
-        obj.auroraprops.wirecolor = self.wirecolor
+        obj.nvb.wirecolor = self.wirecolor
 
-    def convert(self, scene, filepath = ''):
+    def convert(self, scene):
         obj = bpy.data.objects.new(self.name, None)
         self.setAttr(obj)
-        obj.auroraprops.dummytype = 'NONE'
+        obj.nvb.dummytype = 'NONE'
 
         subtypes = [ ('use01',     'USE1'), \
                      ('use02',     'USE2'), \
@@ -116,14 +122,20 @@ class Dummy():
                      ('open2_01',  'O202'), \
                      ('closed_01', 'CL01'), \
                      ('closed_01', 'CL02') ]
-        self.auroraprops.dummysubtype = 'NONE'
+        obj.nvb.dummysubtype = 'NONE'
         for element in subtypes:
-            if self.name.endswith(element[0])
-                self.auroraprops.dummysubtype = element[1]
+            if self.name.endswith(element[0]):
+                obj.nvb.dummytype = 'SPECIAL'
+                obj.nvb.dummysubtype = element[1]
                 break
 
         scene.objects.link(obj)
         return obj
+
+
+class Patch(Dummy):
+    def nodeType(self):
+        return 'patch'
 
 
 class Reference(Dummy):
@@ -141,7 +153,7 @@ class Reference(Dummy):
 
     def parse(self, asciiNode):
         Dummy.parse(self, asciiNode)
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
 
         for line in asciiNode:
             try:
@@ -158,11 +170,10 @@ class Reference(Dummy):
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
 
-
-    def convert(self, scene, filepath = ''):
+    def convert(self, scene):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        obj.auroraprops.dummytype = 'REFERENCE'
+        obj.nvb.dummytype = 'REFERENCE'
 
         self.setAttr(obj)
         scene.objects.link(obj)
@@ -189,7 +200,7 @@ class Trimesh(Dummy):
         self.diffuse          = (0.0, 0.0, 0.0)
         self.specular         = (0.0, 0.0, 0.0)
         self.shininess        = 0
-        self.bitmap           = nvb.presets.null
+        self.bitmap           = nvb_presets.null
         self.rotatetexture    = 0
         self.verts            = [] # list of vertices
         self.facelist         = FaceList()
@@ -199,10 +210,10 @@ class Trimesh(Dummy):
         return 'trimesh'
 
     def parse(self, asciiNode):
-        Dummy.load(self, asciiNode)
+        Dummy.parse(self, asciiNode)
         lint   = int
         lfloat = float
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -251,20 +262,20 @@ class Trimesh(Dummy):
                     self.bitmap = line[1]
                 elif (label == 'verts'):
                     numVals = lint(line[1])
-                    self.getAsciiVerts(asciiNode[idx+1:idx+numVals])
+                    self.parseAsciiVerts(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'faces'):
                     numVals = lint(line[1])
-                    self.getAsciiFaces(asciiNode[idx+1:idx+numVals])
+                    self.parseAsciiFaces(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = lint(line[1])
-                    self.getAsciiTexVerts(asciiNode[idx+1:idx+numVals])
+                    self.parseAsciiTexVerts(asciiNode[idx+1:idx+numVals+1])
 
-    def getAsciiVerts(self, asciiVerts):
+    def parseAsciiVerts(self, asciiVerts):
         lfloat = float
         for line in asciiVerts:
             self.verts.append( (lfloat(line[0]), lfloat(line[1]), lfloat(line[2])) )
 
-    def getAsciiFaces(self, asciiFaces):
+    def parseAsciiFaces(self, asciiFaces):
         lint = int
         for line in asciiFaces:
             self.facelist.faces.append( (lint(line[0]), lint(line[1]), lint(line[2])) )
@@ -272,13 +283,13 @@ class Trimesh(Dummy):
             self.facelist.uvIdx.append( (lint(line[4]), lint(line[5]), lint(line[6])) )
             self.facelist.matId.append(lint(line[7]))
 
-    def getAsciiTexVerts(self, asciiTexVerts):
+    def parseAsciiTexVerts(self, asciiTexVerts):
         lfloat = float
         for line in asciiTexVerts:
             self.tverts.append( (lfloat(line[0]), lfloat(line[1])) )
 
-    def addShadingGroups(obj):
-        if not nvb.glob.useShadingGroups:
+    def addShadingGroups(self, obj):
+        if not nvb_glob.useShadingGroups:
             return
 
         # Create a dictionary of shading groups with group id's as keys
@@ -293,10 +304,10 @@ class Trimesh(Dummy):
 
         # Create vertex groups ans add vertices
         for groupId, groupMembers in shadingGroupDict.items():
-            vgroup = obj.vertex_groups.new(nvb.presets.shadingGroupName + str(groupId))
+            vgroup = obj.vertex_groups.new(nvb_presets.shadingGroupName + str(groupId))
             vgroup.add(groupMembers, 1.0, 'REPLACE')
 
-    def createMaterial(self, name, filepath):
+    def createMaterial(self, name):
         material = bpy.data.materials.new(name + '.mat')
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
@@ -308,11 +319,11 @@ class Trimesh(Dummy):
         material.use_transparency = True
 
         texName = self.bitmap.lower()
-        if (texName != nvb.presets.null):
+        if (texName != nvb_presets.null):
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
             # them as if they were the same, i.e. just use the old one
-            if (texName in bpy.data.textures)):
+            if (texName in bpy.data.textures):
                 textureSlot.texture = bpy.data.textures[texName]
             else:
                 textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
@@ -328,13 +339,13 @@ class Trimesh(Dummy):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
             else:
-                image = self.createImage(imgName, filepath)
+                image = self.createImage(imgName, nvb_glob.texturePath)
                 if image is not None:
                     textureSlot.texture.image = image
 
         return material
 
-    def createMesh(self, name, filepath = ''):
+    def createMesh(self, name):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name + '.mesh')
         mesh.vertices.add(len(self.verts))
@@ -343,17 +354,23 @@ class Trimesh(Dummy):
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(name, filepath)
+        material = self.createMaterial(name)
         mesh.materials.append(material)
 
         # Create UV map
-        if ( (len(node.tverts) > 0) and
-             mesh.tessfaces and
-             (self.bitmap.lower() != nvb.presets.null) ):
+        if (len(self.tverts) > 0) and (mesh.tessfaces) and (self.bitmap.lower() != nvb_presets.null):
             uv = mesh.tessface_uv_textures.new(name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
-            for i in range(len(self.tverts)):
+            #print('Node: ' + self.name)
+            #print('Faces ' + str(len(self.facelist.faces)))
+            #print(self.facelist.faces)
+            #print('Face UV ids ' + str(len(self.facelist.uvIdx)))
+            #print(self.facelist.uvIdx)
+            #print('tverts' + str(len(self.tverts)))
+            #print(self.tverts)
+
+            for i in range(len(self.facelist.uvIdx)):
                 # Get a tessface
                 tessface = mesh.tessfaces[i]
                 # Apply material (there is only ever one)
@@ -368,13 +385,13 @@ class Trimesh(Dummy):
                 # vert index 0 at location 3 are shuffled.
                 vertIdx = self.facelist.faces[i]
                 if vertIdx[2] == 0:
-                    vertIdx = vertIdx[1], vertIdx[2], vertIdx[0]
+                    uvIdx = vertIdx[1], vertIdx[2], vertIdx[0]
                 # END EEEKADOODLE FIX
 
                 # Add uv coordinates to face
-                tessfaceUV.uv1 = node.tverts[uvIdx[0]]
-                tessfaceUV.uv2 = node.tverts[uvIdx[1]]
-                tessfaceUV.uv3 = node.tverts[uvIdx[2]]
+                tessfaceUV.uv1 = self.tverts[uvIdx[0]]
+                tessfaceUV.uv2 = self.tverts[uvIdx[1]]
+                tessfaceUV.uv3 = self.tverts[uvIdx[2]]
                 # Apply texture to uv face
                 tessfaceUV.image = material.texture_slots[0].texture.image
 
@@ -383,27 +400,27 @@ class Trimesh(Dummy):
 
     def setAttr(self, obj):
         Dummy.setAttr(self, obj)
-        obj.auroraprops.tilefade         = self.tilefade
-        obj.auroraprops.render           = (self.render == 1)
-        obj.auroraprops.shadow           = (self.shadow == 1)
-        obj.auroraprops.beaming          = (self.beaming == 1)
-        obj.auroraprops.inheritcolor     = (self.inheritcolor == 1)
-        obj.auroraprops.rotatetexture    = (self.rotatetexture == 1)
-        obj.auroraprops.transparencyhint = self.transparencyhint
-        obj.auroraprops.selfillumcolor   = self.selfillumcolor
-        obj.auroraprops.ambientcolor     = self.ambient
-        obj.auroraprops.shininess        = self.shininess
+        obj.nvb.tilefade         = self.tilefade
+        obj.nvb.render           = (self.render == 1)
+        obj.nvb.shadow           = (self.shadow == 1)
+        obj.nvb.beaming          = (self.beaming == 1)
+        obj.nvb.inheritcolor     = (self.inheritcolor == 1)
+        obj.nvb.rotatetexture    = (self.rotatetexture == 1)
+        obj.nvb.transparencyhint = self.transparencyhint
+        obj.nvb.selfillumcolor   = self.selfillumcolor
+        obj.nvb.ambientcolor     = self.ambient
+        obj.nvb.shininess        = self.shininess
         self.addShadingGroups(obj)
 
-    def convert(self, scene, filepath = ''):
-        if nvb.glob.minimapMode and self.tilefade:
+    def convert(self, scene):
+        if nvb_glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene)
-        mesh = self.createMesh(self.name, filepath)
+        mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
 
-        obj.auroraprops.meshtype = 'TRIMESH'
+        obj.nvb.meshtype = 'TRIMESH'
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj
@@ -424,10 +441,10 @@ class Danglymesh(Trimesh):
         return 'dangylmesh'
 
     def parse(self, asciiNode):
-        Trimesh.load(self, asciiNode)
+        Trimesh.parse(self, asciiNode)
         lint   = int
         lfloat = float
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -444,7 +461,7 @@ class Danglymesh(Trimesh):
                     self.tilefade = lfloat(line[1])
                 elif (label == 'constraints'):
                     numVals = lint(line[1])
-                    self.getAsciiConstraints(asciiNode[idx+1:idx+numVals])
+                    self.getAsciiConstraints(asciiNode[idx+1:idx+numVals+1])
 
     def getAsciiConstraints(self, asciiConstraints):
         lfloat = float
@@ -461,24 +478,24 @@ class Danglymesh(Trimesh):
         for vertex, constraint in enumerate(self.constraints):
             weight = constraint/255
             vgroup.add(vertex, weight, 'REPLACE')
-         obj.auroraprops.constraints = vgroup.name
+        obj.nvb.constraints = vgroup.name
 
-    def self.setAttr(self, obj):
-        Trimesh.setAttr(obj):
-        obj.auroraprops.period       = self.period
-        obj.auroraprops.tightness    = self.tightness
-        obj.auroraprops.displacement = self.displacement
-        self.addConstraintGroup(obj):
+    def setAttr(self, obj):
+        Trimesh.setAttr(obj)
+        obj.nvb.period       = self.period
+        obj.nvb.tightness    = self.tightness
+        obj.nvb.displacement = self.displacement
+        self.addConstraintGroup(obj)
 
-    def convert(self, scene, filepath = ''):
-        if nvb.glob.minimapMode and self.tilefade:
+    def convert(self, scene):
+        if nvb_glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene)
 
-        mesh = self.createMesh(self.name, filepath)
+        mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        obj.auroraprops.meshtype = 'DANGLYMESH'
+        obj.nvb.meshtype = 'DANGLYMESH'
         self.setAttr(obj)
         scene.objects.link(obj)
         return obj
@@ -497,9 +514,9 @@ class Skinmesh(Trimesh):
         return 'skin'
 
     def parse(self, asciiNode):
-        Trimesh.load(self, asciiNode)
+        Trimesh.parse(self, asciiNode)
         lint   = int
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
@@ -510,12 +527,12 @@ class Skinmesh(Trimesh):
             if not lisNumber(label):
                 if (label == 'weights'):
                     numVals = lint(line[1])
-                    self.getAsciiWeights(asciiNode[idx+1:idx+numVals])
+                    self.getAsciiWeights(asciiNode[idx+1:idx+numVals+1])
                     break #Only one value here, abort loop when read
 
     def getAsciiWeights(self, asciiWeights):
         lfloat = float
-        lchunker = nvb.utils.chunker
+        lchunker = nvb_utils.chunker
         for line in asciiWeights:
             # A line looks like this
             # [group_name, vertex_weight, group_name, vertex_weight]
@@ -538,14 +555,14 @@ class Skinmesh(Trimesh):
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertexId], membership[1], 'REPLACE')
 
-    def self.setAttr(self, obj):
-        Trimesh.setAttr(obj):
-        self.addSkinGroups(obj):
+    def setAttr(self, obj):
+        Trimesh.setAttr(obj)
+        self.addSkinGroups(obj)
 
-    def convert(self, scene, filepath = ''):
-        mesh = self.createMesh(self.name, filepath)
+    def convert(self, scene):
+        mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        obj.auroraprops.meshtype = 'SKIN'
+        obj.nvb.meshtype = 'SKIN'
 
         self.setAttr(obj)
         scene.objects.link(obj)
@@ -556,32 +573,34 @@ class Emitter(Dummy):
     def __init__(self, name = 'UNNAMED'):
         Dummy.__init__(self, name)
 
-        self.xsize   = 100
-        self.ysize   = 100
-        self.txt     = ''
+        self.xsize    = 2
+        self.ysize    = 2
+        self.rawAscii = ''
 
     def nodeType(self):
         return 'emitter'
 
     def parse(self, asciiNode):
-        Dummy.load(self, asciiNode)
+        Dummy.parse(self, asciiNode)
         lint   = int
         lfloat = float
-        lisNumber = nvb.utils.isNumber
-        self.txt = '\n'.join(asciiNode)
+        lisNumber = nvb_utils.isNumber
+        self.rawAscii = '# Position, orientation and wirecolor are editable in blender.' + \
+                        '# The corresponding values in this text file will be overwritten during export.'
+
         for line in asciiNode:
             try:
                 label = line[0].lower()
             except IndexError:
                 # Probably empty line or whatever, skip it
                 continue
-            if not lisNumber(label):
-                if (label == 'xsize'):
-                    self.xsize = float(line[1])
-                elif (label == 'ysize'):
-                    self.ysize = float(line[1])
+            self.rawAscii = self.rawAscii + '\n' + ' '.join(line)
+            if (label == 'xsize'):
+                self.xsize = float(line[1])/100
+            elif (label == 'ysize'):
+                self.ysize = float(line[1])/100
 
-    def createMesh(self, objName, filepath = ''):
+    def createMesh(self, objName):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName + '.mesh')
         mesh.vertices.add(4)
@@ -599,26 +618,25 @@ class Emitter(Dummy):
         return mesh
 
     def addRawAscii(self, obj):
-        txt = bpy.data.texts.new(objName + '.txt')
-        txt.write(self.txt)
+        txt = bpy.data.texts.new(obj.name + '.emitter')
+        txt.write(self.rawAscii)
+        obj.nvb.rawascii = txt.name
 
-        obj.rawAscii =
+    def setAttr(self, obj):
+        Dummy.setAttr(self, obj)
+        self.addRawAscii(obj)
 
-    def self.setAttr(self, obj):
-        Dummy.setAttr(obj):
-        self.addRawAscii(obj):
-
-    def convert(self, scene, filepath = ''):
-        if nvb.glob.minimapMode:
+    def convert(self, scene):
+        if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene, filepath)
+            return Dummy.convert(self, scene)
 
-        mesh = self.createMesh(self.name, filepath)
+        mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        obj.auroraprops.meshtype = 'EMITTER'
+        obj.nvb.meshtype = 'EMITTER'
 
-        self.setAttrc(obj)
+        self.setAttr(obj)
         scene.objects.link(obj)
         return obj
 
@@ -644,10 +662,10 @@ class Light(Dummy):
         return 'light'
 
     def parse(self, asciiNode):
-        Dummy.load(self, asciiNode)
+        Dummy.parse(self, asciiNode)
         lint = int
         lfloat = float
-        lisNumber = nvb.utils.isNumber
+        lisNumber = nvb_utils.isNumber
 
         for line in asciiNode:
             try:
@@ -698,19 +716,19 @@ class Light(Dummy):
                   'ml2': 'MAINLIGHT2', \
                   'sl1': 'SOURCELIGHT1', \
                   'sl2': 'SOURCELIGHT2'}
-        obj.auroraprops.lighttype     = switch.get(self.name[-3:], 'NONE')
-        obj.auroraprops.shadow        = (self.shadow == 1)
-        obj.auroraprops.lightpriority = self.lightpriority
-        obj.auroraprops.fadinglight   = (self.fadinglight == 1)
-        obj.auroraprops.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
-        obj.auroraprops.affectdynamic = (self.affectdynamic == 1)
-        obj.auroraprops.flareradius   = (self.affectdynamic == 1)
+        obj.nvb.lighttype     = switch.get(self.name[-3:], 'NONE')
+        obj.nvb.shadow        = (self.shadow == 1)
+        obj.nvb.lightpriority = self.lightpriority
+        obj.nvb.fadinglight   = (self.fadinglight == 1)
+        obj.nvb.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
+        obj.nvb.affectdynamic = (self.affectdynamic == 1)
+        obj.nvb.flareradius   = (self.affectdynamic == 1)
 
-    def convert(self, scene, filepath = ''):
-        if nvb.glob.minimapMode:
+    def convert(self, scene):
+        if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene, filepath)
+            return Dummy.convert(self, scene)
         lamp = bpy.data.lamps.new(nodeName, 'POINT')
 
         self.setAttr(lamp)
@@ -735,10 +753,10 @@ class Aabb(Trimesh):
     def setAttr(self, obj):
         Trimesh.setAttr(self, obj)
 
-    def convert(self, scene, filepath = ''):
+    def convert(self, scene):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        obj.auroraprops.meshtype = 'AABB'
+        obj.nvb.meshtype = 'AABB'
 
         self.setAttr(obj)
         scene.objects.link(obj)

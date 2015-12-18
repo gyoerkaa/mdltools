@@ -5,19 +5,18 @@ import warnings
 
 import bpy
 
-import neverblender.nvb.node
-import neverblender.nvb.presets
-import neverblender.nvb.glob
+from . import nvb_node
+from . import nvb_presets
+from . import nvb_glob
 
 class Mdl():
-
-    def __init__(self, isWalkmesh = False):
-        self.nodeList = collections.OrderedDict()
-        self.animlist = dict() # No need to retain order
-        self.root       = ''
+    def __init__(self):
+        self.nodeList  = collections.OrderedDict()
+        self.animList  = dict() # No need to retain order
+        self.rootdummy = ''
 
         self.name           = 'UNNAMED'
-        self.supermodel     = nvb.presets.null
+        self.supermodel     = nvb_presets.null
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
@@ -28,7 +27,6 @@ class Mdl():
         # We'd need to save all names starting from root to resolve
         # this, but that's too much effort.
         # Name + ParentName should be enough.
-
         if newNode:
             key = newNode.parent + newNode.name
             if key in self.nodeList:
@@ -45,14 +43,13 @@ class Mdl():
             else:
                 self.animList[anim.name] = anim
 
-    def convert(self, scene, filepath = ''):
-
-        for node in self.nodelist:
-            obj = node.convert(scene, filepath)
-            if (node.parent == nvb.presets.null):
+    def convert(self, scene):
+        for (nodeKey, node) in self.nodeList.items():
+            obj = node.convert(scene)
+            if (node.parent == nvb_presets.null):
                 if (node.name == self.name):
-                    obj.auroraprops.dummytype = 'MDLROOT'
-                    self.root = obj.name
+                    obj.nvb.dummytype = 'MDLROOT'
+                    self.rootdummy = obj.name
                 else:
                     # Node without parent and not the mdl root. Problem ?
                     warnings.warn("WARNING: " + node.name + " has no parent.")
@@ -64,7 +61,6 @@ class Mdl():
                     #TODO: Try to resolve naming conflict
                     warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parent + ")")
 
-        if not nvb.glob.minimapMode:
-            for animation in self.animlist:
-                animation.convert(scene, geomNodeList)
-
+        if not nvb_glob.minimapMode:
+            for (animName, anim) in self.animList.items():
+                anim.convert(scene, self.nodeList)
