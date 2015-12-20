@@ -1,7 +1,21 @@
 import bpy
 
 
-class PanelObject(bpy.types.Panel):
+class NVB_UILIST_EVENTS(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(item.name, icon = custom_icon)
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label("", icon = custom_icon)
+
+
+class NVB_PANEL_EMPTY(bpy.types.Panel):
     '''
     Property panel for additional properties needed for the mdl file
     format. This is only available for EMPTY objects.
@@ -21,17 +35,14 @@ class PanelObject(bpy.types.Panel):
         obj    = context.object
         layout = self.layout
 
-        split = layout.split()
-        col = split.column()
-        col.label(text = 'Type:')
-        #col.label(text = 'Animation')
-        col = split.column()
-        col.prop(obj.nvb, 'dummytype', text='')
-        col.prop(obj.nvb, 'isanimation', text = 'Animation')
+        row = layout.row()
+        row.prop(obj.nvb, 'dummytype', text='Type')
+
 
         # Display properties depending on type of the empty
         if (obj.nvb.dummytype == 'MDLROOT'):
-            # MDL Rootdummy properties
+            row = layout.row()
+            row.prop(obj.nvb, 'isanimation', text = 'Animation')
             if not obj.nvb.isanimation:
                 split = layout.split()
                 col = split.column()
@@ -52,6 +63,7 @@ class PanelObject(bpy.types.Panel):
                 row = box.row(align = True)
                 row.prop(obj.nvb, 'animname', text = 'Name')
                 row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
+
                 # Minimap Helper.
                 row = layout.row()
                 row = layout.row()
@@ -65,13 +77,30 @@ class PanelObject(bpy.types.Panel):
                 row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
             else:
                 # MDL Rootdummy in an animation scene
-                split = layout.split()
+                split = layout.split(percentage=0.25)
                 col = split.column()
                 col.label(text = 'Transition Time:')
                 col.label(text = 'Animation Root')
                 col = split.column()
                 col.prop(obj.nvb, 'transtime', text = '')
                 col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
+
+                # Event Helper. Display and add/remove events.
+                row = layout.row()
+                row.label(text = 'Event List')
+                split = layout.split(percentage=0.9)
+                col = split.column()
+                col.template_list('NVB_UILIST_EVENTS', 'The_List', obj.nvb, 'eventList', obj.nvb, 'eventListIdx')
+                col = split.column(align = True)
+                col.operator('nvb.newevent', text = '', icon='ZOOMIN')
+                col.operator('nvb.deleteevent', text = '', icon='ZOOMOUT')
+                #col.operator('nvb.moveevent', text='UP').direction = 'UP'
+                #col.operator('nvb.moveevent', text='DOWN').direction = 'DOWN'
+                if obj.nvb.eventListIdx >= 0 and len(obj.nvb.eventList) > 0:
+                    item = obj.nvb.eventList[obj.nvb.eventListIdx]
+                    row = layout.row()
+                    row.prop(item, 'name')
+                    row.prop(item, 'frame')
 
                 # Animation Helper. Rename animation.
                 row = layout.row()
@@ -89,14 +118,17 @@ class PanelObject(bpy.types.Panel):
             pass
 
         elif (obj.nvb.dummytype == 'SPECIAL'):
-            row = layout.row()
-            row.prop(obj.nvb, 'dummysubtype', text='Subtype')
+            split = layout.split()
+            col = split.column()
+            col.label(text = 'Subtype:')
+            col = split.column()
+            col.prop(obj.nvb, 'dummysubtype', text='')
         else:
             row = layout.row()
             row.prop(obj.nvb, 'wirecolor', text = 'Wirecolor')
 
 
-class NVBAuroraPropertyPanelLight(bpy.types.Panel):
+class NVB_PANEL_LIGHT(bpy.types.Panel):
     '''
     Property panel for additional light or lamp properties. This
     holds all properties not supported by blender at the moment,
@@ -140,7 +172,7 @@ class NVBAuroraPropertyPanelLight(bpy.types.Panel):
 
 
 
-class NVBAuroraPropertyPanelMesh(bpy.types.Panel):
+class NVB_PANEL_MESH(bpy.types.Panel):
     '''
     Property panel for additional mesh properties. This
     holds all properties not supported by blender at the moment,

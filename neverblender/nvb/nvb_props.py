@@ -15,8 +15,21 @@ def nvb_update_shadow_prop(self, context):
         except:
             pass
 
+class NVB_PG_EVENT(bpy.types.PropertyGroup):
+    """ Group of properties representing an item in the list """
 
-class ObjectPropertyGroup(bpy.types.PropertyGroup):
+    name = bpy.props.StringProperty(
+           name="Name",
+           description="Name for this event",
+           default="Unnamed")
+
+    frame = bpy.props.IntProperty(
+           name="Frame",
+           description="Frame at which the event should fire",
+           default=1)
+
+
+class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     '''
     This class defines all additional properties needed by the mdl file
     format. It hold the properties for meshes, lamps and empties.
@@ -52,28 +65,30 @@ class ObjectPropertyGroup(bpy.types.PropertyGroup):
                                                       ('ITEM',       'Item',      'Items or placeables',                 6) ],
                                             default = 'UNKNOWN')
     animscale   = bpy.props.FloatProperty(name = 'Animationscale', description = 'Animation scale for all animations.', default = 1.00, min = 0.0)
-    animname    = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
     isanimation = bpy.props.BoolProperty(name = 'Animation', description = 'Whether this dummy and it\'s children are in an animation scene.', default = False)
-
-    transtime   = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
-    animroot    = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
+    # For MDL Rootdummies in animations
+    animname    = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
+    transtime    = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
+    animroot     = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
+    eventList    = bpy.props.CollectionProperty(type = NVB_PG_EVENT)
+    eventListIdx = bpy.props.IntProperty(name = "Index for event List", default = 0)
 
     # For special emptys
     dummysubtype   = bpy.props.EnumProperty(name = 'Subtype',
-                                            items = [('NONE', 'None',                      'Simple dummy object',                     0), \
-                                                     ('HAND', 'Hand',                      'Hand node for spells and effects. \n (for door and placeable models)',        1), \
-                                                     ('HEAD', 'Head',                      'Head node for spells and effects. \n (for door and placeable models)',        2), \
-                                                     ('HHIT', 'Head hit',                  'Head hit node for spells and effects. \n (for door and placeable models)',    3), \
-                                                     ('IMPC', 'Impact',                    'Impact node for spells and effects. \n (for door and placeable models)',      4), \
-                                                     ('GRND', 'Ground',                    'Ground node for spells and effects. \n (for door and placeable models)',      5), \
-                                                     ('USE1', 'Placeable Walkmesh: Use 1', '1st node for "Use" animation',            6), \
-                                                     ('USE2', 'Placeable Walkmesh: Use 2', '2nd node for "Use" animation',            7), \
-                                                     ('O101', 'Door Walkmesh: Open 1 1st', 'Open 1 State, 1st node for "Use" anim',   8), \
-                                                     ('O102', 'Door Walkmesh: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim',   9), \
-                                                     ('O201', 'Door Walkmesh: Open 2 1st', 'Open 2 State, 1st node for "Use" anim',  10), \
-                                                     ('O202', 'Door Walkmesh: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim',  11), \
-                                                     ('CL01', 'Door Walkmesh: Closed 1st', 'Closed State, 1st node for "Use" anim',  12), \
-                                                     ('CL02', 'Door Walkmesh: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13) ],
+                                            items = [('NONE', 'None',            'Simple dummy object',                     0), \
+                                                     ('HAND', 'Hand',            'Hand node for spells and effects. \n (for door and placeable models)',        1), \
+                                                     ('HEAD', 'Head',            'Head node for spells and effects. \n (for door and placeable models)',        2), \
+                                                     ('HHIT', 'Head hit',        'Head hit node for spells and effects. \n (for door and placeable models)',    3), \
+                                                     ('IMPC', 'Impact',          'Impact node for spells and effects. \n (for door and placeable models)',      4), \
+                                                     ('GRND', 'Ground',          'Ground node for spells and effects. \n (for door and placeable models)',      5), \
+                                                     ('USE1', 'PWK: Use 1',      '1st node for "Use" animation',            6), \
+                                                     ('USE2', 'PWK: Use 2',      '2nd node for "Use" animation',            7), \
+                                                     ('O101', 'DWK: Open 1 1st', 'Open 1 State, 1st node for "Use" anim',   8), \
+                                                     ('O102', 'DWK: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim',   9), \
+                                                     ('O201', 'DWK: Open 2 1st', 'Open 2 State, 1st node for "Use" anim',  10), \
+                                                     ('O202', 'DWK: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim',  11), \
+                                                     ('CL01', 'DWK: Closed 1st', 'Closed State, 1st node for "Use" anim',  12), \
+                                                     ('CL02', 'DWK: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13) ],
                                             default = 'NONE')
     # For reference emptys
     refmodel     = bpy.props.StringProperty(name = 'Reference Model', description = 'Name of another mdl file', default = 'fx_ref')

@@ -63,4 +63,4 @@ class Mdl():
 
         if not nvb_glob.minimapMode:
             for (animName, anim) in self.animList.items():
-                anim.convert(scene, self.nodeList)
+                anim.convert(scene)

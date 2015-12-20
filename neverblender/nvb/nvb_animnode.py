@@ -1,4 +1,8 @@
+import bpy
+
 from . import nvb_presets
+from . import nvb_utils
+
 
 class Keys():
     def __init__(self):
@@ -11,6 +15,9 @@ class Keys():
         self.radius = []
         # Emitters ... incompatible. Import as text
         self.txt = ''
+
+    def hasAlpha():
+        return not self.alpha
 
 
 class Node():
@@ -25,6 +32,14 @@ class Node():
         self.keys    = Keys()
         self.isEmpty = True
 
+
+    def __bool__(self):
+        '''
+        Return false if the node is empty, i.e. it has no anims attached
+        '''
+        return not self.isEmpty
+
+
     def parseKeys3f(self, asciiBlock):
         '''
         Parse animation keys containing 3 floats (not counting the time value)
@@ -38,6 +53,7 @@ class Node():
                             lfloat(line[3])) )
         self.isEmpty = False
         return keyList
+
 
     def parseKeys4f(self, asciiBlock):
         '''
@@ -54,6 +70,7 @@ class Node():
         self.isEmpty = False
         return keyList
 
+
     def parseKeys1f(self, asciiBlock):
         '''
         Parse animation keys containing 1 float (not counting the time value)
@@ -65,6 +82,7 @@ class Node():
                             lfloat(line[1])) )
         self.isEmpty = False
         return keyList
+
 
     def parse(self, asciiBlock):
         lfloat = float
@@ -85,13 +103,16 @@ class Node():
                 self.position = (lfloat(line[1]),
                                  lfloat(line[2]),
                                  lfloat(line[3]) )
+                self.isEmpty = False
             elif (label  == 'orientation'):
                 self.orientation = (lfloat(line[1]),
                                     lfloat(line[2]),
                                     lfloat(line[3]),
                                     lfloat(line[4]) )
+                self.isEmpty = False
             elif (label  == 'scale'):
                 self.scale = lfloat(line[1])
+                self.isEmpty = False
             elif (label  == 'positionkey'):
                 numKeys = int(line[1])
                 self.keys.position = self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1])
@@ -117,5 +138,9 @@ class Node():
                 self.isEmpty = False
                 self.keyList.txt = self.txt + '\n' + ' '.join(line)
 
-    def convert(self, scene):
+
+    def addAnimToObject(self, targetObject):
+        '''
+        Add the animations in this node to target object
+        '''
         pass

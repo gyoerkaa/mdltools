@@ -95,12 +95,10 @@ class Parser():
         filepath = os.fsencode(mdlFilepath)
         lines = [line.strip().split() for line in open(filepath, 'r')]
 
-        nodeBlocks = []
-        animBlocks = []
-        blockStart = -1
 
         State = enum.Enum('State', 'START HEADER GEOMETRY GEOMETRYNODE ANIMATION')
         cs    = State.START
+        blockStart = -1
         for idx, line in enumerate(lines):
             try:
                 label = line[0]
@@ -147,7 +145,8 @@ class Parser():
 
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
-                    nodeBlocks.append((blockStart, idx))
+                    node = self.parseGeometryNode(lines[blockStart:idx+1])
+                    self.mdl.addNode(node)
                     blockStart = -1
                     cs = State.GEOMETRY
                 elif (label == 'node'):
@@ -161,22 +160,11 @@ class Parser():
                         raise MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
                 if (label == 'doneanim'):
                     if (blockStart > 0):
-                        animBlocks.append((blockStart, idx))
+                        anim = self.parseAnimation(lines[blockStart:idx+1])
+                        self.mdl.addAnimation(anim)
                         blockStart = -1
                     else:
                         raise MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
-
-        print('Geom Nodes: ' + str(len(nodeBlocks)))
-        for (nodeStart, nodeEnd) in nodeBlocks:
-            print(lines[nodeStart])
-            node = self.parseGeometryNode(lines[nodeStart:nodeEnd+1])
-            self.mdl.addNode(node)
-
-        print('Anims: ' + str(len(animBlocks)))
-        for (animStart, animEnd) in animBlocks:
-            print(lines[animStart])
-            anim = self.parseAnimation(lines[animStart:animEnd+1])
-            self.mdl.addAnimation(anim)
 
 
     def parseGeometryNode(self, asciiBlock):
@@ -212,5 +200,34 @@ class Parser():
             raise MalformedMdlFile('Empty Animation')
 
         animation = nvb_anim.Animation()
-        animation.parse(asciiBlock)
+
+        blockStart = -1
+        for idx, line in enumerate(asciiBlock):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if (label == 'newanim'):
+                animation.name = line[1]
+            elif (label == 'length'):
+                animation.length = float(line[1])
+            elif (label == 'transtime'):
+                animation.transtime = float(line[1])
+            elif (label == 'animroot'):
+                animation.root = line[1]
+            elif (label == 'event'):
+                animation.addEvent((float(line[1]), line[2]))
+            elif (label == 'node'):
+                blockStart = idx
+            elif (label == 'endnode'):
+                if (blockStart < 0):
+                    raise MalformedMdlFile('Unexpected "endnode"')
+                elif (label == 'node'):
+                    nodeBlocks.append((blockStart, idx))
+                    node = nvb_animnode.Node()
+                    node.parse(asciiBlock[nodeStart: idx+1])
+                    animation.addNode(node)
+                    blockStart = -1
+
         return animation

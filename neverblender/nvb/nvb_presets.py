@@ -8,7 +8,7 @@ round_color  = 3
 round_aabb   = 3
 
 # Some presets
-renderFps = 30
+fps = 30
 shadingGroupName = 'shadegr_'
 wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
                   ['wok_Dirt'          , (0.610, 0.235, 0.050), 0.0], \

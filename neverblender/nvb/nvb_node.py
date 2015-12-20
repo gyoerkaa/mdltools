@@ -308,7 +308,7 @@ class Trimesh(Dummy):
             vgroup.add(groupMembers, 1.0, 'REPLACE')
 
     def createMaterial(self, name):
-        material = bpy.data.materials.new(name + '.mat')
+        material = bpy.data.materials.new(name)
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
@@ -347,7 +347,7 @@ class Trimesh(Dummy):
 
     def createMesh(self, name):
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(name + '.mesh')
+        mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
@@ -361,14 +361,6 @@ class Trimesh(Dummy):
         if (len(self.tverts) > 0) and (mesh.tessfaces) and (self.bitmap.lower() != nvb_presets.null):
             uv = mesh.tessface_uv_textures.new(name + '.uv')
             mesh.tessface_uv_textures.active = uv
-
-            #print('Node: ' + self.name)
-            #print('Faces ' + str(len(self.facelist.faces)))
-            #print(self.facelist.faces)
-            #print('Face UV ids ' + str(len(self.facelist.uvIdx)))
-            #print(self.facelist.uvIdx)
-            #print('tverts' + str(len(self.tverts)))
-            #print(self.tverts)
 
             for i in range(len(self.facelist.uvIdx)):
                 # Get a tessface
@@ -385,7 +377,7 @@ class Trimesh(Dummy):
                 # vert index 0 at location 3 are shuffled.
                 vertIdx = self.facelist.faces[i]
                 if vertIdx[2] == 0:
-                    uvIdx = vertIdx[1], vertIdx[2], vertIdx[0]
+                    uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
                 # END EEEKADOODLE FIX
 
                 # Add uv coordinates to face
@@ -602,7 +594,7 @@ class Emitter(Dummy):
 
     def createMesh(self, objName):
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(objName + '.mesh')
+        mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
         mesh.vertices[0].co = ( self.xsize/2,  self.ysize/2, 0.0)
         mesh.vertices[1].co = ( self.xsize/2, -self.ysize/2, 0.0)

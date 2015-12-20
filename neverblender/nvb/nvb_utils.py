@@ -75,14 +75,14 @@ def getRotationAurora(object):
     return auroraRot
 
 
-def nwtime2frame(time, fps):
+def nwtime2frame(time, fps = nvb_presets.fps):
     '''
     For animations: Convert key time to frame number
     '''
     return round(fps*time)
 
 
-def frame2nwtime(frame, fps):
+def frame2nwtime(frame, fps = nvb_presets.fps):
     return round(frame / fps, 7)
 
 

@@ -3,7 +3,9 @@ import collections
 import bpy
 
 from . import nvb_presets
+from . import nvb_utils
 from . import nvb_animnode
+
 
 class MalformedMdlFile(Exception):
     def __init__(self, value):
@@ -11,7 +13,9 @@ class MalformedMdlFile(Exception):
     def __str__(self):
         return repr(self.parameter)
 
+
 class Animation():
+
     def __init__(self, name = 'UNNAMED'):
         self.name      = name
         self.length    = 1.0
@@ -20,70 +24,116 @@ class Animation():
         self.eventList = []
         self.nodeList  = collections.OrderedDict()
 
+
+    def getNode(self, nodeName, parentName = nvb_presets.null):
+        key = parentName + nodeName
+        if key in self.nodeList:
+            return self.nodeList[key]
+        else:
+            return None
+
+
     def addNode(self, newNode):
-        if newNode:
-            key = newNode.parent + newNode.name
-            if key in self.nodeList:
-                #TODO: Should probably raise an exception
-                pass
-            else:
-                self.nodeList[key] = newNode
+        key = newNode.parent + newNode.name
+        if key in self.nodeList:
+            #TODO: Should probably raise an exception
+            pass
+        else:
+            self.nodeList[key] = newNode
+
 
     def addEvent(self, event):
-        pass
+        self.eventList.append(event)
 
-    def parse(self, asciiBlock):
-        nodeBlocks = []
-        blockStart = -1
-        for idx, line in enumerate(asciiBlock):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-            if (label == 'newanim'):
-                self.name = line[1]
-            elif (label == 'length'):
-                self.length = float(line[1])
-            elif (label == 'transtime'):
-                self.transtime = float(line[1])
-            elif (label == 'animroot'):
-                self.root = line[1]
-            elif (label == 'event'):
-                # "event time name"
-                #event 0.0333333 detonate
-                self.eventList.append((float(line[1]), line[2]))
-            elif (label == 'node'):
-                blockStart = idx
-            elif (label == 'endnode'):
-                if (blockStart < 0):
-                    raise MalformedMdlFile('Unexpected "endnode"')
-                elif (label == 'node'):
-                    nodeBlocks.append((blockStart, idx))
-                    blockStart = -1
 
-        for (nodeStart, nodeEnd) in nodeBlocks:
-            node = nvb_animnode.Node()
-            node.parse(asciiBlock[nodeStart:nodeEnd])
-            self.addNode(node)
-
-    def convert(self, scene, originalNodeList):
+    def convert(self, scene, rootDummyName = ''):
+        # Create a new scene
         # Check if there is already a scene with this animation name
+        animScene = None
         if (self.name not in bpy.data.scenes.keys()):
             animScene = bpy.data.scenes.new(self.name)
         else:
             animScene = bpy.data.scenes[self.name]
+        animScene.render.fps  = nvb_presets.fps
 
-        animScene.render.fps  = nvb_presets.renderFps
+        # Get the mdl rootdummy
+        rootDummy = None
+        if rootDummyName:
+            # How nice, finally some help.
+            rootDummy = scene.objects[rootDummyName]
+        else:
+            # Fine. I'll look for the rootdummy myself.
+            # Better hope I pick the right one, muhahahaha.
+            for (key, obj) in scene.objects.items():
+                if obj.nvb.dummytype == 'MDLROOT':
+                    rootDummy = obj
+                    break
+        if not rootDummy:
+            return # Nope
 
-        for (nodeKey, node) in self.nodeList.items():
-            if nodeKey in originalNodeList:
-                # This node is animated. We'll need to add animations
-                originalNode = riginalNodeList(nodeKey)
-                node.convert(animScene, originalNode)
-            else:
-                # The node in the animation doesn't exist in the model
-                raise MalformedMdlFile('Node ' + node.name + ' in animation '+ self.name +' but not present in model.')
+        # Copy objects to the new scene:
+        self.copyObjectToScene(animScene, rootDummy, None)
 
-    def cloneScene(scene):
-        objCopy = objOrig.copy()
+
+    def copyObjectToScene(self, scene, theOriginal, parent):
+        '''
+        Copy object and all it's children to scene.
+        For object with simple (position, rotation) or no animations we
+        create a linked copy.
+        For alpha animation we'll need to copy the data too.
+        '''
+        theCopy        = theOriginal.copy()
+        theCopy.parent = parent
+        theCopy.name   = theOriginal.name + '.' + self.name
+
+        # rootDummy ?
+        objType = theOriginal.type
+        if (objType == 'EMPTY'):
+            if (theOriginal.nvb.dummytype == 'MDLROOT'):
+                # We copied the root dummy, set some stuff
+                theCopy.nvb.isanimation = True
+                theCopy.nvb.animname    = self.name
+                theCopy.nvb.transtime   = self.transtime
+                theCopy.nvb.animroot    = self.root
+
+                self.addEventsToObject(theCopy)
+
+        # Add animations from the node to the new object
+        if parent:
+            animNode = self.getNode(theOriginal.name, parent.name)
+        else:
+            animNode = self.getNode(theOriginal.name)
+        if animNode:
+            # We need to copy the data for:
+            # - Lamps
+            # - Meshes & materials when there are alphakeys
+            if (objType == 'LAMP'):
+                data         = theOriginal.data.copy()
+                data.name    = theOriginal.name + '.' + self.name
+                theCopy.data = data
+            elif (objType == 'MESH'):
+                if animNode.keys.hasAlpha():
+                    data         = theOriginal.data.copy()
+                    data.name    = theOriginal.name + '.' + self.name
+                    theCopy.data = data
+                    # Create a copy of the material
+                    if (req_object.active_material):
+                        material      = theOriginal.active_material.copy()
+                        material.name = theOriginal.name + '.' + self.name
+                        theCopy.active_material = mat_copy
+            animNode.addAnimToObject(theCopy)
+
+        # Link copy to the anim scene
+        scene.objects.link(theCopy)
+
+        # Convert all child objects too
+        for child in theOriginal.children:
+            self.copyObjectToScene(scene, child, theCopy)
+
+
+    def addEventsToObject(self, rootDummy):
+        for event in self.eventList:
+            newItem = rootDummy.nvb.eventList.add()
+            newItem.frame = nvb_utils.nwtime2frame(event[0])
+            newItem.name  = event[1]
+

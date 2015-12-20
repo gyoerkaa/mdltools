@@ -4,7 +4,92 @@ import bpy_extras
 from . import nvb_presets
 from . import nvb_io
 
-class MDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+
+
+class NVB_LIST_OT_NewEvent(bpy.types.Operator):
+    ''' Add a new item to the event list '''
+
+    bl_idname = 'nvb.newevent'
+    bl_label  = 'Add a new event to an animation'
+
+    def execute(self, context):
+        context.object.nvb.eventList.add()
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_DeleteEvent(bpy.types.Operator):
+    ''' Delete the selected item from the event list '''
+
+    bl_idname = 'nvb.deleteevent'
+    bl_label = 'Deletes an event from an animation'
+
+    @classmethod
+    def poll(self, context):
+        ''' Enable only if the list isn't empty '''
+        return len(context.object.nvb.eventList) > 0
+
+    def execute(self, context):
+        eventList = context.object.nvb.eventList
+        eventIdx  = context.object.nvb.eventListIdx
+
+        eventList.remove(eventIdx)
+        if eventIdx > 0:
+            eventIdx = eventIdx - 1
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_MoveEvent(bpy.types.Operator):
+    ''' Move an item in the event list '''
+
+    bl_idname = 'nvb.moveevent'
+    bl_label  = 'Move an item in the event  list'
+
+    direction = bpy.props.EnumProperty( items=( ('UP', 'Up', ""),
+                                                ('DOWN', 'Down', ""),))
+
+    @classmethod
+    def poll(self, context):
+        ''' Enable only if the list isn't empty '''
+        return len(context.object.nvb.eventList) > 0
+
+
+    def move_index(self):
+        ''' Move index of an item render queue while clamping it. '''
+        eventList = context.object.nvb.eventList
+        eventIdx  = context.object.nvb.eventListIdx
+
+        listLength = len(eventList) - 1 # (index starts at 0)
+        newIdx = 0
+        if self.direction == 'UP':
+            newIdx = index - 1
+        elif self.direction == 'DOWN':
+            newIdx = index + 1
+
+        newIdx   = max(0, min(newIdx, listLength))
+        eventIdx = newIdx
+
+
+    def execute(self, context):
+        eventList = context.object.nvb.eventList
+        eventIdx  = context.object.nvb.eventListIdx
+
+        if self.direction == 'DOWN':
+            neighbor = eventIdx + 1
+            queue.move(eventIdx,neighbor)
+            self.move_index()
+        elif self.direction == 'UP':
+            neighbor = eventIdx - 1
+            queue.move(neighbor, eventIdx)
+            self.move_index()
+        else:
+            return{'CANCELLED'}
+
+        return{'FINISHED'}
+
+
+class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     '''Import Aurora Engine model (.mdl)'''
 
     bl_idname  = 'nvb.mdlimport'
@@ -62,7 +147,7 @@ class MDLImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return nvb_io.load(self, context, **keywords)
 
 
-class MDLExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     '''Export Aurora Engine model (.mdl)'''
 
     bl_idname = 'nvb.mdlexport'

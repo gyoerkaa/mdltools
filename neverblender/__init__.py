@@ -57,17 +57,17 @@ import bpy_extras
 
 
 def menu_func_export(self, context):
-    self.layout.operator(nvb_ops.MDLExport.bl_idname, text="Aurora (.mdl)")
+    self.layout.operator(nvb_ops.MdlExport.bl_idname, text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
-    self.layout.operator(nvb_ops.MDLImport.bl_idname, text="Aurora (.mdl)")
+    self.layout.operator(nvb_ops.MdlImport.bl_idname, text="Aurora (.mdl)")
 
 
 def register():
     bpy.utils.register_module(__name__)
 
-    bpy.types.Object.nvb = bpy.props.PointerProperty(type=nvb_props.ObjectPropertyGroup)
+    bpy.types.Object.nvb = bpy.props.PointerProperty(type=nvb_props.NVB_PG_OBJECT)
 
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
