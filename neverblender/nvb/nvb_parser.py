@@ -7,6 +7,7 @@ import bpy
 from . import nvb_mdl
 from . import nvb_node
 from . import nvb_anim
+from . import nvb_animnode
 
 class MalformedMdlFile(Exception):
     def __init__(self, value):
@@ -25,7 +26,7 @@ class Parser():
 
     def load(self, mdlFilepath):
         self.parseMdl(mdlFilepath)
-        self.parseWalkmesh(mdlFilepath)
+        #self.parseWalkmesh(mdlFilepath)
         self.mdl.convert(self.scene)
         #self.xwk.convert(self.scene, os.path.dirname(mdlFilepath))
 
@@ -53,12 +54,17 @@ class Parser():
                 lines = [line.strip().split() for line in open(filepath, 'r')]
             except IOError:
                 # Doesn't exist. We can continue without, but it's worth
-                # a warning.
-                warnings.warn("WARNING: Unable to open walkmesh: " + wkFilepath)
+                # a message.
+                print("Neverblender: Unable to open walkmesh: " + wkFilepath)
                 return
 
+            # Placeable and door walkmeshes don't contain a rootdummy.
+            # We need one, so we make one ourselves
+            rootDummyName = self.mdl.name + '_' + walkmeshType
+            self.xwk.addNode(nvb_node.Dummy(rootDummyName))
+
             # Parse the walkmesh
-            nodeBlocks  = []
+            nodeBlocks = []
             nodeStart = -1
             for idx, line in enumerate(lines):
                 try:
@@ -70,20 +76,16 @@ class Parser():
                     nodeStart = idx
                 elif (label == 'endnode'):
                     if (nodeStart < 0):
-                        # "endnode" befaode "node"
+                        # "endnode" before "node"
                         raise MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
                     else:
                         nodeBlocks.append((nodeStart, idx))
                         nodeStart = -1
 
-            # Placeable and door walkmeshes don't contain a rootdummy.
-            # We need one, so we make one ourselves
-            rootdummyName = self.mdl.name + '_' + walkmeshType
-            self.xwk.addNode(nvb_node.Dummy(rootdummyName))
             for (nodeStart, nodeEnd) in nodeBlocks:
                 asciiBlock = lines[nodeStart:nodeEnd]
                 node = self.parseGeometryNode(asciiBlock)
-                node.parent = rootdummyName
+                node.parent = rootDummyName
                 self.xwk.addNode(node)
 
 
@@ -146,7 +148,6 @@ class Parser():
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
                     node = self.parseGeometryNode(lines[blockStart:idx+1])
-                    self.mdl.addNode(node)
                     blockStart = -1
                     cs = State.GEOMETRY
                 elif (label == 'node'):
@@ -161,7 +162,6 @@ class Parser():
                 if (label == 'doneanim'):
                     if (blockStart > 0):
                         anim = self.parseAnimation(lines[blockStart:idx+1])
-                        self.mdl.addAnimation(anim)
                         blockStart = -1
                     else:
                         raise MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
@@ -192,14 +192,14 @@ class Parser():
             raise MalformedMdlFile('Invalid node type')
 
         node.parse(asciiBlock)
-        return node
+        self.mdl.addNode(node)
 
 
     def parseAnimation(self, asciiBlock):
         if asciiBlock is None:
             raise MalformedMdlFile('Empty Animation')
 
-        animation = nvb_anim.Animation()
+        animation = nvb_anim.AnimationBlock()
 
         blockStart = -1
         for idx, line in enumerate(asciiBlock):
@@ -210,6 +210,7 @@ class Parser():
                 continue
             if (label == 'newanim'):
                 animation.name = line[1]
+                print('========== ' + animation.name)
             elif (label == 'length'):
                 animation.length = float(line[1])
             elif (label == 'transtime'):
@@ -221,13 +222,10 @@ class Parser():
             elif (label == 'node'):
                 blockStart = idx
             elif (label == 'endnode'):
-                if (blockStart < 0):
-                    raise MalformedMdlFile('Unexpected "endnode"')
-                elif (label == 'node'):
-                    nodeBlocks.append((blockStart, idx))
-                    node = nvb_animnode.Node()
-                    node.parse(asciiBlock[nodeStart: idx+1])
-                    animation.addNode(node)
+                if (blockStart > 0):
+                    animation.addAnimNode(asciiBlock[blockStart:idx+1])
                     blockStart = -1
+                elif (label == 'node'):
+                    raise MalformedMdlFile('Unexpected "endnode"')
 
-        return animation
+        self.mdl.addAnimation(animation)

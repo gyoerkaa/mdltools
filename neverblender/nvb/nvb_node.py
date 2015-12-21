@@ -567,7 +567,7 @@ class Emitter(Dummy):
 
         self.xsize    = 2
         self.ysize    = 2
-        self.rawAscii = ''
+        self.rawascii = ''
 
     def nodeType(self):
         return 'emitter'
@@ -577,7 +577,7 @@ class Emitter(Dummy):
         lint   = int
         lfloat = float
         lisNumber = nvb_utils.isNumber
-        self.rawAscii = '# Position, orientation and wirecolor are editable in blender.' + \
+        self.rawascii = '# Position, orientation and wirecolor are editable in blender.' + \
                         '# The corresponding values in this text file will be overwritten during export.'
 
         for line in asciiNode:
@@ -586,7 +586,7 @@ class Emitter(Dummy):
             except IndexError:
                 # Probably empty line or whatever, skip it
                 continue
-            self.rawAscii = self.rawAscii + '\n' + ' '.join(line)
+            self.rawascii = self.rawascii + '\n' + ' '.join(line)
             if (label == 'xsize'):
                 self.xsize = float(line[1])/100
             elif (label == 'ysize'):
@@ -611,7 +611,7 @@ class Emitter(Dummy):
 
     def addRawAscii(self, obj):
         txt = bpy.data.texts.new(obj.name + '.emitter')
-        txt.write(self.rawAscii)
+        txt.write(self.rawascii)
         obj.nvb.rawascii = txt.name
 
     def setAttr(self, obj):

@@ -9,9 +9,10 @@ from . import nvb_presets
 def isNumber(s):
     try:
         float(s)
-        return True
     except ValueError:
         return False
+    else:
+        return True
 
 
 def chunker(seq, size):

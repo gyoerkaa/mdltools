@@ -144,7 +144,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.lamp
+        return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
         obj    = context.object

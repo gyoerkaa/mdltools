@@ -20,6 +20,10 @@ class Mdl():
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
+
+    def addAsciiGeomNode(self, asciiBlock):
+        pass
+
     def addNode(self, newNode):
         # Blender requires unique object names. In mdl names are only
         # unique for a parent, i.e. another object with the same name
@@ -63,4 +67,4 @@ class Mdl():
 
         if not nvb_glob.minimapMode:
             for (animName, anim) in self.animList.items():
-                anim.convert(scene)
+                anim.convert(scene, self.rootdummy)

@@ -1,5 +1,15 @@
 ﻿null = 'null'
 
+incompatibleKeys = ['alphaendKey', 'alphastartkey', \
+                    'birthratekey', \
+                    'bounce_cokey', \
+                    'colorendkey', 'colorstartkey', \
+                    'combinetimekey', \
+                    'dragkey', \
+                    'fpskey', \
+                    'frameendkey', 'framestartkey', \
+                    'gravkey']
+
 # Rounding
 round_gen    = 5
 round_angle  = 5
