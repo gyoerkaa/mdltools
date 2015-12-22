@@ -1,14 +1,11 @@
-﻿null = 'null'
+﻿# Null value for parents, textures, etc.
+null = 'null'
 
-incompatibleKeys = ['alphaendKey', 'alphastartkey', \
-                    'birthratekey', \
-                    'bounce_cokey', \
-                    'colorendkey', 'colorstartkey', \
-                    'combinetimekey', \
-                    'dragkey', \
-                    'fpskey', \
-                    'frameendkey', 'framestartkey', \
-                    'gravkey']
+class MalformedMdlFile(Exception):
+    def __init__(self, value):
+        self.parameter = value
+    def __str__(self):
+        return repr(self.parameter)
 
 # Rounding
 round_gen    = 5

@@ -1,5 +1,5 @@
 import bpy
-from . import nvb_presets
+from . import nvb_def
 
 def nvb_update_shadow_prop(self, context):
     '''
@@ -54,7 +54,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                  ('SPECIAL',   'Special',             'Special dummies. See subtype.',                              6) ],
                                         default = 'NONE')
     # For MDL Rootdummy
-    supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the model to inherit animations from', default = nvb_presets.null)
+    supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the model to inherit animations from', default = nvb_def.null)
     classification = bpy.props.EnumProperty(name  = 'Classification',
                                             items = [ ('UNKNOWN',    'Unknown',   'Unknown classification',              0), \
                                                       ('TILE',       'Tile',      'Tiles for a tileset',                 1), \

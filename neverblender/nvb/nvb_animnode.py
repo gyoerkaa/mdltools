@@ -1,6 +1,6 @@
 import bpy
 
-from . import nvb_presets
+from . import nvb_def
 from . import nvb_utils
 
 
@@ -24,10 +24,7 @@ class Node():
     def __init__(self, name = 'UNNAMED'):
         self.name        = name
         self.nodeType    = 'DUMMY'
-        self.parentName  = nvb_presets.null
-        self.position    = (0.0, 0.0, 0.0)
-        self.orientation = (0.0, 0.0, 0.0, 0.0)
-        self.scale       = 1.0
+        self.parentName  = nvb_def.null
 
         self.keys    = Keys()
         self.isEmpty = True
@@ -97,7 +94,7 @@ class Node():
         return next((i for i, v in enumerate(asciiBlock) if not l_isNumber(v[0])), -1)
 
 
-    def parse(self, asciiBlock):
+    def getNodeFromAscii(self, asciiBlock):
         l_float    = float
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiBlock):
@@ -109,7 +106,6 @@ class Node():
             if   label == 'node':
                 self.nodeType = line[1].upper()
                 self.name     = line[2].lower()
-                print(self.name)
             elif label == 'endnode':
                 return
             elif label == 'endlist':
@@ -126,29 +122,19 @@ class Node():
                 # orientation: 1 key, orientationkey: >= 1 key (probably)
                 self.parseKeys4f(asciiBlock[idx+1:idx+1], self.keys.orientation)
                 self.isEmpty = False
-            elif label == 'scale':
-                self.scale = l_float(line[1])
-                self.isEmpty = False
             elif label == 'positionkey':
-                print('positionkey')
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1], self.keys.position)
-                print(self.keys.position)
             elif label == 'orientationkey':
-                print('orientationkey')
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 self.parseKeys4f(asciiBlock[idx+1:idx+numKeys+1], self.keys.orientation)
-                print(self.keys.orientation)
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible
-                print('alphakey')
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 if self.nodeType == 'EMITTER':
                     self.parseKeysImcompat(asciiBlock[idx:idx+numKeys+1])
-                    print('Incompatible')
                 else:
                     self.parseKeys1f(asciiBlock[idx+1:idx+numKeys+1], self.keys.alpha)
-                    print(self.keys.alpha)
             elif label == 'selfillumcolorkey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1], self.keys.selfillumcolor)
@@ -166,7 +152,6 @@ class Node():
                 self.parseKeysImcompat(asciiBlock[idx:idx+numKeys+1])
 
 
-
     def addAnimToMaterial(self, targetMaterial, animName = ''):
         if self.keys.alpha:
             actionName           = animName + '.' + targetMaterial.name
@@ -176,9 +161,7 @@ class Node():
             # Set alpha channels
             # This should influence the material alpha value
             curve = action.fcurves.new(data_path='alpha')
-            print('alphakeys')
             for key in self.keys.alpha:
-                print(str(nvb_utils.nwtime2frame(key[0])) + ' ' + str(key[1]))
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
 
             targetMaterial.animation_data_create()
@@ -207,11 +190,6 @@ class Node():
                 for key in self.keys.orientation:
                     frame = nvb_utils.nwtime2frame(key[0])
                     curve.keyframe_points.insert(frame, key[i])
-        # This means that there is only one orientation key (presumably)
-        elif self.orientation:
-            # TODO: Use keys for this or directly change the rotation ?
-            # TODO: Can orientation and orientationkey exists simultaneously ?
-            pass
 
         # Set location channels if there are location keys
         if (self.keys.position):
@@ -223,11 +201,6 @@ class Node():
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[2])
                 curveZ.keyframe_points.insert(frame, key[3])
-        # This means that there is only one position key (presumably)
-        elif (self.position):
-            # TODO: Use keys for this or directly change the location ?
-            # TODO: Can position and positionkey exists simultaneously ?
-            pass
 
         # Set selfillumcolor channels if there are selfillumcolor keys
         if (self.keys.selfillumcolor):

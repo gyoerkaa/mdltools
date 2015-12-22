@@ -6,8 +6,10 @@ import warnings
 import bpy
 
 from . import nvb_node
-from . import nvb_presets
+from . import nvb_anim
+from . import nvb_def
 from . import nvb_glob
+
 
 class Mdl():
     def __init__(self):
@@ -16,13 +18,48 @@ class Mdl():
         self.rootdummy = ''
 
         self.name           = 'UNNAMED'
-        self.supermodel     = nvb_presets.null
+        self.supermodel     = nvb_def.null
         self.animScale      = 1.0
         self.classification = 'UNKNOWN'
 
 
-    def addAsciiGeomNode(self, asciiBlock):
-        pass
+    def addAsciiNode(self, asciiBlock):
+        if asciiBlock is None:
+            raise nvb_def.MalformedMdlFile('Empty Node')
+
+        nodeType = ''
+        try:
+            nodeType = asciiBlock[0][1].lower()
+        except (IndexError, AttributeError):
+            raise nvb_def.MalformedMdlFile('Invalid node type')
+
+        switch = {'dummy':      nvb_node.Dummy, \
+                  'patch':      nvb_node.Patch, \
+                  'reference':  nvb_node.Reference, \
+                  'trimesh':    nvb_node.Trimesh,  \
+                  'danglymesh': nvb_node.Danglymesh, \
+                  'skin':       nvb_node.Skinmesh, \
+                  'emitter':    nvb_node.Emitter, \
+                  'light':      nvb_node.Light, \
+                  'aabb':       nvb_node.Aabb}
+        try:
+            node = switch[nodeType]()
+        except KeyError:
+            raise nvb_def.MalformedMdlFile('Invalid node type')
+
+        node.parse(asciiBlock)
+        self.addNode(node)
+
+
+    def addAsciiAnimation(self, asciiBlock):
+        if asciiBlock is None:
+            raise nvb_def.MalformedMdlFile('Empty Animation')
+
+        animation = nvb_anim.AnimationBlock()
+        animation.getAnimFromAscii(asciiBlock)
+
+        self.addAnimation(animation)
+
 
     def addNode(self, newNode):
         # Blender requires unique object names. In mdl names are only
@@ -39,6 +76,7 @@ class Mdl():
             else:
                 self.nodeList[key] = newNode
 
+
     def addAnimation(self, anim):
         if anim:
             if anim.name in self.animList:
@@ -47,10 +85,11 @@ class Mdl():
             else:
                 self.animList[anim.name] = anim
 
+
     def convert(self, scene):
         for (nodeKey, node) in self.nodeList.items():
             obj = node.convert(scene)
-            if (node.parent == nvb_presets.null):
+            if (node.parent == nvb_def.null):
                 if (node.name == self.name):
                     obj.nvb.dummytype = 'MDLROOT'
                     self.rootdummy = obj.name
@@ -67,4 +106,8 @@ class Mdl():
 
         if not nvb_glob.minimapMode:
             for (animName, anim) in self.animList.items():
-                anim.convert(scene, self.rootdummy)
+                anim.addAnimToScene(scene, self.rootdummy)
+
+
+    def toAscii(self, rootDummyName = ''):
+        pass

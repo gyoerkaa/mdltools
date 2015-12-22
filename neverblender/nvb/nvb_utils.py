@@ -3,7 +3,7 @@ import mathutils
 import bpy
 import os
 
-from . import nvb_presets
+from . import nvb_def
 
 
 def isNumber(s):
@@ -46,7 +46,7 @@ def get_is_shadinggr(vertex_group):
     '''
     Determines wether vertex_group ist a shading group or not
     '''
-    return (nvb_presets.shading_group_name in vertex_group.name)
+    return (nvb_def.shading_group_name in vertex_group.name)
 
 
 def getRotationAurora2(trans_mat):
@@ -76,14 +76,14 @@ def getRotationAurora(object):
     return auroraRot
 
 
-def nwtime2frame(time, fps = nvb_presets.fps):
+def nwtime2frame(time, fps = nvb_def.fps):
     '''
     For animations: Convert key time to frame number
     '''
     return round(fps*time)
 
 
-def frame2nwtime(frame, fps = nvb_presets.fps):
+def frame2nwtime(frame, fps = nvb_def.fps):
     return round(frame / fps, 7)
 
 

@@ -9,12 +9,6 @@ from . import nvb_node
 from . import nvb_anim
 from . import nvb_animnode
 
-class MalformedMdlFile(Exception):
-    def __init__(self, value):
-        self.parameter = value
-    def __str__(self):
-        return repr(self.parameter)
-
 class Parser():
     __debug = True
 
@@ -77,22 +71,21 @@ class Parser():
                 elif (label == 'endnode'):
                     if (nodeStart < 0):
                         # "endnode" before "node"
-                        raise MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
+                        raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
                     else:
                         nodeBlocks.append((nodeStart, idx))
                         nodeStart = -1
 
             for (nodeStart, nodeEnd) in nodeBlocks:
                 asciiBlock = lines[nodeStart:nodeEnd]
-                node = self.parseGeometryNode(asciiBlock)
+                self.xwk.addAsciiNode(asciiBlock)
                 node.parent = rootDummyName
                 self.xwk.addNode(node)
 
 
     def parseMdl(self, mdlFilepath):
         '''
-        Loads the contents of an ascii mdl file into the
-        container self.mdl
+        Get the geometry block and the animation blocks.
         '''
         filepath = os.fsencode(mdlFilepath)
         lines = [line.strip().split() for line in open(filepath, 'r')]
@@ -147,85 +140,22 @@ class Parser():
 
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
-                    node = self.parseGeometryNode(lines[blockStart:idx+1])
+                    #node = self.parseGeometryNode(lines[blockStart:idx+1])
+                    self.mdl.addAsciiNode(lines[blockStart:idx+1])
                     blockStart = -1
                     cs = State.GEOMETRY
                 elif (label == 'node'):
-                    raise MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
+                    raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
 
             elif (cs == State.ANIMATION):
                 if (label == 'newanim'):
                     if (blockStart < 0):
                         blockStart = idx
                     else:
-                        raise MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
+                        raise nvb_def.MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
                 if (label == 'doneanim'):
                     if (blockStart > 0):
-                        anim = self.parseAnimation(lines[blockStart:idx+1])
+                        self.mdl.addAsciiAnimation(lines[blockStart:idx+1])
                         blockStart = -1
                     else:
-                        raise MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
-
-
-    def parseGeometryNode(self, asciiBlock):
-        if asciiBlock is None:
-            raise MalformedMdlFile('Empty Node')
-
-        nodeType = ''
-        try:
-            nodeType = asciiBlock[0][1].lower()
-        except (IndexError, AttributeError):
-            raise MalformedMdlFile('Invalid node type')
-
-        switch = {'dummy':      nvb_node.Dummy, \
-                  'patch':      nvb_node.Patch, \
-                  'reference':  nvb_node.Reference, \
-                  'trimesh':    nvb_node.Trimesh,  \
-                  'danglymesh': nvb_node.Danglymesh, \
-                  'skin':       nvb_node.Skinmesh, \
-                  'emitter':    nvb_node.Emitter, \
-                  'light':      nvb_node.Light, \
-                  'aabb':       nvb_node.Aabb}
-        try:
-            node = switch[nodeType]()
-        except KeyError:
-            raise MalformedMdlFile('Invalid node type')
-
-        node.parse(asciiBlock)
-        self.mdl.addNode(node)
-
-
-    def parseAnimation(self, asciiBlock):
-        if asciiBlock is None:
-            raise MalformedMdlFile('Empty Animation')
-
-        animation = nvb_anim.AnimationBlock()
-
-        blockStart = -1
-        for idx, line in enumerate(asciiBlock):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-            if (label == 'newanim'):
-                animation.name = line[1]
-                print('========== ' + animation.name)
-            elif (label == 'length'):
-                animation.length = float(line[1])
-            elif (label == 'transtime'):
-                animation.transtime = float(line[1])
-            elif (label == 'animroot'):
-                animation.root = line[1]
-            elif (label == 'event'):
-                animation.addEvent((float(line[1]), line[2]))
-            elif (label == 'node'):
-                blockStart = idx
-            elif (label == 'endnode'):
-                if (blockStart > 0):
-                    animation.addAnimNode(asciiBlock[blockStart:idx+1])
-                    blockStart = -1
-                elif (label == 'node'):
-                    raise MalformedMdlFile('Unexpected "endnode"')
-
-        self.mdl.addAnimation(animation)
+                        raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))

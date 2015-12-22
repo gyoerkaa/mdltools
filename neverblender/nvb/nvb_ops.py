@@ -1,7 +1,7 @@
 import bpy
 import bpy_extras
 
-from . import nvb_presets
+from . import nvb_def
 from . import nvb_io
 
 

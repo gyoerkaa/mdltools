@@ -3,7 +3,7 @@ import bpy_extras.image_utils
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_glob
-from . import nvb_presets
+from . import nvb_def
 from . import nvb_utils
 
 
@@ -21,7 +21,7 @@ class Dummy():
     """
     def __init__(self, name = 'UNNAMED'):
         self.name        = name
-        self.parent      = nvb_presets.null
+        self.parent      = nvb_def.null
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
@@ -200,7 +200,7 @@ class Trimesh(Dummy):
         self.diffuse          = (0.0, 0.0, 0.0)
         self.specular         = (0.0, 0.0, 0.0)
         self.shininess        = 0
-        self.bitmap           = nvb_presets.null
+        self.bitmap           = nvb_def.null
         self.rotatetexture    = 0
         self.verts            = [] # list of vertices
         self.facelist         = FaceList()
@@ -304,7 +304,7 @@ class Trimesh(Dummy):
 
         # Create vertex groups ans add vertices
         for groupId, groupMembers in shadingGroupDict.items():
-            vgroup = obj.vertex_groups.new(nvb_presets.shadingGroupName + str(groupId))
+            vgroup = obj.vertex_groups.new(nvb_def.shadingGroupName + str(groupId))
             vgroup.add(groupMembers, 1.0, 'REPLACE')
 
     def createMaterial(self, name):
@@ -319,7 +319,7 @@ class Trimesh(Dummy):
         material.use_transparency = True
 
         texName = self.bitmap.lower()
-        if (texName != nvb_presets.null):
+        if (texName != nvb_def.null):
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
             # them as if they were the same, i.e. just use the old one
@@ -358,7 +358,7 @@ class Trimesh(Dummy):
         mesh.materials.append(material)
 
         # Create UV map
-        if (len(self.tverts) > 0) and (mesh.tessfaces) and (self.bitmap.lower() != nvb_presets.null):
+        if (len(self.tverts) > 0) and (mesh.tessfaces) and (self.bitmap.lower() != nvb_def.null):
             uv = mesh.tessface_uv_textures.new(name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
