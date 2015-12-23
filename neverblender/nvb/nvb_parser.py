@@ -7,7 +7,7 @@ import bpy
 from . import nvb_mdl
 from . import nvb_node
 from . import nvb_anim
-from . import nvb_animnode
+
 
 class Parser():
     __debug = True
@@ -20,9 +20,9 @@ class Parser():
 
     def load(self, mdlFilepath):
         self.parseMdl(mdlFilepath)
-        #self.parseWalkmesh(mdlFilepath)
-        self.mdl.convert(self.scene)
-        #self.xwk.convert(self.scene, os.path.dirname(mdlFilepath))
+        self.parseWalkmesh(mdlFilepath)
+        self.mdl.addMdlToScene(self.scene)
+        self.xwk.addMdlToScene(self.scene)
 
         self.scene.update()
 
@@ -55,11 +55,15 @@ class Parser():
             # Placeable and door walkmeshes don't contain a rootdummy.
             # We need one, so we make one ourselves
             rootDummyName = self.mdl.name + '_' + walkmeshType
-            self.xwk.addNode(nvb_node.Dummy(rootDummyName))
+            rootDummy = nvb_node.Dummy(rootDummyName)
+            if walkmeshType == 'dwk':
+                rootDummy.setDummyType('DWKROOT')
+            else:
+                rootDummy.setDummyType('PWKROOT')
+            self.xwk.addNode(rootDummy)
 
             # Parse the walkmesh
-            nodeBlocks = []
-            nodeStart = -1
+            blockStart = -1
             for idx, line in enumerate(lines):
                 try:
                     label = line[0]
@@ -67,20 +71,14 @@ class Parser():
                     # Probably empty line or whatever, just skip it
                     continue
                 if (label == 'node'):
-                    nodeStart = idx
+                    blockStart = idx
                 elif (label == 'endnode'):
-                    if (nodeStart < 0):
+                    if (blockStart > 0):
+                        self.xwk.addAsciiNode(lines[blockStart:idx+1])
+                        blockStart = -1
+                    else:
                         # "endnode" before "node"
                         raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
-                    else:
-                        nodeBlocks.append((nodeStart, idx))
-                        nodeStart = -1
-
-            for (nodeStart, nodeEnd) in nodeBlocks:
-                asciiBlock = lines[nodeStart:nodeEnd]
-                self.xwk.addAsciiNode(asciiBlock)
-                node.parent = rootDummyName
-                self.xwk.addNode(node)
 
 
     def parseMdl(self, mdlFilepath):

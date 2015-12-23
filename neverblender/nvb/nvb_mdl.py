@@ -2,6 +2,7 @@ import os
 import math
 import collections
 import warnings
+from datetime import datetime
 
 import bpy
 
@@ -47,7 +48,7 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.parse(asciiBlock)
+        node.getFromAscii(asciiBlock)
         self.addNode(node)
 
 
@@ -69,7 +70,7 @@ class Mdl():
         # this, but that's too much effort.
         # Name + ParentName should be enough.
         if newNode:
-            key = newNode.parent + newNode.name
+            key = newNode.parentName + newNode.name
             if key in self.nodeList:
                 #TODO: Should probably raise an exception
                 pass
@@ -86,28 +87,52 @@ class Mdl():
                 self.animList[anim.name] = anim
 
 
-    def convert(self, scene):
+    def addMdlToScene(self, scene):
         for (nodeKey, node) in self.nodeList.items():
-            obj = node.convert(scene)
-            if (node.parent == nvb_def.null):
-                if (node.name == self.name):
+            obj = node.addToScene(scene)
+            if (node.parentName == nvb_def.null):
+                if obj.name == self.name:
                     obj.nvb.dummytype = 'MDLROOT'
                     self.rootdummy = obj.name
                 else:
                     # Node without parent and not the mdl root. Problem ?
                     warnings.warn("WARNING: " + node.name + " has no parent.")
             else:
-                if node.parent in bpy.data.objects:
-                    obj.parent                = bpy.data.objects[node.parent]
+                if node.parentName in bpy.data.objects:
+                    obj.parent                = bpy.data.objects[node.parentName]
                     obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                 else:
                     #TODO: Try to resolve naming conflict
-                    warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parent + ")")
+                    warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parentName + ")")
 
         if not nvb_glob.minimapMode:
             for (animName, anim) in self.animList.items():
                 anim.addAnimToScene(scene, self.rootdummy)
 
 
+    def objectToNode(self, blenderObject, lineList):
+
+        for child in blenderObject:
+            objectToNode(child, lineList)
+
+
     def toAscii(self, rootDummyName = ''):
-        pass
+        if rootDummyName in bpy.data.objects:
+            rootDummy = bpy.data.objects[rootDummyName]
+
+        current_time = datetime.now()
+
+        header = []
+        header.append('# Exported from blender at ' + current_time.strftime('%A, %Y-%m-%d %H:%M'))
+        header.append('filedependancy' + ' ' + os.path.basename(bpy.data.filepath))
+        if rootDummy.nvb.dummyType == 'MDLBASE':
+            # Only for mdl rootdummys (i.e. not for pwk or dwk)
+            header.append('newmodel'          + ' ' + rootDummy.name)
+            header.append('setsupermodel'     + ' ' + rootDummy.name + ' ' + rootDummy.nvb.supermodel)
+            header.append('classification'    + ' ' + rootDummy.nvb.classification)
+            header.append('setanimationscale' + ' ' + str(round(rootDummy.nvb.animscale, 2)))
+
+        lineList = []
+        #self.objectToNode(rootDummy, lineList)
+
+
