@@ -29,5 +29,20 @@ def load(operator,
 
     return {'FINISHED'}
 
-def save():
-    pass
+
+def save(operator,
+         context,
+         filepath = '',
+         exports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+         useShadingGroups = True,
+         applyModifiers = True,
+         ):
+    '''
+    Called from blender ui
+    '''
+    nvb_glob.exports          = exports
+    nvb_glob.useShadingGroups = useShadingGroups
+    nvb_glob.appylModifiers   = applyModifiers
+
+
+    return {'FINISHED'}

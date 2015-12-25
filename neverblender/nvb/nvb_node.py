@@ -98,6 +98,10 @@ class GeometryNode():
         return obj
 
 
+    def addToAscii(self, blenderObject, asciiMdl):
+        pass
+
+
 class Dummy(GeometryNode):
     """
 
@@ -139,14 +143,6 @@ class Dummy(GeometryNode):
                 obj.nvb.dummytype = 'SPECIAL'
                 obj.nvb.dummysubtype = element[1]
                 break
-
-
-    def setDummyType(self, dummyType):
-        self.dummyType = dummyType
-
-
-    def getDummyType(self):
-        return self.dummyType
 
 
 class Patch(GeometryNode):
@@ -499,35 +495,31 @@ class Danglymesh(Trimesh):
 
 
     def getAsciiConstraints(self, asciiConstraints):
-        lfloat = float
+        l_float = float
         for line in asciiConstraints:
-            self.constraints.append(lfloat(line[0]))
+            self.constraints.append(l_float(line[0]))
 
 
-    def setConstraintGroup(obj):
+    def setConstraintGroup(self, obj):
         '''
         Creates a vertex group for the object to contain the vertex
         weights for the danglymesh. The weights are called "constraints"
         in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
         '''
         vgroup = obj.vertex_groups.new('constraints')
-        for vertex, constraint in enumerate(self.constraints):
+        for vertexIdx, constraint in enumerate(self.constraints):
             weight = constraint/255
-            vgroup.add(vertex, weight, 'REPLACE')
+            vgroup.add([vertexIdx], weight, 'REPLACE')
         obj.nvb.constraints = vgroup.name
 
 
     def setObjectData(self, obj):
-        Trimesh.setObjectData(obj)
+        Trimesh.setObjectData(self, obj)
 
         obj.nvb.period       = self.period
         obj.nvb.tightness    = self.tightness
         obj.nvb.displacement = self.displacement
         self.setConstraintGroup(obj)
-
-
-    def addToScene(self, scene):
-        Trimesh.addToScene(self, scene)
 
 
 class Skinmesh(Trimesh):
@@ -539,7 +531,7 @@ class Skinmesh(Trimesh):
         Trimesh.__init__(self, name)
         self.nodetype = 'SKIN'
 
-        self.meshtype = 'SKINMESH'
+        self.meshtype = 'SKIN'
         self.weights = []
 
 
@@ -576,26 +568,22 @@ class Skinmesh(Trimesh):
             self.weights.append(memberships)
 
 
-    def setSkinGroups(obj):
+    def setSkinGroups(self, obj):
         skinGroupDict = {}
-        for vertexId, vertexMemberships in enumerate(self.weights):
-            for membership in vertexMemberships:
+        for vertIdx, vertMemberships in enumerate(self.weights):
+            for membership in vertMemberships:
                 if membership[0] in skinGroupDict:
-                    skinGroupDict[membership[0]].add([vertexId], membership[1], 'REPLACE')
+                    skinGroupDict[membership[0]].add([vertIdx], membership[1], 'REPLACE')
                 else:
                     vgroup = obj.vertex_groups.new(membership[0])
                     skinGroupDict[membership[0]] = vgroup
-                    vgroup.add([vertexId], membership[1], 'REPLACE')
+                    vgroup.add([vertIdx], membership[1], 'REPLACE')
 
 
     def setObjectData(self, obj):
-        Trimesh.setObjectData(obj)
+        Trimesh.setObjectData(self, obj)
 
         self.setSkinGroups(obj)
-
-
-    def addToScene(self, scene):
-        Trimesh.addToScene(self, scene)
 
 
 class Emitter(GeometryNode):
@@ -662,7 +650,7 @@ class Emitter(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene)
+            return GeometryNode.convert(self, scene)
 
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
@@ -733,16 +721,21 @@ class Light(GeometryNode):
                 elif (label == 'fadinglight'):
                     self.fadinglight = l_int(line[1])
 
+    def createLamp(self, name):
+        lamp = bpy.data.lamps.new(name, 'POINT')
+
+        lamp.use_diffuse = self.ambientonly
+        lamp.color       = self.color
+        lamp.energy      = self.multiplier
+        lamp.distance    = self.radius
+        #obj.use_negative = self.negative # No effect ?
+        #obj.use_sphere   = True # No effect ?
+
+        return lamp
+
 
     def setObjectData(self, obj):
         GeometryNode.setObjectData(self, obj)
-
-        obj.use_diffuse = self.ambientonly
-        obj.color       = self.color
-        obj.energy      = self.multiplier
-        obj.distance    = self.radius
-        #obj.use_negative = self.negative # No effect ?
-        #obj.use_sphere   = True # No effect ?
 
         switch = {'ml1': 'MAINLIGHT1', \
                   'ml2': 'MAINLIGHT2', \
@@ -761,12 +754,12 @@ class Light(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene)
-
-        lamp = bpy.data.lamps.new(nodeName, 'POINT')
-        self.setObjectData(lamp)
-        scene.objects.link(lamp)
-        return lamp
+            return GeometryNode.convert(self, scene)
+        lamp = self.createLamp(self.name)
+        obj  = bpy.data.objects.new(self.name, lamp)
+        self.setObjectData(obj)
+        scene.objects.link(obj)
+        return obj
 
 
 class Aabb(Trimesh):
@@ -780,4 +773,46 @@ class Aabb(Trimesh):
 
         meshtype = 'AABB'
 
+
+    def createMesh(self, name):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(name)
+        mesh.vertices.add(len(self.verts))
+        mesh.vertices.foreach_set('co', unpack_list(self.verts))
+        mesh.tessfaces.add(len(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+
+        # Create materials
+        for wokMat in nvb_def.wok_materials:
+            matName = wokMat[0]
+            # Walkmesh materials will be shared across multiple walkmesh
+            # objects
+            if matName in bpy.data.materials:
+                material = bpy.data.materials[matName]
+            else:
+                material = bpy.data.materials.new(matName)
+                material.diffuse_color      = wokMat[1]
+                material.diffuse_intensity  = 1.0
+                material.specular_color     = (0.0,0.0,0.0)
+                material.specular_intensity = wokMat[2]
+            mesh.materials.append(material)
+
+        # Apply the walkmesh materials to each face
+        for idx, face in enumerate(mesh.tessfaces):
+            face.material_index = self.facelist.matId[idx]
+
+        mesh.update()
+        return mesh
+
+
+    def addToScene(self, scene):
+        if nvb_glob.minimapMode:
+            # No walkmeshes in minimap mode and we don't need an empty as
+            # replacement either as AABB nodes never have children
+            return
+        mesh = self.createMesh(self.name)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        self.setObjectData(obj)
+        scene.objects.link(obj)
+        return obj
 

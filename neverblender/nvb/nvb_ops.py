@@ -132,7 +132,7 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default=False,
             )
 
-    # Hidden option, only used for minimap creation
+    # Hidden option, only used for batch minimap creation
     minimapMode = bpy.props.BoolProperty(
             name = 'Minimap Mode',
             description = 'Ignore lights and fading objects',
@@ -159,13 +159,14 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             options = {'HIDDEN'},
             )
 
-    selection = bpy.props.EnumProperty(
+    exports = bpy.props.EnumProperty(
             name = 'Export',
-            items = (('ALL', 'All', ''),
-                     ('SELECTION', 'Selection only', ''),
-                     ('LAYER','Active layers', ''),
-                    ),
-            default = 'ALL',
+            options = {'ENUM_FLAG'},
+            items = (('GEOMETRY', 'Geometry', 'Export dummys and meshes'),
+                     ('ANIMATION', 'Animations', 'Export animations'),
+                     ('WALKMESH', 'Walkmesh', 'Create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
+                     ),
+            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
             )
 
     shadingGroups = bpy.props.BoolProperty(
@@ -175,17 +176,9 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default=True,
             )
 
-    createWalkmesh = bpy.props.BoolProperty(
-            name='Create walkmesh',
-            description='Create walkmesh, if applicable' \
-                        '(.pwk, .dwk or .wok depending on classification)',
-            default=True,
-            )
-
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
-            description='Apply Modifiers before exporting.' \
-                        '(When disabled, every face belongs to the same group)',
+            description='Apply Modifiers before exporting.',
             default=True,
             )
 

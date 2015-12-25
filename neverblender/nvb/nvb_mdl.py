@@ -105,34 +105,65 @@ class Mdl():
                     #TODO: Try to resolve naming conflict
                     warnings.warn("WARNING: " + obj.name + " has no parent (" + node.parentName + ")")
 
-        if not nvb_glob.minimapMode:
+        if ('ANIMATION' in nvb_glob.imports) and (not nvb_glob.minimapMode):
             for (animName, anim) in self.animList.items():
                 anim.addAnimToScene(scene, self.rootdummy)
 
 
-    def objectToNode(self, blenderObject, lineList):
+    def geometryToAscii(self, bObject, asciiLines, nodeList):
+
+        nodeType = nvb_utils.getNodeType(bObject)
+        switch = {'dummy':      nvb_node.Dummy, \
+                  'patch':      nvb_node.Patch, \
+                  'reference':  nvb_node.Reference, \
+                  'trimesh':    nvb_node.Trimesh,  \
+                  'danglymesh': nvb_node.Danglymesh, \
+                  'skin':       nvb_node.Skinmesh, \
+                  'emitter':    nvb_node.Emitter, \
+                  'light':      nvb_node.Light, \
+                  'aabb':       nvb_node.Aabb}
+        try:
+            node = switch[nodeType]()
+        except KeyError:
+            raise nvb_def.MalformedMdlFile('Invalid node type')
 
         for child in blenderObject:
-            objectToNode(child, lineList)
+            geometryToAscii(child, asciiMdl)
 
 
-    def toAscii(self, rootDummyName = ''):
+    def animationsToAscii(self, nodeList, asciiLines):
+        for scene in bpy.data.scenes:
+            pass
+
+
+    def generateAscii(self, rootDummyName = ''):
         if rootDummyName in bpy.data.objects:
             rootDummy = bpy.data.objects[rootDummyName]
 
         current_time = datetime.now()
 
-        header = []
-        header.append('# Exported from blender at ' + current_time.strftime('%A, %Y-%m-%d %H:%M'))
-        header.append('filedependancy' + ' ' + os.path.basename(bpy.data.filepath))
-        if rootDummy.nvb.dummyType == 'MDLBASE':
-            # Only for mdl rootdummys (i.e. not for pwk or dwk)
-            header.append('newmodel'          + ' ' + rootDummy.name)
-            header.append('setsupermodel'     + ' ' + rootDummy.name + ' ' + rootDummy.nvb.supermodel)
-            header.append('classification'    + ' ' + rootDummy.nvb.classification)
-            header.append('setanimationscale' + ' ' + str(round(rootDummy.nvb.animscale, 2)))
+        # The Names of exported geometry nodes. We'll need this to find
+        # the nodes in the animations
+        nodeList = []
 
-        lineList = []
-        #self.objectToNode(rootDummy, lineList)
+        lines = []
+        # Header
+        lines.append('# Exported from blender at ' + current_time.strftime('%A, %Y-%m-%d %H:%M'))
+        lines.append('filedependancy ' + os.path.basename(bpy.data.filepath))
+        lines.append('newmodel ' + rootDummy.name)
+        lines.append('setsupermodel ' + rootDummy.name + ' ' + rootDummy.nvb.supermodel)
+        lines.append('classification ' + rootDummy.nvb.classification)
+        lines.append('setanimationscale ' + str(round(rootDummy.nvb.animscale, 2)))
+        # Geometry
+        lines.append('beginmodelgeom ' + rootDummy.name)
+        self.geometryToAscii(rootDummy, lines)
+        lines.append('endmodelgeom ' + rootDummy.name)
+        # Animations
+        lines.append('ANIM ASCII')
+        self.animationsToAscii(lines)
+        # The End
+        lines.append('donemodel ' + rootDummy.name)
 
 
+class Xwk(Mdl):
+    pass

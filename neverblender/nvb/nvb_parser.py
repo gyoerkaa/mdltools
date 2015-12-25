@@ -7,6 +7,7 @@ import bpy
 from . import nvb_mdl
 from . import nvb_node
 from . import nvb_anim
+from . import nvb_glob
 
 
 class Parser():
@@ -20,9 +21,11 @@ class Parser():
 
     def load(self, mdlFilepath):
         self.parseMdl(mdlFilepath)
-        self.parseWalkmesh(mdlFilepath)
         self.mdl.addMdlToScene(self.scene)
-        self.xwk.addMdlToScene(self.scene)
+
+        if 'WALKMESH' in nvb_glob.imports:
+            self.parseWalkmesh(mdlFilepath)
+            self.xwk.addMdlToScene(self.scene)
 
         self.scene.update()
 

@@ -15,21 +15,37 @@ def isNumber(s):
         return True
 
 
+def getNodeType(bObject):
+    '''
+    get the node type (dummy, trimesh, skin) of the bpy object
+    '''
+    objType  = bObject.type
+    nodeType = 'dummy'
+    if objType == 'EMPTY':
+        pass
+    elif objType == 'MESH':
+        pass
+    elif objType == 'LAMP':
+        pass
+
+    return nodeType
+
+
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def setRotationAurora(object, auroraRot):
+def setRotationAurora(obj, auroraRot):
 
     # Save old rotation mode so we are able restore it afterwars
-    oldRotMode = object.rotation_mode
+    oldRotMode = obj.rotation_mode
     # Change to axis-angle mode, else the change will not show
     # in 3D view
-    object.rotation_mode = 'AXIS_ANGLE'
-    object.rotation_axis_angle = [auroraRot[3], \
-                                  auroraRot[0], \
-                                  auroraRot[1], \
-                                  auroraRot[2]]
+    obj.rotation_mode = 'AXIS_ANGLE'
+    obj.rotation_axis_angle = [ auroraRot[3], \
+                                auroraRot[0], \
+                                auroraRot[1], \
+                                auroraRot[2] ]
 
 
 def get_image_filename(image):
@@ -62,16 +78,16 @@ def getRotationAurora2(trans_mat):
     return auroraRot
 
 
-def getRotationAurora(object):
+def getRotationAurora(obj):
     auroraRot    = [0.0, 0.0, 0.0, 0.0]
-    oldRotMode = object.rotation_mode
+    oldRotMode = obj.rotation_mode
 
-    object.rotation_mode = 'AXIS_ANGLE'
-    auroraRot[0] = object.rotation_axis_angle[1]
-    auroraRot[1] = object.rotation_axis_angle[2]
-    auroraRot[2] = object.rotation_axis_angle[3]
-    auroraRot[3] = object.rotation_axis_angle[0]
-    object.rotation_mode = oldRotMode
+    obj.rotation_mode = 'AXIS_ANGLE'
+    auroraRot[0] = obj.rotation_axis_angle[1]
+    auroraRot[1] = obj.rotation_axis_angle[2]
+    auroraRot[2] = obj.rotation_axis_angle[3]
+    auroraRot[3] = obj.rotation_axis_angle[0]
+    obj.rotation_mode = oldRotMode
 
     return auroraRot
 
@@ -144,27 +160,6 @@ def nwangle2euler(nwangle):
         pass
 
     return eulerRot
-
-
-def getIsMdlBase(object):
-    if (object is not None):
-        if (object.parent is None) and \
-           (object.type == 'EMPTY') and \
-           (object.auroraprops.dummytype == 'MDLBASE'):
-            return True
-
-    return False
-
-
-def get_mdlbase(scene):
-    if scene is None:
-        return None
-
-    for object in scene.objects:
-        if getIsMdlBase(object):
-                return object
-
-    return None
 
 
 def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
