@@ -98,8 +98,10 @@ class GeometryNode():
         return obj
 
 
-    def addToAscii(self, blenderObject, asciiMdl):
-        pass
+    def addToAscii(self, bObject, asciiLines, exportObjects = [], level = 0):
+        pad = ''
+        asciiLines.append(pad + 'node ' + self.nodetype + ' ' + self.name)
+        asciiLines.append(pad + 'endnode')
 
 
 class Dummy(GeometryNode):

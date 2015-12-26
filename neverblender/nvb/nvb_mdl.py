@@ -110,7 +110,7 @@ class Mdl():
                 anim.addAnimToScene(scene, self.rootdummy)
 
 
-    def geometryToAscii(self, bObject, asciiLines, nodeList):
+    def geometryToAscii(self, bObject, asciiLines, exportObjects, level = 0):
 
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy, \
@@ -128,7 +128,7 @@ class Mdl():
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
         for child in blenderObject:
-            geometryToAscii(child, asciiMdl)
+            geometryToAscii(child, asciiLines, exportObjects, level+1)
 
 
     def animationsToAscii(self, nodeList, asciiLines):
@@ -139,12 +139,14 @@ class Mdl():
     def generateAscii(self, rootDummyName = ''):
         if rootDummyName in bpy.data.objects:
             rootDummy = bpy.data.objects[rootDummyName]
+        else:
+            rootDummy = nvb.utils.getRootdummy()
 
         current_time = datetime.now()
 
-        # The Names of exported geometry nodes. We'll need this to find
-        # the nodes in the animations
-        nodeList = []
+        # The Names of exported geometry nodes. We'll need this for skinmeshes
+        # and animations
+        exportObjects = []
 
         lines = []
         # Header
@@ -156,11 +158,11 @@ class Mdl():
         lines.append('setanimationscale ' + str(round(rootDummy.nvb.animscale, 2)))
         # Geometry
         lines.append('beginmodelgeom ' + rootDummy.name)
-        self.geometryToAscii(rootDummy, lines)
+        self.geometryToAscii(rootDummy, asciiLines, exportObjects)
         lines.append('endmodelgeom ' + rootDummy.name)
         # Animations
         lines.append('ANIM ASCII')
-        self.animationsToAscii(lines)
+        self.animationsToAscii(rootDummy, asciiLines, exportObjects)
         # The End
         lines.append('donemodel ' + rootDummy.name)
 

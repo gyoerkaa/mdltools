@@ -15,6 +15,15 @@ def isNumber(s):
         return True
 
 
+def getRootdummy():
+    for obj in bpy.data.objects:
+        if obj.type == 'EMPTY':
+            if (obj.nvb.dummytype == 'MDLROOT') and (not obj.nvb.isanimation):
+                return obj
+
+    return None
+
+
 def getNodeType(bObject):
     '''
     get the node type (dummy, trimesh, skin) of the bpy object
