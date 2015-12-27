@@ -110,7 +110,7 @@ class Mdl():
                 anim.addAnimToScene(scene, self.rootdummy)
 
 
-    def geometryToAscii(self, bObject, asciiLines, exportObjects, level = 0):
+    def geometryToAscii(self, bObject, asciiLines, validExports, level = 0):
 
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy, \
@@ -127,13 +127,18 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        for child in blenderObject:
-            geometryToAscii(child, asciiLines, exportObjects, level+1)
+        node.addToAscii(bObject, asciiLines, validExports, level)
+
+        for child in bObject.children:
+            geometryToAscii(child, asciiLines, validExports, level+1)
 
 
-    def animationsToAscii(self, nodeList, asciiLines):
+    def animationsToAscii(self, nodeList, asciiLines, validExports):
         for scene in bpy.data.scenes:
-            pass
+            animRootDummy = nvb_utils.getAnimationRootdummy(scene)
+            if animRootDummy:
+                # TODO
+                pass
 
 
     def generateAscii(self, rootDummyName = ''):
@@ -146,7 +151,8 @@ class Mdl():
 
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
-        exportObjects = []
+        validExports = []
+        nvb_utils.getValidExports(rootDummy, validExports)
 
         lines = []
         # Header
@@ -158,11 +164,11 @@ class Mdl():
         lines.append('setanimationscale ' + str(round(rootDummy.nvb.animscale, 2)))
         # Geometry
         lines.append('beginmodelgeom ' + rootDummy.name)
-        self.geometryToAscii(rootDummy, asciiLines, exportObjects)
+        self.geometryToAscii(rootDummy, asciiLines, validExports)
         lines.append('endmodelgeom ' + rootDummy.name)
         # Animations
         lines.append('ANIM ASCII')
-        self.animationsToAscii(rootDummy, asciiLines, exportObjects)
+        self.animationsToAscii(rootDummy, asciiLines, validExports)
         # The End
         lines.append('donemodel ' + rootDummy.name)
 

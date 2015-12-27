@@ -98,16 +98,16 @@ class GeometryNode():
         return obj
 
 
-    def addToAscii(self, bObject, asciiLines, exportObjects = [], level = 0):
+    def addToAscii(self, bObject, asciiLines, exportObjects = [], numPad = 0):
         pad = ''
         asciiLines.append(pad + 'node ' + self.nodetype + ' ' + self.name)
         asciiLines.append(pad + 'endnode')
 
 
 class Dummy(GeometryNode):
-    """
+    '''
 
-    """
+    '''
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
         self.nodetype  = 'DUMMY'

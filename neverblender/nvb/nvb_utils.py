@@ -15,12 +15,26 @@ def isNumber(s):
         return True
 
 
+def getValidExports(rootDummy = None, validExports = []):
+    validExports.append(rootDummy.name)
+    for child in rootDummy.children:
+        getValidExports(child, validExports)
+
+
+def getAnimationRootdummy(animScene):
+    if animScene:
+        for obj in animScene.objects:
+            if obj.type == 'EMPTY':
+                if (obj.nvb.dummytype == 'MDLROOT') and (obj.nvb.isanimation):
+                    return obj
+    return None
+
+
 def getRootdummy():
     for obj in bpy.data.objects:
         if obj.type == 'EMPTY':
             if (obj.nvb.dummytype == 'MDLROOT') and (not obj.nvb.isanimation):
                 return obj
-
     return None
 
 
