@@ -58,11 +58,10 @@ class Parser():
             # Placeable and door walkmeshes don't contain a rootdummy.
             # We need one, so we make one ourselves
             rootDummyName = self.mdl.name + '_' + walkmeshType
-            rootDummy = nvb_node.Dummy(rootDummyName)
             if walkmeshType == 'dwk':
-                rootDummy.setDummyType('DWKROOT')
+                rootDummy = nvb_node.Dummy(rootDummyName, 'DWKROOT')
             else:
-                rootDummy.setDummyType('PWKROOT')
+                rootDummy = nvb_node.Dummy(rootDummyName, 'PWKROOT')
             self.xwk.addNode(rootDummy)
 
             # Parse the walkmesh

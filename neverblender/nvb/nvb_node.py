@@ -20,7 +20,7 @@ class GeometryNode():
     Basic node from which every other is derived
     """
     def __init__(self, name = 'UNNAMED'):
-        self.nodetype = 'UNDEFINED'
+        self.nodetype = 'undefined'
 
         self.name        = name
         self.parentName  = nvb_def.null
@@ -32,7 +32,6 @@ class GeometryNode():
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
         self.objref   = ''
-
 
 
     def __eq__(self, other):
@@ -98,21 +97,47 @@ class GeometryNode():
         return obj
 
 
-    def addToAscii(self, bObject, asciiLines, exportObjects = [], numPad = 0):
-        pad = ''
-        asciiLines.append(pad + 'node ' + self.nodetype + ' ' + self.name)
-        asciiLines.append(pad + 'endnode')
+    def addDataToAscii(self, bObject, asciiLines, exportObjects = []):
+        self.position    = (0.0, 0.0, 0.0)
+        self.orientation = (0.0, 0.0, 0.0, 0.0)
+        self.scale       = 1.0
+        self.wirecolor   = (0.0, 0.0, 0.0) #Unused ?
+        if bObject.parent:
+            asciiLines.append('  parent ' + bObject.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
+        loc = bObject.location
+        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
+                                          str(round(loc[1], 5)) + ' ' +
+                                          str(round(loc[2], 5)) )
+        rot = nvb_utils.getRotationAurora(bObject)
+        ascii_node.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
+                                             str(round(rot[1], 5)) + ' ' +
+                                             str(round(rot[2], 5)) + ' ' +
+                                             str(round(rot[3], 5)) )
+        scale = nvb_utils.getScaleAurora(bObject)
+        ascii_node.append('  scale ' + str(round(scale, 5)) )
+        color = bObject.nvb.wirecolor
+        ascii_node.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
+                                           str(round(color[1], 2)) + ' ' +
+                                           str(round(color[2], 2))  )
+
+
+    def addToAscii(self, bObject, asciiLines, exportObjects = []):
+        asciiLines.append('node ' + self.nodetype + ' ' + self.name)
+        self.addAsciiData(bObject, asciiLines, exportObjects)
+        asciiLines.append('endnode')
 
 
 class Dummy(GeometryNode):
     '''
 
     '''
-    def __init__(self, name = 'UNNAMED'):
+    def __init__(self, name = 'UNNAMED', dummytype = 'NONE'):
         GeometryNode.__init__(self, name)
-        self.nodetype  = 'DUMMY'
+        self.nodetype  = 'dummy'
 
-        self.dummytype = 'NONE'
+        self.dummytype = dummytype
 
 
     def getFromAscii(self, asciiNode):
@@ -153,7 +178,7 @@ class Patch(GeometryNode):
     '''
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
-        self.nodetype = 'PATCH'
+        self.nodetype = 'patch'
 
         self.dummytype = 'PATCH'
 
@@ -170,11 +195,12 @@ class Reference(GeometryNode):
     '''
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
-        self.nodetype = 'REFERENCE'
+        self.nodetype = 'reference'
 
         self.refmodel     = nvb_def.null
         self.reattachable = 0
 
+        self.dummytype = 'REFERENCE'
 
     def getFromAscii(self, asciiNode):
         GeometryNode.getFromAscii(self, asciiNode)
@@ -195,9 +221,15 @@ class Reference(GeometryNode):
 
     def setObjectData(self, obj):
         GeometryNode.setObjectData(self, obj)
-        obj.nvb.dummytype = 'REFERENCE'
+        obj.nvb.dummytype    = self.dummyType
         obj.nvb.refmodel     = self.refmodel
         obj.nvb.reattachable = (self.reattachable == 1)
+
+
+    def addDataToAscii(self, bObject, asciiLines, exportObjects = []):
+        GeometryNode.addAsciiData(self, bObject, asciiLines, exportObjects)
+        ascii_node.append('  refmodel ' + obj.nvb.refmodel)
+        ascii_node.append('  reattachable ' + str(obj.nvb.reattachable))
 
 
 class Trimesh(GeometryNode):
@@ -206,7 +238,7 @@ class Trimesh(GeometryNode):
     """
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
-        self.nodetype = 'TRIMESH'
+        self.nodetype = 'trimesh'
 
         self.center           = (0.0, 0.0, 0.0) # Unused ?
         self.tilefade         = 0
@@ -293,7 +325,10 @@ class Trimesh(GeometryNode):
                 elif (label == 'shininess'):
                     self.shininess = l_int(l_float(line[1]))
                 elif (label == 'center'):
-                    pass # TODO # Unused ?
+                    # TODO: Unused ? Becuase we don't do anything with this
+                    self.center = ( l_float(line[1]),
+                                    l_float(line[2]),
+                                    l_float(line[3]) )
                 elif (label == 'bitmap'):
                     self.bitmap = line[1]
                 elif (label == 'verts'):
@@ -456,13 +491,41 @@ class Trimesh(GeometryNode):
         return obj
 
 
+    def addDataToAscii(self, bObject, asciiLines, exportObjects = []):
+        GeometryNode.addAsciiData(self, bObject, asciiLines, exportObjects)
+
+        color = bObject.nvb.ambientcolor
+        asciiLines.append('  ambient ' +   str(round(color[0], 2)) + ' ' +
+                                           str(round(color[1], 2)) + ' ' +
+                                            str(round(color[2], 2))  )
+        #TODO: Get Texture name, diffuse and specular from material
+        asciiLines.append('  shininess ' + str(obj.nvb.shininess))
+
+        color = bObject.nvb.selfillumcolor
+        asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
+                                                str(round(color[1], 2)) + ' ' +
+                                                str(round(color[2], 2))  )
+
+        asciiLines.append('  render ' + str(obj.nvb.render))
+        asciiLines.append('  shadow ' + str(obj.nvb.shadow))
+        asciiLines.append('  beaming ' + str(obj.nvb.beaming))
+        asciiLines.append('  inheritcolor ' + str(obj.nvb.inheritcolor))
+        asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
+        # TODO: Tiles only
+        asciiLines.append('  rotatetexture ' + str(obj.nvb.rotatetexture))
+        asciiLines.append('  tilefade ' + str(obj.nvb.tilefade))
+        # TODO: Verts, faces and tverts
+
+        mesh = bObject.to_mesh(glob_export_scene, True, 'RENDER')
+
+
 class Danglymesh(Trimesh):
     """
 
     """
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'DANGLYMESH'
+        self.nodetype = 'danglymesh'
 
         self.meshtype     = 'DANGLYMESH'
         self.period       = 1.0
@@ -531,7 +594,7 @@ class Skinmesh(Trimesh):
     """
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'SKIN'
+        self.nodetype = 'skin'
 
         self.meshtype = 'SKIN'
         self.weights = []
@@ -591,7 +654,7 @@ class Skinmesh(Trimesh):
 class Emitter(GeometryNode):
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
-        self.nodetype = 'EMITTER'
+        self.nodetype = 'emitter'
 
         self.meshtype = 'EMITTER'
         self.xsize    = 2
@@ -666,7 +729,7 @@ class Emitter(GeometryNode):
 class Light(GeometryNode):
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
-        self.nodetype = 'LIGHT'
+        self.nodetype = 'light'
 
         self.shadow           = 1
         self.radius           = 5.0
@@ -771,7 +834,7 @@ class Aabb(Trimesh):
     '''
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        nodetype = 'AABB'
+        nodetype = 'aabb'
 
         meshtype = 'AABB'
 

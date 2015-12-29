@@ -5,3 +5,5 @@ minimapMode      = False
 texturePath   = ''
 textureSingle = True
 textureSearch = False
+
+scene = None

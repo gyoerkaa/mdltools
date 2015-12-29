@@ -176,20 +176,16 @@ class Node():
         action               = bpy.data.actions.new(name=actionName)
         action.use_fake_user = True
 
-        # Set rotation = orientation if not empty.
         if (self.keys.orientation):
-            # In mdl format the angle is the last value, in
-            # blender it must the first
-            curve = action.fcurves.new(data_path='rotation_axis_angle', index=0)
+            curveX = action.fcurves.new(data_path='rotation_euler', index=0)
+            curveY = action.fcurves.new(data_path='rotation_euler', index=1)
+            curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
             for key in self.keys.orientation:
-                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[4])
-
-            # Now set the axes
-            for i in range(1,4):
-                curve = action.fcurves.new(data_path='rotation_axis_angle', index=i)
-                for key in self.keys.orientation:
-                    frame = nvb_utils.nwtime2frame(key[0])
-                    curve.keyframe_points.insert(frame, key[i])
+                frame = nvb_utils.nwtime2frame(key[0])
+                eul   = nvb_utils.nwangle2euler(key[1:])
+                curveX.keyframe_points.insert(frame, eul[0])
+                curveY.keyframe_points.insert(frame, eul[1])
+                curveZ.keyframe_points.insert(frame, eul[2])
 
         # Set location channels if there are location keys
         if (self.keys.position):

@@ -57,7 +57,7 @@ def getNodeType(bObject):
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
-
+'''
 def setRotationAurora(obj, auroraRot):
 
     # Save old rotation mode so we are able restore it afterwars
@@ -69,6 +69,8 @@ def setRotationAurora(obj, auroraRot):
                                 auroraRot[0], \
                                 auroraRot[1], \
                                 auroraRot[2] ]
+'''
+
 
 
 def get_image_filename(image):
@@ -88,31 +90,66 @@ def get_is_shadinggr(vertex_group):
     return (nvb_def.shading_group_name in vertex_group.name)
 
 
-def getRotationAurora2(trans_mat):
-    auroraRot    = [0.0, 0.0, 0.0, 0.0]
+def setRotationAurora(obj, nwangle):
+    rotMode = obj.rotation_mode
+    if   rotMode == "QUATERNION":
+        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
+        obj.rotation_quaternion = q
+    elif rotMode == "AXIS_ANGLE":
+        obj.rotation_axis_angle = [ auroraRot[3], \
+                                    auroraRot[0], \
+                                    auroraRot[1], \
+                                    auroraRot[2] ]
+    else: # Has to be euler
+        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
+        eul = q.to_euler(rotMode)
+        obj.rotation_euler = eul
 
-    aa = trans_mat.to_quaternion().to_axis_angle()
 
-    auroraRot[0] = aa[1]
-    auroraRot[1] = aa[2]
-    auroraRot[2] = aa[3]
-    auroraRot[3] = aa[0]
+def getAuroraRotFromObject(obj):
+    '''
+    Get the rotation from an object as Axis Angle in the format used by NWN
+    NWN uses     [X, Y, Z, Angle]
+    Blender uses [Angle, X, Y, Z]
+    Depending on rotation_mode we have to get the rotation from different
+    attributes
+    '''
+    rotMode = obj.rotation_mode
 
-    return auroraRot
+    if   rotMode == "QUATERNION":
+        q = obj.rotation_quaternion
+        return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+    elif rotMode == "AXIS_ANGLE":
+        aa = obj.rotation_axis_angle
+        return [aa[1], aa[2], aa[3], aa[0]]
+    else: # Has to be Euler
+        eul = obj.rotation_euler
+        q   = eul.to_quaternion()
+        return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+
+    return [0.0, 0.0, 0.0, 0.0]
 
 
-def getRotationAurora(obj):
-    auroraRot    = [0.0, 0.0, 0.0, 0.0]
-    oldRotMode = obj.rotation_mode
+def getAuroraRotFromMatrix(matrix):
+    '''
+    Get the rotation from a 4x4 matrix as Axis Angle in the format used by NWN
+    NWN uses     [X, Y, Z, Angle]
+    Blender uses [Angle, X, Y, Z]
+    '''
+    q = matrix.to_quaternion()
+    return [q.axis[1], q.axis[2], q.axis[3], q.angle]
 
-    obj.rotation_mode = 'AXIS_ANGLE'
-    auroraRot[0] = obj.rotation_axis_angle[1]
-    auroraRot[1] = obj.rotation_axis_angle[2]
-    auroraRot[2] = obj.rotation_axis_angle[3]
-    auroraRot[3] = obj.rotation_axis_angle[0]
-    obj.rotation_mode = oldRotMode
 
-    return auroraRot
+def getAuroraScale(obj):
+    '''
+    If the scale is uniform, i.e, x=y=z, we will return
+    the value. Else we'll return 1.
+    '''
+    scale = obj.scale
+    if (scale[0] == scale[1] == scale[2]):
+        return scale[0]
+
+    return 1.0
 
 
 def nwtime2frame(time, fps = nvb_def.fps):
@@ -126,63 +163,14 @@ def frame2nwtime(frame, fps = nvb_def.fps):
     return round(frame / fps, 7)
 
 
-def euler2nwangle(eulerangle):
-
-    nwangle = (0.0, 0.0, 0.0, 0.0)
-
-    # Euler to quaternion
-    tmp = eulerangle[0]/2.0
-    cx = math.cos(tmp)
-    sx = math.sin(tmp)
-
-    tmp = eulerangle[1]/2.0
-    cy = math.cos(tmp)
-    sy = math.sin(tmp)
-
-    tmp = eulerangle[2]/2.0
-    cz  = math.cos(tmp)
-    sz  = math.sin(tmp)
-
-    qw = cx*cy*cz - sx*sy*sz
-    qx = sx*cy*cz - cx*sy*sz
-    qy = cx*sy*cz + sx*cy*sz
-    qz = cx*cy*sz + sx*sy*cz
-
-    # Quaternion to axis/angle
-    phi2 = math.acos(qw)
-    if (phi2 != 0.0):
-        tmp = 1/math.sin(phi2)
-        nwangle = (tmp * qx, tmp * qy, tmp * qz, 2.0 * phi2)
-
-    return nwangle
+def euler2nwangle(eul):
+    q = eul.to_quaternion()
+    return [q.axis[1], q.axis[2], q.axis[3], q.angle]
 
 
 def nwangle2euler(nwangle):
-    eulerRot = [0.0,0.0,0.0]
-
-    try:
-        # Axis-angle to quaternion
-        phi2 = 0.5 * nwangle[3]
-
-        tmp = math.sin(phi2)
-        qx = nwangle[0]*tmp
-        qy = nwangle[1]*tmp
-        qz = nwangle[2]*tmp
-        qw = math.cos(phi2)
-
-        # Quaternion to euler
-        tmp = qx * qx - qz * qz
-        r =(qw*qw + tmp - qy*qy)
-
-        phi_z = math.atan2(2.0 * (qx*qy + qw*qz), r)
-        phi_y = math.asin( 2.0 * (qw*qy - qx*qz))
-        phi_x = math.atan2(2.0 * (qw*qx + qy*qz), r-  2.0 * tmp)
-
-        eulerRot = [phi_x, phi_y, phi_z]
-    except:
-        pass
-
-    return eulerRot
+    q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
+    return q.to_euler()
 
 
 def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
