@@ -7,3 +7,4 @@ textureSingle = True
 textureSearch = False
 
 scene = None
+applyModifiers = True

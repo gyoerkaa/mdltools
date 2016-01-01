@@ -98,10 +98,6 @@ class GeometryNode():
 
 
     def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        self.position    = (0.0, 0.0, 0.0)
-        self.orientation = (0.0, 0.0, 0.0, 0.0)
-        self.scale       = 1.0
-        self.wirecolor   = (0.0, 0.0, 0.0) #Unused ?
         if bObject.parent:
             asciiLines.append('  parent ' + bObject.parent.name)
         else:
@@ -111,14 +107,14 @@ class GeometryNode():
                                           str(round(loc[1], 5)) + ' ' +
                                           str(round(loc[2], 5)) )
         rot = nvb_utils.getRotationAurora(bObject)
-        ascii_node.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
+        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
                                              str(round(rot[1], 5)) + ' ' +
                                              str(round(rot[2], 5)) + ' ' +
                                              str(round(rot[3], 5)) )
         scale = nvb_utils.getScaleAurora(bObject)
-        ascii_node.append('  scale ' + str(round(scale, 5)) )
+        asciiLines.append('  scale ' + str(round(scale, 5)) )
         color = bObject.nvb.wirecolor
-        ascii_node.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
+        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
                                            str(round(color[2], 2))  )
 
@@ -589,7 +585,7 @@ class Trimesh(GeometryNode):
 
 
     def addMeshDataToAscii(self, bObject, asciiLines, textured):
-        mesh = bObject.to_mesh(glob_export_scene, True, 'RENDER')
+        mesh = bObject.to_mesh(nvb_glob.scene, True, 'RENDER')
 
         faceList = [] # List of triangle faces
         uvList   = [] # List of uv indices
@@ -1106,9 +1102,117 @@ class Aabb(Trimesh):
 
         meshtype = 'AABB'
 
+    def addAABBToAscii(bObject, asciiLines):
 
-    def addMeshDataToAscii(self, bObject, asciiLines):
-        mesh = bObject.to_mesh(glob_export_scene, True, 'RENDER')
+        walkmesh = bObject.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'PREVIEW')
+        pass
+        '''
+        # Grab all vertices
+        vert_list = []
+        for vertex in walkmesh.vertices:
+            vert_list.append((vertex.co[0], vertex.co[1], vertex.co[2]))
+
+        face_list     = []
+        face_idx      = 0
+        for tessface in walkmesh.tessfaces:
+            if (len(tessface.vertices) == 3):
+                v0_idx = tessface.vertices[0]
+                v1_idx = tessface.vertices[1]
+                v2_idx = tessface.vertices[2]
+
+                face_centroid = mathutils.Vector((walkmesh.vertices[v0_idx].co + walkmesh.vertices[v1_idx].co + walkmesh.vertices[v2_idx].co)/3)
+                face_list.append((face_idx, [walkmesh.vertices[v0_idx].co, walkmesh.vertices[v1_idx].co, walkmesh.vertices[v2_idx].co], face_centroid))
+                face_idx += 1
+
+            elif (len(tessface.vertices) == 4):
+                #Quad
+                if (glob_triangulate):
+                    v0_idx = tessface.vertices[0]
+                    v1_idx = tessface.vertices[1]
+                    v2_idx = tessface.vertices[2]
+                    v3_idx = tessface.vertices[3]
+
+                    face_centroid = mathutils.Vector((walkmesh.vertices[v0_idx].co + walkmesh.vertices[v1_idx].co + walkmesh.vertices[v2_idx].co)/3)
+                    face_list.append((face_idx, [walkmesh.vertices[v0_idx].co, walkmesh.vertices[v1_idx].co, walkmesh.vertices[v2_idx].co], face_centroid))
+                    face_idx += 1
+
+                    face_centroid = mathutils.Vector((walkmesh.vertices[v2_idx].co + walkmesh.vertices[v3_idx].co + walkmesh.vertices[v0_idx].co)/3)
+                    face_list.append((face_idx, [walkmesh.vertices[v2_idx].co, walkmesh.vertices[v3_idx].co, walkmesh.vertices[v0_idx].co], face_centroid))
+                    face_idx += 1
+                else:
+                    # This is a Quad and we are not allowed to triangulate: We are unable export this
+                    print('WARNING: Quad in walkmesh. Unable to generate aabb, triangulation required (manual or activate export option)')
+                    return []
+            else:
+                # Ngon or no polygon at all (This should never be the case with tessfaces)
+                print('WARNING: Ngon in walkmesh. Unable to generate aabb.')
+                return []
+
+        aabb_tree = []
+        generate_aabbtree(aabb_tree, face_list)
+
+        ascii_tree = []
+        if aabb_tree:
+            tree_node = aabb_tree.pop(0)
+            ascii_tree.append('  aabb  ' +
+                              ' ' +
+                              str(round(tree_node[0], glob_aabb_digits)) +
+                              ' ' +
+                              str(round(tree_node[1], glob_aabb_digits)) +
+                              ' ' +
+                              str(round(tree_node[2], glob_aabb_digits)) +
+                              ' ' +
+                              str(round(tree_node[3], glob_aabb_digits)) +
+                              ' ' +
+                              str(round(tree_node[4], glob_aabb_digits)) +
+                              ' ' +
+                              str(round(tree_node[5], glob_aabb_digits)) +
+                              ' ' +
+                              str(tree_node[6]) )
+            for tree_node in aabb_tree:
+                ascii_tree.append('    ' +
+                                  str(round(tree_node[0], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(round(tree_node[1], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(round(tree_node[2], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(round(tree_node[3], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(round(tree_node[4], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(round(tree_node[5], glob_aabb_digits)) +
+                                  ' ' +
+                                  str(tree_node[6]) )
+
+        return ascii_tree
+        '''
+
+    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        if bObject.parent:
+            asciiLines.append('  parent ' + bObject.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
+        loc = bObject.location
+        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
+                                          str(round(loc[1], 5)) + ' ' +
+                                          str(round(loc[2], 5)) )
+        rot = nvb_utils.getRotationAurora(bObject)
+        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
+                                             str(round(rot[1], 5)) + ' ' +
+                                             str(round(rot[2], 5)) + ' ' +
+                                             str(round(rot[3], 5)) )
+        color = bObject.nvb.wirecolor
+        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
+                                           str(round(color[1], 2)) + ' ' +
+                                           str(round(color[2], 2))  )
+        asciiLines.append('  ambient 0.0 0.0 0.0')
+        asciiLines.append('  diffuse 0.5 0.5 0.5')
+        asciiLines.append('  specular 0.0 0.0 0.0')
+        asciiLines.append('  shininess 10')
+        asciiLines.append('  bitmap NULL')
+        Trimesh.addMeshDataToAscii(self, bObject, asciiLines, False)
+        self.addAABBToAscii(bObject, asciiLines)
 
 
     def createMesh(self, name):
