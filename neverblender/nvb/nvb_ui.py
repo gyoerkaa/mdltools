@@ -35,9 +35,8 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         obj    = context.object
         layout = self.layout
 
-        row = layout.row()
+        row = layout.row(align=True)
         row.prop(obj.nvb, 'dummytype', text='Type')
-
 
         # Display properties depending on type of the empty
         if (obj.nvb.dummytype == 'MDLROOT'):
@@ -56,7 +55,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
                 # Animation Helper. Creates a new scene, copies all objects to it
                 # and renames them
-                row = layout.row()
+                sep = layout.separator()
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Animation Helper: Create New')
@@ -65,7 +64,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
 
                 # Minimap Helper.
-                row = layout.row()
+                sep = layout.separator()
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Minimap Helper')
@@ -103,7 +102,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                     row.prop(item, 'frame')
 
                 # Animation Helper. Rename animation.
-                row = layout.row()
+                sep = layout.separator()
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Animation Helper: Rename')
@@ -155,21 +154,25 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         row = layout.row()
         row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
 
-        split = layout.split()
+        row = layout.row()
+        row.prop(obj.nvb, 'lightpriority', text='Priority')
 
-        col = split.column()
-        col.prop(obj.data, 'use_negative', text='Negative Light')
-        col.prop(obj.data, 'use_diffuse', text='Use Diffuse')
+        split = layout.split()
+        col = split.column(align=True)
+        col.prop(obj.nvb, 'ambientonly', text='Ambient Only')
         col.prop(obj.nvb, 'shadow', text='Shadows')
 
-        col = split.column()
+        col = split.column(align=True)
         col.prop(obj.nvb, 'fadinglight', text='Fading')
         col.prop(obj.nvb, 'isdynamic', text='Is dynamic')
         col.prop(obj.nvb, 'affectdynamic', text='Affect dynamic')
 
         row = layout.row()
-        row.prop(obj.nvb, 'lightpriority', text='Priority')
-
+        row.label('Lensflares')
+        row.prop(obj.nvb, 'lensflares', text='')
+        sub = row.row(align=True)
+        sub.active = obj.nvb.lensflares
+        sub.prop(obj.nvb, 'flareradius', text='Radius')
 
 
 class NVB_PANEL_MESH(bpy.types.Panel):

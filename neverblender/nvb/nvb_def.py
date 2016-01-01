@@ -8,12 +8,29 @@ class MalformedMdlFile(Exception):
     def __str__(self):
         return repr(self.parameter)
 
-# Rounding
-round_gen    = 5
-round_angle  = 5
-round_weight = 3
-round_color  = 3
-round_aabb   = 3
+'''
+class Classification(enum.Enum):
+    UNKNOWN   = ('Unknown',   'Unknown classification',              0)
+    TILE      = ('Tile',      'Tiles for a tileset',                 1)
+    CHARACTER = ('Character', 'Creatures, characters or placeables', 2)
+    DOOR      = ('Door',      'Doors',                               3)
+    EFFECT    = ('Effect',    'Effects',                             4)
+    GUI       = ('Gui',       'Gui',                                 5)
+    ITEM      = ('Item',      'Items or placeables',                 6)
+
+    def __init__(self, uiName, uiDesc, idx):
+        self.uiName = uiName
+        self.uiDesc = uiDesc
+        self.idx    = idx
+
+    @property
+    def uiEnumItem(self):
+        return (self.name, self.uiName, self.uiDesc, self.idx)
+
+    @property
+    def ascii(self):
+        return (self.name, self.uiName, self.uiDesc, self.idx)
+'''
 
 # Some presets
 fps = 30

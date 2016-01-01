@@ -41,7 +41,7 @@ class AnimationBlock():
         self.eventList.append(event)
 
 
-    def addAnimToScene(self, scene, rootDummyName = ''):
+    def addAnimToScene(self, scene, rootDummy):
         # Create a new scene
         # Check if there is already a scene with this animation name
         animScene = None
@@ -55,17 +55,6 @@ class AnimationBlock():
         animScene.frame_current = 0
 
         # Get the mdl rootdummy
-        rootDummy = None
-        if rootDummyName:
-            # How nice, finally some help.
-            rootDummy = scene.objects[rootDummyName]
-        else:
-            # Fine. I'll look for the rootdummy myself.
-            # Better hope I pick the right one, muhahahaha.
-            for (key, obj) in scene.objects.items():
-                if obj.nvb.dummytype == 'MDLROOT':
-                    rootDummy = obj
-                    break
         if not rootDummy:
             return # Nope
 
@@ -86,17 +75,15 @@ class AnimationBlock():
 
         # rootDummy ?
         objType = theOriginal.type
-        if (objType == 'EMPTY'):
-            if (theOriginal.nvb.dummytype == 'MDLROOT'):
-                # We copied the root dummy, set some stuff
-                theCopy.nvb.isanimation = True
-                theCopy.nvb.animname    = self.name
-                theCopy.nvb.transtime   = self.transtime
-                theCopy.nvb.animroot    = self.root
+        if (objType == 'EMPTY') and (theOriginal.nvb.dummytype == 'MDLROOT'):
+            # We copied the root dummy, set some stuff
+            theCopy.nvb.isanimation = True
+            theCopy.nvb.animname    = self.name
+            theCopy.nvb.transtime   = self.transtime
+            theCopy.nvb.animroot    = self.root
+            self.addEventsToObject(theCopy)
 
-                self.addEventsToObject(theCopy)
-
-        # Add animations from the node to the new object
+        # Add animations from the animation node to the newly created object
         if theOriginal.parent:
             animNode = self.getAnimNode(theOriginal.name, theOriginal.parent.name)
         else:
@@ -105,6 +92,7 @@ class AnimationBlock():
             # We need to copy the data for:
             # - Lamps
             # - Meshes & materials when there are alphakeys
+
             if (objType == 'LAMP'):
                 data         = theOriginal.data.copy()
                 data.name    = theOriginal.name + '.' + self.name

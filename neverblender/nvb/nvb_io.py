@@ -1,10 +1,12 @@
 import os
+import bpy
 
 from . import nvb_glob
 from . import nvb_parser
+from . import nvb_mdl
 
 
-def load(operator,
+def loadMdl(operator,
          context,
          filepath = '',
          imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
@@ -30,7 +32,7 @@ def load(operator,
     return {'FINISHED'}
 
 
-def save(operator,
+def saveMdl(operator,
          context,
          filepath = '',
          exports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
@@ -42,7 +44,16 @@ def save(operator,
     '''
     nvb_glob.exports          = exports
     nvb_glob.useShadingGroups = useShadingGroups
-    nvb_glob.appylModifiers   = applyModifiers
+    nvb_glob.applyModifiers   = applyModifiers
 
+    if bpy.ops.object.mode_set.poll():
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+    mdl = nvb_mdl.Mdl()
+    mdl.generateAscii()
+
+    if 'WALKMESH' in exports:
+        xwk = nvb_mdl.Xwk()
+        xwk.generateAscii()
 
     return {'FINISHED'}

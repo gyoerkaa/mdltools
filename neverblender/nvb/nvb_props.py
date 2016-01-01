@@ -138,11 +138,13 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     select_object = bpy.props.StringProperty(name = 'Bone', description = 'Name of the bone to create the skingroup for', default = '')
 
     # For lamps
-    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Editable in toolset', 1), ('MAINLIGHT2', 'Mainlight 2', 'Editable in toolset', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
-    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 5)
+    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for Tiles (Editable in toolset)', 1), ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for Tiles (Editable in toolset)', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
+    ambientonly   = bpy.props.BoolProperty(name = 'Ambient Only', default = False)
+    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 10)
     fadinglight   = bpy.props.BoolProperty(name = 'Fading light', default = False)
     isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
     affectdynamic = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)
+    lensflares    = bpy.props.BoolProperty(name = 'Lensflares', default = False)
     flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 32.0)
 
     # For emitters

@@ -144,7 +144,7 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         keywords = self.as_keywords(ignore=('filter_glob',
                                             'check_existing',
                                             ))
-        return nvb_io.load(self, context, **keywords)
+        return nvb_io.loadMdl(self, context, **keywords)
 
 
 class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
@@ -186,7 +186,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         keywords = self.as_keywords(ignore=('filter_glob',
                                             'check_existing',
                                             ))
-        return nvb_io.save(self, context, **keywords)
+        return nvb_io.saveMdl(self, context, **keywords)
 
 
 class LoadWokMaterials(bpy.types.Operator):

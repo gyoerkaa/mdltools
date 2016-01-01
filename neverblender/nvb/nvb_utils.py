@@ -57,23 +57,8 @@ def getNodeType(bObject):
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
-'''
-def setRotationAurora(obj, auroraRot):
 
-    # Save old rotation mode so we are able restore it afterwars
-    oldRotMode = obj.rotation_mode
-    # Change to axis-angle mode, else the change will not show
-    # in 3D view
-    obj.rotation_mode = 'AXIS_ANGLE'
-    obj.rotation_axis_angle = [ auroraRot[3], \
-                                auroraRot[0], \
-                                auroraRot[1], \
-                                auroraRot[2] ]
-'''
-
-
-
-def get_image_filename(image):
+def getImageFilename(image):
     '''
     '''
     filename = os.path.splitext(os.path.basename(image.filepath))[0]
@@ -83,11 +68,11 @@ def get_image_filename(image):
     return filename
 
 
-def get_is_shadinggr(vertex_group):
+def getIsShadingGroup(vgroup):
     '''
     Determines wether vertex_group ist a shading group or not
     '''
-    return (nvb_def.shading_group_name in vertex_group.name)
+    return (nvb_def.shadingGroupName in vgroup.name)
 
 
 def setRotationAurora(obj, nwangle):

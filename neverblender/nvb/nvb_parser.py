@@ -17,7 +17,7 @@ class Parser():
         self.scene = bpy.context.scene
 
         self.mdl = nvb_mdl.Mdl() # Model
-        self.xwk = nvb_mdl.Mdl() # Walkmesh, pwk or dwk (wok is in mdl file)
+        self.xwk = nvb_mdl.Xwk() # Walkmesh, pwk or dwk (wok is in mdl file)
 
     def load(self, mdlFilepath):
         self.parseMdl(mdlFilepath)
@@ -52,17 +52,10 @@ class Parser():
             except IOError:
                 # Doesn't exist. We can continue without, but it's worth
                 # a message.
-                print("Neverblender: Unable to open walkmesh: " + wkFilepath)
+                print("Neverblender: No walkmesh found at " + wkFilepath)
                 return
 
-            # Placeable and door walkmeshes don't contain a rootdummy.
-            # We need one, so we make one ourselves
-            rootDummyName = self.mdl.name + '_' + walkmeshType
-            if walkmeshType == 'dwk':
-                rootDummy = nvb_node.Dummy(rootDummyName, 'DWKROOT')
-            else:
-                rootDummy = nvb_node.Dummy(rootDummyName, 'PWKROOT')
-            self.xwk.addNode(rootDummy)
+            self.xwk.setWalkmeshType(walkmeshType)
 
             # Parse the walkmesh
             blockStart = -1
