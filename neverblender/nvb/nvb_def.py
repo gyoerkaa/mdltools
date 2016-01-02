@@ -1,7 +1,6 @@
 ﻿# Null value for parents, textures, etc.
 null = 'null'
 
-
 class MalformedMdlFile(Exception):
     def __init__(self, value):
         self.parameter = value

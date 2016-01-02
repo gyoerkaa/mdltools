@@ -30,11 +30,18 @@ def getAnimationRootdummy(animScene):
     return None
 
 
+def isRootdummy(obj):
+    if not obj:
+        return False
+    return  (obj.type == 'EMPTY') and
+            (obj.nvb.dummytype == 'MDLROOT') and
+            (not obj.nvb.isanimation)
+
+
 def getRootdummy():
     for obj in bpy.data.objects:
-        if obj.type == 'EMPTY':
-            if (obj.nvb.dummytype == 'MDLROOT') and (not obj.nvb.isanimation):
-                return obj
+        if isRootdummy(obj):
+            return obj
     return None
 
 

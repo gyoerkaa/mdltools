@@ -1,7 +1,5 @@
-import os
-import math
 import collections
-import warnings
+import enum
 from datetime import datetime
 
 import bpy
@@ -12,19 +10,19 @@ from . import nvb_def
 from . import nvb_glob
 
 
+
 class Mdl():
     def __init__(self):
-        self.nodeDict  = collections.OrderedDict()
-        self.animDict  = dict() # No need to retain order
-        self.rootDummy = None
+        self.nodeDict      = collections.OrderedDict()
+        self.animDict      = dict() # No need to retain order
 
         self.name           = 'UNNAMED'
         self.supermodel     = nvb_def.null
-        self.animScale      = 1.0
+        self.animscale      = 1.0
         self.classification = 'UNKNOWN'
 
 
-    def addAsciiNode(self, asciiBlock):
+    def loadAsciiNode(self, asciiBlock):
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Node')
 
@@ -48,11 +46,11 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.getFromAscii(asciiBlock)
+        node.loadAscii(asciiBlock)
         self.addNode(node)
 
 
-    def addAsciiAnimation(self, asciiBlock):
+    def loadAsciiAnimation(self, asciiBlock):
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Animation')
 
@@ -87,9 +85,11 @@ class Mdl():
                 self.animDict[anim.name] = anim
 
 
-    def addMdlToScene(self, scene):
+    def importToScene(self, scene, imports):
 
-        if ('GEOMETRY' in nvb_glob.imports) and self.nodeDict:
+        rootDummy = None
+
+        if ('GEOMETRY' in imports) and self.nodeDict:
             it = iter(self.nodeDict.items())
 
             # The first node should be the rootdummy.
@@ -99,7 +99,7 @@ class Mdl():
             if (type(node) == nvb_node.Dummy) and (node.parentName == nvb_def.null):
                 obj               = node.addToScene(scene)
                 obj.nvb.dummytype = 'MDLROOT'
-                self.rootDummy = obj
+                rootDummy = obj
             else:
                 raise nvb_def.MalformedMdlFile('First node has to be a dummy without a parent.')
 
@@ -117,19 +117,89 @@ class Mdl():
                         # Node with invalid parent.
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
-        if ('ANIMATION' in nvb_glob.imports) and (not nvb_glob.minimapMode):
+        if ('ANIMATION' in imports) and (not nvb_glob.minimapMode):
             # Search for the rootDummy if not already present
-            if not self.rootDummy:
+            if not rootDummy:
                 for obj in scene.objects:
                     if (obj.type == 'EMPTY') and (obj.nvb.dummytype == 'MDLROOT'):
-                        self.rootDummy = obj
+                        rootDummy = obj
                         break
                 # Still none ? Don't try to import anims then
-                if not self.rootDummy:
+                if not rootDummy:
                     return
 
             for (animName, anim) in self.animDict.items():
-                anim.addAnimToScene(scene, self.rootDummy)
+                anim.addAnimToScene(scene, rootDummy)
+
+    def loadAscii(self, asciiLines):
+        State = enum.Enum('State', 'START HEADER GEOMETRY GEOMETRYNODE ANIMATION')
+        cs    = State.START
+        blockStart = -1
+        for idx, line in enumerate(asciiLines):
+            try:
+                label = line[0]
+            except IndexError:
+                # Probably empty line or whatever, just skip it
+                continue
+
+            if (cs == State.START):
+                if (label == 'newmodel'):
+                    try:
+                        self.name = line[1]
+                    except IndexError:
+                        raise nvb_def.MalformedMdlFile('Model has no name')
+                    cs = State.HEADER
+
+            elif (cs == State.HEADER):
+                if (label == 'beginmodelgeom'):
+                    # After this, a list of nodes has to follow
+                    cs = State.GEOMETRY
+                elif (label == 'setsupermodel'):
+                    try:
+                       # line should be ['setsupermodel', modelname, supermodelname]
+                       self.supermodel = line[2]
+                    except IndexError:
+                       print("WARNING: Unable to read supermodel. Using default value: " + self.supermodel)
+                elif (label == 'classification'):
+                    try:
+                        self.classification = line[1].upper()
+                    except IndexError:
+                        print("WARNING: Unable to read classification. Using default value: " + self.classification)
+                elif (label == 'setanimationscale'):
+                    try:
+                        self.animscale = line[1]
+                    except IndexError:
+                        print("WARNING: Unable to read animationscale. Using default value: " + self.animscale)
+
+            elif (cs == State.GEOMETRY):
+                if (label == 'node'):
+                    blockStart = idx
+                    cs = State.GEOMETRYNODE
+                if (label == 'endmodelgeom'):
+                    # After this, either animations or eof
+                    cs = State.ANIMATION
+
+            elif (cs == State.GEOMETRYNODE):
+                if (label == 'endnode'):
+                    #node = self.parseGeometryNode(lines[blockStart:idx+1])
+                    self.loadAsciiNode(asciiLines[blockStart:idx+1])
+                    blockStart = -1
+                    cs = State.GEOMETRY
+                elif (label == 'node'):
+                    raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
+
+            elif (cs == State.ANIMATION):
+                if (label == 'newanim'):
+                    if (blockStart < 0):
+                        blockStart = idx
+                    else:
+                        raise nvb_def.MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
+                if (label == 'doneanim'):
+                    if (blockStart > 0):
+                        self.loadAsciiAnimation(asciiLines[blockStart:idx+1])
+                        blockStart = -1
+                    else:
+                        raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
 
 
     def geometryToAscii(self, bObject, asciiLines, validExports):
@@ -163,36 +233,34 @@ class Mdl():
                 pass
 
 
-    def generateAscii(self, rootDummyName = ''):
-        if rootDummyName in bpy.data.objects:
-            rootDummy = bpy.data.objects[rootDummyName]
-        else:
-            rootDummy = nvb.utils.getRootdummy()
-
-        current_time = datetime.now()
+    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+        self.name           = rootDummy.name
+        self.classification = rootDummy.nvb.classification
+        self.supermodel     = rootDummy.nvb.supermodel
+        self.animscale      = rootDummy.nvb.animscale
 
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
         validExports = []
         nvb_utils.getValidExports(rootDummy, validExports)
 
-        lines = []
         # Header
-        lines.append('# Exported from blender at ' + current_time.strftime('%A, %Y-%m-%d %H:%M'))
-        lines.append('filedependancy ' + os.path.basename(bpy.data.filepath))
-        lines.append('newmodel ' + rootDummy.name)
-        lines.append('setsupermodel ' + rootDummy.name + ' ' + rootDummy.nvb.supermodel)
-        lines.append('classification ' + rootDummy.nvb.classification)
-        lines.append('setanimationscale ' + str(round(rootDummy.nvb.animscale, 2)))
+        currentTime = datetime.now()
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('filedependancy ' + os.path.basename(bpy.data.filepath))
+        asciiLines.append('newmodel ' + self.name)
+        asciiLines.append('setsupermodel ' + self.name + ' ' + self.supermodel)
+        asciiLines.append('classification ' + self.classification)
+        asciiLines.append('setanimationscale ' + str(round(self.animscale, 2)))
         # Geometry
-        lines.append('beginmodelgeom ' + rootDummy.name)
+        asciiLines.append('beginmodelgeom ' + self.name)
         self.geometryToAscii(rootDummy, asciiLines, validExports)
-        lines.append('endmodelgeom ' + rootDummy.name)
+        asciiLines.append('endmodelgeom ' + self.name)
         # Animations
-        lines.append('ANIM ASCII')
+        asciiLines.append('# ANIM ASCII')
         self.animationsToAscii(rootDummy, asciiLines, validExports)
         # The End
-        lines.append('donemodel ' + rootDummy.name)
+        asciiLines.append('donemodel ' + self.name)
 
 
 class Xwk(Mdl):
@@ -203,16 +271,36 @@ class Xwk(Mdl):
         self.walkmeshType = wtype
 
 
-    def addAsciiAnimation(self, asciiBlock):
+    def loadAsciiAnimation(self, asciiBlock):
         pass # No animations in walkmeshes
+
+
+    def loadAscii(self, asciiLines):
+        # Parse the walkmesh
+        blockStart = -1
+        for idx, line in enumerate(asciiLines):
+            try:
+                label = line[0]
+            except IndexError:
+                # Probably empty line or whatever, just skip it
+                continue
+            if (label == 'node'):
+                blockStart = idx
+            elif (label == 'endnode'):
+                if (blockStart > 0):
+                    self.addAsciiNode(asciiLines[blockStart:idx+1])
+                    blockStart = -1
+                else:
+                    # "endnode" before "node"
+                    raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
 
 
     def setWalkmeshType(self, wtype):
         self.walkmeshType = wtype
 
 
-    def addMdlToScene(self, scene):
-        if ('WALKMESH' in nvb_glob.imports) and self.nodeDict:
+    def importToScene(self, scene, imports):
+        if ('WALKMESH' in imports) and self.nodeDict:
             # Walkmeshes have no rootdummys. We need to create one ourselves
 
             # Look for the node parents for the list of parents. They should
@@ -228,7 +316,6 @@ class Xwk(Mdl):
             if len(nameList) == 1:
                 self.name = nameList[0]
             else:
-                print(nameList)
                 raise nvb_def.MalformedMdlFile('Invalid parents in walkmesh.')
 
             if self.walkmeshType == 'dwk':

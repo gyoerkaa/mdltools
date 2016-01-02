@@ -162,11 +162,10 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     exports = bpy.props.EnumProperty(
             name = 'Export',
             options = {'ENUM_FLAG'},
-            items = (('GEOMETRY', 'Geometry', 'Export dummys and meshes'),
-                     ('ANIMATION', 'Animations', 'Export animations'),
+            items = (('ANIMATION', 'Animations', 'Export animations'),
                      ('WALKMESH', 'Walkmesh', 'Create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
                      ),
-            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
+            default = {'ANIMATION', 'WALKMESH'},
             )
 
     shadingGroups = bpy.props.BoolProperty(

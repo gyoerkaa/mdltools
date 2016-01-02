@@ -1,10 +1,12 @@
-imports          = {'GEOMETRY', 'ANIMATION', 'WALKMESH'}
+# Import/ Export
 useShadingGroups = True
 minimapMode      = False
 
+# Import only
 texturePath   = ''
 textureSingle = True
 textureSearch = False
 
-scene = None
+# Export only
+scene          = None
 applyModifiers = True

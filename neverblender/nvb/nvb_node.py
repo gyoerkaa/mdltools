@@ -47,7 +47,7 @@ class GeometryNode():
         return 'node ' + self.nodetype + ' ' +self.name
 
 
-    def getFromAscii(self, asciiNode):
+    def loadAscii(self, asciiNode):
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -136,8 +136,8 @@ class Dummy(GeometryNode):
         self.dummytype = 'NONE'
 
 
-    def getFromAscii(self, asciiNode):
-        GeometryNode.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        GeometryNode.loadAscii(self, asciiNode)
 
 
     def setObjectData(self, obj):
@@ -199,8 +199,8 @@ class Reference(GeometryNode):
 
         self.dummytype = 'REFERENCE'
 
-    def getFromAscii(self, asciiNode):
-        GeometryNode.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        GeometryNode.loadAscii(self, asciiNode)
         l_isNumber = nvb_utils.isNumber
 
         for line in asciiNode:
@@ -273,8 +273,8 @@ class Trimesh(GeometryNode):
         return image
 
 
-    def getFromAscii(self, asciiNode):
-        GeometryNode.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        GeometryNode.loadAscii(self, asciiNode)
 
         l_int   = int
         l_float = float
@@ -715,8 +715,8 @@ class Danglymesh(Trimesh):
         self.constraints  = []
 
 
-    def getFromAscii(self, asciiNode):
-        Trimesh.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
 
         l_int   = int
         l_float = float
@@ -804,8 +804,8 @@ class Skinmesh(Trimesh):
         self.weights = []
 
 
-    def getFromAscii(self, asciiNode):
-        Trimesh.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
         l_int      = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
@@ -906,8 +906,8 @@ class Emitter(GeometryNode):
         self.rawascii = ''
 
 
-    def getFromAscii(self, asciiNode):
-        GeometryNode.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        GeometryNode.loadAscii(self, asciiNode)
 
         l_int   = int
         l_float = float
@@ -964,7 +964,6 @@ class Emitter(GeometryNode):
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
 
-
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj
@@ -989,8 +988,8 @@ class Light(GeometryNode):
         self.flareradius      = 1.0
 
 
-    def getFromAscii(self, asciiNode):
-        GeometryNode.getFromAscii(self, asciiNode)
+    def loadAscii(self, asciiNode):
+        GeometryNode.loadAscii(self, asciiNode)
 
         l_int = int
         l_float = float
@@ -1029,6 +1028,7 @@ class Light(GeometryNode):
                     self.lightpriority = l_int(line[1])
                 elif (label == 'fadinglight'):
                     self.fadinglight = l_int(line[1])
+
 
     def createLamp(self, name):
         lamp = bpy.data.lamps.new(name, 'POINT')
@@ -1073,13 +1073,14 @@ class Light(GeometryNode):
 
     def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
         GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
-        lamp = bObject.data
 
+        lamp = bObject.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
         asciiLines.append('  color ' +  str(round(lamp.color[0], 2)) + ' ' +
                                         str(round(lamp.color[1], 2)) + ' ' +
                                         str(round(lamp.color[2], 2)) )
+
         asciiLines.append('  ambientonly ' + str(int(bObject.nvb.ambientonly)))
         asciiLines.append('  nDynamicType ' + str(int(bObject.nvb.isdynamic)))
         asciiLines.append('  affectDynamic ' + str(int(bObject.nvb.affectdynamic)))
