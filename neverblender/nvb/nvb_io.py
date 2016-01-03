@@ -96,7 +96,6 @@ def saveMdl(operator,
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
-
     rootDummy = findRootDummy()
     if rootDummy:
         mdl = nvb_mdl.Mdl()

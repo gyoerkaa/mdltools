@@ -1033,6 +1033,7 @@ class Light(GeometryNode):
     def createLamp(self, name):
         lamp = bpy.data.lamps.new(name, 'POINT')
 
+        # TODO: Check for negative color values and do something (works fine in blender though)
         lamp.color       = self.color
         lamp.energy      = self.multiplier
         lamp.distance    = self.radius
