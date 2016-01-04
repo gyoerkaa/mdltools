@@ -24,7 +24,8 @@ def findRootDummy():
                     return obj
         # Search all data
         for ob in bpy.data.objects:
-            return obj
+            if nvb_utils.isRootDummy(obj):
+                return obj
 
     return None
 
