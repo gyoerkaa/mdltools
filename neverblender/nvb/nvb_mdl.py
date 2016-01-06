@@ -288,7 +288,7 @@ class Xwk(Mdl):
                 blockStart = idx
             elif (label == 'endnode'):
                 if (blockStart > 0):
-                    self.addAsciiNode(asciiLines[blockStart:idx+1])
+                    self.loadAsciiNode(asciiLines[blockStart:idx+1])
                     blockStart = -1
                 else:
                     # "endnode" before "node"

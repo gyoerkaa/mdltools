@@ -15,6 +15,14 @@ class FaceList():
         self.matId = [] # int, material index
 
 
+class FlareList():
+    def __init__(self):
+        self.textures    = []
+        self.sizes       = []
+        self.positions   = []
+        self.colorshifts = []
+
+
 class GeometryNode():
     """
     Basic node from which every other is derived
@@ -44,7 +52,25 @@ class GeometryNode():
 
 
     def __str__(self):
-        return 'node ' + self.nodetype + ' ' +self.name
+        return 'node ' + self.nodetype + ' ' + self.name
+
+
+    def parse1f(self, asciiBlock, floatList):
+        l_float = float
+        for line in asciiBlock:
+            floatList.append(l_float(line[0]))
+
+
+    def parse2f(self, asciiBlock, floatList):
+        l_float = float
+        for line in asciiBlock:
+            floatList.append( (l_float(line[0]), l_float(line[1])) )
+
+
+    def parse3f(self, asciiBlock, floatList):
+        l_float = float
+        for line in asciiBlock:
+            floatList.append( (l_float(line[0]), l_float(line[1]), l_float(line[2])) )
 
 
     def loadAscii(self, asciiNode):
@@ -112,7 +138,7 @@ class GeometryNode():
                                              str(round(rot[2], 5)) + ' ' +
                                              str(round(rot[3], 5)) )
         scale = nvb_utils.getScaleAurora(bObject)
-        asciiLines.append('  scale ' + str(round(scale, 5)) )
+        asciiLines.append('  scale ' + str(round(scale, 3)) )
         color = bObject.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
@@ -330,22 +356,16 @@ class Trimesh(GeometryNode):
                     self.bitmap = line[1]
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
-                    self.getAsciiVerts(asciiNode[idx+1:idx+numVals+1])
+                    self.parse3f(asciiNode[idx+1:idx+numVals+1], self.verts)
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
-                    self.getAsciiFaces(asciiNode[idx+1:idx+numVals+1])
+                    self.getAsciiFaceList(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
-                    self.getAsciiTexVerts(asciiNode[idx+1:idx+numVals+1])
+                    self.parse2f(asciiNode[idx+1:idx+numVals+1], self.tverts)
 
 
-    def getAsciiVerts(self, asciiVerts):
-        l_float = float
-        for line in asciiVerts:
-            self.verts.append( (l_float(line[0]), l_float(line[1]), l_float(line[2])) )
-
-
-    def getAsciiFaces(self, asciiFaces):
+    def getAsciiFaceList(self, asciiFaces):
         l_int = int
         for line in asciiFaces:
             self.facelist.faces.append( (l_int(line[0]), l_int(line[1]), l_int(line[2])) )
@@ -354,13 +374,10 @@ class Trimesh(GeometryNode):
             self.facelist.matId.append(l_int(line[7]))
 
 
-    def getAsciiTexVerts(self, asciiTexVerts):
-        l_float = float
-        for line in asciiTexVerts:
-            self.tverts.append( (l_float(line[0]), l_float(line[1])) )
-
-
     def setShadingGroups(self, obj):
+        '''
+        Converts the face shading groups of an objects to vertex groups
+        '''
         if not nvb_glob.useShadingGroups:
             return
 
@@ -374,10 +391,16 @@ class Trimesh(GeometryNode):
             shadingGroupDict[groupId].append(self.facelist.faces[faceId][1])
             shadingGroupDict[groupId].append(self.facelist.faces[faceId][2])
 
-        # Create vertex groups ans add vertices
+        # Check the number of shading groups on this object. If there is only
+        # one we do nothing.
+        if len(shadingGroupDict) <= 1:
+            return
+
+        # Create vertex groups and add vertices
         for groupId, groupMembers in shadingGroupDict.items():
             vgroup = obj.vertex_groups.new(nvb_def.shadingGroupName + str(groupId))
             vgroup.add(groupMembers, 1.0, 'REPLACE')
+
 
     def createMaterial(self, name):
         material = bpy.data.materials.new(name)
@@ -503,7 +526,7 @@ class Trimesh(GeometryNode):
         '''
 
         groupId = 1
-        if (not nvb_glob.useShadingGroups):
+        if not nvb_glob.useShadingGroups:
             return groupId
 
         # Vertex groups of the face. We start with all vertex groups of the
@@ -737,13 +760,7 @@ class Danglymesh(Trimesh):
                     self.displacement = l_float(line[1])
                 elif (label == 'constraints'):
                     numVals = l_int(line[1])
-                    self.getConstraintsFromAscii(asciiNode[idx+1:idx+numVals+1])
-
-
-    def getConstraintsFromAscii(self, asciiBlock):
-        l_float = float
-        for line in asciiBlock:
-            self.constraints.append(l_float(line[0]))
+                    self.parse1f(asciiNode[idx+1:idx+numVals+1], self.constraints)
 
 
     def addConstraintsToObject(self, bObject):
@@ -969,32 +986,43 @@ class Emitter(GeometryNode):
         return obj
 
 
+    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+
+
+
+
 class Light(GeometryNode):
     def __init__(self, name = 'UNNAMED'):
         GeometryNode.__init__(self, name)
         self.nodetype = 'light'
 
-        self.shadow           = 1
-        self.radius           = 5.0
-        self.multiplier       = 1
-        self.color            = (0.0, 0.0, 0.0)
-        self.ambientonly      = 1
-        self.ndynamictype     = 1
-        self.isdynamic        = 1
-        self.affectdynamic    = 1
-        self.lightpriority    = 5
-        self.fadinglight      = 1
-        self.lensflares       = 0
-        self.flareradius      = 1.0
+        self.shadow        = 1
+        self.radius        = 5.0
+        self.multiplier    = 1
+        self.lightpriority = 5
+        self.color         = (0.0, 0.0, 0.0)
+        self.ambientonly   = 1
+        self.ndynamictype  = 1
+        self.isdynamic     = 1
+        self.affectdynamic = 1
+        self.negativelight = 0
+        self.fadinglight   = 1
+        self.lensflares    = 0
+        self.flareradius   = 1.0
+        self.flareList     = FlareList()
 
 
     def loadAscii(self, asciiNode):
         GeometryNode.loadAscii(self, asciiNode)
 
+        flareTextureNamesStart = 0
+        numFlares              = 0
+
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
-        for line in asciiNode:
+        for idx, line in enumerate(asciiNode):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -1018,16 +1046,44 @@ class Light(GeometryNode):
                     self.ndynamictype = l_int(line[1])
                 elif (label == 'isdynamic'):
                     self.isdynamic = l_int(line[1])
-                elif (label == 'lensflares'):
-                    self.lensflares = l_int(line[1])
-                elif (label == 'flareradius'):
-                    self.flareradius = l_float(line[1])
                 elif (label == 'affectdynamic'):
                     self.affectdynamic = l_int(line[1])
+                elif (label == 'negativelight'):
+                    self.negativelight = l_int(line[1])
                 elif (label == 'lightpriority'):
                     self.lightpriority = l_int(line[1])
                 elif (label == 'fadinglight'):
                     self.fadinglight = l_int(line[1])
+                elif (label == 'lensflares'):
+                    self.lensflares = l_int(line[1])
+                elif (label == 'flareradius'):
+                    self.flareradius = l_float(line[1])
+                elif (label == 'texturenames'):
+                    # List of name follows, but we don't necessarily know how
+                    # many flares there are
+                    # We 'll need to read them later. For now save the index
+                    flareTextureNamesStart = idx+1
+                elif (label == 'flaresizes'):
+                    # List of floats
+                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    print(numFlares)
+                    self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.sizes)
+                elif (label == 'flarepositions'):
+                    # List of floats
+                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    print(numFlares)
+                    self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.positions)
+                elif (label == 'flarecolorshifts'):
+                    # List of float 3-tuples
+                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    print(numFlares)
+                    self.parse3f(asciiNode[idx+1:idx+numFlares+1], self.flareList.colorshifts)
+
+        # Load flare texture names:
+        for i in range(numFlares):
+            texName = asciiNode[flareTextureNamesStart+i][0]
+            print(texName)
+            self.flareList.textures.append(texName)
 
 
     def createLamp(self, name):
@@ -1056,8 +1112,19 @@ class Light(GeometryNode):
         obj.nvb.fadinglight   = (self.fadinglight == 1)
         obj.nvb.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
         obj.nvb.affectdynamic = (self.affectdynamic == 1)
-        obj.nvb.lensflares    = (self.lensflares == 1)
-        obj.nvb.flareradius   = self.flareradius
+
+        if (self.flareradius > 0) or (self.lensflares == 1):
+            obj.nvb.lensflares = True
+            numFlares = len(self.flareList.textures)
+            for i in range(numFlares):
+                print(i)
+                newItem = obj.nvb.flareList.add()
+                newItem.texture    = self.flareList.textures[i]
+                newItem.colorshift = self.flareList.colorshifts[i]
+                newItem.size       = self.flareList.sizes[i]
+                newItem.position   = self.flareList.positions[i]
+
+        obj.nvb.flareradius = self.flareradius
 
 
     def addToScene(self, scene):
@@ -1100,9 +1167,9 @@ class Aabb(Trimesh):
     '''
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        nodetype = 'aabb'
+        self.nodetype = 'aabb'
 
-        meshtype = 'AABB'
+        self.meshtype = 'AABB'
 
     def addAABBToAscii(bObject, asciiLines):
 
@@ -1254,7 +1321,7 @@ class Aabb(Trimesh):
             # replacement either as AABB nodes never have children
             return
         mesh = self.createMesh(self.name)
-        obj  = bpy.data.objects.new(self.name, mesh)
+        obj = bpy.data.objects.new(self.name, mesh)
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj

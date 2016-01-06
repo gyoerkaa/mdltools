@@ -1,6 +1,7 @@
 import bpy
 from . import nvb_def
 
+
 def nvb_update_shadow_prop(self, context):
     '''
     Set the lamps shadow to match the aurora shadow property
@@ -15,18 +16,43 @@ def nvb_update_shadow_prop(self, context):
         except:
             pass
 
-class NVB_PG_EVENT(bpy.types.PropertyGroup):
-    """ Group of properties representing an item in the list """
+
+class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
+    '''
+    Properties for a single event in the even list
+    '''
 
     name = bpy.props.StringProperty(
-           name="Name",
-           description="Name for this event",
-           default="Unnamed")
+           name = 'Name',
+           description = 'Name for this event',
+           default = 'Unnamed')
 
     frame = bpy.props.IntProperty(
-           name="Frame",
-           description="Frame at which the event should fire",
-           default=1)
+           name = 'Frame',
+           description = 'Frame at which the event should fire',
+           default = 1)
+
+
+class NVB_PG_FLARE(bpy.types.PropertyGroup):
+    '''
+    Properties for a single flare in the flare list
+    '''
+
+    texture = bpy.props.StringProperty(name = 'Texture',
+                                       description = 'Texture name',
+                                       default = nvb_def.null)
+    size = bpy.props.FloatProperty(name = 'Size',
+                                 description = 'Flare size',
+                                 default = 1)
+    position = bpy.props.FloatProperty(name = 'Position',
+                                       description = 'Flare position',
+                                       default = 1)
+    colorshift = bpy.props.FloatVectorProperty( name = 'Colorshift',
+                                                description = 'Colorshift',
+                                                subtype = 'COLOR_GAMMA',
+                                                default = (0.0, 0.0, 0.0),
+                                                min = -1.0, max = 1.0,
+                                                soft_min = 0.0, soft_max = 1.0)
 
 
 class NVB_PG_OBJECT(bpy.types.PropertyGroup):
@@ -70,7 +96,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     animname    = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
     transtime    = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
     animroot     = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
-    eventList    = bpy.props.CollectionProperty(type = NVB_PG_EVENT)
+    eventList    = bpy.props.CollectionProperty(type = NVB_PG_ANIMEVENT)
     eventListIdx = bpy.props.IntProperty(name = "Index for event List", default = 0)
 
     # For special emptys
@@ -140,12 +166,15 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For lamps
     lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for Tiles (Editable in toolset)', 1), ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for Tiles (Editable in toolset)', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
     ambientonly   = bpy.props.BoolProperty(name = 'Ambient Only', default = False)
-    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 5, min = 0, max = 10)
+    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 3, min = 1, max = 5)
     fadinglight   = bpy.props.BoolProperty(name = 'Fading light', default = False)
     isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
     affectdynamic = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)
+    negativelight = bpy.props.BoolProperty(name = 'Negative Light', default = False)
     lensflares    = bpy.props.BoolProperty(name = 'Lensflares', default = False)
-    flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 32.0)
+    flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 100.0)
+    flareList     = bpy.props.CollectionProperty(type = NVB_PG_FLARE)
+    flareListIdx  = bpy.props.IntProperty(name = "Index for flare list", default = 0)
 
     # For emitters
     rawascii = bpy.props.StringProperty(name = 'Text node', description = 'Name of the raw text node', default = '')

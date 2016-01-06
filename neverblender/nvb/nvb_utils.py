@@ -33,9 +33,7 @@ def getAnimationRootdummy(animScene):
 def isRootdummy(obj):
     if not obj:
         return False
-    return  (obj.type == 'EMPTY') and
-            (obj.nvb.dummytype == 'MDLROOT') and
-            (not obj.nvb.isanimation)
+    return (obj.type == 'EMPTY') and (obj.nvb.dummytype == 'MDLROOT') and (not obj.nvb.isanimation)
 
 
 def getRootdummy():

@@ -1,7 +1,21 @@
 import bpy
 
 
-class NVB_UILIST_EVENTS(bpy.types.UIList):
+class NVB_UILIST_LIGHTFLARES(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(item.texture, icon = custom_icon)
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon = custom_icon)
+
+
+class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
 
         custom_icon = 'NONE'
@@ -12,7 +26,7 @@ class NVB_UILIST_EVENTS(bpy.types.UIList):
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label("", icon = custom_icon)
+            layout.label('', icon = custom_icon)
 
 
 class NVB_PANEL_EMPTY(bpy.types.Panel):
@@ -85,16 +99,18 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
 
                 # Event Helper. Display and add/remove events.
+                sep = layout.separator()
                 row = layout.row()
                 row.label(text = 'Event List')
-                split = layout.split(percentage=0.9)
-                col = split.column()
-                col.template_list('NVB_UILIST_EVENTS', 'The_List', obj.nvb, 'eventList', obj.nvb, 'eventListIdx')
-                col = split.column(align = True)
-                col.operator('nvb.newevent', text = '', icon='ZOOMIN')
-                col.operator('nvb.deleteevent', text = '', icon='ZOOMOUT')
-                #col.operator('nvb.moveevent', text='UP').direction = 'UP'
-                #col.operator('nvb.moveevent', text='DOWN').direction = 'DOWN'
+
+                row = layout.row()
+                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', obj.nvb, 'eventList', obj.nvb, 'eventListIdx')
+                col = row.column(align = True)
+                col.operator('nvb.animevent_new', text = '', icon='ZOOMIN')
+                col.operator('nvb.animevent_delete', text = '', icon='ZOOMOUT')
+                col.separator()
+                col.operator('nvb.animevent_move', icon='TRIA_UP', text = '').direction = 'UP'
+                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
                 if obj.nvb.eventListIdx >= 0 and len(obj.nvb.eventList) > 0:
                     item = obj.nvb.eventList[obj.nvb.eventListIdx]
                     row = layout.row()
@@ -167,12 +183,45 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         col.prop(obj.nvb, 'isdynamic', text='Is dynamic')
         col.prop(obj.nvb, 'affectdynamic', text='Affect dynamic')
 
+        '''
         row = layout.row()
         row.label('Lensflares')
         row.prop(obj.nvb, 'lensflares', text='')
         sub = row.row(align=True)
         sub.active = obj.nvb.lensflares
         sub.prop(obj.nvb, 'flareradius', text='Radius')
+        '''
+
+        # Event Helper. Display and add/remove events.
+        sep = layout.separator()
+        row = layout.row()
+        row.prop(obj.nvb, 'lensflares')
+        sub = row.row(align=True)
+        sub.active = obj.nvb.lensflares
+        sub.prop(obj.nvb, 'flareradius', text='Radius')
+
+        row = layout.row()
+        row.active = obj.nvb.lensflares
+        row.template_list('NVB_UILIST_LIGHTFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
+        col = row.column(align = True)
+        col.operator('nvb.lightflare_new', icon='ZOOMIN', text = '')
+        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text = '')
+        col.separator()
+        col.operator('nvb.lightflare_move', icon='TRIA_UP', text = '').direction = 'UP'
+        col.operator('nvb.lightflare_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+        if obj.nvb.flareListIdx >= 0 and len(obj.nvb.flareList) > 0:
+            item = obj.nvb.flareList[obj.nvb.flareListIdx]
+            row = layout.row()
+            row.active = obj.nvb.lensflares
+            row.prop(item, 'texture')
+            row = layout.row()
+            row.active = obj.nvb.lensflares
+            row.prop(item, 'colorshift')
+            row = layout.row()
+            row.active = obj.nvb.lensflares
+            row.prop(item, 'size')
+            row.prop(item, 'position')
+
 
 
 class NVB_PANEL_MESH(bpy.types.Panel):

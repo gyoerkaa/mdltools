@@ -5,11 +5,91 @@ from . import nvb_def
 from . import nvb_io
 
 
+class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
+    ''' Add a new item to the flare list '''
 
-class NVB_LIST_OT_NewEvent(bpy.types.Operator):
+    bl_idname = 'nvb.lightflare_new'
+    bl_label  = 'Add a new flare to a light'
+
+    def execute(self, context):
+        if (context.object.type == 'LAMP'):
+            context.object.nvb.flareList.add()
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_LightFlare_Delete(bpy.types.Operator):
+    ''' Delete the selected item from the flare list '''
+
+    bl_idname = 'nvb.lightflare_delete'
+    bl_label = 'Deletes a flare from the light'
+
+    @classmethod
+    def poll(self, context):
+        ''' Enable only if the list isn't empty '''
+        return len(context.object.nvb.flareList) > 0
+
+    def execute(self, context):
+        flareList = context.object.nvb.flareList
+        flareIdx  = context.object.nvb.flareListIdx
+
+        flareList.remove(flareIdx)
+        if flareIdx > 0:
+            flareIdx =flareIdx - 1
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
+    ''' Move an item in the flare list '''
+
+    bl_idname = 'nvb.lightflare_move'
+    bl_label  = 'Move an item in the flare list'
+
+    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
+
+    @classmethod
+    def poll(self, context):
+        return len(context.object.nvb.flareList) > 0
+
+
+    def move_index(self, context):
+        flareList = context.object.nvb.flareList
+        flareIdx  = context.object.nvb.flareListIdx
+
+        listLength = len(flareList) - 1 # (index starts at 0)
+        newIdx = 0
+        if self.direction == 'UP':
+            newIdx = flareIdx - 1
+        elif self.direction == 'DOWN':
+            newIdx = flareIdx + 1
+
+        newIdx   = max(0, min(newIdx, listLength))
+        context.object.nvb.flareListIdx = newIdx
+
+
+    def execute(self, context):
+        flareList = context.object.nvb.flareList
+        flareIdx  = context.object.nvb.flareListIdx
+
+        if self.direction == 'DOWN':
+            neighbour = flareIdx + 1
+            flareList.move(flareIdx, neighbour)
+            self.move_index(context)
+        elif self.direction == 'UP':
+            neighbour = flareIdx - 1
+            flareList.move(neighbour, flareIdx)
+            self.move_index(context)
+        else:
+            return{'CANCELLED'}
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
     ''' Add a new item to the event list '''
 
-    bl_idname = 'nvb.newevent'
+    bl_idname = 'nvb.animevent_new'
     bl_label  = 'Add a new event to an animation'
 
     def execute(self, context):
@@ -18,10 +98,10 @@ class NVB_LIST_OT_NewEvent(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_LIST_OT_DeleteEvent(bpy.types.Operator):
+class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
     ''' Delete the selected item from the event list '''
 
-    bl_idname = 'nvb.deleteevent'
+    bl_idname = 'nvb.animevent_delete'
     bl_label = 'Deletes an event from an animation'
 
     @classmethod
@@ -40,35 +120,32 @@ class NVB_LIST_OT_DeleteEvent(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_LIST_OT_MoveEvent(bpy.types.Operator):
+class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
     ''' Move an item in the event list '''
 
-    bl_idname = 'nvb.moveevent'
+    bl_idname = 'nvb.animevent_move'
     bl_label  = 'Move an item in the event  list'
 
-    direction = bpy.props.EnumProperty( items=( ('UP', 'Up', ""),
-                                                ('DOWN', 'Down', ""),))
+    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
 
     @classmethod
     def poll(self, context):
-        ''' Enable only if the list isn't empty '''
         return len(context.object.nvb.eventList) > 0
 
 
-    def move_index(self):
-        ''' Move index of an item render queue while clamping it. '''
+    def move_index(self, context):
         eventList = context.object.nvb.eventList
         eventIdx  = context.object.nvb.eventListIdx
 
         listLength = len(eventList) - 1 # (index starts at 0)
         newIdx = 0
         if self.direction == 'UP':
-            newIdx = index - 1
+            newIdx = eventIdx - 1
         elif self.direction == 'DOWN':
-            newIdx = index + 1
+            newIdx = eventIdx + 1
 
         newIdx   = max(0, min(newIdx, listLength))
-        eventIdx = newIdx
+        context.object.nvb.eventListIdx = newIdx
 
 
     def execute(self, context):
@@ -76,13 +153,13 @@ class NVB_LIST_OT_MoveEvent(bpy.types.Operator):
         eventIdx  = context.object.nvb.eventListIdx
 
         if self.direction == 'DOWN':
-            neighbor = eventIdx + 1
-            queue.move(eventIdx,neighbor)
-            self.move_index()
+            neighbour = eventIdx + 1
+            eventList.move(eventIdx, neighbour)
+            self.move_index(context)
         elif self.direction == 'UP':
-            neighbor = eventIdx - 1
-            queue.move(neighbor, eventIdx)
-            self.move_index()
+            neighbour = eventIdx - 1
+            eventList.move(neighbour, eventIdx)
+            self.move_index(context)
         else:
             return{'CANCELLED'}
 
