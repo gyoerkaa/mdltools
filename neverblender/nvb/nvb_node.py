@@ -376,7 +376,7 @@ class Trimesh(GeometryNode):
 
     def setShadingGroups(self, obj):
         '''
-        Converts the face shading groups of an objects to vertex groups
+        Converts the shading groups of an object to vertex groups
         '''
         if not nvb_glob.useShadingGroups:
             return
