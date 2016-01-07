@@ -25,38 +25,42 @@ def getAnimationRootdummy(animScene):
     if animScene:
         for obj in animScene.objects:
             if obj.type == 'EMPTY':
-                if (obj.nvb.dummytype == 'MDLROOT') and (obj.nvb.isanimation):
+                if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT) and (obj.nvb.isanimation):
                     return obj
     return None
 
 
-def isRootdummy(obj):
+def isRootdummy(obj, dummytype = nvb_def.Dummytype.MDLROOT):
     if not obj:
         return False
-    return (obj.type == 'EMPTY') and (obj.nvb.dummytype == 'MDLROOT') and (not obj.nvb.isanimation)
+    return (obj.type == 'EMPTY') and (obj.nvb.dummytype == dummytype) and (not obj.nvb.isanimation)
 
 
-def getRootdummy():
-    for obj in bpy.data.objects:
-        if isRootdummy(obj):
-            return obj
-    return None
-
-
-def getNodeType(bObject):
+def getNodeType(obj):
     '''
-    get the node type (dummy, trimesh, skin) of the bpy object
+    Get the node type (dummy, trimesh, skin, ...) of the blender object
     '''
-    objType  = bObject.type
-    nodeType = 'dummy'
+    objType  = obj.type
     if objType == 'EMPTY':
-        pass
+        if   obj.nvb.dummytype == nvb_def.Dummytype.PATCH:
+            return 'patch'
+        elif obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE:
+            return 'reference'
     elif objType == 'MESH':
-        pass
+        if   obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
+            return 'trimesh'
+        elif obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH:
+            return 'danglymesh'
+        elif obj.nvb.meshtype == nvb_def.Meshtype.SKIN:
+            return 'skin'
+        elif obj.nvb.meshtype == nvb_def.Meshtype.EMITTER:
+            return 'emitter'
+        elif obj.nvb.meshtype == nvb_def.Meshtype.AABB:
+            return 'aabb'
     elif objType == 'LAMP':
-        pass
+        return 'light'
 
-    return nodeType
+    return 'dummy'
 
 
 def chunker(seq, size):

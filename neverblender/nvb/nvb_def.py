@@ -7,29 +7,6 @@ class MalformedMdlFile(Exception):
     def __str__(self):
         return repr(self.parameter)
 
-'''
-class Classification(enum.Enum):
-    UNKNOWN   = ('Unknown',   'Unknown classification',              0)
-    TILE      = ('Tile',      'Tiles for a tileset',                 1)
-    CHARACTER = ('Character', 'Creatures, characters or placeables', 2)
-    DOOR      = ('Door',      'Doors',                               3)
-    EFFECT    = ('Effect',    'Effects',                             4)
-    GUI       = ('Gui',       'Gui',                                 5)
-    ITEM      = ('Item',      'Items or placeables',                 6)
-
-    def __init__(self, uiName, uiDesc, idx):
-        self.uiName = uiName
-        self.uiDesc = uiDesc
-        self.idx    = idx
-
-    @property
-    def uiEnumItem(self):
-        return (self.name, self.uiName, self.uiDesc, self.idx)
-
-    @property
-    def ascii(self):
-        return (self.name, self.uiName, self.uiDesc, self.idx)
-'''
 
 # Some presets
 fps = 30
@@ -57,3 +34,45 @@ wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
                   ['wok_Sand'          , (1.000, 1.000, 0.000), 0.0], \
                   ['wok_BareBones'     , (0.500, 0.500, 0.100), 0.0], \
                   ['wok_StoneBridge'   , (0.081, 0.108, 0.139), 0.0] ]
+
+
+class Meshtype():
+    TRIMESH    = 'TRI'
+    DANGLYMESH = 'DAN'
+    SKIN       = 'SKI'
+    AABB       = 'AAB'
+    EMITTER    = 'EMT'
+
+    ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER}
+
+    def __init__():
+        pass
+
+
+class Dummytype():
+    NONE      = 'NON'
+    DWKROOT   = 'DWK'
+    MDLROOT   = 'MDL'
+    PWKROOT   = 'PWK'
+    REFERENCE = 'REF'
+    PATCH     = 'PAT'
+
+    ALL = {NONE, DWKROOT, MDLROOT, PWKROOT, REFERENCE, PATCH}
+
+    def __init__():
+        pass
+
+
+class Classification():
+    UNKNOWN   = 'UNKNOWN'
+    TILE      = 'TILE'
+    CHARACTER = 'CHARACTER'
+    DOOR      = 'DOOR'
+    EFFECT    = 'EFFECT'
+    GUI       = 'GUI'
+    ITEM      = 'ITEM'
+
+    ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
+
+    def __init__():
+        pass

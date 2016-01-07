@@ -240,7 +240,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name = 'Export',
             options = {'ENUM_FLAG'},
             items = (('ANIMATION', 'Animations', 'Export animations'),
-                     ('WALKMESH', 'Walkmesh', 'Create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
+                     ('WALKMESH', 'Walkmesh', 'Attempt to create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
                      ),
             default = {'ANIMATION', 'WALKMESH'},
             )

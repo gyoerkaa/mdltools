@@ -1,5 +1,6 @@
 import bpy
 
+from . import nvb_def
 
 class NVB_UILIST_LIGHTFLARES(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -53,7 +54,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         row.prop(obj.nvb, 'dummytype', text='Type')
 
         # Display properties depending on type of the empty
-        if (obj.nvb.dummytype == 'MDLROOT'):
+        if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
             row = layout.row()
             row.prop(obj.nvb, 'isanimation', text = 'Animation')
             if not obj.nvb.isanimation:
@@ -93,7 +94,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 split = layout.split(percentage=0.25)
                 col = split.column()
                 col.label(text = 'Transition Time:')
-                col.label(text = 'Animation Root')
+                col.label(text = 'Animation Root:')
                 col = split.column()
                 col.prop(obj.nvb, 'transtime', text = '')
                 col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
@@ -126,21 +127,24 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.prop(obj.nvb, 'animname', text = 'Name')
                 row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
 
-        elif (obj.nvb.dummytype == 'PWKROOT'):
+        elif (obj.nvb.dummytype == nvb_def.Dummytype.PWKROOT):
             pass
 
-        elif (obj.nvb.dummytype == 'DWKROOT'):
+        elif (obj.nvb.dummytype == nvb_def.Dummytype.DWKROOT):
             pass
 
-        elif (obj.nvb.dummytype == 'SPECIAL'):
-            split = layout.split()
-            col = split.column()
-            col.label(text = 'Subtype:')
-            col = split.column()
-            col.prop(obj.nvb, 'dummysubtype', text='')
+        elif (obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE):
+            row = layout.row()
+            row.prop(obj.nvb, 'refmodel')
+            row = layout.row()
+            row.prop(obj.nvb, 'reattachable')
+            pass
+
         else:
             row = layout.row()
-            row.prop(obj.nvb, 'wirecolor', text = 'Wirecolor')
+            row.prop(obj.nvb, 'wirecolor')
+            row = layout.row()
+            row.prop(obj.nvb, 'dummysubtype')
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):

@@ -2,11 +2,12 @@ import os
 import bpy
 
 from . import nvb_glob
+from . import nvb_def
 from . import nvb_mdl
 from . import nvb_utils
 
 
-def findRootDummy():
+def findRootDummy(dummytype = nvb_def.Dummytype.MDLROOT):
     # Look for a rootdummy:
     # 1. Current selected object ?
     # 2. Search 'Empty' objects in the current scene
@@ -14,17 +15,17 @@ def findRootDummy():
 
     obj = bpy.context.object
     # Selected object
-    if nvb_utils.isRootDummy(obj):
+    if nvb_utils.isRootDummy(obj, dummytype):
         return obj
     else:
         # Search objects in active scene
         if nvb_glob.scene:
             for obj in nvb_glob.scene.objects:
-                if nvb_utils.isRootDummy(obj):
+                if nvb_utils.isRootDummy(obj, dummytype):
                     return obj
         # Search all data
         for ob in bpy.data.objects:
-            if nvb_utils.isRootDummy(obj):
+            if nvb_utils.isRootDummy(obj, dummytype):
                 return obj
 
     return None
@@ -106,6 +107,8 @@ def saveMdl(operator,
             f.write('\n'.join(asciiLines))
 
         if 'WALKMESH' in exports:
+            # Search for a walkmesh rootdummy
+
             xwk = nvb_mdl.Xwk()
             xwk.generateAscii()
 

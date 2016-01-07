@@ -19,7 +19,7 @@ class Mdl():
         self.name           = 'UNNAMED'
         self.supermodel     = nvb_def.null
         self.animscale      = 1.0
-        self.classification = 'UNKNOWN'
+        self.classification = nvb_def.Classification.UNKNOWN
 
 
     def loadAsciiNode(self, asciiBlock):
@@ -97,8 +97,10 @@ class Mdl():
             # even try to import the mdl
             (nodeKey, node) = next(it)
             if (type(node) == nvb_node.Dummy) and (node.parentName == nvb_def.null):
-                obj               = node.addToScene(scene)
-                obj.nvb.dummytype = 'MDLROOT'
+                obj                = node.addToScene(scene)
+                obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
+                obj.nvb.supermodel     = self.supermodel
+                obj.nvb.classification = self.classification
                 rootDummy = obj
             else:
                 raise nvb_def.MalformedMdlFile('First node has to be a dummy without a parent.')
@@ -121,7 +123,7 @@ class Mdl():
             # Search for the rootDummy if not already present
             if not rootDummy:
                 for obj in scene.objects:
-                    if (obj.type == 'EMPTY') and (obj.nvb.dummytype == 'MDLROOT'):
+                    if nvb_utils.isRootdummy(obj):
                         rootDummy = obj
                         break
                 # Still none ? Don't try to import anims then
@@ -130,6 +132,7 @@ class Mdl():
 
             for (animName, anim) in self.animDict.items():
                 anim.addAnimToScene(scene, rootDummy)
+
 
     def loadAscii(self, asciiLines):
         State = enum.Enum('State', 'START HEADER GEOMETRY GEOMETRYNODE ANIMATION')
@@ -160,11 +163,16 @@ class Mdl():
                        self.supermodel = line[2]
                     except IndexError:
                        print("WARNING: Unable to read supermodel. Using default value: " + self.supermodel)
+
                 elif (label == 'classification'):
                     try:
                         self.classification = line[1].upper()
                     except IndexError:
                         print("WARNING: Unable to read classification. Using default value: " + self.classification)
+
+                    if self.classification not in nvb_def.Classification.ALL:
+                        print("WARNING: Invalid classification '" + self.classification + "'")
+                        self.classification = nvb_def.Classification.UNKNOWN
                 elif (label == 'setanimationscale'):
                     try:
                         self.animscale = line[1]
@@ -219,7 +227,7 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.addToAscii(bObject, asciiLines, validExports)
+        node.generateAscii(bObject, asciiLines, validExports)
 
         for child in bObject.children:
             geometryToAscii(child, asciiLines, validExports)
@@ -320,10 +328,10 @@ class Xwk(Mdl):
 
             if self.walkmeshType == 'dwk':
                 node = nvb_node.Dummy(self.name + '_dwk')
-                node.dummytype = 'DWKROOT'
+                node.dummytype = nvb_def.Dummytype.DWKROOT
             else:
                 node = nvb_node.Dummy(self.name + '_pwk')
-                node.dummytype = 'PWKROOT'
+                node.dummytype = nvb_def.Dummytype.PWKROOT
             node.name = self.name
             rootdummy = node.addToScene(scene)
 
