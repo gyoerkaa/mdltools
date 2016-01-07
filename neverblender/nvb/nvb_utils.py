@@ -15,7 +15,7 @@ def isNumber(s):
         return True
 
 
-def getValidExports(rootDummy = None, validExports = []):
+def getValidExports(rootDummy, validExports):
     validExports.append(rootDummy.name)
     for child in rootDummy.children:
         getValidExports(child, validExports)
@@ -30,7 +30,7 @@ def getAnimationRootdummy(animScene):
     return None
 
 
-def isRootdummy(obj, dummytype = nvb_def.Dummytype.MDLROOT):
+def isRootDummy(obj, dummytype = nvb_def.Dummytype.MDLROOT):
     if not obj:
         return False
     return (obj.type == 'EMPTY') and (obj.nvb.dummytype == dummytype) and (not obj.nvb.isanimation)
@@ -112,14 +112,14 @@ def getAuroraRotFromObject(obj):
 
     if   rotMode == "QUATERNION":
         q = obj.rotation_quaternion
-        return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+        return [q.axis[0], q.axis[1], q.axis[0], q.angle]
     elif rotMode == "AXIS_ANGLE":
         aa = obj.rotation_axis_angle
         return [aa[1], aa[2], aa[3], aa[0]]
     else: # Has to be Euler
         eul = obj.rotation_euler
         q   = eul.to_quaternion()
-        return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+        return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
     return [0.0, 0.0, 0.0, 0.0]
 
@@ -131,7 +131,7 @@ def getAuroraRotFromMatrix(matrix):
     Blender uses [Angle, X, Y, Z]
     '''
     q = matrix.to_quaternion()
-    return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
 
 def getAuroraScale(obj):

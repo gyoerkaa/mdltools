@@ -1,3 +1,4 @@
+import os
 import collections
 import enum
 from datetime import datetime
@@ -6,9 +7,9 @@ import bpy
 
 from . import nvb_node
 from . import nvb_anim
-from . import nvb_def
 from . import nvb_glob
-
+from . import nvb_def
+from . import nvb_utils
 
 
 class Mdl():
@@ -123,7 +124,7 @@ class Mdl():
             # Search for the rootDummy if not already present
             if not rootDummy:
                 for obj in scene.objects:
-                    if nvb_utils.isRootdummy(obj):
+                    if nvb_utils.isRootDummy(obj):
                         rootDummy = obj
                         break
                 # Still none ? Don't try to import anims then
@@ -230,7 +231,7 @@ class Mdl():
         node.generateAscii(bObject, asciiLines, validExports)
 
         for child in bObject.children:
-            geometryToAscii(child, asciiLines, validExports)
+            self.geometryToAscii(child, asciiLines, validExports)
 
 
     def animationsToAscii(self, nodeList, asciiLines, validExports):

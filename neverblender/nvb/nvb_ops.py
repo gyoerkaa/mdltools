@@ -245,7 +245,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default = {'ANIMATION', 'WALKMESH'},
             )
 
-    shadingGroups = bpy.props.BoolProperty(
+    useShadingGroups = bpy.props.BoolProperty(
             name='Export Shading groups',
             description='Export Shading Groups' \
                         '(When disabled, every face belongs to the same group)',
@@ -321,7 +321,7 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         '''
         selected_object = context.object
         if (selected_object) and (selected_object.type == 'EMPTY'):
-            if (selected_object.auroraprops.dummytype == 'MDLBASE'):
+            if (selected_object.auroraprops.dummytype == nvb_def.Dummytype.MDLBASE):
                 nvb_utils.nvb_minimap_render_setup(selected_object, bpy.context.scene)
                 bpy.ops.render.render()
             else:
@@ -394,7 +394,7 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
                     object_copy_parent_name = 'null'
 
                 # We have just copied a MDL Base, so set some additional data
-                if (source_object.type == 'EMPTY') and (source_object.auroraprops.dummytype == 'MDLBASE'):
+                if (source_object.type == 'EMPTY') and (source_object.auroraprops.dummytype == nvb_def.Dummytype.MDLBASE):
                     object_copy.auroraprops.in_animscene = True
                     object_copy.auroraprops.animname     = anim_name
                     object_copy.auroraprops.transtime    = 0.25

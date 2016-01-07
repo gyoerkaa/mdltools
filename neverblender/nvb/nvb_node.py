@@ -123,33 +123,33 @@ class GeometryNode():
         return obj
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        if bObject.parent:
-            asciiLines.append('  parent ' + bObject.parent.name)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        loc = bObject.location
+        loc = obj.location
         asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
                                           str(round(loc[1], 5)) + ' ' +
                                           str(round(loc[2], 5)) )
-        rot = nvb_utils.getRotationAurora(bObject)
+        rot = nvb_utils.getAuroraRotFromObject(obj)
         asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
                                              str(round(rot[1], 5)) + ' ' +
                                              str(round(rot[2], 5)) + ' ' +
                                              str(round(rot[3], 5)) )
 
-        scale = round(nvb_utils.getScaleAurora(bObject), 3)
+        scale = round(nvb_utils.getAuroraScale(obj), 3)
         if (scale != 1.0):
             asciiLines.append('  scale ' + str(scale))
-        color = bObject.nvb.wirecolor
+        color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
                                            str(round(color[2], 2)) )
 
 
-    def generateAscii(self, bObject, asciiLines, exportObjects = []):
+    def generateAscii(self, obj, asciiLines, exportObjects = []):
         asciiLines.append('node ' + self.nodetype + ' ' + self.name)
-        self.addAsciiData(bObject, asciiLines, exportObjects)
+        self.addDataToAscii(obj, asciiLines, exportObjects)
         asciiLines.append('endnode')
 
 
@@ -196,8 +196,8 @@ class Dummy(GeometryNode):
                 break
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
         # TODO: Handle subtypes
 
 
@@ -255,8 +255,8 @@ class Reference(GeometryNode):
         obj.nvb.reattachable = (self.reattachable == 1)
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
         ascii_node.append('  refmodel ' + obj.nvb.refmodel)
         ascii_node.append('  reattachable ' + str(obj.nvb.reattachable))
 
@@ -523,7 +523,7 @@ class Trimesh(GeometryNode):
         return obj
 
 
-    def getFaceShadingGroup(bObject, tface):
+    def getFaceShadingGroup(self, tface, obj):
         '''
         Takes an object and one of its tessfaces as its parameters
 
@@ -539,17 +539,17 @@ class Trimesh(GeometryNode):
         # Vertex groups of the face. We start with all vertex groups of the
         # object and intersect with the
         # There should eb only one group left at the end.
-        faceVGroups = set(mesh_object.vertex_groups.keys())
+        faceVGroups = set(obj.vertex_groups.keys())
 
         # Iterate over vertex indices of the face
         if faceVGroups:
             for vIdx in tface.vertices:
                 # Get the actual vertex from the mesh object
-                vertex = bObject.data.vertices[vIdx]
+                vertex = obj.data.vertices[vIdx]
                 # Vertex groups of the vertex
                 vertexVGroups = set([])
                 for vgroup_element in vertex.groups:
-                    vgroup = bObject.vertex_groups[vgroup_element.group]
+                    vgroup = obj.vertex_groups[vgroup_element.group]
                     if nvb_utils.getIsShadingGroup(vgroup):
                         vertexVGroups.add(vgroup.name)
                 faceVGroups = faceVGroups & vertexVGroups
@@ -564,20 +564,20 @@ class Trimesh(GeometryNode):
         return groupId
 
 
-    def addMaterialDataToAscii(self, bObject, asciiLines):
+    def addMaterialDataToAscii(self, obj, asciiLines):
         # Check if this object has a material assigned to it
-        material = bObject.active_material
+        material = obj.active_material
         if material:
-            asciiLines.append('  ambient ' +    str(round(bObject.nvb.ambientcolor[0], 2)) + ' ' +
-                                                str(round(bObject.nvb.ambientcolor[1], 2)) + ' ' +
-                                                str(round(bObject.nvb.ambientcolor[2], 2))  )
+            asciiLines.append('  ambient ' +    str(round(obj.nvb.ambientcolor[0], 2)) + ' ' +
+                                                str(round(obj.nvb.ambientcolor[1], 2)) + ' ' +
+                                                str(round(obj.nvb.ambientcolor[2], 2))  )
             asciiLines.append('  diffuse ' +    str(round(material.diffuse_color[0], 2)) + ' ' +
                                                 str(round(material.diffuse_color[1], 2)) + ' ' +
                                                 str(round(material.diffuse_color[2], 2))  )
             asciiLines.append('  specular ' +   str(round(material.specular_color[0], 2)) + ' ' +
                                                 str(round(material.specular_color[1], 2)) + ' ' +
                                                 str(round(material.specular_color[2], 2))  )
-            asciiLines.append('  shininess ' + str(bObject.nvb.shininess))
+            asciiLines.append('  shininess ' + str(obj.nvb.shininess))
 
             # Check if this material has a texture assigned
             texture   = material.active_texture
@@ -603,7 +603,7 @@ class Trimesh(GeometryNode):
             asciiLines.append('  bitmap ' + nvb_def.null)
 
 
-    def addUVToList(uv, uvList):
+    def addUVToList(self, uv, uvList):
         '''
         Helper function to keep UVs unique
         '''
@@ -614,8 +614,8 @@ class Trimesh(GeometryNode):
             return (len(uvList)-1)
 
 
-    def addMeshDataToAscii(self, bObject, asciiLines, textured):
-        mesh = bObject.to_mesh(nvb_glob.scene, True, 'RENDER')
+    def addMeshDataToAscii(self, obj, asciiLines, textured = True):
+        mesh = obj.to_mesh(nvb_glob.scene, True, 'RENDER')
 
         faceList = [] # List of triangle faces
         uvList   = [] # List of uv indices
@@ -624,30 +624,30 @@ class Trimesh(GeometryNode):
         asciiLines.append('  verts ' + str(len(mesh.vertices)))
         l_round = round
         for v in mesh.vertices:
-            asciiLines.append('    ' +  str(l_round(v[0], 5)).rjust(10) + ' ' +
-                                        str(l_round(v[1], 5)).rjust(10) + ' ' +
-                                        str(l_round(v[2], 5)).rjust(10) )
+            asciiLines.append('    ' +  str(l_round(v.co[0], 5)).rjust(10) + ' ' +
+                                        str(l_round(v.co[1], 5)).rjust(10) + ' ' +
+                                        str(l_round(v.co[2], 5)).rjust(10) )
 
         # Add faces and corresponding tverts and shading groups
-        tessfaces_uvs = mesh.tessface_uv_textures.active
         tessfaces     = mesh.tessfaces
-        for i in range(len(tessfaces)):
-            face         = tessfaces[idx]
-            shadingGroup = getFaceShadingGroup(tface, bObject)
-            matIdx       = face.material_index
+        tessfaces_uvs = mesh.tessface_uv_textures.active
+        for idx in range(len(tessfaces)):
+            tface        = tessfaces[idx]
+            shadingGroup = self.getFaceShadingGroup(tface, obj)
+            matIdx       = tface.material_index
 
-            if (len(face.vertices) == 3):
+            if (len(tface.vertices) == 3):
                 #Triangle
                 uv1 = 0
                 uv2 = 0
                 uv3 = 0
                 if tessfaces_uvs:
-                    uvData = tessfaces_uvs.data[i]
-                    uv1 = addUVToList(uvData.uv1, uvList)
-                    uv2 = addUVToList(uvData.uv2, uvList)
-                    uv3 = addUVToList(uvData.uv3, uvList)
+                    uvData = tessfaces_uvs.data[idx]
+                    uv1 = self.addUVToList(uvData.uv1, uvList)
+                    uv2 = self.addUVToList(uvData.uv2, uvList)
+                    uv3 = self.addUVToList(uvData.uv3, uvList)
 
-                faceList.append([face.vertices[0], face.vertices[1], face.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
+                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
 
             elif (len(face.vertices) == 4):
                 #Quad
@@ -656,11 +656,11 @@ class Trimesh(GeometryNode):
                 uv3 = 0
                 uv4 = 0
                 if tessfaces_uvs:
-                    uvData = tessfaces_uvs.data[i]
-                    uv1 = addUVToList(uvData.uv1, uvList)
-                    uv2 = addUVToList(uvData.uv2, uvList)
-                    uv3 = addUVToList(uvData.uv3, uvList)
-                    uv4 = addUVToList(uvData.uv4, uvList)
+                    uvData = tessfaces_uvs.data[idx]
+                    uv1 = self.addUVToList(uvData.uv1, uvList)
+                    uv2 = self.addUVToList(uvData.uv2, uvList)
+                    uv3 = self.addUVToList(uvData.uv3, uvList)
+                    uv4 = self.addUVToList(uvData.uv4, uvList)
 
                 faceList.append([face.vertices[0], face.vertices[1], face.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
                 faceList.append([face.vertices[2], face.vertices[3], face.vertices[0], shadingGroup, uv3, uv4, uv1, matIdx])
@@ -670,8 +670,8 @@ class Trimesh(GeometryNode):
                 return
 
         if (textured):
-            asciiLines.append('  faces ' + str(len(faces)))
-            for f in faces:
+            asciiLines.append('  faces ' + str(len(faceList)))
+            for f in faceList:
                 asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
                                             str(f[1]) + ' '  + # Vertex index
                                             str(f[2]) + '  ' + # Vertex index
@@ -681,15 +681,15 @@ class Trimesh(GeometryNode):
                                             str(f[6]) + '  ' + # Texture vertex index
                                             str(f[7]) )        # Misc
 
-            asciiLines.append('  tverts ' + str(len(tverts)))
+            asciiLines.append('  tverts ' + str(len(uvList)))
             for uv in uvList:
                 asciiLines.append('    ' +  str(round(uv[0], 3)) + ' ' +
                                             str(round(uv[1], 3)) + ' ' +
                                             '0' )
 
         else:
-            asciiLines.append('  faces ' + str(len(faces)))
-            for f in faces:
+            asciiLines.append('  faces ' + str(len(faceList)))
+            for f in faceList:
                 asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
                                             str(f[1]) + ' '  + # Vertex index
                                             str(f[2]) + '  ' + # Vertex index
@@ -702,17 +702,17 @@ class Trimesh(GeometryNode):
         bpy.data.meshes.remove(mesh)
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addAsciiData(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
-        color = bObject.nvb.ambientcolor
+        color = obj.nvb.ambientcolor
         asciiLines.append('  ambient ' +    str(round(color[0], 2)) + ' ' +
                                             str(round(color[1], 2)) + ' ' +
                                             str(round(color[2], 2))  )
-        self.addMaterialDataToAscii(bObject, asciiLines)
+        self.addMaterialDataToAscii(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
 
-        color = bObject.nvb.selfillumcolor
+        color = obj.nvb.selfillumcolor
         asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
                                                 str(round(color[1], 2)) + ' ' +
                                                 str(round(color[2], 2))  )
@@ -727,7 +727,7 @@ class Trimesh(GeometryNode):
             asciiLines.append('  rotatetexture ' + str(obj.nvb.rotatetexture))
             asciiLines.append('  tilefade ' + str(obj.nvb.tilefade))
 
-        self.addMeshDataToAscii(bObject, asciiLines)
+        self.addMeshDataToAscii(obj, asciiLines, True)
 
 
 class Danglymesh(Trimesh):
@@ -770,17 +770,17 @@ class Danglymesh(Trimesh):
                     self.parse1f(asciiNode[idx+1:idx+numVals+1], self.constraints)
 
 
-    def addConstraintsToObject(self, bObject):
+    def addConstraintsToObject(self, obj):
         '''
         Creates a vertex group for the object to contain the vertex
         weights for the danglymesh. The weights are called "constraints"
         in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
         '''
-        vgroup = bObject.vertex_groups.new('constraints')
+        vgroup = obj.vertex_groups.new('constraints')
         for vertexIdx, constraint in enumerate(self.constraints):
             weight = constraint/255
             vgroup.add([vertexIdx], weight, 'REPLACE')
-        bObject.nvb.constraints = vgroup.name
+        obj.nvb.constraints = vgroup.name
 
 
     def setObjectData(self, obj):
@@ -792,13 +792,13 @@ class Danglymesh(Trimesh):
         self.addConstraintsToObject(obj)
 
 
-    def addConstraintsToAscii(self, bObject, asciiLines):
-        vgroupName = bObject.nvb.constraints
-        vgroup     = bObject.vertex_groups[vgroupName]
+    def addConstraintsToAscii(self, obj, asciiLines):
+        vgroupName = obj.nvb.constraints
+        vgroup     = obj.vertex_groups[vgroupName]
 
-        numVerts = len(bObject.data.vertices)
+        numVerts = len(obj.data.vertices)
         asciiLines.append('  constraints ' + str(numVerts))
-        for i, v in enumerate(bObject.data.vertices):
+        for i, v in enumerate(obj.data.vertices):
             try:
                 asciiLines.append('    ' + str(round(vgroup.weight(i)*255, 3)))
             except:
@@ -806,13 +806,13 @@ class Danglymesh(Trimesh):
                 asciiLines.append('    0.0')
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        Trimesh.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         asciiLines.append('  period '       + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness '    + str(round(obj.nvb.tightness, 3)))
         asciiLines.append('  displacement ' + str(round(obj.nvb.displacement, 3)))
-        self.addConstraintsToAscii(bObject, asciiLines)
+        self.addConstraintsToAscii(obj, asciiLines)
 
 
 class Skinmesh(Trimesh):
@@ -861,14 +861,14 @@ class Skinmesh(Trimesh):
             self.weights.append(memberships)
 
 
-    def addSkinGroupsToObject(self, bObject):
+    def addSkinGroupsToObject(self, obj):
         skinGroupDict = {}
         for vertIdx, vertMemberships in enumerate(self.weights):
             for membership in vertMemberships:
                 if membership[0] in skinGroupDict:
                     skinGroupDict[membership[0]].add([vertIdx], membership[1], 'REPLACE')
                 else:
-                    vgroup = bObject.vertex_groups.new(membership[0])
+                    vgroup = obj.vertex_groups.new(membership[0])
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
@@ -879,17 +879,17 @@ class Skinmesh(Trimesh):
         self.addSkinGroupsToObject(obj)
 
 
-    def addWeightsToAscii(self, bObject, asciiLines, exportObjects):
+    def addWeightsToAscii(self, obj, asciiLines, exportObjects):
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
         skingroups = []
         for objName in exportObjects:
-            if objName in bObject.vertex_groups:
-                skingroups.append(bObject.vertex_groups[objName])
+            if objName in obj.vertex_groups:
+                skingroups.append(obj.vertex_groups[objName])
 
         vertexWeights = []
-        for i, v in enumerate(bObject.data.vertices):
+        for i, v in enumerate(obj.data.vertices):
             weights = []
             for group in skingroups:
                 try:
@@ -899,13 +899,13 @@ class Skinmesh(Trimesh):
                     pass
             vertexWeights.append(weights)
 
-        numVerts = len(bObject.data.vertices)
+        numVerts = len(obj.data.vertices)
         asciiLines.append('  weights ' + str( numVerts))
         for weights in vertexWeights:
-            line = '    '
+            line = '  '
             if weights:
                 for w in weights:
-                    line += w[0] + ' ' + str(round(weight[1], 3)) + ' '
+                    line += '  ' + w[0] + ' ' + str(round(w[1], 3))
             else:
                 # No weights for this vertex ... this is a problem
                 print('WARNING: Missing vertex weight')
@@ -913,10 +913,10 @@ class Skinmesh(Trimesh):
             asciiLines.append(line)
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        Trimesh.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
-        self.addWeightsToAscii(bObject, asciiLines, exportObjects)
+        self.addWeightsToAscii(obj, asciiLines, exportObjects)
 
 
 class Emitter(GeometryNode):
@@ -993,10 +993,8 @@ class Emitter(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
-
-
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
 
 class Light(GeometryNode):
@@ -1146,25 +1144,25 @@ class Light(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addDataToAscii(self, bObject, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
-        lamp = bObject.data
+        lamp = obj.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
         asciiLines.append('  color ' +  str(round(lamp.color[0], 2)) + ' ' +
                                         str(round(lamp.color[1], 2)) + ' ' +
                                         str(round(lamp.color[2], 2)) )
 
-        asciiLines.append('  ambientonly ' + str(int(bObject.nvb.ambientonly)))
-        asciiLines.append('  nDynamicType ' + str(int(bObject.nvb.isdynamic)))
-        asciiLines.append('  affectDynamic ' + str(int(bObject.nvb.affectdynamic)))
-        asciiLines.append('  shadow ' + str(int(bObject.nvb.shadow)))
-        asciiLines.append('  lightpriority ' + str(bObject.nvb.lightpriority))
-        asciiLines.append('  fadingLight ' + str(int(bObject.nvb.fadinglight)))
-        if bObject.nvb.lensflares:
-            asciiLines.append('  lensflares ' + str(int(bObject.nvb.lensflares)))
-        asciiLines.append('  flareradius ' + str(round(bObject.nvb.flareradius, 1)))
+        asciiLines.append('  ambientonly ' + str(int(obj.nvb.ambientonly)))
+        asciiLines.append('  nDynamicType ' + str(int(obj.nvb.isdynamic)))
+        asciiLines.append('  affectDynamic ' + str(int(obj.nvb.affectdynamic)))
+        asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
+        asciiLines.append('  lightpriority ' + str(obj.nvb.lightpriority))
+        asciiLines.append('  fadingLight ' + str(int(obj.nvb.fadinglight)))
+        if obj.nvb.lensflares:
+            asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
+        asciiLines.append('  flareradius ' + str(round(obj.nvb.flareradius, 1)))
 
 
 class Aabb(Trimesh):
@@ -1178,9 +1176,9 @@ class Aabb(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.AABB
 
-    def addAABBToAscii(bObject, asciiLines):
+    def addAABBToAscii(obj, asciiLines):
 
-        walkmesh = bObject.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'PREVIEW')
+        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'PREVIEW')
         pass
         '''
         # Grab all vertices
@@ -1264,21 +1262,21 @@ class Aabb(Trimesh):
         return ascii_tree
         '''
 
-    def addDataToAscii(self, bObject, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        if bObject.parent:
-            asciiLines.append('  parent ' + bObject.parent.name)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        loc = bObject.location
+        loc = obj.location
         asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
                                           str(round(loc[1], 5)) + ' ' +
                                           str(round(loc[2], 5)) )
-        rot = nvb_utils.getRotationAurora(bObject)
+        rot = nvb_utils.getRotationAurora(obj)
         asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
                                              str(round(rot[1], 5)) + ' ' +
                                              str(round(rot[2], 5)) + ' ' +
                                              str(round(rot[3], 5)) )
-        color = bObject.nvb.wirecolor
+        color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
                                            str(round(color[2], 2))  )
@@ -1287,8 +1285,8 @@ class Aabb(Trimesh):
         asciiLines.append('  specular 0.0 0.0 0.0')
         asciiLines.append('  shininess 10')
         asciiLines.append('  bitmap NULL')
-        Trimesh.addMeshDataToAscii(self, bObject, asciiLines, False)
-        self.addAABBToAscii(bObject, asciiLines)
+        Trimesh.addMeshDataToAscii(self, obj, asciiLines, False)
+        self.addAABBToAscii(obj, asciiLines)
 
 
     def createMesh(self, name):

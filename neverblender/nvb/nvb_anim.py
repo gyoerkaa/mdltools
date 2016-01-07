@@ -54,7 +54,6 @@ class AnimationBlock():
         animScene.frame_end     = nvb_utils.nwtime2frame(self.length)
         animScene.frame_current = 0
 
-        # Get the mdl rootdummy
         if not rootDummy:
             return # Nope
 
@@ -75,7 +74,7 @@ class AnimationBlock():
 
         # rootDummy ?
         objType = theOriginal.type
-        if (objType == 'EMPTY') and (theOriginal.nvb.dummytype == 'MDLROOT'):
+        if (objType == 'EMPTY') and (theOriginal.nvb.dummytype == nvb_def.Dummytype.MDLROOT ):
             # We copied the root dummy, set some stuff
             theCopy.nvb.isanimation = True
             theCopy.nvb.animname    = self.name

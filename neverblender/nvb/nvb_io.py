@@ -101,15 +101,15 @@ def saveMdl(operator,
     rootDummy = findRootDummy()
     if rootDummy:
         mdl = nvb_mdl.Mdl()
-        asciiLines = []
-        mdl.generateAscii(asciiLines)
+        asciiMdl = []
+        mdl.generateAscii(asciiMdl, rootDummy)
         with open(os.fsencode(filepath), 'w') as f:
-            f.write('\n'.join(asciiLines))
+            f.write('\n'.join(asciiMdl))
 
         if 'WALKMESH' in exports:
             # Search for a walkmesh rootdummy
 
             xwk = nvb_mdl.Xwk()
-            xwk.generateAscii()
+            #xwk.generateAscii(asciiXwk, rootDummy)
 
     return {'FINISHED'}
