@@ -148,7 +148,7 @@ class GeometryNode():
 
 
     def generateAscii(self, obj, asciiLines, exportObjects = []):
-        asciiLines.append('node ' + self.nodetype + ' ' + self.name)
+        asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
         self.addDataToAscii(obj, asciiLines, exportObjects)
         asciiLines.append('endnode')
 
@@ -198,7 +198,16 @@ class Dummy(GeometryNode):
 
     def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
-        # TODO: Handle subtypes
+
+        dummytype = obj.nvb.dummytype
+        if dummytype == nvb_def.Dummytype.MDLROOT:
+            pass
+        else:
+            pass
+
+        subtype = obj.nvb.dummysubtype
+
+        # TODO: Handle types and subtypes
 
 
 class Patch(GeometryNode):
@@ -536,6 +545,9 @@ class Trimesh(GeometryNode):
         if not nvb_glob.useShadingGroups:
             return groupId
 
+        #TODO: Fix this mess
+        return groupId
+
         # Vertex groups of the face. We start with all vertex groups of the
         # object and intersect with the
         # There should eb only one group left at the end.
@@ -624,9 +636,9 @@ class Trimesh(GeometryNode):
         asciiLines.append('  verts ' + str(len(mesh.vertices)))
         l_round = round
         for v in mesh.vertices:
-            asciiLines.append('    ' +  str(l_round(v.co[0], 5)).rjust(10) + ' ' +
-                                        str(l_round(v.co[1], 5)).rjust(10) + ' ' +
-                                        str(l_round(v.co[2], 5)).rjust(10) )
+            asciiLines.append('    ' +  str(l_round(v.co[0], 5)) + ' ' +
+                                        str(l_round(v.co[1], 5)) + ' ' +
+                                        str(l_round(v.co[2], 5)) ) #.rjust(10)
 
         # Add faces and corresponding tverts and shading groups
         tessfaces     = mesh.tessfaces

@@ -1,6 +1,7 @@
 ﻿# Null value for parents, textures, etc.
 null = 'null'
 
+
 class MalformedMdlFile(Exception):
     def __init__(self, value):
         self.parameter = value
@@ -36,6 +37,23 @@ wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
                   ['wok_StoneBridge'   , (0.081, 0.108, 0.139), 0.0] ]
 
 
+class DummySubtype():
+    NONE      = 'NONE'
+    HAND      = 'HAND'
+    HEAD      = 'HEAD'
+    HEAD_HIT  = 'HHIT'
+    IMPACT    = 'IMPC'
+    GROUND    = 'GRND'
+    USE1      = 'USE1'
+    USE2      = 'USE2'
+    OPEN1_01  = 'O101'
+    OPEN1_02  = 'O102'
+    OPEN2_01  = 'O201'
+    OPEN2_02  = 'O202'
+    CLOSED_01 = 'CL01'
+    CLOSED_01 = 'CL02'
+
+
 class Meshtype():
     TRIMESH    = 'TRI'
     DANGLYMESH = 'DAN'
@@ -44,9 +62,6 @@ class Meshtype():
     EMITTER    = 'EMT'
 
     ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER}
-
-    def __init__():
-        pass
 
 
 class Dummytype():
@@ -58,9 +73,6 @@ class Dummytype():
     PATCH     = 'PAT'
 
     ALL = {NONE, DWKROOT, MDLROOT, PWKROOT, REFERENCE, PATCH}
-
-    def __init__():
-        pass
 
 
 class Classification():
