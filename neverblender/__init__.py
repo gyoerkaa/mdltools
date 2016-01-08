@@ -37,20 +37,22 @@ if 'bpy' in locals():
     importlib.reload(nvb_mdl)
     importlib.reload(nvb_node)
     importlib.reload(nvb_anim)
+    importlib.reload(nvb_animnode)
 
     importlib.reload(nvb_props)
     importlib.reload(nvb_ops)
-    importlib.reload(nvb_panels)
+    importlib.reload(nvb_ui)
 else:
     from .nvb import nvb_io
     from .nvb import nvb_parser
     from .nvb import nvb_mdl
     from .nvb import nvb_node
     from .nvb import nvb_anim
+    from .nvb import nvb_animnode
 
     from .nvb import nvb_props
     from .nvb import nvb_ops
-    from .nvb import nvb_panels
+    from .nvb import nvb_ui
 
 import bpy
 import bpy_extras

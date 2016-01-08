@@ -123,7 +123,7 @@ class GeometryNode():
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -137,14 +137,14 @@ class GeometryNode():
                                              str(round(rot[1], 5)) + ' ' +
                                              str(round(rot[2], 5)) + ' ' +
                                              str(round(rot[3], 5)) )
-
-        scale = round(nvb_utils.getAuroraScale(obj), 3)
-        if (scale != 1.0):
-            asciiLines.append('  scale ' + str(scale))
         color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
                                            str(round(color[2], 2)) )
+        scale = round(nvb_utils.getAuroraScale(obj), 3)
+        if (scale != 1.0):
+            asciiLines.append('  scale ' + str(scale))
+
 
 
     def generateAscii(self, obj, asciiLines, exportObjects = []):
@@ -173,41 +173,47 @@ class Dummy(GeometryNode):
 
         obj.nvb.dummytype = self.dummytype
 
-        obj.nvb.dummysubtype = 'NONE'
-        subtypes = [ ('use01',     'USE1'), \
-                     ('use02',     'USE2'), \
-                     ('hand',      'HAND'), \
-                     ('head',      'HEAD'), \
-                     ('head_hit',  'HHIT'), \
-                     ('hhit',      'HHIT'), \
-                     ('impact',    'IMPC'), \
-                     ('impc',      'IMPC'), \
-                     ('ground',    'GRND'), \
-                     ('grnd',      'GRND'), \
-                     ('open1_01',  'O101'), \
-                     ('open1_02',  'O102'), \
-                     ('open2_01',  'O201'), \
-                     ('open2_02',  'O202'), \
-                     ('closed_01', 'CL01'), \
-                     ('closed_02', 'CL02') ]
+        obj.nvb.dummysubtype = nvb_def.DummySubtype.NONE
+        subtypes = nvb_def.DummySubtype.SUFFIX_LIST
         for element in subtypes:
             if self.name.endswith(element[0]):
                 obj.nvb.dummysubtype = element[1]
                 break
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
+        scale = round(nvb_utils.getAuroraScale(obj), 3)
+        if (scale != 1.0):
+            asciiLines.append('  scale ' + str(scale))
 
         dummytype = obj.nvb.dummytype
         if dummytype == nvb_def.Dummytype.MDLROOT:
-            pass
-        else:
-            pass
+            # Only parent and scale for rootdummys
+            return
 
+        loc = obj.location
+        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
+                                          str(round(loc[1], 5)) + ' ' +
+                                          str(round(loc[2], 5)) )
+        rot = nvb_utils.getAuroraRotFromObject(obj)
+        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
+                                             str(round(rot[1], 5)) + ' ' +
+                                             str(round(rot[2], 5)) + ' ' +
+                                             str(round(rot[3], 5)) )
+        color = obj.nvb.wirecolor
+        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
+                                           str(round(color[1], 2)) + ' ' +
+                                           str(round(color[2], 2)) )
+
+        # TODO: Handle types and subtypes, i.e. Check and modify name
         subtype = obj.nvb.dummysubtype
+        if subtype == nvb_def.Dummytype.NONE:
+            pass
 
-        # TODO: Handle types and subtypes
 
 
 class Patch(GeometryNode):
@@ -264,7 +270,7 @@ class Reference(GeometryNode):
         obj.nvb.reattachable = (self.reattachable == 1)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
         ascii_node.append('  refmodel ' + obj.nvb.refmodel)
         ascii_node.append('  reattachable ' + str(obj.nvb.reattachable))
@@ -580,16 +586,14 @@ class Trimesh(GeometryNode):
         # Check if this object has a material assigned to it
         material = obj.active_material
         if material:
-            asciiLines.append('  ambient ' +    str(round(obj.nvb.ambientcolor[0], 2)) + ' ' +
-                                                str(round(obj.nvb.ambientcolor[1], 2)) + ' ' +
-                                                str(round(obj.nvb.ambientcolor[2], 2))  )
-            asciiLines.append('  diffuse ' +    str(round(material.diffuse_color[0], 2)) + ' ' +
-                                                str(round(material.diffuse_color[1], 2)) + ' ' +
-                                                str(round(material.diffuse_color[2], 2))  )
-            asciiLines.append('  specular ' +   str(round(material.specular_color[0], 2)) + ' ' +
-                                                str(round(material.specular_color[1], 2)) + ' ' +
-                                                str(round(material.specular_color[2], 2))  )
-            asciiLines.append('  shininess ' + str(obj.nvb.shininess))
+            color = material.diffuse_color
+            asciiLines.append('  diffuse ' +    str(round(color[0], 2)) + ' ' +
+                                                str(round(color[1], 2)) + ' ' +
+                                                str(round(color[2], 2))  )
+            color = material.specular_color
+            asciiLines.append('  specular ' +   str(round(color[0], 2)) + ' ' +
+                                                str(round(color[1], 2)) + ' ' +
+                                                str(round(color[2], 2))  )
 
             # Check if this material has a texture assigned
             texture   = material.active_texture
@@ -607,11 +611,9 @@ class Trimesh(GeometryNode):
             asciiLines.append('  bitmap ' + imageName)
         else:
             # No material, set some default values
-            asciiLines.append('  alpha 1.0')
-            asciiLines.append('  ambient 1.0 1.0 1.0')
             asciiLines.append('  diffuse 1.0 1.0 1.0')
             asciiLines.append('  specular 0.0 0.0 0.0')
-            asciiLines.append('  shininess 1')
+            asciiLines.append('  alpha 1.0')
             asciiLines.append('  bitmap ' + nvb_def.null)
 
 
@@ -714,7 +716,7 @@ class Trimesh(GeometryNode):
         bpy.data.meshes.remove(mesh)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         color = obj.nvb.ambientcolor
@@ -818,7 +820,7 @@ class Danglymesh(Trimesh):
                 asciiLines.append('    0.0')
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         asciiLines.append('  period '       + str(round(obj.nvb.period, 3)))
@@ -925,7 +927,7 @@ class Skinmesh(Trimesh):
             asciiLines.append(line)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         self.addWeightsToAscii(obj, asciiLines, exportObjects)
@@ -1005,7 +1007,7 @@ class Emitter(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
 
@@ -1156,7 +1158,7 @@ class Light(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         lamp = obj.data
@@ -1274,7 +1276,7 @@ class Aabb(Trimesh):
         return ascii_tree
         '''
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = 'UNKNOWN'):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -1292,10 +1294,10 @@ class Aabb(Trimesh):
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
                                            str(round(color[2], 2))  )
-        asciiLines.append('  ambient 0.0 0.0 0.0')
-        asciiLines.append('  diffuse 0.5 0.5 0.5')
+        asciiLines.append('  ambient 1.0 1.0 1.0')
+        asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
-        asciiLines.append('  shininess 10')
+        asciiLines.append('  shininess 0')
         asciiLines.append('  bitmap NULL')
         Trimesh.addMeshDataToAscii(self, obj, asciiLines, False)
         self.addAABBToAscii(obj, asciiLines)

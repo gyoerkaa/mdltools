@@ -124,7 +124,7 @@ class Mdl():
             # Search for the rootDummy if not already present
             if not rootDummy:
                 for obj in scene.objects:
-                    if nvb_utils.isRootDummy(obj):
+                    if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
                         rootDummy = obj
                         break
                 # Still none ? Don't try to import anims then
@@ -254,9 +254,12 @@ class Mdl():
         nvb_utils.getValidExports(rootDummy, validExports)
 
         # Header
-        currentTime = datetime.now()
+        currentTime   = datetime.now()
+        blendFileName = os.path.basename(bpy.data.filepath)
+        if not blendFileName:
+            blendFileName = 'unknown'
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
-        asciiLines.append('filedependancy ' + os.path.basename(bpy.data.filepath))
+        asciiLines.append('filedependancy ' + blendFileName)
         asciiLines.append('newmodel ' + self.name)
         asciiLines.append('setsupermodel ' + self.name + ' ' + self.supermodel)
         asciiLines.append('classification ' + self.classification)
