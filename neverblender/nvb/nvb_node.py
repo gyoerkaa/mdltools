@@ -1,3 +1,4 @@
+import mathutils
 import bpy
 import bpy_extras.image_utils
 from bpy_extras.io_utils import unpack_list, unpack_face_list
@@ -5,7 +6,7 @@ from bpy_extras.io_utils import unpack_list, unpack_face_list
 from . import nvb_glob
 from . import nvb_def
 from . import nvb_utils
-
+from . import nvb_aabb
 
 class FaceList():
     def __init__(self):
@@ -1190,91 +1191,80 @@ class Aabb(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.AABB
 
-    def addAABBToAscii(obj, asciiLines):
+    def addAABBToAscii(self, obj, asciiLines):
 
-        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'PREVIEW')
-        pass
-        '''
-        # Grab all vertices
-        vert_list = []
-        for vertex in walkmesh.vertices:
-            vert_list.append((vertex.co[0], vertex.co[1], vertex.co[2]))
+        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'RENDER')
 
-        face_list     = []
-        face_idx      = 0
+        faceList = []
+        faceIdx  = 0
         for tessface in walkmesh.tessfaces:
             if (len(tessface.vertices) == 3):
-                v0_idx = tessface.vertices[0]
-                v1_idx = tessface.vertices[1]
-                v2_idx = tessface.vertices[2]
+                # Tri
+                v0 = tessface.vertices[0]
+                v1 = tessface.vertices[1]
+                v2 = tessface.vertices[2]
 
-                face_centroid = mathutils.Vector((walkmesh.vertices[v0_idx].co + walkmesh.vertices[v1_idx].co + walkmesh.vertices[v2_idx].co)/3)
-                face_list.append((face_idx, [walkmesh.vertices[v0_idx].co, walkmesh.vertices[v1_idx].co, walkmesh.vertices[v2_idx].co], face_centroid))
-                face_idx += 1
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                faceIdx += 1
 
             elif (len(tessface.vertices) == 4):
-                #Quad
-                if (glob_triangulate):
-                    v0_idx = tessface.vertices[0]
-                    v1_idx = tessface.vertices[1]
-                    v2_idx = tessface.vertices[2]
-                    v3_idx = tessface.vertices[3]
+                # Quad
+                v0 = tessface.vertices[0]
+                v1 = tessface.vertices[1]
+                v2 = tessface.vertices[2]
+                v3 = tessface.vertices[3]
 
-                    face_centroid = mathutils.Vector((walkmesh.vertices[v0_idx].co + walkmesh.vertices[v1_idx].co + walkmesh.vertices[v2_idx].co)/3)
-                    face_list.append((face_idx, [walkmesh.vertices[v0_idx].co, walkmesh.vertices[v1_idx].co, walkmesh.vertices[v2_idx].co], face_centroid))
-                    face_idx += 1
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                faceIdx += 1
 
-                    face_centroid = mathutils.Vector((walkmesh.vertices[v2_idx].co + walkmesh.vertices[v3_idx].co + walkmesh.vertices[v0_idx].co)/3)
-                    face_list.append((face_idx, [walkmesh.vertices[v2_idx].co, walkmesh.vertices[v3_idx].co, walkmesh.vertices[v0_idx].co], face_centroid))
-                    face_idx += 1
-                else:
-                    # This is a Quad and we are not allowed to triangulate: We are unable export this
-                    print('WARNING: Quad in walkmesh. Unable to generate aabb, triangulation required (manual or activate export option)')
-                    return []
+                centroid = mathutils.Vector((walkmesh.vertices[v2].co + walkmesh.vertices[v3].co + walkmesh.vertices[v0].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v2].co, walkmesh.vertices[v3].co, walkmesh.vertices[v0].co], centroid))
+                faceIdx += 1
             else:
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
                 print('WARNING: Ngon in walkmesh. Unable to generate aabb.')
-                return []
+                return
 
-        aabb_tree = []
-        generate_aabbtree(aabb_tree, face_list)
+        aabbTree = []
+        nvb_aabb.generateTree(aabbTree, faceList)
 
         ascii_tree = []
-        if aabb_tree:
-            tree_node = aabb_tree.pop(0)
-            ascii_tree.append('  aabb  ' +
+        l_round = round
+        if aabbTree:
+            node = aabbTree.pop(0)
+            asciiLines.append('  aabb  ' +
                               ' ' +
-                              str(round(tree_node[0], glob_aabb_digits)) +
+                              str(l_round(node[0], 5)) +
                               ' ' +
-                              str(round(tree_node[1], glob_aabb_digits)) +
+                              str(l_round(node[1], 5)) +
                               ' ' +
-                              str(round(tree_node[2], glob_aabb_digits)) +
+                              str(l_round(node[2], 5)) +
                               ' ' +
-                              str(round(tree_node[3], glob_aabb_digits)) +
+                              str(l_round(node[3], 5)) +
                               ' ' +
-                              str(round(tree_node[4], glob_aabb_digits)) +
+                              str(l_round(node[4], 5)) +
                               ' ' +
-                              str(round(tree_node[5], glob_aabb_digits)) +
+                              str(l_round(node[5], 5)) +
                               ' ' +
-                              str(tree_node[6]) )
-            for tree_node in aabb_tree:
-                ascii_tree.append('    ' +
-                                  str(round(tree_node[0], glob_aabb_digits)) +
+                              str(node[6]) )
+            for tree_node in aabbTree:
+                asciiLines.append('    ' +
+                                  str(l_round(node[0], 5)) +
                                   ' ' +
-                                  str(round(tree_node[1], glob_aabb_digits)) +
+                                  str(l_round(node[1], 5)) +
                                   ' ' +
-                                  str(round(tree_node[2], glob_aabb_digits)) +
+                                  str(l_round(node[2], 5)) +
                                   ' ' +
-                                  str(round(tree_node[3], glob_aabb_digits)) +
+                                  str(l_round(node[3], 5)) +
                                   ' ' +
-                                  str(round(tree_node[4], glob_aabb_digits)) +
+                                  str(l_round(node[4], 5)) +
                                   ' ' +
-                                  str(round(tree_node[5], glob_aabb_digits)) +
+                                  str(l_round(node[5], 5)) +
                                   ' ' +
-                                  str(tree_node[6]) )
+                                  str(node[6]) )
 
-        return ascii_tree
-        '''
 
     def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         if obj.parent:
@@ -1285,7 +1275,7 @@ class Aabb(Trimesh):
         asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
                                           str(round(loc[1], 5)) + ' ' +
                                           str(round(loc[2], 5)) )
-        rot = nvb_utils.getRotationAurora(obj)
+        rot = nvb_utils.getAuroraRotFromObject(obj)
         asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
                                              str(round(rot[1], 5)) + ' ' +
                                              str(round(rot[2], 5)) + ' ' +

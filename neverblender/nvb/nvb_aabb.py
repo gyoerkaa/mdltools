@@ -1,8 +1,8 @@
 import mathutils
 
-def generate_aabbtree(aabb_tree, face_list, rec_level = 0):
+def generateTree(aabb_tree, face_list, rlevel = 0):
 
-    if (rec_level > 100):
+    if (rlevel > 100):
         print('WARNING: Error generating aabb. Recursion level exceeds 100')
         aabb_tree = []
         return
@@ -109,5 +109,5 @@ def generate_aabbtree(aabb_tree, face_list, rec_level = 0):
                     aabb_tree = []
                     return
 
-        generate_aabbtree(aabb_tree, face_list_left, rec_level+1)
-        generate_aabbtree(aabb_tree, face_list_right, rec_level+1)
+        generateTree(aabb_tree, face_list_left, rlevel+1)
+        generateTree(aabb_tree, face_list_right, rlevel+1)
