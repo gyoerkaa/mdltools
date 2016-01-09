@@ -147,10 +147,9 @@ class GeometryNode():
             asciiLines.append('  scale ' + str(scale))
 
 
-
-    def generateAscii(self, obj, asciiLines, exportObjects = []):
+    def generateAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
         asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
-        self.addDataToAscii(obj, asciiLines, exportObjects)
+        self.addDataToAscii(obj, asciiLines, exportObjects, classification)
         asciiLines.append('endnode')
 
 

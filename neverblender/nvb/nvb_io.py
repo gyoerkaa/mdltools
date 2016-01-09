@@ -7,7 +7,7 @@ from . import nvb_mdl
 from . import nvb_utils
 
 
-def findRootDummy(dummytype = nvb_def.Dummytype.MDLROOT):
+def findRootDummy():
     # Look for a rootdummy:
     # 1. Current selected object ?
     # 2. Search 'Empty' objects in the current scene
@@ -15,17 +15,17 @@ def findRootDummy(dummytype = nvb_def.Dummytype.MDLROOT):
 
     obj = bpy.context.object
     # Selected object
-    if nvb_utils.isRootDummy(obj, dummytype):
+    if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
         return obj
     else:
         # Search objects in active scene
         if nvb_glob.scene:
             for obj in nvb_glob.scene.objects:
-                if nvb_utils.isRootDummy(obj, dummytype):
+                if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
                     return obj
         # Search all data
         for ob in bpy.data.objects:
-            if nvb_utils.isRootDummy(obj, dummytype):
+            if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
                 return obj
 
     return None
@@ -65,17 +65,17 @@ def loadMdl(operator,
     # If the files are and the option is activated we'll import them
     if 'WALKMESH' in imports:
         filetypes = ['pwk', 'dwk']
-        (wkPath, wkFilename) = os.path.split(filepath)
-        for wkType in filetypes:
-            wkFilepath = os.path.join(wkPath, os.path.splitext(wkFilename)[0] + '.' + wkType)
-            fp = os.fsencode(wkFilepath)
+        (wkmPath, wkmFilename) = os.path.split(filepath)
+        for wkmType in filetypes:
+            wkmFilepath = os.path.join(wkmPath, os.path.splitext(wkmFilename)[0] + '.' + wkmType)
+            fp = os.fsencode(wkmFilepath)
             try:
                 asciiLines = [line.strip().split() for line in open(fp, 'r')]
-                xwk = nvb_mdl.Xwk()
-                xwk.loadAscii(asciiLines)
-                xwk.importToScene(scene, imports)
+                wkm = nvb_mdl.Xwk(mdl.name, wkmType)
+                wkm.loadAscii(asciiLines)
+                wkm.importToScene(scene, imports)
             except IOError:
-                print("Neverblender: No walkmesh found at " + wkFilepath)
+                print("Neverblender: No walkmesh found at " + wkmFilepath)
 
     return {'FINISHED'}
 
@@ -109,7 +109,8 @@ def saveMdl(operator,
         if 'WALKMESH' in exports:
             # Search for a walkmesh rootdummy
 
-            xwk = nvb_mdl.Xwk()
-            #xwk.generateAscii(asciiXwk, rootDummy)
+            wkm = nvb_mdl.Xwk()
+            asciiWkm = []
+            #wkm.generateAscii(asciiWkm, rootDummy)
 
     return {'FINISHED'}

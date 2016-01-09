@@ -87,7 +87,6 @@ class Mdl():
 
 
     def importToScene(self, scene, imports):
-
         rootDummy = None
 
         if ('GEOMETRY' in imports) and self.nodeDict:
@@ -211,7 +210,7 @@ class Mdl():
                         raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
 
 
-    def geometryToAscii(self, bObject, asciiLines, validExports):
+    def geometryToAscii(self, bObject, asciiLines, validExports = []):
 
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy, \
@@ -228,7 +227,7 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.generateAscii(bObject, asciiLines, validExports)
+        node.generateAscii(bObject, asciiLines, validExports, self.classification)
 
         for child in bObject.children:
             self.geometryToAscii(child, asciiLines, validExports)
@@ -276,11 +275,10 @@ class Mdl():
 
 
 class Xwk(Mdl):
-    def __init__(self, name = 'UNNAMED', wtype = 'pwk'):
+    def __init__(self, name = 'UNNAMED', wkmType = 'pwk'):
         self.nodeDict     = collections.OrderedDict()
-        self.rootdummy    = None
         self.name         = name
-        self.walkmeshType = wtype
+        self.walkmeshType = wkmType
 
 
     def loadAsciiAnimation(self, asciiBlock):
@@ -307,16 +305,23 @@ class Xwk(Mdl):
                     raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
 
 
-    def setWalkmeshType(self, wtype):
-        self.walkmeshType = wtype
+    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+        self.name = rootDummy.name
+
+        # Header
+        currentTime = datetime.now()
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        # Geometry
+        for child in rootDummy.children:
+            self.geometryToAscii(child, asciiLines)
 
 
-    def importToScene(self, scene, imports):
-        if ('WALKMESH' in imports) and self.nodeDict:
+    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+        if self.nodeDict:
             # Walkmeshes have no rootdummys. We need to create one ourselves
 
             # Look for the node parents for the list of parents. They should
-            # all be the same
+            # all have the same name
             nameList = []
             for (nodeKey, node) in self.nodeDict.items():
                 if (node.parentName == nvb_def.null):
@@ -348,3 +353,36 @@ class Xwk(Mdl):
                 else:
                     # Node with invalid parent.
                     raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
+
+
+class Wok(Xwk):
+    def __init__(self, name = 'UNNAMED', wkmType = 'wok'):
+        self.nodeDict       = collections.OrderedDict()
+        self.name           = name
+        self.walkmeshType   = wkmType
+
+
+    def geometryToAscii(self, bObject, asciiLines):
+
+        nodeType = nvb_utils.getNodeType(bObject)
+        if nodeType == 'aabb':
+            node = nvb_node.Aabb()
+            node.generateAscii(bObject, asciiLines)
+            return # We'll take the first aabb object
+        else:
+            for child in bObject.children:
+                self.geometryToAscii(child, asciiLines)
+
+
+    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+        self.name           = rootDummy.name
+
+        # Header
+        currentTime   = datetime.now()
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        # Geometry = AABB
+        self.geometryToAscii(child, asciiLines)
+
+
+    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+        pass
