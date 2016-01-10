@@ -256,7 +256,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
         row = layout.row()
         row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
 
-        if (obj.nvb.meshtype == 'EMITTER'):
+        if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             row = layout.row()
             row.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts', text='Data')
 
@@ -284,7 +284,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
 
             # Additional props for danlymeshes
-            if (obj.nvb.meshtype == 'DANGLYMESH'):
+            if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Danglymesh Properties')
@@ -298,7 +298,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row.prop(obj.nvb, 'displacement', text='Displacement')
 
             # Additional props for skins
-            elif (obj.nvb.meshtype == 'SKIN'):
+            elif (obj.nvb.meshtype == nvb_def.Meshtype.SKIN):
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Create skingroup: ')
@@ -307,7 +307,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row.operator('nvb.skingroup_add', text = '', icon='ZOOMIN')
 
             # Additional props for aabb walkmeshes
-            elif (obj.nvb.meshtype == 'AABB'):
+            elif (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
                 row = layout.row()
                 box = row.box()
                 row = box.row()

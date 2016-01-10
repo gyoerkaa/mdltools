@@ -22,6 +22,8 @@ class Mdl():
         self.animscale      = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
 
+        self.validExports   = [] # needed for skinmeshes and animations
+
 
     def loadAsciiNode(self, asciiBlock):
         if asciiBlock is None:
@@ -55,7 +57,7 @@ class Mdl():
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Animation')
 
-        animation = nvb_anim.AnimationBlock()
+        animation = nvb_anim.Animation()
         animation.getAnimFromAscii(asciiBlock)
 
         self.addAnimation(animation)
@@ -210,7 +212,7 @@ class Mdl():
                         raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
 
 
-    def geometryToAscii(self, bObject, asciiLines, validExports = []):
+    def geometryToAscii(self, bObject, asciiLines, simple = False):
 
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy, \
@@ -227,18 +229,21 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.generateAscii(bObject, asciiLines, validExports, self.classification)
+        node.toAscii(bObject, asciiLines, self.validExports, self.classification, simple)
 
         for child in bObject.children:
-            self.geometryToAscii(child, asciiLines, validExports)
+            self.geometryToAscii(child, asciiLines, simple)
 
 
-    def animationsToAscii(self, nodeList, asciiLines, validExports):
+    def animationsToAscii(self, asciiLines):
         for scene in bpy.data.scenes:
             animRootDummy = nvb_utils.getAnimationRootdummy(scene)
-            if animRootDummy:
-                # TODO
-                pass
+            if animRootDummy and self.validExports:
+                # Check the name of the roodummy
+                # if animRootDummy.name.rfind(self.validExports[0]):
+                anim = nvb_anim.Animation()
+                anim.toAscii(scene, animRootDummy, asciiLines, self.validExports)
+
 
 
     def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
@@ -249,8 +254,7 @@ class Mdl():
 
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
-        validExports = []
-        nvb_utils.getValidExports(rootDummy, validExports)
+        nvb_utils.getValidExports(rootDummy, self.validExports)
 
         # Header
         currentTime   = datetime.now()
@@ -265,20 +269,22 @@ class Mdl():
         asciiLines.append('setanimationscale ' + str(round(self.animscale, 2)))
         # Geometry
         asciiLines.append('beginmodelgeom ' + self.name)
-        self.geometryToAscii(rootDummy, asciiLines, validExports)
+        self.geometryToAscii(rootDummy, asciiLines, False)
         asciiLines.append('endmodelgeom ' + self.name)
         # Animations
-        asciiLines.append('# ANIM ASCII')
-        self.animationsToAscii(rootDummy, asciiLines, validExports)
+        if 'ANIMATION' in exports:
+            asciiLines.append('# ANIM ASCII')
+            self.animationsToAscii(asciiLines)
         # The End
         asciiLines.append('donemodel ' + self.name)
 
 
 class Xwk(Mdl):
-    def __init__(self, name = 'UNNAMED', wkmType = 'pwk'):
-        self.nodeDict     = collections.OrderedDict()
-        self.name         = name
-        self.walkmeshType = wkmType
+    def __init__(self, wkmType = 'pwk'):
+        Mdl.__init__(self)
+
+        self.walkmeshType   = wkmType
+
 
 
     def loadAsciiAnimation(self, asciiBlock):
@@ -313,7 +319,7 @@ class Xwk(Mdl):
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
         # Geometry
         for child in rootDummy.children:
-            self.geometryToAscii(child, asciiLines)
+            self.geometryToAscii(child, asciiLines, True)
 
 
     def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
@@ -335,11 +341,10 @@ class Xwk(Mdl):
             else:
                 raise nvb_def.MalformedMdlFile('Invalid parents in walkmesh.')
 
+            node = nvb_node.Dummy(self.name + '_' + self.walkmeshType)
             if self.walkmeshType == 'dwk':
-                node = nvb_node.Dummy(self.name + '_dwk')
                 node.dummytype = nvb_def.Dummytype.DWKROOT
             else:
-                node = nvb_node.Dummy(self.name + '_pwk')
                 node.dummytype = nvb_def.Dummytype.PWKROOT
             node.name = self.name
             rootdummy = node.addToScene(scene)
@@ -359,29 +364,30 @@ class Wok(Xwk):
     def __init__(self, name = 'UNNAMED', wkmType = 'wok'):
         self.nodeDict       = collections.OrderedDict()
         self.name           = name
-        self.walkmeshType   = wkmType
+        self.walkmeshType   = 'wok'
+        self.classification = nvb_def.Classification.UNKNOWN
 
 
-    def geometryToAscii(self, bObject, asciiLines):
+    def geometryToAscii(self, bObject, asciiLines, simple):
 
         nodeType = nvb_utils.getNodeType(bObject)
         if nodeType == 'aabb':
             node = nvb_node.Aabb()
-            node.generateAscii(bObject, asciiLines)
+            node.toAscii(bObject, asciiLines, simple)
             return # We'll take the first aabb object
         else:
             for child in bObject.children:
-                self.geometryToAscii(child, asciiLines)
+                self.geometryToAscii(child, asciiLines, simple)
 
 
     def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
-        self.name           = rootDummy.name
+        self.name = rootDummy.name
 
         # Header
         currentTime   = datetime.now()
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
         # Geometry = AABB
-        self.geometryToAscii(child, asciiLines)
+        self.geometryToAscii(rootDummy, asciiLines, True)
 
 
     def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):

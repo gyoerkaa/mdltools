@@ -22,9 +22,9 @@ class Keys():
 
 class Node():
     def __init__(self, name = 'UNNAMED'):
-        self.name        = name
-        self.nodeType    = 'DUMMY'
-        self.parentName  = nvb_def.null
+        self.name       = name
+        self.nodetype   = 'dummy'
+        self.parentName = nvb_def.null
 
         self.keys    = Keys()
         self.isEmpty = True
@@ -75,7 +75,7 @@ class Node():
         self.isEmpty = False
 
 
-    def parseKeysImcompat(self, asciiBlock):
+    def parseKeysIncompat(self, asciiBlock):
         '''
         Parse animation keys incompatible with blender. They will be saved
         as plain text.
@@ -104,7 +104,7 @@ class Node():
                 # Probably empty line or whatever, skip it
                 continue
             if   label == 'node':
-                self.nodeType = line[1].upper()
+                self.nodeType = line[1].lower()
                 self.name     = line[2].lower()
             elif label == 'endnode':
                 return
@@ -131,8 +131,8 @@ class Node():
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                if self.nodeType == 'EMITTER':
-                    self.parseKeysImcompat(asciiBlock[idx:idx+numKeys+1])
+                if self.nodeType == 'emitter':
+                    self.parseKeysIncompat(asciiBlock[idx:idx+numKeys+1])
                 else:
                     self.parseKeys1f(asciiBlock[idx+1:idx+numKeys+1], self.keys.alpha)
             elif label == 'selfillumcolorkey':
@@ -149,7 +149,7 @@ class Node():
             # Probably keys for emitters = incompatible with blender. Import as text.
             elif not l_isNumber(line[0]):
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeysImcompat(asciiBlock[idx:idx+numKeys+1])
+                self.parseKeysIncompat(asciiBlock[idx:idx+numKeys+1])
 
 
     def addAnimToMaterial(self, targetMaterial, animName = ''):
@@ -160,7 +160,7 @@ class Node():
 
             # Set alpha channels
             # This should influence the material alpha value
-            curve = action.fcurves.new(data_path='alpha')
+            curve = action.fcurves.new(data_path='texture_slots[0].alpha_factor'')
             for key in self.keys.alpha:
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
 
@@ -241,3 +241,101 @@ class Node():
 
         targetObject.animation_data_create()
         targetObject.animation_data.action = action
+
+
+    def getKeysFromAction(self, action):
+            axis = fcurve.array_index
+            for fcurve in action.fcurves:
+                # Get the sub dict for this particlar type of fcurve
+                data_path = fcurve.data_path
+                target    = None
+                if   data_path == 'rotation_euler':
+                    target = self.keys.orientation
+                elif data_path == 'rotation_axis_angle':
+                    pass
+                elif data_path == 'location':
+                    target = self.keys.position
+                elif data_path == 'scale':
+                    target = self.keys.scale
+                elif data_path == 'nvb.selfillumcolor':
+                    target = self.keys.selfillumcolor
+                elif data_path == 'color': # Lamps/Lights
+                    target = self.keys.color
+                elif data_path == 'distance': # Lamps/Lights
+                    target = self.keys.radius
+                elif data_path.endswith('alpha_factor'): # Texture alpha_factor
+                    target = self.keys.alpha
+
+                for kfp in fcurve.keyframe_points:
+                    newFrame = int(round(kfp.co[0]))
+                    # Check if the new frame is a later one than the latest in
+                    # the list, i.e. frames should always be ascending
+                    latestFrame = target[-1][0]
+                    if latestFrame < newFrame:
+                        values = [0.0, 0.0, 0.0, 0.0]
+                        values[axis] = kfp.co[1]
+                        target.append((newFrame, values))
+                    else:
+                        # TODO: raise an exception
+                        pass
+
+    def addKeysToAscii(self, obj, asciiLines):
+
+        # Object Data
+        if obj.animation_data:
+            action = obj.animation_data.action
+            self.getKeysFromAction(action)
+
+        # Material/ texture data (= texture alpha_factor)
+        if obj.active_material and obj.active_material.animation_data:
+            action = obj.animation_data.action
+            self.getKeysFromAction(action)
+
+        if   self.keys.orientation:
+            asciiLines.append('    orientationkey ' + len(self.keys.orientation))
+            for frame, values in self.keys.orientation:
+                pass
+
+        elif self.keys.position:
+            pass
+        elif self.keys.scale:
+            pass
+        elif self.keys.selfillumcolor:
+            pass
+        elif self.keys.color: # Lamps/Lights
+            pass
+        elif self.keys.radius: # Lamps/Lights
+            pass
+        elif self.keys.alpha: # Texture alpha_factor
+            pass
+
+
+    def getOriginalName(self, nodeName, animName):
+        '''
+        A bit messy due to compatibility
+        '''
+        if nodeName.endswith(animName):
+            orig = nodeName[:len(nodeName)-len(animName)]
+            if orig.endswith('.'):
+                return orig[:len(orig)-1]
+            else:
+                return orig
+
+        # Try to separate the name by '.'
+        orig = nodeName.rpartition('.')[0]
+        if orig:
+            return orig
+
+        # Couldn't find anything ? Return the string itself
+        return nodeName
+
+
+    def toAscii(self, bObject, asciiLines, animName):
+        trueName = self.getOriginalName(bObject.name, animName)
+        trueParent = nvb_def.null
+        if bObject.parent:
+            trueParent = self.getOriginalName(bObject.parent.name, animName)
+        asciiLines.append('  node dummy ' + trueName)
+        asciiLines.append('    parent ' + trueParent)
+        self.addKeysToAscii(bObject, asciiLines)
+        asciiLines.append('  endnode')

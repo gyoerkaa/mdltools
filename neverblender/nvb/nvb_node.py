@@ -124,7 +124,7 @@ class GeometryNode():
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -147,9 +147,9 @@ class GeometryNode():
             asciiLines.append('  scale ' + str(scale))
 
 
-    def generateAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def toAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
-        self.addDataToAscii(obj, asciiLines, exportObjects, classification)
+        self.addDataToAscii(obj, asciiLines, exportObjects, classification, simple)
         asciiLines.append('endnode')
 
 
@@ -181,7 +181,7 @@ class Dummy(GeometryNode):
                 break
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -270,7 +270,7 @@ class Reference(GeometryNode):
         obj.nvb.reattachable = (self.reattachable == 1)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
         ascii_node.append('  refmodel ' + obj.nvb.refmodel)
         ascii_node.append('  reattachable ' + str(obj.nvb.reattachable))
@@ -303,8 +303,6 @@ class Trimesh(GeometryNode):
         self.verts            = [] # list of vertices
         self.facelist         = FaceList()
         self.tverts           = [] # list of texture vertices
-
-
 
 
     def createImage(self, imgName, imgPath):
@@ -628,7 +626,7 @@ class Trimesh(GeometryNode):
             return (len(uvList)-1)
 
 
-    def addMeshDataToAscii(self, obj, asciiLines, textured = True):
+    def addMeshDataToAscii(self, obj, asciiLines, simple = False):
         mesh = obj.to_mesh(nvb_glob.scene, True, 'RENDER')
 
         faceList = [] # List of triangle faces
@@ -683,7 +681,18 @@ class Trimesh(GeometryNode):
                 print('WARNING: Ngon in ' + mesh_object.name + '. Unable to export.')
                 return
 
-        if (textured):
+        if simple:
+            asciiLines.append('  faces ' + str(len(faceList)))
+            for f in faceList:
+                asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
+                                            str(f[1]) + ' '  + # Vertex index
+                                            str(f[2]) + '  ' + # Vertex index
+                                            str(f[3]) + '  ' + # Shading group
+                                            str(0)    + ' '  + # Texture vertex index
+                                            str(0)    + ' '  + # Texture vertex index
+                                            str(0)    + '  ' + # Texture vertex index
+                                            str(f[7]) )        # Misc
+        else:
             asciiLines.append('  faces ' + str(len(faceList)))
             for f in faceList:
                 asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
@@ -695,29 +704,18 @@ class Trimesh(GeometryNode):
                                             str(f[6]) + '  ' + # Texture vertex index
                                             str(f[7]) )        # Misc
 
-            asciiLines.append('  tverts ' + str(len(uvList)))
-            for uv in uvList:
-                asciiLines.append('    ' +  str(round(uv[0], 3)) + ' ' +
-                                            str(round(uv[1], 3)) + ' ' +
-                                            '0' )
-
-        else:
-            asciiLines.append('  faces ' + str(len(faceList)))
-            for f in faceList:
-                asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
-                                            str(f[1]) + ' '  + # Vertex index
-                                            str(f[2]) + '  ' + # Vertex index
-                                            str(f[3]) + '  ' + # Shading group
-                                            str(0)    + ' '  + # Texture vertex index
-                                            str(0)    + ' '  + # Texture vertex index
-                                            str(0)    + '  ' + # Texture vertex index
-                                            str(f[7]) )        # Misc
+            if (len(uvList) > 0):
+                asciiLines.append('  tverts ' + str(len(uvList)))
+                for uv in uvList:
+                    asciiLines.append('    ' +  str(round(uv[0], 3)) + ' ' +
+                                                str(round(uv[1], 3)) + ' ' +
+                                                '0' )
 
         bpy.data.meshes.remove(mesh)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
 
         color = obj.nvb.ambientcolor
         asciiLines.append('  ambient ' +    str(round(color[0], 2)) + ' ' +
@@ -725,23 +723,25 @@ class Trimesh(GeometryNode):
                                             str(round(color[2], 2))  )
         self.addMaterialDataToAscii(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
+        if not simple:
 
-        color = obj.nvb.selfillumcolor
-        asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
-                                                str(round(color[1], 2)) + ' ' +
-                                                str(round(color[2], 2))  )
 
-        asciiLines.append('  render ' + str(obj.nvb.render))
-        asciiLines.append('  shadow ' + str(obj.nvb.shadow))
-        asciiLines.append('  beaming ' + str(obj.nvb.beaming))
-        asciiLines.append('  inheritcolor ' + str(obj.nvb.inheritcolor))
-        asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
-        # These two are for tiles only
-        if classification == 'TILE':
-            asciiLines.append('  rotatetexture ' + str(obj.nvb.rotatetexture))
-            asciiLines.append('  tilefade ' + str(obj.nvb.tilefade))
+            color = obj.nvb.selfillumcolor
+            asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
+                                                    str(round(color[1], 2)) + ' ' +
+                                                    str(round(color[2], 2))  )
 
-        self.addMeshDataToAscii(obj, asciiLines, True)
+            asciiLines.append('  render ' + str(int(obj.nvb.render)))
+            asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
+            asciiLines.append('  beaming ' + str(int(obj.nvb.beaming)))
+            asciiLines.append('  inheritcolor ' + str(int(obj.nvb.inheritcolor)))
+            asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
+            # These two are for tiles only
+            if classification == 'TILE':
+                asciiLines.append('  rotatetexture ' + str(int(obj.nvb.rotatetexture)))
+                asciiLines.append('  tilefade ' + str(int(obj.nvb.tilefade)))
+
+        self.addMeshDataToAscii(obj, asciiLines, simple)
 
 
 class Danglymesh(Trimesh):
@@ -820,7 +820,7 @@ class Danglymesh(Trimesh):
                 asciiLines.append('    0.0')
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         asciiLines.append('  period '       + str(round(obj.nvb.period, 3)))
@@ -927,7 +927,7 @@ class Skinmesh(Trimesh):
             asciiLines.append(line)
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         self.addWeightsToAscii(obj, asciiLines, exportObjects)
@@ -945,21 +945,47 @@ class Emitter(GeometryNode):
 
 
     def loadAscii(self, asciiNode):
-        GeometryNode.loadAscii(self, asciiNode)
-
-        l_int   = int
         l_float = float
+        l_isNumber = nvb_utils.isNumber
+
         for line in asciiNode:
             try:
                 label = line[0].lower()
             except IndexError:
                 # Probably empty line or whatever, skip it
                 continue
-            self.rawascii = self.rawascii + '\n' + ' '.join(line)
-            if (label == 'xsize'):
-                self.xsize = l_float(line[1])/100
-            elif (label == 'ysize'):
-                self.ysize = l_float(line[1])/100
+
+            if not l_isNumber(label):
+                if   (label == 'node'):
+                    self.name = line[2].lower()
+                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
+                elif (label  == 'endnode'):
+                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
+                    return
+                elif (label == 'parent'):
+                    self.parentName = line[1].lower()
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'position'):
+                    self.position = (l_float(line[1]),
+                                     l_float(line[2]),
+                                     l_float(line[3]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'orientation'):
+                    self.orientation = (l_float(line[1]),
+                                        l_float(line[2]),
+                                        l_float(line[3]),
+                                        l_float(line[4]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'scale'):
+                    self.scale = l_float(line[1])
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'wirecolor'):
+                    self.wirecolor = (l_float(line[1]),
+                                      l_float(line[2]),
+                                      l_float(line[3]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                else:
+                    self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
 
 
     def createMesh(self, objName):
@@ -1007,8 +1033,27 @@ class Emitter(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
+
+        txt      = bpy.data.texts[obj.nvb.rawascii]
+        txtLines = [l.split() for l in txt.as_string().split('\n')]
+        for line in txtLines:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if  (label == 'node') or (label  == 'endnode') or \
+                (label == 'parent') or (label == 'position') or \
+                (label == 'orientation') or (label == 'scale') or (label == 'wirecolor'):
+                # We don't need any of this as we'll take it directly from
+                # the object
+                pass
+            else:
+                # We'll take everything that doesn't start with a #
+                if label[0] != '#':
+                    asciiLines.append('  ' + ' '.join(line))
 
 
 class Light(GeometryNode):
@@ -1085,23 +1130,19 @@ class Light(GeometryNode):
                 elif (label == 'flaresizes'):
                     # List of floats
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    print(numFlares)
                     self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    print(numFlares)
                     self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    print(numFlares)
                     self.parse3f(asciiNode[idx+1:idx+numFlares+1], self.flareList.colorshifts)
 
         # Load flare texture names:
         for i in range(numFlares):
             texName = asciiNode[flareTextureNamesStart+i][0]
-            print(texName)
             self.flareList.textures.append(texName)
 
 
@@ -1124,6 +1165,7 @@ class Light(GeometryNode):
                   'ml2': 'MAINLIGHT2', \
                   'sl1': 'SOURCELIGHT1', \
                   'sl2': 'SOURCELIGHT2'}
+        #TODO: Check light names when exporting tiles
         obj.nvb.ambientonly   = self.ambientonly
         obj.nvb.lighttype     = switch.get(self.name[-3:], 'NONE')
         obj.nvb.shadow        = (self.shadow == 1)
@@ -1136,7 +1178,6 @@ class Light(GeometryNode):
             obj.nvb.lensflares = True
             numFlares = len(self.flareList.textures)
             for i in range(numFlares):
-                print(i)
                 newItem = obj.nvb.flareList.add()
                 newItem.texture    = self.flareList.textures[i]
                 newItem.colorshift = self.flareList.colorshifts[i]
@@ -1158,7 +1199,31 @@ class Light(GeometryNode):
         return obj
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addFlaresToAscii(self, obj, asciiLines):
+        if obj.nvb.lensflares:
+            asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
+            print(str(len(obj.nvb.flareList)))
+            if len(obj.nvb.flareList) > 0:
+
+                # TODO: Clean this up
+                asciiLines.append('  texturenames zd')
+                for flare in obj.nvb.flareList:
+                     asciiLines.append('    ' + flare.texture)
+                asciiLines.append('  flarepositions zd')
+                for flare in obj.nvb.flareList:
+                    asciiLines.append('    ' + str(round(flare.position, 5)))
+                asciiLines.append('  flaresizes zd')
+                for flare in obj.nvb.flareList:
+                    asciiLines.append('    ' + str(flare.size))
+                asciiLines.append('  flarecolorshifts zd')
+                for flare in obj.nvb.flareList:
+                    asciiLines.append('    ' +  str(round(flare.colorshift[0], 2)) + ' ' +
+                                                str(round(flare.colorshift[1], 2)) + ' ' +
+                                                str(round(flare.colorshift[2], 2)) )
+        asciiLines.append('  flareradius ' + str(round(obj.nvb.flareradius, 1)))
+
+
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
 
         lamp = obj.data
@@ -1167,16 +1232,14 @@ class Light(GeometryNode):
         asciiLines.append('  color ' +  str(round(lamp.color[0], 2)) + ' ' +
                                         str(round(lamp.color[1], 2)) + ' ' +
                                         str(round(lamp.color[2], 2)) )
-
         asciiLines.append('  ambientonly ' + str(int(obj.nvb.ambientonly)))
         asciiLines.append('  nDynamicType ' + str(int(obj.nvb.isdynamic)))
         asciiLines.append('  affectDynamic ' + str(int(obj.nvb.affectdynamic)))
         asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
         asciiLines.append('  lightpriority ' + str(obj.nvb.lightpriority))
         asciiLines.append('  fadingLight ' + str(int(obj.nvb.fadinglight)))
-        if obj.nvb.lensflares:
-            asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-        asciiLines.append('  flareradius ' + str(round(obj.nvb.flareradius, 1)))
+        self.addFlaresToAscii(obj, asciiLines)
+
 
 
 class Aabb(Trimesh):
@@ -1191,7 +1254,6 @@ class Aabb(Trimesh):
         self.meshtype = nvb_def.Meshtype.AABB
 
     def addAABBToAscii(self, obj, asciiLines):
-
         walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'RENDER')
 
         faceList = []
@@ -1229,7 +1291,6 @@ class Aabb(Trimesh):
         aabbTree = []
         nvb_aabb.generateTree(aabbTree, faceList)
 
-        ascii_tree = []
         l_round = round
         if aabbTree:
             node = aabbTree.pop(0)
@@ -1248,7 +1309,7 @@ class Aabb(Trimesh):
                               str(l_round(node[5], 5)) +
                               ' ' +
                               str(node[6]) )
-            for tree_node in aabbTree:
+            for node in aabbTree:
                 asciiLines.append('    ' +
                                   str(l_round(node[0], 5)) +
                                   ' ' +
@@ -1265,7 +1326,7 @@ class Aabb(Trimesh):
                                   str(node[6]) )
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN):
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -1288,7 +1349,7 @@ class Aabb(Trimesh):
         asciiLines.append('  specular 0.0 0.0 0.0')
         asciiLines.append('  shininess 0')
         asciiLines.append('  bitmap NULL')
-        Trimesh.addMeshDataToAscii(self, obj, asciiLines, False)
+        Trimesh.addMeshDataToAscii(self, obj, asciiLines, simple)
         self.addAABBToAscii(obj, asciiLines)
 
 

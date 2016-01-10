@@ -7,7 +7,7 @@ from . import nvb_utils
 from . import nvb_animnode
 
 
-class AnimationBlock():
+class Animation():
 
     def __init__(self, name = 'UNNAMED'):
         self.name      = name
@@ -155,14 +155,29 @@ class AnimationBlock():
                     raise nvb_def.MalformedMdlFile('Unexpected "endnode"')
 
 
-    def toAscii(self, asciiBlock):
-        asciiBlock.append('newanim ' + self.name)
-        asciiBlock.append('length ' + str(nvb_utils.frame2nwtime(self.length)))
-        asciiBlock.append('transtime ' + str(self.transtime))
-        asciiBlock.append('animroot ' + self.root)
-        for event in eventlist:
-            pass
+    def animNodeToAscii(self, bObject, asciiLines):
+        node = nvb_animnode.Node()
+        node.toAscii(bObject, asciiLines, self.name)
 
-        for node in nodeList:
-            pass
+        for child in bObject.children:
+            self.animNodeToAscii(child, asciiLines)
 
+
+    def toAscii(self, animScene, animRootDummy, asciiLines, validNames):
+        self.name      = animRootDummy.nvb.animname
+        self.length    = nvb_utils.frame2nwtime(animScene.frame_end, animScene.render.fps)
+        self.transtime = animRootDummy.nvb.transtime
+        self.root      = animRootDummy.nvb.animroot
+
+        asciiLines.append('newanim ' + self.name)
+        asciiLines.append('  length ' + str(round(self.length, 5)))
+        asciiLines.append('  transtime ' + str(round(self.transtime, 3)))
+        asciiLines.append('  animroot ' + self.root)
+
+        for event in animRootDummy.nvb.eventList:
+            eventTime = nvb_utils.frame2nwtime(event.frame, animScene.render.fps)
+            asciiLines.append('  event  ' + str(round(eventTime, 5)) + ' ' + event.name)
+
+        self.animNodeToAscii(animRootDummy, asciiLines)
+        asciiLines.append('doneanim ' + self.name)
+        asciiLines.append('')

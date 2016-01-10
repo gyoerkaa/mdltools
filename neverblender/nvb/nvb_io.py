@@ -24,7 +24,7 @@ def findRootDummy():
                 if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
                     return obj
         # Search all data
-        for ob in bpy.data.objects:
+        for obj in bpy.data.objects:
             if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
                 return obj
 
@@ -57,6 +57,7 @@ def loadMdl(operator,
     fp = os.fsencode(filepath)
     asciiLines = [line.strip().split() for line in open(fp, 'r')]
 
+    print('Importing: ' + filepath)
     mdl = nvb_mdl.Mdl()
     mdl.loadAscii(asciiLines)
     mdl.importToScene(scene, imports)
@@ -71,7 +72,7 @@ def loadMdl(operator,
             fp = os.fsencode(wkmFilepath)
             try:
                 asciiLines = [line.strip().split() for line in open(fp, 'r')]
-                wkm = nvb_mdl.Xwk(mdl.name, wkmType)
+                wkm = nvb_mdl.Xwk(wkmType)
                 wkm.loadAscii(asciiLines)
                 wkm.importToScene(scene, imports)
             except IOError:
@@ -98,19 +99,42 @@ def saveMdl(operator,
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
-    rootDummy = findRootDummy()
-    if rootDummy:
+    mdlRoot = findRootDummy()
+    if mdlRoot:
+        print('Exporting: ' + mdlRoot.name)
         mdl = nvb_mdl.Mdl()
-        asciiMdl = []
-        mdl.generateAscii(asciiMdl, rootDummy)
+        asciiLines = []
+        mdl.generateAscii(asciiLines, mdlRoot)
         with open(os.fsencode(filepath), 'w') as f:
-            f.write('\n'.join(asciiMdl))
+            f.write('\n'.join(asciiLines))
 
         if 'WALKMESH' in exports:
-            # Search for a walkmesh rootdummy
+            if mdl.classification == nvb_def.Classification.TILE:
+                wkm     = nvb_mdl.Wok()
+                wkmRoot = mdlRoot
+                wkmType = 'wok'
+            else:
+                wkmRoot = None
 
-            wkm = nvb_mdl.Xwk()
-            asciiWkm = []
-            #wkm.generateAscii(asciiWkm, rootDummy)
+                # We need to look for a walkmesh rootdummy
+                wkmRootName = mdl.name + '_pwk'
+                if (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('pwk')
+                wkmRootName = mdl.name + '_dwk'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('dwk')
+
+                # TODO: If we can't find one by name we'll look for an arbitrary one
+
+            if wkmRoot:
+                asciiLines = []
+                wkm.generateAscii(asciiLines, wkmRoot)
+
+                (wkmPath, wkmFilename) = os.path.split(filepath)
+                wkmFilepath = os.path.join(wkmPath, os.path.splitext(wkmFilename)[0] + '.' + wkm.walkmeshType)
+                with open(os.fsencode(wkmFilepath), 'w') as f:
+                    f.write('\n'.join(asciiLines))
 
     return {'FINISHED'}
