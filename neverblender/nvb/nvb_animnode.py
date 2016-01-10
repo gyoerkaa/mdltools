@@ -1,3 +1,5 @@
+import mathutils
+import collections
 import bpy
 
 from . import nvb_def
@@ -160,7 +162,7 @@ class Node():
 
             # Set alpha channels
             # This should influence the material alpha value
-            curve = action.fcurves.new(data_path='texture_slots[0].alpha_factor'')
+            curve = action.fcurves.new(data_path='texture_slots[0].alpha_factor')
             for key in self.keys.alpha:
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
 
@@ -243,71 +245,122 @@ class Node():
         targetObject.animation_data.action = action
 
 
-    def getKeysFromAction(self, action):
-            axis = fcurve.array_index
+    def getKeysFromAction(self, action, keyDict):
+
             for fcurve in action.fcurves:
                 # Get the sub dict for this particlar type of fcurve
-                data_path = fcurve.data_path
-                target    = None
-                if   data_path == 'rotation_euler':
-                    target = self.keys.orientation
-                elif data_path == 'rotation_axis_angle':
+                axis     = fcurve.array_index
+                dataPath = fcurve.data_path
+                name     = ''
+                if   dataPath == 'rotation_euler':
+                    name = 'orientationkey'
+                elif dataPath == 'rotation_axis_angle':
                     pass
-                elif data_path == 'location':
-                    target = self.keys.position
-                elif data_path == 'scale':
-                    target = self.keys.scale
-                elif data_path == 'nvb.selfillumcolor':
-                    target = self.keys.selfillumcolor
-                elif data_path == 'color': # Lamps/Lights
-                    target = self.keys.color
-                elif data_path == 'distance': # Lamps/Lights
-                    target = self.keys.radius
-                elif data_path.endswith('alpha_factor'): # Texture alpha_factor
-                    target = self.keys.alpha
+                elif dataPath == 'location':
+                    name = 'positionkey'
+                elif dataPath == 'scale':
+                    name = 'scalekey'
+                elif dataPath == 'nvb.selfillumcolor':
+                    name = 'selfillumcolorkey'
+                elif dataPath == 'color': # Lamps/Lights
+                    name = 'colorkey'
+                elif dataPath == 'distance': # Lamps/Lights
+                    name = 'radiuskey'
+                elif dataPath.endswith('alpha_factor'): # Texture alpha_factor
+                    name = 'alphakey'
 
                 for kfp in fcurve.keyframe_points:
-                    newFrame = int(round(kfp.co[0]))
-                    # Check if the new frame is a later one than the latest in
-                    # the list, i.e. frames should always be ascending
-                    latestFrame = target[-1][0]
-                    if latestFrame < newFrame:
-                        values = [0.0, 0.0, 0.0, 0.0]
-                        values[axis] = kfp.co[1]
-                        target.append((newFrame, values))
+                    frame = int(round(kfp.co[0]))
+                    keys  = keyDict[name]
+                    if frame in keys:
+                        values = keys[frame]
                     else:
-                        # TODO: raise an exception
-                        pass
+                        values = [0.0, 0.0, 0.0, 0.0]
+                    values[axis] = values[axis] + kfp.co[1]
+                    keys[frame] = values
+
 
     def addKeysToAscii(self, obj, asciiLines):
+        keyDict =  {'orientationkey'    : collections.OrderedDict(), \
+                    'positionkey'       : collections.OrderedDict(), \
+                    'scalekey'          : collections.OrderedDict(), \
+                    'selfillumcolorkey' : collections.OrderedDict(), \
+                    'colorkey'          : collections.OrderedDict(), \
+                    'radiuskey'         : collections.OrderedDict(), \
+                    'alphakey'          : collections.OrderedDict() }
 
         # Object Data
         if obj.animation_data:
             action = obj.animation_data.action
-            self.getKeysFromAction(action)
+            self.getKeysFromAction(action, keyDict)
 
         # Material/ texture data (= texture alpha_factor)
         if obj.active_material and obj.active_material.animation_data:
             action = obj.animation_data.action
-            self.getKeysFromAction(action)
+            self.getKeysFromAction(action, keyDict)
 
-        if   self.keys.orientation:
-            asciiLines.append('    orientationkey ' + len(self.keys.orientation))
-            for frame, values in self.keys.orientation:
-                pass
-
-        elif self.keys.position:
-            pass
-        elif self.keys.scale:
-            pass
-        elif self.keys.selfillumcolor:
-            pass
-        elif self.keys.color: # Lamps/Lights
-            pass
-        elif self.keys.radius: # Lamps/Lights
-            pass
-        elif self.keys.alpha: # Texture alpha_factor
-            pass
+        l_str   = str
+        l_round = round
+        name = 'orientationkey'
+        if   keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                eul  = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+                val  = nvb_utils.euler2nwangle(eul)
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(val[0], 5)) + ' ' +
+                                             l_str(l_round(val[1], 5)) + ' ' +
+                                             l_str(l_round(val[2], 5)) + ' ' +
+                                             l_str(l_round(val[3], 5)) )
+        name = 'positionkey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 5)) + ' ' +
+                                             l_str(l_round(key[1], 5)) + ' ' +
+                                             l_str(l_round(key[2], 5)) )
+        name = 'scalekey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 5)) )
+        name = 'selfillumcolorkey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 2)) + ' ' +
+                                             l_str(l_round(key[1], 2)) + ' ' +
+                                             l_str(l_round(key[2], 2)) )
+        name = 'colorkey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 2)) + ' ' +
+                                             l_str(l_round(key[1], 2)) + ' ' +
+                                             l_str(l_round(key[2], 2)) )
+        name = 'radiuskey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 5)) )
+        name = 'alphakey'
+        if keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = nvb_utils.frame2nwtime(frame)
+                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
+                                             l_str(l_round(key[0], 2)) )
 
 
     def getOriginalName(self, nodeName, animName):
@@ -331,7 +384,7 @@ class Node():
 
 
     def toAscii(self, bObject, asciiLines, animName):
-        trueName = self.getOriginalName(bObject.name, animName)
+        trueName   = self.getOriginalName(bObject.name, animName)
         trueParent = nvb_def.null
         if bObject.parent:
             trueParent = self.getOriginalName(bObject.parent.name, animName)

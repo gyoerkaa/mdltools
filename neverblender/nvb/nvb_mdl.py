@@ -242,7 +242,7 @@ class Mdl():
                 # Check the name of the roodummy
                 # if animRootDummy.name.rfind(self.validExports[0]):
                 anim = nvb_anim.Animation()
-                anim.toAscii(scene, animRootDummy, asciiLines, self.validExports)
+                anim.toAscii(scene, animRootDummy, asciiLines, self.name)
 
 
 

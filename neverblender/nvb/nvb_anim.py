@@ -163,13 +163,13 @@ class Animation():
             self.animNodeToAscii(child, asciiLines)
 
 
-    def toAscii(self, animScene, animRootDummy, asciiLines, validNames):
+    def toAscii(self, animScene, animRootDummy, asciiLines, mdlName = ''):
         self.name      = animRootDummy.nvb.animname
         self.length    = nvb_utils.frame2nwtime(animScene.frame_end, animScene.render.fps)
         self.transtime = animRootDummy.nvb.transtime
         self.root      = animRootDummy.nvb.animroot
 
-        asciiLines.append('newanim ' + self.name)
+        asciiLines.append('newanim ' + self.name + ' ' + mdlName)
         asciiLines.append('  length ' + str(round(self.length, 5)))
         asciiLines.append('  transtime ' + str(round(self.transtime, 3)))
         asciiLines.append('  animroot ' + self.root)
@@ -179,5 +179,5 @@ class Animation():
             asciiLines.append('  event  ' + str(round(eventTime, 5)) + ' ' + event.name)
 
         self.animNodeToAscii(animRootDummy, asciiLines)
-        asciiLines.append('doneanim ' + self.name)
+        asciiLines.append('doneanim ' + self.name + ' ' + mdlName)
         asciiLines.append('')

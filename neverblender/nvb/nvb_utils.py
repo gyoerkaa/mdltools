@@ -1,5 +1,4 @@
-﻿import math
-import mathutils
+﻿import mathutils
 import bpy
 import os
 
@@ -159,7 +158,7 @@ def frame2nwtime(frame, fps = nvb_def.fps):
 
 def euler2nwangle(eul):
     q = eul.to_quaternion()
-    return [q.axis[1], q.axis[2], q.axis[3], q.angle]
+    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
 
 def nwangle2euler(nwangle):
