@@ -93,9 +93,13 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 # MDL Rootdummy in an animation scene
                 split = layout.split(percentage=0.25)
                 col = split.column()
+                col.label(text = 'Animation Name:')
                 col.label(text = 'Transition Time:')
                 col.label(text = 'Animation Root:')
                 col = split.column()
+                row = col.row(align=True)
+                row.prop(obj.nvb, 'animname', text = '')
+                row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
                 col.prop(obj.nvb, 'transtime', text = '')
                 col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
 
@@ -117,15 +121,6 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                     row = layout.row()
                     row.prop(item, 'name')
                     row.prop(item, 'frame')
-
-                # Animation Helper. Rename animation.
-                sep = layout.separator()
-                row = layout.row()
-                box = row.box()
-                box.label(text = 'Animation Helper: Rename')
-                row = box.row(align = True)
-                row.prop(obj.nvb, 'animname', text = 'Name')
-                row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
 
         elif (obj.nvb.dummytype == nvb_def.Dummytype.PWKROOT):
             pass

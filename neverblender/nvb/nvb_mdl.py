@@ -90,7 +90,7 @@ class Mdl():
 
     def importToScene(self, scene, imports):
         rootDummy = None
-
+        objIdx = 0
         if ('GEOMETRY' in imports) and self.nodeDict:
             it = iter(self.nodeDict.items())
 
@@ -98,18 +98,23 @@ class Mdl():
             # If the first node has a parent or isn't a dummy we don't
             # even try to import the mdl
             (nodeKey, node) = next(it)
-            if (type(node) == nvb_node.Dummy) and (node.parentName == nvb_def.null):
+            if (type(node) == nvb_node.Dummy) and (nvb_utils.isNull(node.parentName)):
                 obj                = node.addToScene(scene)
                 obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
                 obj.nvb.supermodel     = self.supermodel
                 obj.nvb.classification = self.classification
                 rootDummy = obj
+
+                obj.nvb.imporder = objIdx
+                objIdx += 1
             else:
                 raise nvb_def.MalformedMdlFile('First node has to be a dummy without a parent.')
 
             for (nodeKey, node) in it:
                 obj = node.addToScene(scene)
-                if (node.parentName == nvb_def.null):
+                obj.nvb.imporder = objIdx
+                objIdx += 1
+                if (nvb_utils.isNull(node.parentName)):
                     # Node without parent and not the mdl root.
                     raise nvb_def.MalformedMdlFile(node.name + ' has no parent.')
                 else:
@@ -231,7 +236,17 @@ class Mdl():
 
         node.toAscii(bObject, asciiLines, self.validExports, self.classification, simple)
 
+
+        '''
         for child in bObject.children:
+            self.geometryToAscii(child, asciiLines, simple)
+        '''
+        childList = []
+        for child in bObject.children:
+            childList.append((child.nvb.imporder, child))
+        childList.sort(key=lambda tup: tup[0])
+
+        for (imporder, child) in childList:
             self.geometryToAscii(child, asciiLines, simple)
 
 
@@ -277,7 +292,7 @@ class Mdl():
             self.animationsToAscii(asciiLines)
         # The End
         asciiLines.append('donemodel ' + self.name)
-
+        asciiLines.append('')
 
 class Xwk(Mdl):
     def __init__(self, wkmType = 'pwk'):
@@ -330,7 +345,7 @@ class Xwk(Mdl):
             # all have the same name
             nameList = []
             for (nodeKey, node) in self.nodeDict.items():
-                if (node.parentName == nvb_def.null):
+                if (nvb_utils.isNull(node.parentName)):
                     # Node without
                     raise nvb_def.MalformedMdlFile(node.name + ' has no parent.')
                 else:

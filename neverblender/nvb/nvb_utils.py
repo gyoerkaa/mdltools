@@ -5,6 +5,10 @@ import os
 from . import nvb_def
 
 
+def isNull(s):
+    return s.lower() == nvb_def.null
+
+
 def isNumber(s):
     try:
         float(s)
@@ -158,7 +162,7 @@ def frame2nwtime(frame, fps = nvb_def.fps):
 
 def euler2nwangle(eul):
     q = eul.to_quaternion()
-    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
+    return [-1 * q.axis[0], -1 * q.axis[1], -1 * q.axis[2], -1 * q.angle]
 
 
 def nwangle2euler(nwangle):
@@ -216,3 +220,68 @@ def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
     render_scene.render.image_settings.color_mode  = 'RGB'
     render_scene.render.image_settings.file_format = 'TARGA_RAW'
 
+
+def checkCopyObjectToScene(theOriginal, suffix):
+    valid = True
+
+    name = theOriginal.name + '.' + suffix
+    objType = theOriginal.type
+    if (objType == 'LAMP'):
+        valid = not (name in bpy.data.lamps)
+    elif (objType == 'MESH'):
+        if theOriginal.animation_data:
+            action = obj.animation_data.action
+            for fcurve in action.fcurves:
+                dataPath = fcurve.data_path
+                if dataPath.endswith('alpha_factor'):
+                    valid = False
+                    break
+
+    for child in theOriginal.children:
+        valid = valid and checkCopyObjectToScene(child, suffix)
+
+    return valid
+
+
+def copyObjectToScene(theOriginal, suffix, scene):
+    '''
+    Copy object and all it's children to scene.
+    For object with simple (position, rotation) or no animations we
+    create a linked copy.
+    For alpha animation we'll need to copy the data too.
+    '''
+    theCopy      = theOriginal.copy()
+    theCopy.name = theOriginal.name + '.' + suffix
+
+    # We need to copy the data for:
+    # - Lamps
+    # - Meshes & materials when there are alphakeys
+    objType = theOriginal.type
+    if (objType == 'LAMP'):
+        data         = theOriginal.data.copy()
+        data.name    = theOriginal.name + '.' + suffix
+        theCopy.data = data
+    elif (objType == 'MESH'):
+        if theOriginal.animation_data:
+            action = obj.animation_data.action
+            for fcurve in action.fcurves:
+                dataPath = fcurve.data_path
+                if dataPath.endswith('alpha_factor'):
+                    data         = theOriginal.data.copy()
+                    data.name    = theOriginal.name + '.' + suffix
+                    theCopy.data = data
+                    # Create a copy of the material
+                    if (theOriginal.active_material):
+                        material      = theOriginal.active_material.copy()
+                        material.name = theCopy.name + '.' + suffix
+                        theCopy.active_material = material
+                        break
+
+    # Link copy to the anim scene
+    scene.objects.link(theCopy)
+
+    # Convert all child objects too
+    for child in theOriginal.children:
+        copyObjectToScene(child, suffix, scene)
+
+    return theCopy

@@ -68,6 +68,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                               default = (1.0, 1.0, 1.0),
                                               min = 0.0, max = 1.0,
                                               soft_min = 0.0, soft_max = 1.0)
+    imporder = bpy.props.IntProperty(name = "Order of Import", default = 0)
 
     # For all emptys
     dummytype  = bpy.props.EnumProperty(name = 'Type',
@@ -108,7 +109,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     animscale   = bpy.props.FloatProperty(name = 'Animationscale', description = 'Animation scale for all animations.', default = 1.00, min = 0.0)
     isanimation = bpy.props.BoolProperty(name = 'Animation', description = 'Whether this dummy and it\'s children are in an animation scene.', default = False)
     # For MDL Rootdummies in animations
-    animname    = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
+    animname     = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
     transtime    = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
     animroot     = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
     eventList    = bpy.props.CollectionProperty(type = NVB_PG_ANIMEVENT)

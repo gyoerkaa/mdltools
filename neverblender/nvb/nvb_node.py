@@ -87,11 +87,13 @@ class GeometryNode():
 
             if not l_isNumber(label):
                 if   (label == 'node'):
-                    self.name = line[2].lower()
+                    #self.name = line[2].lower()
+                    self.name = line[2]
                 elif (label  == 'endnode'):
                     return
                 elif (label == 'parent'):
-                    self.parentName = line[1].lower()
+                    #self.parentName = line[1].lower()
+                    self.parentName = line[1]
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),
@@ -396,7 +398,7 @@ class Trimesh(GeometryNode):
 
     def setShadingGroups(self, obj):
         '''
-        Converts the shading groups of an object to vertex groups
+        Converts the shading groups of a node to vertex groups
         '''
         if not nvb_glob.useShadingGroups:
             return
@@ -434,7 +436,7 @@ class Trimesh(GeometryNode):
         material.use_transparency = True
 
         texName = self.bitmap.lower()
-        if (texName != nvb_def.null):
+        if (not nvb_utils.isNull(texName)):
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
             # them as if they were the same, i.e. just use the old one
@@ -474,7 +476,7 @@ class Trimesh(GeometryNode):
         mesh.materials.append(material)
 
         # Create UV map
-        if (len(self.tverts) > 0) and (mesh.tessfaces) and (self.bitmap.lower() != nvb_def.null):
+        if (len(self.tverts) > 0) and (mesh.tessfaces) and (not nvb_utils.isNull(self.bitmap)):
             uv = mesh.tessface_uv_textures.new(name + '.uv')
             mesh.tessface_uv_textures.active = uv
 
@@ -957,7 +959,8 @@ class Emitter(GeometryNode):
 
             if not l_isNumber(label):
                 if   (label == 'node'):
-                    self.name = line[2].lower()
+                    #self.name = line[2].lower()
+                    self.name = line[2]
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                 elif (label  == 'endnode'):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)

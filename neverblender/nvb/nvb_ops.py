@@ -2,6 +2,7 @@ import bpy
 import bpy_extras
 
 from . import nvb_def
+from . import nvb_utils
 from . import nvb_io
 
 
@@ -287,22 +288,22 @@ class LoadWokMaterials(bpy.types.Operator):
                 bpy.ops.object.material_slot_remove()
 
             # Create materials
-            for i in range(len(neverblender.nvb.presets.wok_materials)):
-                mat_name = neverblender.nvb.presets.wok_materials[i][0] +'.mat'
+            for matDef in nvb_def.wok_materials:
+                matName = matDef[0]
 
                 # Walkmesh materials should be shared across multiple
                 # walkmeshes, as they always identical
-                if mat_name in bpy.data.materials.keys():
-                    walkmesh_mat = bpy.data.materials[mat_name]
+                if matName in bpy.data.materials.keys():
+                    mat = bpy.data.materials[matName]
                 else:
-                    walkmesh_mat = bpy.data.materials.new(mat_name)
+                    mat = bpy.data.materials.new(matName)
 
-                    walkmesh_mat.diffuse_color      = neverblender.nvb.presets.wok_materials[i][1]
-                    walkmesh_mat.diffuse_intensity  = 1.0
-                    walkmesh_mat.specular_color     = (0.0,0.0,0.0)
-                    walkmesh_mat.specular_intensity = neverblender.nvb.presets.wok_materials[i][2]
+                    mat.diffuse_color      = matDef[1]
+                    mat.diffuse_intensity  = 1.0
+                    mat.specular_color     = (0.0,0.0,0.0)
+                    mat.specular_intensity = matDef[2]
 
-                object_mesh.materials.append(walkmesh_mat)
+                object_mesh.materials.append(mat)
         else:
             self.report({'INFO'}, 'A mesh must be selected')
             return {'CANCELLED'}
@@ -368,52 +369,34 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
     bl_idname = "nvb.animscene_add"
     bl_label  = "Add animation scene"
 
+    @classmethod
+    def poll(self, context):
+        return (context.object.type == 'EMPTY') and (context.object.nvb.dummytype == nvb_def.MDLROOT)
+
     def execute(self, context):
-        obj          = context.object
-        anim_name    = obj.auroraprops.newanimname
-        source_scene = context.scene
+        obj         = context.object
+        animName    = obj.nvb.animname
+        sourceScene = context.scene
         # Check if there is already a scene with this animation name
-        scene_list = bpy.data.scenes
-        if (anim_name != '') and (anim_name not in scene_list.keys()):
-            # Create the scene
-            anim_scene = bpy.data.scenes.new(anim_name)
+        if (animName  != ''):
+            if (animName not in bpy.data.scenes):
+                if nvb_utils.checkCopyObjectToScene(obj, animName):
+                    # Create the scene
+                    animScene = bpy.data.scenes.new(animname)
+                    # Set fps
+                    animScene.render.fps = nvb_def.fps
 
-            # Set fps
-            anim_scene.render.fps = 30
+                    nvb_utils.copyObjectToScene(obj, animName, animScene)
 
-            # Now we create copies the objects in this scene
-            anim_objects_parent = {}
-            anim_objects        = {}
-            for source_object in source_scene.objects:
-                object_copy        = source_object.copy()
-                object_copy.parent = None
-                object_copy.name   = source_object.name + '.' + anim_name
-                if source_object.parent:
-                    object_copy_parent_name = source_object.parent.name + '.' + anim_name
+                    animScene.update()
                 else:
-                    object_copy_parent_name = 'null'
-
-                # We have just copied a MDL Base, so set some additional data
-                if (source_object.type == 'EMPTY') and (source_object.auroraprops.dummytype == nvb_def.Dummytype.MDLBASE):
-                    object_copy.auroraprops.in_animscene = True
-                    object_copy.auroraprops.animname     = anim_name
-                    object_copy.auroraprops.transtime    = 0.25
-
-                anim_scene.objects.link(object_copy)
-                # Save the copies for parenting
-                anim_objects_parent[source_object.name] = object_copy_parent_name
-                anim_objects[source_object.name]        = object_copy
-
-            # Set the parents
-            for source_object_name, object_copy in anim_objects.items():
-                parent_name = anim_objects_parent[source_object_name]
-
-                if (parent_name.lower() != 'null'):
-                    if parent_name in anim_scene.objects:
-                        object_copy.parent = anim_scene.objects[parent_name]
-                    else:
-                        print('WARNING: Object ' + object_copy.name + ' has no parent ' +  parent_name)
-
-            anim_scene.update()
+                    self.report({'INFO'}, 'Duplicate Objects')
+                    return {'CANCELLED'}
+            else:
+                self.report({'INFO'}, 'Scene already present')
+                return {'CANCELLED'}
+        else:
+            self.report({'INFO'}, 'Emty Name')
+            return {'CANCELLED'}
 
         return{'FINISHED'}

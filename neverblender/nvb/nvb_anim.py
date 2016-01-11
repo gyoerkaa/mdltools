@@ -159,9 +159,21 @@ class Animation():
         node = nvb_animnode.Node()
         node.toAscii(bObject, asciiLines, self.name)
 
+        '''
         for child in bObject.children:
             self.animNodeToAscii(child, asciiLines)
+        '''
+        # If this mdl was imported, we need to retain the order of the
+        # objects in the original mdl file. Unfortunately this order is
+        # seemingly arbitrary so we need to save it at import
+        # Otherwise supermodels don't work correctly.
+        childList = []
+        for child in bObject.children:
+            childList.append((child.nvb.imporder, child))
+        childList.sort(key=lambda tup: tup[0])
 
+        for (imporder, child) in childList:
+            self.animNodeToAscii(child, asciiLines)
 
     def toAscii(self, animScene, animRootDummy, asciiLines, mdlName = ''):
         self.name      = animRootDummy.nvb.animname
@@ -176,7 +188,7 @@ class Animation():
 
         for event in animRootDummy.nvb.eventList:
             eventTime = nvb_utils.frame2nwtime(event.frame, animScene.render.fps)
-            asciiLines.append('  event  ' + str(round(eventTime, 5)) + ' ' + event.name)
+            asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' + event.name)
 
         self.animNodeToAscii(animRootDummy, asciiLines)
         asciiLines.append('doneanim ' + self.name + ' ' + mdlName)

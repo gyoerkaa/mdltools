@@ -107,7 +107,8 @@ class Node():
                 continue
             if   label == 'node':
                 self.nodeType = line[1].lower()
-                self.name     = line[2].lower()
+                #self.name     = line[2].lower()
+                self.name     = line[2]
             elif label == 'endnode':
                 return
             elif label == 'endlist':
@@ -115,7 +116,8 @@ class Node():
                 # the end of a key list
                 pass
             elif label == 'parent':
-                self.parentName = line[1].lower()
+                #self.parentName = line[1].lower()
+                self.parentName = line[1]
             elif label == 'position':
                 # position: 1 key, positionkey: >= 1 key (probably)
                 self.parseKeys3f(asciiBlock[idx+1:idx+1], self.keys.position)
@@ -301,66 +303,70 @@ class Node():
 
         l_str   = str
         l_round = round
-        name = 'orientationkey'
-        if   keyDict[name]:
-            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
-            for frame, key in keyDict[name].items():
-                eul  = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
-                val  = nvb_utils.euler2nwangle(eul)
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(val[0], 5)) + ' ' +
-                                             l_str(l_round(val[1], 5)) + ' ' +
-                                             l_str(l_round(val[2], 5)) + ' ' +
-                                             l_str(l_round(val[3], 5)) )
         name = 'positionkey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 5)) + ' ' +
-                                             l_str(l_round(key[1], 5)) + ' ' +
-                                             l_str(l_round(key[2], 5)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, key[0], key[1], key[2])
+                asciiLines.append(s)
+
+        name = 'orientationkey'
+        if   keyDict[name]:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+                eul  = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+                val  = nvb_utils.euler2nwangle(eul)
+
+                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
+                asciiLines.append(s)
+
         name = 'scalekey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 5)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
+                asciiLines.append(s)
+
         name = 'selfillumcolorkey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 2)) + ' ' +
-                                             l_str(l_round(key[1], 2)) + ' ' +
-                                             l_str(l_round(key[2], 2)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
+                asciiLines.append(s)
+
         name = 'colorkey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 2)) + ' ' +
-                                             l_str(l_round(key[1], 2)) + ' ' +
-                                             l_str(l_round(key[2], 2)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
+                asciiLines.append(s)
+
         name = 'radiuskey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 5)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
+                asciiLines.append(s)
+
         name = 'alphakey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
-                time = nvb_utils.frame2nwtime(frame)
-                asciiLines.append('      ' + l_str(l_round(time, 5)) + ' ' +
-                                             l_str(l_round(key[0], 2)) )
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+
+                s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
+                asciiLines.append(s)
 
 
     def getOriginalName(self, nodeName, animName):
