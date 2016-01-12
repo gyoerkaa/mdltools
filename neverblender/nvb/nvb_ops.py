@@ -335,21 +335,6 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
-    bl_idname = "nvb.animscene_rename"
-    bl_label  = "Rename animation scene"
-
-    def execute(self, context):
-        obj   = context.object
-        scene = context.scene
-
-        current_name = obj.auroraprops.animname
-        new_name     = obj.auroraprops.newanimname
-        print(obj.name)
-
-        return{'FINISHED'}
-
-
 class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
     bl_idname = "nvb.skingroup_add"
     bl_label  = "Add new Skingroup"
@@ -365,30 +350,73 @@ class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
         return{'FINISHED'}
 
 
+class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
+    bl_idname = "nvb.animscene_rename"
+    bl_label  = "Rename animation scene"
+
+    @classmethod
+    def poll(self, context):
+        obj = context.object
+        return (obj.type == 'EMPTY') and (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT) and obj.nvb.isanimation
+
+    def execute(self, context):
+        obj         = context.object
+        newAnimName = obj.nvb.newanimname
+        oldAnimName = obj.nvb.animname
+        sourceScene = context.scene
+        # Check if there is already a scene with this animation name
+        if (newAnimName  != ''):
+            if (newAnimName not in bpy.data.scenes):
+                if nvb_utils.checkObjectNames(obj, newAnimName, oldAnimName):
+                    sourceScene.name = newAnimName
+
+                    animRootDummy = nvb_utils.renameAnimScene(obj, newAnimName, oldAnimName)
+                    animRootDummy.nvb.animname    = newAnimName
+                    animRootDummy.nvb.newanimname = ''
+
+                    sourceScene.update()
+                else:
+                    self.report({'INFO'}, 'Duplicate Objects')
+                    return {'CANCELLED'}
+            else:
+                self.report({'INFO'}, 'Scene already present')
+                return {'CANCELLED'}
+        else:
+            self.report({'INFO'}, 'Emty Name')
+            return {'CANCELLED'}
+
+        return{'FINISHED'}
+
+
 class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
     bl_idname = "nvb.animscene_add"
     bl_label  = "Add animation scene"
 
     @classmethod
     def poll(self, context):
-        return (context.object.type == 'EMPTY') and (context.object.nvb.dummytype == nvb_def.MDLROOT)
+        obj = context.object
+        return (obj.type == 'EMPTY') and (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT)
 
     def execute(self, context):
         obj         = context.object
-        animName    = obj.nvb.animname
+        newAnimName = obj.nvb.newanimname
+        oldAnimName = obj.nvb.animname
         sourceScene = context.scene
         # Check if there is already a scene with this animation name
-        if (animName  != ''):
-            if (animName not in bpy.data.scenes):
-                if nvb_utils.checkCopyObjectToScene(obj, animName):
+        if (newAnimName  != ''):
+            if (newAnimName not in bpy.data.scenes):
+                if nvb_utils.checkObjectNames(obj, newAnimName, oldAnimName):
                     # Create the scene
-                    animScene = bpy.data.scenes.new(animname)
+                    newScene = bpy.data.scenes.new(newAnimName)
                     # Set fps
-                    animScene.render.fps = nvb_def.fps
+                    newScene.render.fps = nvb_def.fps
 
-                    nvb_utils.copyObjectToScene(obj, animName, animScene)
+                    animRootDummy = nvb_utils.copyAnimScene(newScene, obj, newAnimName, oldAnimName)
+                    animRootDummy.nvb.isanimation = True
+                    animRootDummy.nvb.animname    = newAnimName
+                    animRootDummy.nvb.newanimname = ''
 
-                    animScene.update()
+                    newScene.update()
                 else:
                     self.report({'INFO'}, 'Duplicate Objects')
                     return {'CANCELLED'}

@@ -162,7 +162,7 @@ def frame2nwtime(frame, fps = nvb_def.fps):
 
 def euler2nwangle(eul):
     q = eul.to_quaternion()
-    return [-1 * q.axis[0], -1 * q.axis[1], -1 * q.axis[2], -1 * q.angle]
+    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
 
 def nwangle2euler(nwangle):
@@ -221,37 +221,84 @@ def nvb_minimap_render_setup(mdlbase, render_scene, lamp_color = (1.0,1.0,1.0)):
     render_scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def checkCopyObjectToScene(theOriginal, suffix):
-    valid = True
+def checkObjectNames(theOriginal, newSuffix, oldSuffix = ''):
+    '''
+    Checks if it possible to copy the object and it's children with the suffix
+    It would be impossible if:
+        - An object with the same name already exists
+        - Object data with the same name already exists
+    '''
+    oldName = theOriginal.name
+    newName = 'ERROR'
+    if oldSuffix:
+        if oldName.endswith(oldSuffix):
+            newName = oldName[:len(oldName)-len(oldSuffix)]
+            if newName.endswith('.'):
+                newName = newName[:len(newName)-1]
+        else:
+            newName = oldName.partition('.')[0]
+            if not newName:
+                print('Neverblender: Unable to generate new name')
+                return False
+        newName = newName + '.' + newSuffix
+    else:
+        newName = oldName + '.' + newSuffix
 
-    name = theOriginal.name + '.' + suffix
+    if newName in bpy.data.objects:
+        print('Neverblender: Duplicate object')
+        return False
+
     objType = theOriginal.type
     if (objType == 'LAMP'):
-        valid = not (name in bpy.data.lamps)
+        if newName in bpy.data.lamps:
+            print('Neverblender: Duplicate lamp')
+            return False
     elif (objType == 'MESH'):
         if theOriginal.animation_data:
-            action = obj.animation_data.action
+            action = theOriginal.animation_data.action
             for fcurve in action.fcurves:
                 dataPath = fcurve.data_path
                 if dataPath.endswith('alpha_factor'):
-                    valid = False
-                    break
+                    if newName in bpy.data.materials:
+                        print('Neverblender: Duplicate Material')
+                        return False
 
+        if newName in bpy.data.actions:
+            print('Neverblender: Duplicate Action')
+            return False
+
+    valid = True
     for child in theOriginal.children:
-        valid = valid and checkCopyObjectToScene(child, suffix)
+        valid = valid and checkObjectNames(child, newSuffix, oldSuffix)
 
     return valid
 
 
-def copyObjectToScene(theOriginal, suffix, scene):
+def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
     '''
     Copy object and all it's children to scene.
     For object with simple (position, rotation) or no animations we
     create a linked copy.
     For alpha animation we'll need to copy the data too.
     '''
-    theCopy      = theOriginal.copy()
-    theCopy.name = theOriginal.name + '.' + suffix
+    oldName = theOriginal.name
+    newName = 'ERROR'
+    if oldSuffix:
+        if oldName.endswith(oldSuffix):
+            newName = oldName[:len(oldName)-len(oldSuffix)]
+            if newName.endswith('.'):
+                newName = newName[:len(newName)-1]
+        else:
+            newName = oldName.partition('.')[0]
+            if not newName:
+                return
+        newName = newName + '.' + newSuffix
+    else:
+        newName = oldName + '.' + newSuffix
+
+    theCopy        = theOriginal.copy()
+    theCopy.name   = newName
+    theCopy.parent = parent
 
     # We need to copy the data for:
     # - Lamps
@@ -259,29 +306,83 @@ def copyObjectToScene(theOriginal, suffix, scene):
     objType = theOriginal.type
     if (objType == 'LAMP'):
         data         = theOriginal.data.copy()
-        data.name    = theOriginal.name + '.' + suffix
+        data.name    = newName
         theCopy.data = data
     elif (objType == 'MESH'):
         if theOriginal.animation_data:
-            action = obj.animation_data.action
+            action = theOriginal.animation_data.action
             for fcurve in action.fcurves:
                 dataPath = fcurve.data_path
                 if dataPath.endswith('alpha_factor'):
                     data         = theOriginal.data.copy()
-                    data.name    = theOriginal.name + '.' + suffix
+                    data.name    = newName
                     theCopy.data = data
                     # Create a copy of the material
                     if (theOriginal.active_material):
                         material      = theOriginal.active_material.copy()
-                        material.name = theCopy.name + '.' + suffix
+                        material.name = newName
                         theCopy.active_material = material
                         break
+            actionCopy = action.copy()
+            actionCopy.name = newName
+            theCopy.animation_data.action = actionCopy
 
     # Link copy to the anim scene
     scene.objects.link(theCopy)
 
     # Convert all child objects too
     for child in theOriginal.children:
-        copyObjectToScene(child, suffix, scene)
+        copyAnimScene(scene, child, newSuffix, oldSuffix, theCopy)
 
+    # Return the copied rootDummy
     return theCopy
+
+
+def renameAnimScene(obj, newSuffix, oldSuffix = ''):
+    '''
+    Copy object and all it's children to scene.
+    For object with simple (position, rotation) or no animations we
+    create a linked copy.
+    For alpha animation we'll need to copy the data too.
+    '''
+    oldName = obj.name
+    newName = 'ERROR'
+    if oldSuffix:
+        if oldName.endswith(oldSuffix):
+            newName = oldName[:len(oldName)-len(oldSuffix)]
+            if newName.endswith('.'):
+                newName = newName[:len(newName)-1]
+        else:
+            newName = oldName.partition('.')[0]
+            if not newName:
+                return
+        newName = newName + '.' + newSuffix
+    else:
+        newName = oldName + '.' + newSuffix
+
+    obj.name = newName
+    if obj.data:
+        obj.data.name = newName
+    # We need to copy the data for:
+    # - Lamps
+    # - Meshes & materials when there are alphakeys
+    objType = obj.type
+    if (objType == 'MESH'):
+        if obj.animation_data:
+            action = obj.animation_data.action
+            action.name = newName
+            for fcurve in action.fcurves:
+                dataPath = fcurve.data_path
+                if dataPath.endswith('alpha_factor'):
+                    # Create a copy of the material
+                    if (obj.active_material):
+                        material      = obj.active_material
+                        material.name = newName
+                        break
+
+    # Convert all child objects too
+    for child in obj.children:
+        renameAnimScene(child, newSuffix, oldSuffix)
+
+    # Return the renamed rootDummy
+    return obj

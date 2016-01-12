@@ -158,7 +158,8 @@ class Node():
 
     def addAnimToMaterial(self, targetMaterial, animName = ''):
         if self.keys.alpha:
-            actionName           = animName + '.' + targetMaterial.name
+            #actionName           = animName + '.' + targetMaterial.name
+            actionName           = targetObject.name
             action               = bpy.data.actions.new(name=actionName)
             action.use_fake_user = True
 
@@ -176,7 +177,8 @@ class Node():
         '''
         Add the animations in this node to target object
         '''
-        actionName           = animName + '.' + targetObject.name
+        #actionName           = animName + '.' + targetObject.name
+        actionName           = targetObject.name
         action               = bpy.data.actions.new(name=actionName)
         action.use_fake_user = True
 
@@ -186,10 +188,16 @@ class Node():
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
             for key in self.keys.orientation:
                 frame = nvb_utils.nwtime2frame(key[0])
-                eul   = nvb_utils.nwangle2euler(key[1:])
+                eul   = nvb_utils.nwangle2euler(key[1:5])
                 curveX.keyframe_points.insert(frame, eul[0])
                 curveY.keyframe_points.insert(frame, eul[1])
                 curveZ.keyframe_points.insert(frame, eul[2])
+                if targetObject.name == 'Cat_Lfrontpaw01.crun':
+                    print('ori: ' + str(key[1:5]))
+                    print('eul: ' + str(eul))
+                    nwn = nvb_utils.euler2nwangle(eul)
+                    print('nwn: ' + str(nwn))
+
 
         # Set location channels if there are location keys
         if (self.keys.position):
@@ -380,8 +388,10 @@ class Node():
             else:
                 return orig
 
-        # Try to separate the name by '.'
-        orig = nodeName.rpartition('.')[0]
+        # Try to separate the name by the first '.'
+        # This is unsafe, but we have no choice if we want to maintain some
+        # flexibility. It will be up to the user to name the object properly
+        orig = nodeName.partition('.')[0]
         if orig:
             return orig
 

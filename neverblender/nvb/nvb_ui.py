@@ -50,7 +50,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         obj    = context.object
         layout = self.layout
 
-        row = layout.row(align=True)
+        row = layout.row()
         row.prop(obj.nvb, 'dummytype', text='Type')
 
         # Display properties depending on type of the empty
@@ -68,14 +68,16 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 col.prop(obj.nvb, 'supermodel', text = '')
                 col.prop(obj.nvb, 'animscale', text = '')
 
+                sep = layout.separator()
                 # Animation Helper. Creates a new scene, copies all objects to it
                 # and renames them
-                sep = layout.separator()
                 row = layout.row()
                 box = row.box()
-                box.label(text = 'Animation Helper: Create New')
+                row = box.row()
+                row.enabled = False
+                row.prop(obj.nvb, 'animname', text = 'Animation')
                 row = box.row(align = True)
-                row.prop(obj.nvb, 'animname', text = 'Name')
+                row.prop(obj.nvb, 'newanimname', text = 'Create')
                 row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
 
                 # Minimap Helper.
@@ -91,6 +93,22 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
             else:
                 # MDL Rootdummy in an animation scene
+                row = layout.row()
+                box = row.box()
+                row = box.row()
+                row.enabled = False
+                row.prop(obj.nvb, 'animname', text = 'Animation')
+                row = box.row(align = True)
+                row.prop(obj.nvb, 'newanimname', text = 'Rename')
+                row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
+                row = box.row(align = True)
+                row.prop(obj.nvb, 'newanimname', text = 'Copy')
+                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
+                row = box.row()
+                row.prop_search(obj.nvb, 'animroot', bpy.data, 'objects', text = 'Root')
+                row = box.row()
+                row.prop(obj.nvb, 'transtime')
+                '''
                 split = layout.split(percentage=0.25)
                 col = split.column()
                 col.label(text = 'Animation Name:')
@@ -102,13 +120,15 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
                 col.prop(obj.nvb, 'transtime', text = '')
                 col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
-
-                # Event Helper. Display and add/remove events.
+                '''
                 sep = layout.separator()
+                # Event Helper. Display and add/remove events.
                 row = layout.row()
+                box = row.box()
+                row = box.row()
                 row.label(text = 'Event List')
 
-                row = layout.row()
+                row = box.row()
                 row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', obj.nvb, 'eventList', obj.nvb, 'eventListIdx')
                 col = row.column(align = True)
                 col.operator('nvb.animevent_new', text = '', icon='ZOOMIN')
@@ -118,7 +138,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 col.operator('nvb.animevent_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
                 if obj.nvb.eventListIdx >= 0 and len(obj.nvb.eventList) > 0:
                     item = obj.nvb.eventList[obj.nvb.eventListIdx]
-                    row = layout.row()
+                    row = box.row()
                     row.prop(item, 'name')
                     row.prop(item, 'frame')
 
@@ -235,11 +255,11 @@ class NVB_PANEL_MESH(bpy.types.Panel):
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_context = 'data'
+    bl_context = 'object'
 
     @classmethod
     def poll(cls, context):
-        return (context.mesh and context.object.type != 'EMPTY')
+        return (context.object and context.object.type == 'MESH') #context.mesh and context.object.type != 'EMPTY')
 
     def draw(self, context):
         obj      = context.object

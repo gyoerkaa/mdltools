@@ -110,6 +110,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     isanimation = bpy.props.BoolProperty(name = 'Animation', description = 'Whether this dummy and it\'s children are in an animation scene.', default = False)
     # For MDL Rootdummies in animations
     animname     = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
+    newanimname  = bpy.props.StringProperty(name = 'New name', description = 'Name of the new animation.', default = '')
     transtime    = bpy.props.FloatProperty(name = 'Transistiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1.00, min = 0.0)
     animroot     = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
     eventList    = bpy.props.CollectionProperty(type = NVB_PG_ANIMEVENT)
