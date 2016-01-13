@@ -143,15 +143,20 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
         elif (obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE):
             row = layout.row()
+            box = row.box()
+
+            row = box.row()
             row.prop(obj.nvb, 'refmodel')
-            row = layout.row()
+            row = box.row()
             row.prop(obj.nvb, 'reattachable')
-            pass
 
         else:
             row = layout.row()
+            box = row.box()
+
+            row = box.row()
             row.prop(obj.nvb, 'wirecolor')
-            row = layout.row()
+            row = box.row()
             row.prop(obj.nvb, 'dummysubtype')
 
 
@@ -179,42 +184,37 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
         row = layout.row()
         row.prop(obj.nvb, 'lighttype', text='Type')
-        row = layout.row()
-        row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
+
+        sep = layout.separator()
 
         row = layout.row()
+        box = row.box()
+
+        row = box.row()
+        row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
+        row = box.row()
         row.prop(obj.nvb, 'lightpriority', text='Priority')
 
-        split = layout.split()
+        split = box.split()
         col = split.column(align=True)
         col.prop(obj.nvb, 'ambientonly', text='Ambient Only')
         col.prop(obj.nvb, 'shadow', text='Shadows')
-
         col = split.column(align=True)
         col.prop(obj.nvb, 'fadinglight', text='Fading')
         col.prop(obj.nvb, 'isdynamic', text='Is dynamic')
         col.prop(obj.nvb, 'affectdynamic', text='Affect dynamic')
 
-        '''
-        row = layout.row()
-        row.label('Lensflares')
-        row.prop(obj.nvb, 'lensflares', text='')
-        sub = row.row(align=True)
-        sub.active = obj.nvb.lensflares
-        sub.prop(obj.nvb, 'flareradius', text='Radius')
-        '''
         sep = layout.separator()
 
         # Lens flares
         row = layout.row()
+        row.enabled = (obj.nvb.lighttype == 'NONE')
         box = row.box()
-
         row = box.row()
         row.prop(obj.nvb, 'lensflares')
         sub = row.row(align=True)
         sub.active = obj.nvb.lensflares
         sub.prop(obj.nvb, 'flareradius', text='Radius')
-
         row = box.row()
         row.active = obj.nvb.lensflares
         row.template_list('NVB_UILIST_LIGHTFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
@@ -264,24 +264,33 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
         row = layout.row()
         row.prop(obj.nvb, 'meshtype', text='Type')
-        row = layout.row()
-        row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
+
+        sep = layout.separator()
 
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             row = layout.row()
+            box = row.box()
+
+            row = box.row()
+            row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
+            row = box.row()
             row.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts', text='Data')
 
         else: # Trimesh, danglymesh, skin
             row = layout.row()
-            row.prop(obj.nvb, 'selfillumcolor', text='Selfillum. color')
+            box = row.box()
 
-            row = layout.row()
+            row = box.row()
+            row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
+            row = box.row()
+            row.prop(obj.nvb, 'selfillumcolor', text='Selfillum. color')
+            row = box.row()
             row.prop(obj.nvb, 'ambientcolor', text='Ambient')
 
-            row = layout.row()
+            row = box.row()
             row.prop(obj.nvb, 'shininess', text='Shininess')
 
-            split = layout.split()
+            split = box.split()
             col = split.column()
             col.prop(obj.nvb, 'tilefade', text='Tilefade')
             col.prop(obj.nvb, 'render', text='Render')
@@ -291,14 +300,17 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             col.prop(obj.nvb, 'inheritcolor', text='Inherit Color')
             col.prop(obj.nvb, 'rotatetexture', text='Rotate Texture')
 
-            row = layout.row()
+            row = box.row()
             row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
 
             # Additional props for danlymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
+                sep = layout.separator()
+
                 row = layout.row()
                 box = row.box()
-                box.label(text = 'Danglymesh Properties')
+                row = box.row()
+                row.label(text = 'Danglymesh Properties')
                 row = box.row()
                 row.prop_search(obj.nvb, 'constraints', obj, 'vertex_groups', text='Constraints')
                 row = box.row()
@@ -310,15 +322,20 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             # Additional props for skins
             elif (obj.nvb.meshtype == nvb_def.Meshtype.SKIN):
+                sep = layout.separator()
+
                 row = layout.row()
                 box = row.box()
-                box.label(text = 'Create skingroup: ')
+                row = box.row()
+                row.label(text = 'Create skingroup: ')
                 row = box.row(align = True)
-                row.prop_search(obj.nvb, 'select_object', context.scene, 'objects')
+                row.prop_search(obj.nvb, 'skingroup_obj', context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text = '', icon='ZOOMIN')
 
             # Additional props for aabb walkmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
+                sep = layout.separator()
+
                 row = layout.row()
                 box = row.box()
                 row = box.row()

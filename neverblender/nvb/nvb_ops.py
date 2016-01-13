@@ -320,13 +320,14 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         - Creates an camera and a lamp
         - Renders Minimap
         '''
-        selected_object = context.object
-        if (selected_object) and (selected_object.type == 'EMPTY'):
-            if (selected_object.auroraprops.dummytype == nvb_def.Dummytype.MDLBASE):
-                nvb_utils.nvb_minimap_render_setup(selected_object, bpy.context.scene)
+        obj   = context.object
+        scene = bpy.context.scene
+        if obj and (obj.type == 'EMPTY'):
+            if (obj.nvb.dummytype == nvb_def.Dummytype.MDLBASE):
+                nvb_utils.setupMinimapRender(obj, scene)
                 bpy.ops.render.render()
             else:
-                self.report({'INFO'}, 'A MDLBASE must be selected')
+                self.report({'INFO'}, 'A MDLROOT must be selected')
                 return {'CANCELLED'}
         else:
             self.report({'INFO'}, 'An Empty must be selected')
@@ -340,14 +341,23 @@ class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
     bl_label  = "Add new Skingroup"
 
     def execute(self, context):
-        obj      = context.object
-        skingr_name = obj.auroraprops.select_object
+        obj        = context.object
+        skingrName = obj.nvb.skingroup_obj
         # Check if there is already a vertex group with this name
-        if (skingr_name != '') and (skingr_name not in obj.vertex_groups.keys()):
-            # Create the vertex group
-            vert_group = obj.vertex_groups.new(skingr_name)
+        if skingrName:
+            if (skingrName not in obj.vertex_groups.keys()):
+                # Create the vertex group
+                vertGroup = obj.vertex_groups.new(skingrName)
+                obj.nvb.skingroup_obj
 
-        return{'FINISHED'}
+                self.report({'INFO'}, 'Created vertex group ' + skingrName)
+                return{'FINISHED'}
+            else:
+                self.report({'INFO'}, 'Duplicate Name')
+                return {'CANCELLED'}
+        else:
+            self.report({'INFO'}, 'Empty Name')
+            return {'CANCELLED'}
 
 
 class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
@@ -376,15 +386,16 @@ class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
 
                     sourceScene.update()
                 else:
-                    self.report({'INFO'}, 'Duplicate Objects')
+                    self.report({'INFO'}, 'Duplicate Object')
                     return {'CANCELLED'}
             else:
                 self.report({'INFO'}, 'Scene already present')
                 return {'CANCELLED'}
         else:
-            self.report({'INFO'}, 'Emty Name')
+            self.report({'INFO'}, 'Empty Name')
             return {'CANCELLED'}
 
+        self.report({'INFO'}, 'Renamed animation ' + oldAnimName + ' to ' + newAnimName)
         return{'FINISHED'}
 
 
@@ -424,7 +435,8 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
                 self.report({'INFO'}, 'Scene already present')
                 return {'CANCELLED'}
         else:
-            self.report({'INFO'}, 'Emty Name')
+            self.report({'INFO'}, 'Empty Name')
             return {'CANCELLED'}
 
+        self.report({'INFO'}, 'New animation ' + newAnimName)
         return{'FINISHED'}
