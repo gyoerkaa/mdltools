@@ -52,13 +52,29 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
         row = layout.row()
         row.prop(obj.nvb, 'dummytype', text='Type')
+        sep = layout.separator()
 
         # Display properties depending on type of the empty
         if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
-            row = layout.row()
-            row.prop(obj.nvb, 'isanimation', text = 'Animation')
             if not obj.nvb.isanimation:
-                split = layout.split()
+                # Animation Helper. Creates a new scene, copies all objects to it
+                # and renames them
+                row = layout.row()
+                box = row.box()
+                row = box.row()
+                row.prop(obj.nvb, 'isanimation', text = 'Animation')
+                sub = row.row()
+                sub.enabled = False
+                sub.prop(obj.nvb, 'animname', text = '')
+                row = box.row(align = True)
+                row.prop(obj.nvb, 'newanimname', text = 'Create')
+                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
+
+                sep = layout.separator()
+
+                row = layout.row()
+                box = row.box()
+                split = box.split()
                 col = split.column()
                 col.label(text = 'Classification:')
                 col.label(text = 'Supermodel:')
@@ -69,19 +85,8 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 col.prop(obj.nvb, 'animscale', text = '')
 
                 sep = layout.separator()
-                # Animation Helper. Creates a new scene, copies all objects to it
-                # and renames them
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.enabled = False
-                row.prop(obj.nvb, 'animname', text = 'Animation')
-                row = box.row(align = True)
-                row.prop(obj.nvb, 'newanimname', text = 'Create')
-                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
 
                 # Minimap Helper.
-                sep = layout.separator()
                 row = layout.row()
                 box = row.box()
                 box.label(text = 'Minimap Helper')
@@ -90,37 +95,25 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row = box.row()
                 row.prop(obj.nvb, 'minimapsize', text = 'Minimap size')
                 row = box.row()
-                row.operator('nvb.render_minimap', text = 'Setup Render', icon='NONE')
+                row.operator('nvb.render_minimap', text = 'Render Minimap', icon='NONE')
             else:
                 # MDL Rootdummy in an animation scene
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.enabled = False
-                row.prop(obj.nvb, 'animname', text = 'Animation')
+                row.prop(obj.nvb, 'isanimation', text = 'Animation')
+                sub = row.row()
+                sub.enabled = False
+                sub.prop(obj.nvb, 'animname', text = '')
                 row = box.row(align = True)
-                row.prop(obj.nvb, 'newanimname', text = 'Rename')
+                row.prop(obj.nvb, 'newanimname', text = 'Rename/Copy')
                 row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
-                row = box.row(align = True)
-                row.prop(obj.nvb, 'newanimname', text = 'Copy')
                 row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
                 row = box.row()
                 row.prop_search(obj.nvb, 'animroot', bpy.data, 'objects', text = 'Root')
                 row = box.row()
                 row.prop(obj.nvb, 'transtime')
-                '''
-                split = layout.split(percentage=0.25)
-                col = split.column()
-                col.label(text = 'Animation Name:')
-                col.label(text = 'Transition Time:')
-                col.label(text = 'Animation Root:')
-                col = split.column()
-                row = col.row(align=True)
-                row.prop(obj.nvb, 'animname', text = '')
-                row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
-                col.prop(obj.nvb, 'transtime', text = '')
-                col.prop_search(obj.nvb, 'animroot', context.scene, 'objects', text = '')
-                '''
+
                 sep = layout.separator()
                 # Event Helper. Display and add/remove events.
                 row = layout.row()
@@ -210,16 +203,19 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         sub.active = obj.nvb.lensflares
         sub.prop(obj.nvb, 'flareradius', text='Radius')
         '''
-
-        # Event Helper. Display and add/remove events.
         sep = layout.separator()
+
+        # Lens flares
         row = layout.row()
+        box = row.box()
+
+        row = box.row()
         row.prop(obj.nvb, 'lensflares')
         sub = row.row(align=True)
         sub.active = obj.nvb.lensflares
         sub.prop(obj.nvb, 'flareradius', text='Radius')
 
-        row = layout.row()
+        row = box.row()
         row.active = obj.nvb.lensflares
         row.template_list('NVB_UILIST_LIGHTFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
         col = row.column(align = True)
@@ -230,13 +226,13 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         col.operator('nvb.lightflare_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
         if obj.nvb.flareListIdx >= 0 and len(obj.nvb.flareList) > 0:
             item = obj.nvb.flareList[obj.nvb.flareListIdx]
-            row = layout.row()
+            row = box.row()
             row.active = obj.nvb.lensflares
             row.prop(item, 'texture')
-            row = layout.row()
+            row = box.row()
             row.active = obj.nvb.lensflares
             row.prop(item, 'colorshift')
-            row = layout.row()
+            row = box.row()
             row.active = obj.nvb.lensflares
             row.prop(item, 'size')
             row.prop(item, 'position')
