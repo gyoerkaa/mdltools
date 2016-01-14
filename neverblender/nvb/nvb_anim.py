@@ -136,7 +136,7 @@ class Animation():
                 # Probably empty line or whatever, skip it
                 continue
             if (label == 'newanim'):
-                self.name = line[1]
+                self.name = nvb_utils.getName(line[1])
             elif (label == 'length'):
                 self.length = float(line[1])
             elif (label == 'transtime'):

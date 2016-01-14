@@ -107,8 +107,7 @@ class Node():
                 continue
             if   label == 'node':
                 self.nodeType = line[1].lower()
-                #self.name     = line[2].lower()
-                self.name     = line[2]
+                self.name     = nvb_utils.getName(line[2])
             elif label == 'endnode':
                 return
             elif label == 'endlist':
@@ -116,8 +115,7 @@ class Node():
                 # the end of a key list
                 pass
             elif label == 'parent':
-                #self.parentName = line[1].lower()
-                self.parentName = line[1]
+                self.parentName = nvb_utils.getName(line[1])
             elif label == 'position':
                 # position: 1 key, positionkey: >= 1 key (probably)
                 self.parseKeys3f(asciiBlock[idx+1:idx+1], self.keys.position)
@@ -290,6 +288,11 @@ class Node():
                     keys[frame] = values
 
 
+    def addKeysIncompatToAscii(self, obj, asciiLines):
+        pass
+
+
+
     def addKeysToAscii(self, obj, asciiLines):
         keyDict =  {'orientationkey'    : collections.OrderedDict(), \
                     'positionkey'       : collections.OrderedDict(), \
@@ -406,5 +409,6 @@ class Node():
             trueParent = self.getOriginalName(bObject.parent.name, animName)
         asciiLines.append('  node dummy ' + trueName)
         asciiLines.append('    parent ' + trueParent)
+        self.addKeysIncompatToAscii(bObject, asciiLines)
         self.addKeysToAscii(bObject, asciiLines)
         asciiLines.append('  endnode')

@@ -53,7 +53,6 @@ class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
     def poll(self, context):
         return len(context.object.nvb.flareList) > 0
 
-
     def move_index(self, context):
         flareList = context.object.nvb.flareList
         flareIdx  = context.object.nvb.flareListIdx
@@ -67,7 +66,6 @@ class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
 
         newIdx   = max(0, min(newIdx, listLength))
         context.object.nvb.flareListIdx = newIdx
-
 
     def execute(self, context):
         flareList = context.object.nvb.flareList
@@ -133,7 +131,6 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
     def poll(self, context):
         return len(context.object.nvb.eventList) > 0
 
-
     def move_index(self, context):
         eventList = context.object.nvb.eventList
         eventIdx  = context.object.nvb.eventListIdx
@@ -147,7 +144,6 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
 
         newIdx   = max(0, min(newIdx, listLength))
         context.object.nvb.eventListIdx = newIdx
-
 
     def execute(self, context):
         eventList = context.object.nvb.eventList
@@ -323,9 +319,10 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         obj   = context.object
         scene = bpy.context.scene
         if obj and (obj.type == 'EMPTY'):
-            if (obj.nvb.dummytype == nvb_def.Dummytype.MDLBASE):
+            if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
                 nvb_utils.setupMinimapRender(obj, scene)
-                bpy.ops.render.render()
+                bpy.ops.render.render(use_viewport = True)
+                #bpy.ops.render.view_show()
             else:
                 self.report({'INFO'}, 'A MDLROOT must be selected')
                 return {'CANCELLED'}

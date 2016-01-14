@@ -87,13 +87,11 @@ class GeometryNode():
 
             if not l_isNumber(label):
                 if   (label == 'node'):
-                    #self.name = line[2].lower()
-                    self.name = line[2]
+                    self.name = nvb_utils.getName(line[2])
                 elif (label  == 'endnode'):
                     return
                 elif (label == 'parent'):
-                    #self.parentName = line[1].lower()
-                    self.parentName = line[1]
+                    self.parentName = nvb_utils.getName(line[1])
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),
@@ -260,7 +258,8 @@ class Reference(GeometryNode):
                 continue
             if not l_isNumber(label):
                 if   (label == 'refmodel'):
-                    self.refmodel = line[1].lower()
+                    #self.refmodel = line[1].lower()
+                    self.refmodel = line[1]
                 elif (label == 'reattachable'):
                     self.reattachable = int(line[1])
 
@@ -568,7 +567,7 @@ class Trimesh(GeometryNode):
                 vertexVGroups = set([])
                 for vgroup_element in vertex.groups:
                     vgroup = obj.vertex_groups[vgroup_element.group]
-                    if nvb_utils.getIsShadingGroup(vgroup):
+                    if nvb_utils.isShadingGroup(vgroup):
                         vertexVGroups.add(vgroup.name)
                 faceVGroups = faceVGroups & vertexVGroups
 
@@ -959,14 +958,13 @@ class Emitter(GeometryNode):
 
             if not l_isNumber(label):
                 if   (label == 'node'):
-                    #self.name = line[2].lower()
-                    self.name = line[2]
+                    self.name = nvb_utils.getName(line[2])
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                 elif (label  == 'endnode'):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                     return
                 elif (label == 'parent'):
-                    self.parentName = line[1].lower()
+                    self.parentName = nvb_utils.getName(line[1])
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),

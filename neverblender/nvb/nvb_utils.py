@@ -9,6 +9,15 @@ def isNull(s):
     return s.lower() == nvb_def.null
 
 
+def getName(s):
+    '''
+    To be able to switch to case sensitive and back
+    Still not certain mdl node names are case sensitive
+    '''
+    #return s.lower()
+    return s
+
+
 def isNumber(s):
     try:
         float(s)
@@ -80,7 +89,7 @@ def getImageFilename(image):
     return filename
 
 
-def getIsShadingGroup(vgroup):
+def isShadingGroup(vgroup):
     '''
     Determines wether vertex_group ist a shading group or not
     '''
@@ -172,41 +181,49 @@ def nwangle2euler(nwangle):
 
 def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     # Create the lamp if not already present in scene
-    if 'MinimapLamp' in scene.objects:
-        MinimapLampObject = scene.objects['MinimapLamp']
+    lampName = 'MinimapLamp'
+    camName  = 'MinimapCamera'
+
+    if lampName in scene.objects:
+        minimapLamp = scene.objects[lampName]
     else:
         # Check if present in db
-        if 'MinimapLamp' in bpy.data.objects:
-            MinimapLampObject = bpy.data.objects['MinimapLamp']
+        if lampName in bpy.data.objects:
+            minimapLamp = bpy.data.objects[lampName]
         else:
-            MinimapLamp       = bpy.data.lamps.new('MinimapLamp.lamp', 'POINT')
-            MinimapLampObject = bpy.data.objects.new('MinimapLamp', MinimapLamp)
-        scene.objects.link(MinimapLampObject)
-
+            if lampName in bpy.data.lamps:
+                lampData = bpy.data.lamps[lampName]
+            else:
+                lampData = bpy.data.lamps.new(lampName, 'POINT')
+            minimapLamp = bpy.data.objects.new(lampName , lampData)
+        scene.objects.link(minimapLamp)
     # Adjust lamp properties
-    MinimapLampObject.data.use_specular = False
-    MinimapLampObject.data.color        = lamp_color
-    MinimapLampObject.data.falloff_type = 'CONSTANT'
-    MinimapLampObject.data.distance     = (mdlbase.auroraprops.minimapzoffset+20.0)*2.0
-    MinimapLampObject.location.z        = mdlbase.auroraprops.minimapzoffset+20.0
+    minimapLamp.data.use_specular = False
+    minimapLamp.data.color        = lamp_color
+    minimapLamp.data.falloff_type = 'CONSTANT'
+    minimapLamp.data.distance     = (mdlbase.nvb.minimapzoffset+20.0)*2.0
+    minimapLamp.location.z        = mdlbase.nvb.minimapzoffset+20.0
 
     # Create the cam if not already present in scene
-    if 'MinimapCam' in scene.objects:
-        MinimapCamObject = scene.objects['MinimapCam']
+    if camName in scene.objects:
+        minimapCam = scene.objects[camName]
     else:
         # Check if present in db
-        if 'MinimapCam' in bpy.data.objects:
-            MinimapCamObject = bpy.data.objects['MinimapCam']
+        if camName in bpy.data.objects:
+            minimapCam = bpy.data.objects[camName]
         else:
-            MinimapCam       = bpy.data.cameras.new('MinimapCam.cam')
-            MinimapCamObject = bpy.data.objects.new('MinimapCam', MinimapCam)
-        scene.objects.link(MinimapCamObject)
+            if camName in bpy.data.cameras:
+                camData = bpy.data.cameras[camName]
+            else:
+                camData = bpy.data.cameras.new(camName)
+            minimapCam = bpy.data.objects.new(camName, camData)
+        scene.objects.link(minimapCam)
     # Adjust cam properties
-    MinimapCamObject.data.type        = 'ORTHO'
-    MinimapCamObject.data.ortho_scale = 10.0
-    MinimapCamObject.location.z       = mdlbase.auroraprops.minimapzoffset+20.0
+    minimapCam.data.type        = 'ORTHO'
+    minimapCam.data.ortho_scale = 10.0
+    minimapCam.location.z       = mdlbase.nvb.minimapzoffset+20.0
 
-    scene.camera = MinimapCamObject
+    scene.camera = minimapCam
 
     # Adjust render settings
     scene.render.use_antialiasing           = True
@@ -214,8 +231,8 @@ def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     scene.render.antialiasing_samples       = '16'
     scene.render.use_shadows                = False
     scene.render.use_envmaps                = False
-    scene.render.resolution_x               = mdlbase.auroraprops.minimapsize
-    scene.render.resolution_y               = mdlbase.auroraprops.minimapsize
+    scene.render.resolution_x               = mdlbase.nvb.minimapsize
+    scene.render.resolution_y               = mdlbase.nvb.minimapsize
     scene.render.resolution_percentage      = 100
     scene.render.image_settings.color_mode  = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
