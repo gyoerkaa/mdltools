@@ -1037,6 +1037,9 @@ class Emitter(GeometryNode):
     def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
 
+        if obj.nvb.rawascii not in bpy.data.texts:
+            print('Warning: No emitter data for ' + obj.name)
+            return
         txt      = bpy.data.texts[obj.nvb.rawascii]
         txtLines = [l.split() for l in txt.as_string().split('\n')]
         for line in txtLines:

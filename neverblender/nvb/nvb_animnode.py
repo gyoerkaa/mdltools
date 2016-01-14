@@ -289,8 +289,27 @@ class Node():
 
 
     def addKeysIncompatToAscii(self, obj, asciiLines):
-        pass
-
+        if obj.nvb.rawascii not in bpy.data.texts:
+            return
+        txt      = bpy.data.texts[obj.nvb.rawascii]
+        txtLines = [l.split() for l in txt.as_string().split('\n')]
+        for line in txtLines:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if  (label == 'node') or (label  == 'endnode') or \
+                (label == 'parent') or (label == 'position'):
+                # We don't need any of this
+                pass
+            else:
+                # We'll take everything that doesn't start with a #
+                if label[0] != '#':
+                    if nvb_utils.isNumber(label):
+                        asciiLines.append('      ' + ' '.join(line))
+                    else:
+                        asciiLines.append('    ' + ' '.join(line))
 
 
     def addKeysToAscii(self, obj, asciiLines):

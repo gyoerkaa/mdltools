@@ -288,6 +288,7 @@ class Mdl():
         asciiLines.append('endmodelgeom ' + self.name)
         # Animations
         if 'ANIMATION' in exports:
+            asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
             self.animationsToAscii(asciiLines)
         # The End
