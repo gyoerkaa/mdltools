@@ -224,7 +224,6 @@ def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     minimapCam.location.z       = mdlbase.nvb.minimapzoffset+20.0
 
     scene.camera = minimapCam
-
     # Adjust render settings
     scene.render.use_antialiasing           = True
     scene.render.pixel_filter_type          = 'BOX'
@@ -238,7 +237,7 @@ def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def checkObjectNames(theOriginal, newSuffix, oldSuffix = ''):
+def copyAnimSceneCheck(theOriginal, newSuffix, oldSuffix = ''):
     '''
     Checks if it possible to copy the object and it's children with the suffix
     It would be impossible if:
@@ -286,7 +285,7 @@ def checkObjectNames(theOriginal, newSuffix, oldSuffix = ''):
 
     valid = True
     for child in theOriginal.children:
-        valid = valid and checkObjectNames(child, newSuffix, oldSuffix)
+        valid = valid and copyAnimSceneCheck(child, newSuffix, oldSuffix)
 
     return valid
 

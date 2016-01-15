@@ -323,6 +323,8 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
                 nvb_utils.setupMinimapRender(obj, scene)
                 bpy.ops.render.render(use_viewport = True)
                 #bpy.ops.render.view_show()
+
+                self.report({'INFO'}, 'Ready to render')
             else:
                 self.report({'INFO'}, 'A MDLROOT must be selected')
                 return {'CANCELLED'}
@@ -345,7 +347,7 @@ class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
             if (skingrName not in obj.vertex_groups.keys()):
                 # Create the vertex group
                 vertGroup = obj.vertex_groups.new(skingrName)
-                obj.nvb.skingroup_obj
+                obj.nvb.skingroup_obj = ''
 
                 self.report({'INFO'}, 'Created vertex group ' + skingrName)
                 return{'FINISHED'}
@@ -374,7 +376,7 @@ class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
         # Check if there is already a scene with this animation name
         if (newAnimName  != ''):
             if (newAnimName not in bpy.data.scenes):
-                if nvb_utils.checkObjectNames(obj, newAnimName, oldAnimName):
+                if nvb_utils.copyAnimSceneCheck(obj, newAnimName, oldAnimName):
                     sourceScene.name = newAnimName
 
                     animRootDummy = nvb_utils.renameAnimScene(obj, newAnimName, oldAnimName)
@@ -413,7 +415,7 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
         # Check if there is already a scene with this animation name
         if (newAnimName  != ''):
             if (newAnimName not in bpy.data.scenes):
-                if nvb_utils.checkObjectNames(obj, newAnimName, oldAnimName):
+                if nvb_utils.copyAnimSceneCheck(obj, newAnimName, oldAnimName):
                     # Create the scene
                     newScene = bpy.data.scenes.new(newAnimName)
                     # Set fps

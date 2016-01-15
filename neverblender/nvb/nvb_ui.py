@@ -289,7 +289,6 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             row = box.row()
             row.prop(obj.nvb, 'shininess', text='Shininess')
-
             split = box.split()
             col = split.column()
             col.prop(obj.nvb, 'tilefade', text='Tilefade')
@@ -303,7 +302,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = box.row()
             row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
 
-            # Additional props for danlymeshes
+            # Additional props for danglymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
                 sep = layout.separator()
 
@@ -327,7 +326,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.label(text = 'Create skingroup: ')
+                row.label(text = 'Create vertex group: ')
                 row = box.row(align = True)
                 row.prop_search(obj.nvb, 'skingroup_obj', context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text = '', icon='ZOOMIN')

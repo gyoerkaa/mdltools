@@ -190,11 +190,6 @@ class Node():
                 curveX.keyframe_points.insert(frame, eul[0])
                 curveY.keyframe_points.insert(frame, eul[1])
                 curveZ.keyframe_points.insert(frame, eul[2])
-                if targetObject.name == 'Cat_Lfrontpaw01.crun':
-                    print('ori: ' + str(key[1:5]))
-                    print('eul: ' + str(eul))
-                    nwn = nvb_utils.euler2nwangle(eul)
-                    print('nwn: ' + str(nwn))
 
 
         # Set location channels if there are location keys
