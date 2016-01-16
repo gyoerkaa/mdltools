@@ -36,7 +36,10 @@ The rest is data
 AA 00 BB 01 ..., with AA 00 = (value, layer), BB 01 = (value, layer)
 '''
 
-def load_plt(filename, raw_filename):
+plt_layernames   = ['skin', 'hair', 'metal1', 'metal2', 'cloth1', 'cloth2', \
+                    'leather1', 'leather2', 'tattoo1', 'tattoo2']
+
+def plt_load(filename, raw_filename):
     f = open(filename, 'rb')
 
     # First 16 bytes contain header
@@ -44,7 +47,7 @@ def load_plt(filename, raw_filename):
     if header[0][0:7] == 'PLT V1  ':
         gimp.pdb.gimp_message('Not a valid plt file' + header[0][0:8])
         return 1
-    numLayers = 10
+    num_layers = 10
     # Next 8 bytes contain width and height
     (width, height) = struct.unpack('<II', f.read(8))
     # The rest contains (color, layer) tuples (both unsigned char (?))
@@ -59,20 +62,17 @@ def load_plt(filename, raw_filename):
     img.disable_undo()
 
     # Create Layers
-    reqLayers = ['Skin', 'Hair', 'Metal1', 'Metal2', 'Cloth1', 'Cloth2', \
-                 'Leather1', 'Leather2', 'Tattoo1', 'Tattoo2']
     layerList = []
-    for pos, layerName in enumerate(reqLayers):
-        layer = gimp.Layer(img, layerName, width, height, GRAY_IMAGE, 100, NORMAL_MODE)
-        layer.add_alpha()
-        layer.fill(TRANSPARENT_FILL)
-        # Sure, no documentation necessary. I just guess how to use this
-        # img.insert_layer(None, layer, pos)
-        img.add_layer(layer, pos) # Deprecated, but at least it works
-        layerList.append(layer)
+    for pos, layername in enumerate(plt_layernames):
+        lay = gimp.Layer(img, layername, width, height, GRAYA_IMAGE, 100, NORMAL_MODE)
+        #lay.add_alpha()
+        lay.fill(TRANSPARENT_FILL)
+        img.insert_layer(layer = lay, position = pos)
+        #img.add_layer(layer, pos) # Deprecated
+        layerList.append(lay)
 
     # Write data to layers
-    numVals = len(px)
+    numvals = len(px)
     gimp.progress_init("Progress ...")
     gimp.progress_update(0)
 
@@ -80,17 +80,18 @@ def load_plt(filename, raw_filename):
     l_int   = int
     l_float = float
     l_floor = math.floor
-    for i, (value, layerIdx) in enumerate(px):
+
+    for i, (value, layer_idx) in enumerate(px):
         x = l_int(i % width)
         y = height - l_int(l_floor(i / width)) - 1
-        layerList[layerIdx].set_pixel(x, y, [value, 255])
-        gimp.progress_update(l_float(i)/l_float(numVals))
+        layerList[layer_idx].set_pixel(x, y, [value, 255])
+        gimp.progress_update(l_float(i)/l_float(numvals))
 
     img.enable_undo()
     return img
 
 
-def save_plt(img, drawable, filename, raw_filename):
+def plt_save(img, drawable, filename, raw_filename):
     pltfile = open(filename, 'wb')
 
     width  = img.width
@@ -111,20 +112,17 @@ def save_plt(img, drawable, filename, raw_filename):
     gimp.progress_update(0)
     numPx = width*height
 
-    # layer names
-    layerNames = ['skin', 'hair', 'metal1', 'metal2', 'cloth1', 'cloth2', \
-                  'leather1', 'leather2', 'tattoo1', 'tattoo2']
-
     # for speed
     l_int   = int
     l_float = float
     l_floor = math.floor
+
     for i in range(numPx):
         x = l_int(i % width)
         y = height - l_int(l_floor(i / width)) - 1
         layer = img.pick_correlate_layer(x, y)
         if layer >= 0:
-            pxLayer = layerNames.index(layer.name.lower())
+            pxLayer = plt_layernames.index(layer.name.lower())
             pxValue = layer.get_pixel(x,y)[0]
         else:
             pxLayer = 0
@@ -137,6 +135,22 @@ def save_plt(img, drawable, filename, raw_filename):
     pltfile.close()
 
 
+def plt_create_layers(img):
+    # We don't want to create already existing plt layers
+
+    # Get all layers from the current image
+    img_layernames = []
+    for layer in img.layers:
+        img_layernames.append(layer.name.lower())
+
+
+    for layername in plt_layernames:
+        if layername not in img_layernames:
+            pass
+
+
+
+
 def register_load_handlers():
     gimp.register_load_handler('file-bioplt-load', 'plt', '')
     pdb['gimp-register-file-handler-mime']('file-bioplt-load', 'image/plt')
@@ -147,10 +161,6 @@ def register_load_handlers():
 def register_save_handlers():
     gimp.register_save_handler('file-bioplt-save', 'plt', '')
     pdb['gimp-register-file-handler-mime']('file-bioplt-save', 'image/plt')
-
-
-def export_plt(filename):
-    pass
 
 
 register(
@@ -167,7 +177,7 @@ register(
         (PF_STRING, 'raw_filename', 'The name entered', None),
     ],
     [(PF_IMAGE, 'image', 'Output image')], #results (type, name, description)
-    load_plt, #callback
+    plt_load, #callback
     on_query = register_load_handlers,
     menu = "<Load>",
 )
@@ -189,9 +199,28 @@ register(
         (PF_STRING, "raw-filename", "The name of the file", None),
     ],
     [], #results (type, name, description)
-    save_plt, #callback
+    plt_save, #callback
     on_query = register_save_handlers,
     menu = '<Save>'
+)
+
+
+register(
+    'file-bioplt-createlayers', #name
+    'Create Bioware Packed Layer Texture (.plt)', #description
+    'Create the layers for a Bioware Packed Layer Texture (.plt)',
+    'Symmetric', #author
+    'GPL v3', #copyright
+    '2015', #year
+    'Plt: Create Layers',
+    '*',
+    [   #input args (type, name, description, default [, extra])
+        (PF_IMAGE, "image", "Input image", None)
+    ],
+    [], #results (type, name, description)
+    plt_create_layers, #callback
+    #on_query = register_save_handlers,
+    menu = '<Image>/Tools'#'<ToolPresets>/Create Plt Layers'
 )
 
 
