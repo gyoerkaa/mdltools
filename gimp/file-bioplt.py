@@ -75,14 +75,16 @@ def load_plt(filename, raw_filename):
     numVals = len(px)
     gimp.progress_init("Progress ...")
     gimp.progress_update(0)
+
     # for speed
-    lint   = int
-    lfloat = float
+    l_int   = int
+    l_float = float
+    l_floor = math.floor
     for i, (value, layerIdx) in enumerate(px):
-        x = lint(i % width)
-        y = height - lint(math.floor(i / width)) - 1
+        x = l_int(i % width)
+        y = height - l_int(l_floor(i / width)) - 1
         layerList[layerIdx].set_pixel(x, y, [value, 255])
-        gimp.progress_update(lfloat(i)/lfloat(numVals))
+        gimp.progress_update(l_float(i)/l_float(numVals))
 
     img.enable_undo()
     return img
@@ -109,23 +111,26 @@ def save_plt(img, drawable, filename, raw_filename):
     gimp.progress_update(0)
     numPx = width*height
 
+    # layer names
+    layerNames = ['skin', 'hair', 'metal1', 'metal2', 'cloth1', 'cloth2', \
+                  'leather1', 'leather2', 'tattoo1', 'tattoo2']
 
     # for speed
-    lint   = int
-    lfloat = float
+    l_int   = int
+    l_float = float
+    l_floor = math.floor
     for i in range(numPx):
-        x = lint(i % width)
-        y = height - lint(math.floor(i / width)) - 1
-        #layer = pdb.gimp_image_pick_correlate_layer(img, x, y)
-        pxValue = 255
-        pxLayer = 3
-        for idx, layer in enumerate(img.layers[0:9]):
+        x = l_int(i % width)
+        y = height - l_int(l_floor(i / width)) - 1
+        layer = img.pick_correlate_layer(x, y)
+        if layer >= 0:
+            pxLayer = layerNames.index(layer.name.lower())
             pxValue = layer.get_pixel(x,y)[0]
-            if (pxValue > 0):
-                pxLayer = idx
-                break
+        else:
+            pxLayer = 0
+            pxValue = 255
         data.extend([pxValue, pxLayer])
-        gimp.progress_update(lfloat(i)/lfloat(numPx))
+        gimp.progress_update(l_float(i)/l_float(numPx))
 
     pltdata = struct.pack('<' + str(numPx*2) + 'B', *data)
     pltfile .write(pltdata)
@@ -135,6 +140,7 @@ def save_plt(img, drawable, filename, raw_filename):
 def register_load_handlers():
     gimp.register_load_handler('file-bioplt-load', 'plt', '')
     pdb['gimp-register-file-handler-mime']('file-bioplt-load', 'image/plt')
+    # Too slow for python
     #pdb['gimp-register-thumbnail-loader']('file-bioplt-load', 'file-bioplt-load-thumb')
 
 
@@ -154,7 +160,7 @@ register(
     'Symmetric', #author
     'GPL v3', #copyright
     '2015', #year
-    'Bioware Palette',
+    'Bioware Packed Layer Texture',
     None, #image type
     [   #input args (type, name, description, default [, extra])
         (PF_STRING, 'filename', 'The name of the file to load', None),
@@ -174,7 +180,7 @@ register(
     'Symmetric', #author
     'GPL v3', #copyright
     '2015', #year
-    'Bioware Palette',
+    'Bioware Packed Layer Texture',
     '*',
     [   #input args (type, name, description, default [, extra])
         (PF_IMAGE, "image", "Input image", None),
