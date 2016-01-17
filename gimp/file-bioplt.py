@@ -16,10 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-import os
-import struct
-
-from gimpfu import *
 
 '''
 Short plt File documentation:
@@ -36,8 +32,17 @@ The rest is data
 AA 00 BB 01 ..., with AA 00 = (value, layer), BB 01 = (value, layer)
 '''
 
+
+import os
+import struct
+
+from gimpfu import *
+
+
+# Don't change order, keep everything lowercase
 plt_layernames   = ['skin', 'hair', 'metal1', 'metal2', 'cloth1', 'cloth2', \
                     'leather1', 'leather2', 'tattoo1', 'tattoo2']
+
 
 def plt_load(filename, raw_filename):
     f = open(filename, 'rb')
@@ -62,14 +67,12 @@ def plt_load(filename, raw_filename):
     img.disable_undo()
 
     # Create Layers
-    layerList = []
+    layerlist = []
     for pos, layername in enumerate(plt_layernames):
         lay = gimp.Layer(img, layername, width, height, GRAYA_IMAGE, 100, NORMAL_MODE)
-        #lay.add_alpha()
         lay.fill(TRANSPARENT_FILL)
         img.insert_layer(layer = lay, position = pos)
-        #img.add_layer(layer, pos) # Deprecated
-        layerList.append(lay)
+        layerlist.append(lay)
 
     # Write data to layers
     numvals = len(px)
@@ -84,7 +87,7 @@ def plt_load(filename, raw_filename):
     for i, (value, layer_idx) in enumerate(px):
         x = l_int(i % width)
         y = height - l_int(l_floor(i / width)) - 1
-        layerList[layer_idx].set_pixel(x, y, [value, 255])
+        layerlist[layer_idx].set_pixel(x, y, [value, 255])
         gimp.progress_update(l_float(i)/l_float(numvals))
 
     img.enable_undo()
@@ -110,32 +113,55 @@ def plt_save(img, drawable, filename, raw_filename):
     data = []
     gimp.progress_init("Reading pixels from Gimp layers")
     gimp.progress_update(0)
-    numPx = width*height
+    numpx = width * height
 
     # for speed
     l_int   = int
     l_float = float
     l_floor = math.floor
 
-    for i in range(numPx):
-        x = l_int(i % width)
-        y = height - l_int(l_floor(i / width)) - 1
-        layer = img.pick_correlate_layer(x, y)
-        if layer >= 0:
-            pxLayer = plt_layernames.index(layer.name.lower())
-            pxValue = layer.get_pixel(x,y)[0]
-        else:
-            pxLayer = 0
-            pxValue = 255
-        data.extend([pxValue, pxLayer])
-        gimp.progress_update(l_float(i)/l_float(numPx))
+    if img.base_type == GRAY:
+        for i in range(numpx):
+            x = l_int(i % width)
+            y = height - l_int(l_floor(i / width)) - 1
+            layer = img.pick_correlate_layer(x, y)
+            if layer >= 0:
+                data.append(layer.get_pixel(x,y)[0])
+                data.append(plt_layernames.index(layer.name.lower()))
 
-    pltdata = struct.pack('<' + str(numPx*2) + 'B', *data)
-    pltfile .write(pltdata)
+            else:
+                data.append(255)
+                data.append(0)
+            gimp.progress_update(l_float(i)/l_float(numpx))
+
+    elif img.base_type == RGB:
+        for i in range(numpx):
+            x = l_int(i % width)
+            y = height - l_int(l_floor(i / width)) - 1
+            layer = img.pick_correlate_layer(x, y)
+            if layer >= 0:
+                data.append((layer.get_pixel(x,y)[0] + layer.get_pixel(x,y)[1] + layer.get_pixel(x,y)[2]) / 3)
+                data.append(plt_layernames.index(layer.name.lower()))
+            else:
+                data.append(255)
+                data.append(0)
+            gimp.progress_update(l_float(i)/l_float(numpx))
+
+    else: # Indexed, do nothing
+        pltfile.close()
+        return
+
+    pltdata = struct.pack('<' + str(numpx*2) + 'B', *data)
+    pltfile.write(pltdata)
     pltfile.close()
 
 
 def plt_create_layers(img):
+    layer_type = GRAYA_IMAGE
+    if img.base_type == RGB:
+        layer_type = RGBA_IMAGE
+    elif img.base_type == INDEXED:
+        layer_type = INDEXEDA_IMAGE
     # We don't want to create already existing plt layers
 
     # Get all layers from the current image
@@ -143,12 +169,11 @@ def plt_create_layers(img):
     for layer in img.layers:
         img_layernames.append(layer.name.lower())
 
-
-    for layername in plt_layernames:
+    for pos, layername in enumerate(plt_layernames):
         if layername not in img_layernames:
-            pass
-
-
+            lay = gimp.Layer(img, layername, img.width, img.height, layer_type, 100, NORMAL_MODE)
+            lay.fill(TRANSPARENT_FILL)
+            img.insert_layer(layer = lay, position = pos)
 
 
 def register_load_handlers():
@@ -220,7 +245,7 @@ register(
     [], #results (type, name, description)
     plt_create_layers, #callback
     #on_query = register_save_handlers,
-    menu = '<Image>/Tools'#'<ToolPresets>/Create Plt Layers'
+    menu = '<Image>/Tools'
 )
 
 
