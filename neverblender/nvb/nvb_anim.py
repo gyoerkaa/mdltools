@@ -97,7 +97,7 @@ class Animation():
                 data.name    = theOriginal.name + '.' + self.name
                 theCopy.data = data
             elif (objType == 'MESH'):
-                if animNode.keys.hasAlpha():
+                if animNode.hasAlphaAnim():
                     data         = theOriginal.data.copy()
                     data.name    = theOriginal.name + '.' + self.name
                     theCopy.data = data
@@ -106,6 +106,10 @@ class Animation():
                         material      = theOriginal.active_material.copy()
                         material.name = material.name + '.' + self.name
                         theCopy.active_material = material
+                        # No need to yop the textures, as the texture alpha
+                        # belongs to the materials texture slot, not the
+                        # texture itself
+                theCopy.nvb.rawascii = ''
             animNode.addAnimToObject(theCopy, self.name)
 
         # Link copy to the anim scene

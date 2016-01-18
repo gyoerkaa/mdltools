@@ -130,14 +130,13 @@ class GeometryNode():
         else:
             asciiLines.append('  parent ' + nvb_def.null)
         loc = obj.location
-        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
-                                          str(round(loc[1], 5)) + ' ' +
-                                          str(round(loc[2], 5)) )
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        asciiLines.append(s)
+
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
-                                             str(round(rot[1], 5)) + ' ' +
-                                             str(round(rot[2], 5)) + ' ' +
-                                             str(round(rot[3], 5)) )
+        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        asciiLines.append(s)
+
         color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
@@ -196,14 +195,13 @@ class Dummy(GeometryNode):
             return
 
         loc = obj.location
-        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
-                                          str(round(loc[1], 5)) + ' ' +
-                                          str(round(loc[2], 5)) )
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        asciiLines.append(s)
+
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
-                                             str(round(rot[1], 5)) + ' ' +
-                                             str(round(rot[2], 5)) + ' ' +
-                                             str(round(rot[3], 5)) )
+        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        asciiLines.append(s)
+
         color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
@@ -429,13 +427,14 @@ class Trimesh(GeometryNode):
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
 
-        # Set alpha values. Note: This is always'0.0' and 'True'
-        # MDL's alpha value = Texture alpha_factor in Blender
-        material.alpha            = 0.0
-        material.use_transparency = True
 
         texName = self.bitmap.lower()
         if (not nvb_utils.isNull(texName)):
+            # Set material alpha values. If there is a texture, this is
+            # always'0.0' and 'True'
+            material.use_transparency = True
+            material.alpha            = 0.0
+
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
             # them as if they were the same, i.e. just use the old one
@@ -458,6 +457,11 @@ class Trimesh(GeometryNode):
                 image = self.createImage(imgName, nvb_glob.texturePath)
                 if image is not None:
                     textureSlot.texture.image = image
+        else:
+            # Set material alpha values.
+            # No texture = material controls alpha
+            material.use_transparency = True
+            material.alpha            = self.alpha
 
         return material
 
@@ -596,18 +600,14 @@ class Trimesh(GeometryNode):
 
             # Check if this material has a texture assigned
             texture   = material.active_texture
-            imageName = nvb_def.null
+            imgName = nvb_def.null
             if texture:
                 # Only image textures will be exported
                 if (texture.type == 'IMAGE') and (texture.image):
-                    imageName = nvb_utils.getImageFilename(texture.image)
-                # Get alpha value from texture alpha
-                if (material.use_transparency):
-                    textureSlot = material.texture_slots[material.active_texture_index]
-                    asciiLines.append('  alpha ' + str(round(textureSlot.alpha_factor, 1)))
-                else:
-                    asciiLines.append('  alpha 1.0')
-            asciiLines.append('  bitmap ' + imageName)
+                    imgName = nvb_utils.getImageFilename(texture.image)
+            asciiLines.append('  bitmap ' + imgName)
+            asciiLines.append('  alpha ' + str(round(nvb_utils.getAuroraAlpha(obj), 2)))
+
         else:
             # No material, set some default values
             asciiLines.append('  diffuse 1.0 1.0 1.0')
@@ -637,9 +637,8 @@ class Trimesh(GeometryNode):
         asciiLines.append('  verts ' + str(len(mesh.vertices)))
         l_round = round
         for v in mesh.vertices:
-            asciiLines.append('    ' +  str(l_round(v.co[0], 5)) + ' ' +
-                                        str(l_round(v.co[1], 5)) + ' ' +
-                                        str(l_round(v.co[2], 5)) ) #.rjust(10)
+            s = '    {: 8.5f} {: 8.5f} {: 8.5f}'.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
+            asciiLines.append(s)
 
         # Add faces and corresponding tverts and shading groups
         tessfaces     = mesh.tessfaces

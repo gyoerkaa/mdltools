@@ -179,6 +179,48 @@ def nwangle2euler(nwangle):
     return q.to_euler()
 
 
+def setAuroraAlpha(obj, alpha):
+    '''
+    This will set
+        1. texture_slot.alpha_factor when there is a texture
+        2. material.alpha there is no texture, but a material
+        3. Do nothing, when there is no material
+    '''
+    mat = obj.active_material
+    if mat:
+        tex = mat.active_texture
+        if tex:
+            tslotIdx = mat.active_texture_index
+            tslot    = mat.texture_slots[tslotIdx]
+            tslot.alpha_factor = alpha
+        else:
+            mat.use_alpha = True
+            mat.alpha = alpha
+
+
+def getAuroraAlpha(obj):
+    '''
+    This will return
+        1. texture_slot.alpha_factor when there is a texture
+        2. material.alpha when there is no texture
+        3. 1.0 when there is no material
+    '''
+    mat = obj.active_material
+    if mat:
+        tex = mat.active_texture
+        if tex:
+            tslotIdx = mat.active_texture_index
+            tslot    = mat.texture_slots[tslotIdx]
+            return tslot.alpha_factor
+        else:
+            if mat.use_transparency:
+                return mat.alpha
+            else:
+                return 1.0
+    else:
+        return 1.0
+
+
 def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     # Create the lamp if not already present in scene
     lampName = 'MinimapLamp'

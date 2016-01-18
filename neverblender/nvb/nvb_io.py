@@ -121,11 +121,19 @@ def saveMdl(operator,
                 if (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
                     wkm     = nvb_mdl.Xwk('pwk')
+                wkmRootName = mdl.name + '_PWK'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('pwk')
+
                 wkmRootName = mdl.name + '_dwk'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
                     wkm     = nvb_mdl.Xwk('dwk')
-
+                wkmRootName = mdl.name + '_DWK'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('dwk')
                 # TODO: If we can't find one by name we'll look for an arbitrary one
 
             if wkmRoot:
