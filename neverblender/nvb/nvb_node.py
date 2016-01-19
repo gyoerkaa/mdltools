@@ -368,9 +368,14 @@ class Trimesh(GeometryNode):
                     self.shininess = l_int(l_float(line[1]))
                 elif (label == 'center'):
                     # Unused ? Becuase we don't do anything with this
-                    self.center = ( l_float(line[1]),
-                                    l_float(line[2]),
-                                    l_float(line[3]) )
+                    try:
+                        self.center = ( l_float(line[1]),
+                                        l_float(line[2]),
+                                        l_float(line[3]) )
+                    except:
+                        # Probably an 'undefined' string which cannot be
+                        # converted to float
+                        pass
                 elif (label == 'bitmap'):
                     self.bitmap = line[1]
                 elif (label == 'verts'):
