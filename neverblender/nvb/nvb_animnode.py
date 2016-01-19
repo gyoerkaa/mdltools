@@ -231,24 +231,21 @@ class Node():
         action.use_fake_user = True
 
         if (self.keys.orientation):
-            if targetObject.name == 'Box691.opening2':
-                print('Box691.opening2')
-            elif targetObject.name == 'Box689.opening1':
-                print('Box689.opening1')
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
             curveY = action.fcurves.new(data_path='rotation_euler', index=1)
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
+            currEul = None
+            prevEul = None
             for key in self.keys.orientation:
                 frame = nvb_utils.nwtime2frame(key[0])
                 eul   = nvb_utils.nwangle2euler(key[1:5])
-                if targetObject.name == 'Box691.opening2' or targetObject.name == 'Box689.opening1':
-                    print(key[1:5])
-                    print(eul)
-                curveX.keyframe_points.insert(frame, eul.x)
-                curveY.keyframe_points.insert(frame, eul.y)
-                curveZ.keyframe_points.insert(frame, eul.z)
-
+                currEul = nvb_utils.eulerFilter(eul, prevEul)
+                prevEul = currEul
+                curveX.keyframe_points.insert(frame, currEul.x)
+                curveY.keyframe_points.insert(frame, currEul.y)
+                curveZ.keyframe_points.insert(frame, currEul.z)
         elif (self.orientation):
+
             eul = nvb_utils.nwangle2euler(self.orientation)
             nvb_utils.setRotationAurora(targetObject, self.orientation)
             '''
@@ -260,7 +257,7 @@ class Node():
             curveX.keyframe_points.insert(frame, eul[0])
             curveY.keyframe_points.insert(frame, eul[1])
             curveZ.keyframe_points.insert(frame, eul[2])
-            '''
+'''
 
         # Set location channels if there are location keys
         if (self.keys.position):
@@ -273,6 +270,7 @@ class Node():
                 curveY.keyframe_points.insert(frame, key[2])
                 curveZ.keyframe_points.insert(frame, key[3])
         elif (self.position):
+
             targetObject.location = self.position
             '''
             curveX = action.fcurves.new(data_path='location', index=0)
@@ -283,7 +281,6 @@ class Node():
             curveY.keyframe_points.insert(frame, key[2])
             curveZ.keyframe_points.insert(frame, key[3])
             '''
-
         # Set selfillumcolor channels if there are selfillumcolor keys
         if (self.keys.selfillumcolor):
             curveR = action.fcurves.new(data_path='nvb.selfillumcolor', index=0)
@@ -449,6 +446,7 @@ class Node():
 
                 s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
+
         else:
             loc = originalObj.location
             originalPos = (round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
@@ -457,6 +455,7 @@ class Node():
             if animPos != originalPos:
                 s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(animPos[0], animPos[1], animPos[2])
                 asciiLines.append(s)
+
 
         name = 'orientationkey'
         if   keyDict[name]:
@@ -468,6 +467,7 @@ class Node():
 
                 s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
                 asciiLines.append(s)
+
         else:
             rot = nvb_utils.getAuroraRotFromObject(originalObj)
             originalRot = (round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
@@ -476,6 +476,7 @@ class Node():
             if animRot != originalRot:
                 s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(animRot[0], animRot[1], animRot[2], animRot[3])
                 asciiLines.append(s)
+
 
         name = 'scalekey'
         if keyDict[name]:
@@ -515,12 +516,15 @@ class Node():
 
         name = 'alphakey'
         if keyDict[name]:
-            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
-            for frame, key in keyDict[name].items():
-                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+            if len(keyDict[name]) > 1:
+                asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+                for frame, key in keyDict[name].items():
+                    time = l_round(nvb_utils.frame2nwtime(frame), 5)
 
-                s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
-                asciiLines.append(s)
+                    s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
+                    asciiLines.append(s)
+            else:
+                pass
         else:
             originalAlpha = round(nvb_utils.getAuroraAlpha(originalObj), 2)
             animAlpha = round(nvb_utils.getAuroraAlpha(animObj), 2)

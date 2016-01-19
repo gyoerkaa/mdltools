@@ -71,7 +71,7 @@ class Animation():
         theCopy        = theOriginal.copy()
         theCopy.parent = parent
         theCopy.name   = theOriginal.name + '.' + self.name
-        theCopy.nvb.rawascii = ''
+        theCopy.nvb.rawascii  = ''
 
         # rootDummy ?
         objType = theOriginal.type

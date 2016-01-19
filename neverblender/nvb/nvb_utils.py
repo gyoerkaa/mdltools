@@ -1,4 +1,5 @@
-﻿import mathutils
+﻿import math
+import mathutils
 import bpy
 import os
 
@@ -185,6 +186,30 @@ def euler2nwangle(eul):
 def nwangle2euler(nwangle):
     q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
     return q.to_euler()
+
+
+def eulerFilter(currEul, prevEul):
+    if not prevEul:
+        # Nothing to compare to, return original value
+        return currEul
+
+    # Flip current euler
+    flipEul = currEul.copy()
+    flipEul[0]  += math.pi
+    flipEul[2]  += math.pi
+    flipEul[1] *= -1
+    flipEul[1] += math.pi
+
+    currDist = eulerFilter_distance(prevEul, currEul)
+    flipDist = eulerFilter_distance(prevEul, flipEul)
+
+    print(currEul)
+    print(flipEul)
+    print('flipDist =' + str(flipDist) + '  currDist = ' + str(currDist) )
+    if flipDist < currDist:
+        return flipEul
+
+    return currEul
 
 
 def setAuroraAlpha(obj, alpha):
@@ -452,3 +477,48 @@ def renameAnimScene(obj, newSuffix, oldSuffix = ''):
 
     # Return the renamed rootDummy
     return obj
+
+
+def eulerFilter(currEul, prevEul):
+
+    def distance(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
+
+    def flip(e):
+        f = e.copy()
+        f[0] += math.pi
+        f[1] *= -1
+        f[1] += math.pi
+        f[2] += math.pi
+        return f
+
+    def flipDiff(a, b):
+        while abs(a - b) > math.pi:
+            if a < b:
+                b -= 2 * math.pi
+            else:
+                b += 2 * math.pi
+        return b
+
+    if not prevEul:
+        # Nothing to compare to, return original value
+        return currEul
+
+    eul = currEul.copy()
+    eul[0] = flipDiff(prevEul[0], eul[0])
+    eul[1] = flipDiff(prevEul[1], eul[1])
+    eul[2] = flipDiff(prevEul[2], eul[2])
+
+    # Flip current euler
+    flipEul = flip(eul)
+    flipEul[0] = flipDiff(prevEul[0], flipEul[0])
+    flipEul[1] = flipDiff(prevEul[1], flipEul[1])
+    flipEul[2] = flipDiff(prevEul[2], flipEul[2])
+
+    currDist = distance(prevEul, eul)
+    flipDist = distance(prevEul, flipEul)
+
+    if flipDist < currDist:
+        return flipEul
+    else:
+        return eul
