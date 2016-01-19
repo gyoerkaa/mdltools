@@ -378,13 +378,13 @@ class Trimesh(GeometryNode):
                     self.parse3f(asciiNode[idx+1:idx+numVals+1], self.verts)
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
-                    self.getAsciiFaceList(asciiNode[idx+1:idx+numVals+1])
+                    self.parseFaceList(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
                     self.parse2f(asciiNode[idx+1:idx+numVals+1], self.tverts)
 
 
-    def getAsciiFaceList(self, asciiFaces):
+    def parseFaceList(self, asciiFaces):
         l_int = int
         for line in asciiFaces:
             self.facelist.faces.append( (l_int(line[0]), l_int(line[1]), l_int(line[2])) )
@@ -393,32 +393,22 @@ class Trimesh(GeometryNode):
             self.facelist.matId.append(l_int(line[7]))
 
 
-    def setShadingGroups(self, obj):
+    def createShadingGroups(self, obj):
         '''
         Converts the shading groups of a node to vertex groups
         '''
         if not nvb_glob.useShadingGroups:
             return
 
-        # Create a dictionary of shading groups with group id's as keys
-        # and a vertex lists as values
-        shadingGroupDict= {}
-        for faceId, groupId in enumerate(self.facelist.shdgr):
-            if groupId not in shadingGroupDict:
-                shadingGroupDict[groupId] = []
-            shadingGroupDict[groupId].append(self.facelist.faces[faceId][0])
-            shadingGroupDict[groupId].append(self.facelist.faces[faceId][1])
-            shadingGroupDict[groupId].append(self.facelist.faces[faceId][2])
-
-        # Check the number of shading groups on this object. If there is only
-        # one we do nothing.
-        if len(shadingGroupDict) <= 1:
-            return
-
-        # Create vertex groups and add vertices
-        for groupId, groupMembers in shadingGroupDict.items():
-            vgroup = obj.vertex_groups.new(nvb_def.shadingGroupName + str(groupId))
-            vgroup.add(groupMembers, 1.0, 'REPLACE')
+        # Create groups & add members
+        for face, shagrId in zip(self.facelist.faces, self.facelist.shdgr):
+            shagrMembers = []
+            shagrName    = nvb_utils.getShagrName(shagrId)
+            if shagrName not in obj.vertex_groups:
+                obj.vertex_groups.new(shagrName)
+            shagr = obj.vertex_groups[shagrName]
+            shagrMembers.extend(face)
+            shagr.add(shagrMembers, 1.0, 'REPLACE')
 
 
     def createMaterial(self, name):
@@ -526,7 +516,7 @@ class Trimesh(GeometryNode):
         obj.nvb.selfillumcolor   = self.selfillumcolor
         obj.nvb.ambientcolor     = self.ambient
         obj.nvb.shininess        = self.shininess
-        self.setShadingGroups(obj)
+        self.createShadingGroups(obj)
 
 
     def addToScene(self, scene):
@@ -541,7 +531,7 @@ class Trimesh(GeometryNode):
         return obj
 
 
-    def getFaceShadingGroup(self, tface, obj):
+    def getFaceShagr(self, tface, obj):
         '''
         Takes an object and one of its tessfaces as its parameters
 
@@ -550,39 +540,27 @@ class Trimesh(GeometryNode):
         If it belongs to more than one group, the first group will be used.
         '''
 
-        groupId = 1
         if not nvb_glob.useShadingGroups:
-            return groupId
+            return 1
 
-        #TODO: Fix this mess
-        return groupId
+        memberships = {}
+        for vertIdx in tface.vertices:
+            vertex = obj.data.vertices[vertIdx]
+            for vgroupElem in vertex.groups:
+                vgroup = obj.vertex_groups[vgroupElem.group]
+                if nvb_utils.isShagr(vgroup):
+                    shagrId = nvb_utils.getShagrId(vgroup.name)
+                    if shagrId in memberships:
+                        memberships[shagrId] = memberships[shagrId] + 1
+                    else:
+                        memberships[shagrId] = 1
 
-        # Vertex groups of the face. We start with all vertex groups of the
-        # object and intersect with the
-        # There should eb only one group left at the end.
-        faceVGroups = set(obj.vertex_groups.keys())
+        # We'll return the one to which most vertices belong
+        if memberships:
+            return max(memberships.keys(), key=(lambda k: memberships[k]))
 
-        # Iterate over vertex indices of the face
-        if faceVGroups:
-            for vIdx in tface.vertices:
-                # Get the actual vertex from the mesh object
-                vertex = obj.data.vertices[vIdx]
-                # Vertex groups of the vertex
-                vertexVGroups = set([])
-                for vgroup_element in vertex.groups:
-                    vgroup = obj.vertex_groups[vgroup_element.group]
-                    if nvb_utils.isShadingGroup(vgroup):
-                        vertexVGroups.add(vgroup.name)
-                faceVGroups = faceVGroups & vertexVGroups
-
-            if faceVGroups:
-                # Get an element from the set and get its shading group id
-                try:
-                    groupId = int(objectVGroups.pop().replace(nvb_def.shadingGroupName,''))
-                except:
-                    print('WARNING: Unable to get shading group.')
-
-        return groupId
+        # Doesn't belong to any shading group ? Maybe none were imported
+        return 1
 
 
     def addMaterialDataToAscii(self, obj, asciiLines):
@@ -645,7 +623,7 @@ class Trimesh(GeometryNode):
         tessfaces_uvs = mesh.tessface_uv_textures.active
         for idx in range(len(tessfaces)):
             tface        = tessfaces[idx]
-            shadingGroup = self.getFaceShadingGroup(tface, obj)
+            shadingGroup = self.getFaceShagr(tface, obj)
             matIdx       = tface.material_index
 
             if (len(tface.vertices) == 3):
@@ -661,7 +639,7 @@ class Trimesh(GeometryNode):
 
                 faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
 
-            elif (len(face.vertices) == 4):
+            elif (len(tface.vertices) == 4):
                 #Quad
                 uv1 = 0
                 uv2 = 0
@@ -674,8 +652,8 @@ class Trimesh(GeometryNode):
                     uv3 = self.addUVToList(uvData.uv3, uvList)
                     uv4 = self.addUVToList(uvData.uv4, uvList)
 
-                faceList.append([face.vertices[0], face.vertices[1], face.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
-                faceList.append([face.vertices[2], face.vertices[3], face.vertices[0], shadingGroup, uv3, uv4, uv1, matIdx])
+                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
+                faceList.append([tface.vertices[2], tface.vertices[3], tface.vertices[0], shadingGroup, uv3, uv4, uv1, matIdx])
             else:
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
                 print('WARNING: Ngon in ' + mesh_object.name + '. Unable to export.')

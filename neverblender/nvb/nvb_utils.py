@@ -89,11 +89,19 @@ def getImageFilename(image):
     return filename
 
 
-def isShadingGroup(vgroup):
+def getShagrId(shagrName):
+    return  int(shagrName[-4:])
+
+
+def getShagrName(shagrId):
+    return  nvb_def.shagrPrefix + "{0:0>4}".format(shagrId)
+
+
+def isShagr(vgroup):
     '''
     Determines wether vertex_group ist a shading group or not
     '''
-    return (nvb_def.shadingGroupName in vgroup.name)
+    return (nvb_def.shagrPrefix in vgroup.name)
 
 
 def setRotationAurora(obj, nwangle):

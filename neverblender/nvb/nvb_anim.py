@@ -71,6 +71,7 @@ class Animation():
         theCopy        = theOriginal.copy()
         theCopy.parent = parent
         theCopy.name   = theOriginal.name + '.' + self.name
+        theCopy.nvb.rawascii = ''
 
         # rootDummy ?
         objType = theOriginal.type
@@ -109,7 +110,6 @@ class Animation():
                         # No need to yop the textures, as the texture alpha
                         # belongs to the materials texture slot, not the
                         # texture itself
-                theCopy.nvb.rawascii = ''
             animNode.addAnimToObject(theCopy, self.name)
 
         # Link copy to the anim scene
