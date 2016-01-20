@@ -1177,7 +1177,7 @@ class Light(GeometryNode):
     def addFlaresToAscii(self, obj, asciiLines):
         if obj.nvb.lensflares:
             asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-            print(str(len(obj.nvb.flareList)))
+            #print(str(len(obj.nvb.flareList)))
             if len(obj.nvb.flareList) > 0:
 
                 # TODO: Clean this up

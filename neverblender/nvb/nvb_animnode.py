@@ -239,7 +239,7 @@ class Node():
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
             curveY = action.fcurves.new(data_path='rotation_euler', index=1)
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
-            eul   = nvb_utils.nwangle2euler(self.orientation)
+            eul = nvb_utils.nwangle2euler(self.orientation)
             curveX.keyframe_points.insert(0, eul[0])
             curveY.keyframe_points.insert(0, eul[1])
             curveZ.keyframe_points.insert(0, eul[2])
@@ -394,12 +394,29 @@ class Node():
 
         l_str   = str
         l_round = round
+
+        name = 'orientationkey'
+        if   len(keyDict[name]) > 1:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
+                eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+                val = nvb_utils.euler2nwangle(eul)
+                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
+                asciiLines.append(s)
+        elif len(keyDict[name]) == 1:
+            # Only a single key
+            frame, key = keyDict[name].popitem()
+            eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+            val = nvb_utils.euler2nwangle(eul)
+            s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(val[0], val[1], val[2], val[3])
+            asciiLines.append(s)
+
         name = 'positionkey'
         if len(keyDict[name]) > 1:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
         elif len(keyDict[name]) == 1:
@@ -408,28 +425,12 @@ class Node():
             s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(key[0], key[1], key[2])
             asciiLines.append(s)
 
-        name = 'orientationkey'
-        if   len(keyDict[name]) > 1:
-            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
-            for frame, key in keyDict[name].items():
-                time = l_round(nvb_utils.frame2nwtime(frame), 5)
-                eul  = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
-                val  = nvb_utils.euler2nwangle(eul)
-
-                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
-                asciiLines.append(s)
-        elif len(keyDict[name]) == 1:
-            # Only a single key
-            frame, key = keyDict[name].popitem()
-            s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(key[0], key[1], key[2], key[3])
-            asciiLines.append(s)
 
         name = 'scalekey'
         if keyDict[name]:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
@@ -438,7 +439,6 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
@@ -447,7 +447,6 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
@@ -456,7 +455,6 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
@@ -465,7 +463,6 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-
                 s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
                 asciiLines.append(s)
         elif len(keyDict[name]) == 1:
