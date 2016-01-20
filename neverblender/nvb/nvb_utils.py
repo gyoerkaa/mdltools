@@ -105,7 +105,7 @@ def isShagr(vgroup):
     return (nvb_def.shagrPrefix in vgroup.name)
 
 
-def setRotationAurora(obj, nwangle):
+def setObjectRotationAurora(obj, nwangle):
     rotMode = obj.rotation_mode
     if   rotMode == "QUATERNION":
         q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
@@ -188,31 +188,21 @@ def nwangle2euler(nwangle):
     return q.to_euler()
 
 
-def eulerFilter(currEul, prevEul):
-    if not prevEul:
-        # Nothing to compare to, return original value
-        return currEul
-
-    # Flip current euler
-    flipEul = currEul.copy()
-    flipEul[0]  += math.pi
-    flipEul[2]  += math.pi
-    flipEul[1] *= -1
-    flipEul[1] += math.pi
-
-    currDist = eulerFilter_distance(prevEul, currEul)
-    flipDist = eulerFilter_distance(prevEul, flipEul)
-
-    print(currEul)
-    print(flipEul)
-    print('flipDist =' + str(flipDist) + '  currDist = ' + str(currDist) )
-    if flipDist < currDist:
-        return flipEul
-
-    return currEul
+def setMaterialAuroraAlpha(mat, alpha):
+    #if alpha <= 1.0:
+    mat.use_transparency = True
+    tex = mat.active_texture
+    if tex:
+        mat.alpha = 0.0
+        tslotIdx = mat.active_texture_index
+        tslot    = mat.texture_slots[tslotIdx]
+        tslot.use_map_alpha = True
+        tslot.alpha_factor  = alpha
+    else:
+        mat.alpha = alpha
 
 
-def setAuroraAlpha(obj, alpha):
+def setObjectAuroraAlpha(obj, alpha):
     '''
     This will set
         1. texture_slot.alpha_factor when there is a texture
@@ -221,14 +211,7 @@ def setAuroraAlpha(obj, alpha):
     '''
     mat = obj.active_material
     if mat:
-        tex = mat.active_texture
-        if tex:
-            tslotIdx = mat.active_texture_index
-            tslot    = mat.texture_slots[tslotIdx]
-            tslot.alpha_factor = alpha
-        else:
-            mat.use_alpha = True
-            mat.alpha = alpha
+        setMaterialAuroraAlpha(mat, alpha)
 
 
 def getAuroraAlpha(obj):
@@ -239,17 +222,14 @@ def getAuroraAlpha(obj):
         3. 1.0 when there is no material
     '''
     mat = obj.active_material
-    if mat:
+    if mat and mat.use_transparency:
         tex = mat.active_texture
         if tex:
             tslotIdx = mat.active_texture_index
             tslot    = mat.texture_slots[tslotIdx]
             return tslot.alpha_factor
         else:
-            if mat.use_transparency:
-                return mat.alpha
-            else:
-                return 1.0
+            return mat.alpha
     else:
         return 1.0
 

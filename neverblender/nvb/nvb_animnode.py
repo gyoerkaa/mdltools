@@ -19,7 +19,7 @@ class Keys():
         self.rawascii = ''
 
     def hasAlpha(self):
-        return self.alpha
+        return len(self.alpha) > 0
 
 
 class Node():
@@ -28,12 +28,11 @@ class Node():
         self.nodetype   = 'dummy'
         self.parentName = nvb_def.null
 
-        # Animation data
-        # Non-keyed animations
-        self.orientation = None
+        # Non-keyed
         self.position    = None
+        self.orientation = None
         self.alpha       = None
-        # Keyed animations
+        # Keyed
         self.keys = Keys()
 
         self.isEmpty = True
@@ -47,7 +46,7 @@ class Node():
 
 
     def hasAlphaAnim(self):
-        return (self.keys.hasAlpha() or self.alpha)
+        return (self.keys.hasAlpha() or self.alpha != None)
 
 
     def parseKeys3f(self, asciiBlock, keyList):
@@ -107,7 +106,7 @@ class Node():
         return next((i for i, v in enumerate(asciiBlock) if not l_isNumber(v[0])), -1)
 
 
-    def getNodeFromAscii(self, asciiBlock):
+    def loadAscii(self, asciiBlock):
         l_float    = float
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiBlock):
@@ -143,7 +142,7 @@ class Node():
                 self.isEmpty = False
             elif label == 'alpha':
                 # alpha: 1 key, alphakey: >= 1 key (probably)
-                self.slpha = l_float(line[1])
+                self.alpha = l_float(line[1])
                 self.isEmpty = False
 
             # Keyed animations
@@ -180,45 +179,33 @@ class Node():
 
 
     def addAnimToMaterial(self, targetMaterial, animName = ''):
+        if not self.hasAlphaAnim():
+            return
+
+        #actionName           = animName + '.' + targetMaterial.name
+        actionName           = targetMaterial.name
+        action               = bpy.data.actions.new(name=actionName)
+        action.use_fake_user = True
+
         # If there is a texture, use texture alpha for animations
         if targetMaterial.active_texture:
+            # Material has a texture
+            # data_path = material.texture_slots[x].alpha_factor
             tslotIdx = targetMaterial.active_texture_index
-            # There is a texture attached to this material
-            if self.keys.hasAlpha():
-                #actionName           = animName + '.' + targetMaterial.name
-                actionName           = targetMaterial.name
-                action               = bpy.data.actions.new(name=actionName)
-                action.use_fake_user = True
-
-                # Set alpha channels
-                # This should influence the material alpha value
-                curve = action.fcurves.new(data_path='texture_slots[' + str(tslotIdx) + '].alpha_factor')
-                for key in self.keys.alpha:
-                    curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
-
-                targetMaterial.animation_data_create()
-                targetMaterial.animation_data.action = action
-            elif self.alpha:
-                tslot = targetMaterial.texture_slots[tslotIdx]
-                tslot.alpha_factor = self.alpha
-        # No texture. Alpha controls material
+            curve    = action.fcurves.new(data_path='texture_slots[' + str(tslotIdx) + '].alpha_factor')
         else:
-            if self.keys.hasAlpha():
-                #actionName           = animName + '.' + targetMaterial.name
-                actionName           = targetMaterial.name
-                action               = bpy.data.actions.new(name=actionName)
-                action.use_fake_user = True
+            # No texture.
+            # data_path = material.alpha
+            curve = action.fcurves.new(data_path='alpha')
 
-                # Set alpha channels
-                # This should influence the material alpha value
-                curve = action.fcurves.new(data_path='alpha')
-                for key in self.keys.alpha:
-                    curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+        if self.keys.alpha:
+            for key in self.keys.alpha:
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+        elif self.alpha != None:
+            curve.keyframe_points.insert(0, self.alpha)
 
-                targetMaterial.animation_data_create()
-                targetMaterial.animation_data.action = action
-            elif self.alpha:
-                targetMaterial.alpha = self.alpha
+        targetMaterial.animation_data_create()
+        targetMaterial.animation_data.action = action
 
 
     def addAnimToObject(self, targetObject, animName = ''):
@@ -244,20 +231,18 @@ class Node():
                 curveX.keyframe_points.insert(frame, currEul.x)
                 curveY.keyframe_points.insert(frame, currEul.y)
                 curveZ.keyframe_points.insert(frame, currEul.z)
-        elif (self.orientation):
-
+        elif self.orientation != None:
+            '''
             eul = nvb_utils.nwangle2euler(self.orientation)
-            nvb_utils.setRotationAurora(targetObject, self.orientation)
+            nvb_utils.setObjectRotationAurora(targetObject, self.orientation)
             '''
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
             curveY = action.fcurves.new(data_path='rotation_euler', index=1)
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
-            frame = 0
             eul   = nvb_utils.nwangle2euler(self.orientation)
-            curveX.keyframe_points.insert(frame, eul[0])
-            curveY.keyframe_points.insert(frame, eul[1])
-            curveZ.keyframe_points.insert(frame, eul[2])
-'''
+            curveX.keyframe_points.insert(0, eul[0])
+            curveY.keyframe_points.insert(0, eul[1])
+            curveZ.keyframe_points.insert(0, eul[2])
 
         # Set location channels if there are location keys
         if (self.keys.position):
@@ -269,18 +254,17 @@ class Node():
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[2])
                 curveZ.keyframe_points.insert(frame, key[3])
-        elif (self.position):
-
+        elif (self.position != None):
+            '''
             targetObject.location = self.position
             '''
             curveX = action.fcurves.new(data_path='location', index=0)
             curveY = action.fcurves.new(data_path='location', index=1)
             curveZ = action.fcurves.new(data_path='location', index=2)
-            frame = 0
-            curveX.keyframe_points.insert(frame, key[1])
-            curveY.keyframe_points.insert(frame, key[2])
-            curveZ.keyframe_points.insert(frame, key[3])
-            '''
+            curveX.keyframe_points.insert(0, self.position[0])
+            curveY.keyframe_points.insert(0, self.position[1])
+            curveZ.keyframe_points.insert(0, self.position[2])
+
         # Set selfillumcolor channels if there are selfillumcolor keys
         if (self.keys.selfillumcolor):
             curveR = action.fcurves.new(data_path='nvb.selfillumcolor', index=0)
@@ -389,34 +373,6 @@ class Node():
                         asciiLines.append('    ' + ' '.join(line))
 
 
-    def addNonKeyedToAscii(self, animObj, originalObj, asciiLines):
-        '''
-        We only export this, if the values in the anim scene differ from
-        those in the original scene
-        '''
-        loc = originalObj.location
-        originalPos = (round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
-        loc = animObj.location
-        animPos = (round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
-        if animPos != originalPos:
-            s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(animPos[0], animPos[1], animPos[2])
-            asciiLines.append(s)
-
-        rot = nvb_utils.getAuroraRotFromObject(originalObj)
-        originalRot = (round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
-        rot = nvb_utils.getAuroraRotFromObject(animObj)
-        animRot = (round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
-        if animRot != originalRot:
-            s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(animRot[0], animRot[1], animRot[2], animRot[3])
-            asciiLines.append(s)
-
-        originalAlpha = round(nvb_utils.getAuroraAlpha(originalObj), 2)
-        animAlpha = round(nvb_utils.getAuroraAlpha(animObj), 2)
-        if animAlpha != originalAlpha:
-            s = '    alpha ' + str(animAlpha)
-            asciiLines.append(s)
-
-
     def addKeysToAscii(self, animObj, originalObj, asciiLines):
         keyDict =  {'orientationkey'    : collections.OrderedDict(), \
                     'positionkey'       : collections.OrderedDict(), \
@@ -439,26 +395,21 @@ class Node():
         l_str   = str
         l_round = round
         name = 'positionkey'
-        if keyDict[name]:
+        if len(keyDict[name]) > 1:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
 
                 s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
-
-        else:
-            loc = originalObj.location
-            originalPos = (round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
-            loc = animObj.location
-            animPos = (round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
-            if animPos != originalPos:
-                s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(animPos[0], animPos[1], animPos[2])
-                asciiLines.append(s)
-
+        elif len(keyDict[name]) == 1:
+            # Only a single key
+            frame, key = keyDict[name].popitem()
+            s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(key[0], key[1], key[2])
+            asciiLines.append(s)
 
         name = 'orientationkey'
-        if   keyDict[name]:
+        if   len(keyDict[name]) > 1:
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
@@ -467,16 +418,11 @@ class Node():
 
                 s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
                 asciiLines.append(s)
-
-        else:
-            rot = nvb_utils.getAuroraRotFromObject(originalObj)
-            originalRot = (round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
-            rot = nvb_utils.getAuroraRotFromObject(animObj)
-            animRot = (round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
-            if animRot != originalRot:
-                s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(animRot[0], animRot[1], animRot[2], animRot[3])
-                asciiLines.append(s)
-
+        elif len(keyDict[name]) == 1:
+            # Only a single key
+            frame, key = keyDict[name].popitem()
+            s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(key[0], key[1], key[2], key[3])
+            asciiLines.append(s)
 
         name = 'scalekey'
         if keyDict[name]:
@@ -515,22 +461,18 @@ class Node():
                 asciiLines.append(s)
 
         name = 'alphakey'
-        if keyDict[name]:
-            if len(keyDict[name]) > 1:
-                asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
-                for frame, key in keyDict[name].items():
-                    time = l_round(nvb_utils.frame2nwtime(frame), 5)
+        if len(keyDict[name]) > 1:
+            asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
+            for frame, key in keyDict[name].items():
+                time = l_round(nvb_utils.frame2nwtime(frame), 5)
 
-                    s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
-                    asciiLines.append(s)
-            else:
-                pass
-        else:
-            originalAlpha = round(nvb_utils.getAuroraAlpha(originalObj), 2)
-            animAlpha = round(nvb_utils.getAuroraAlpha(animObj), 2)
-            if animAlpha != originalAlpha:
-                s = '    alpha ' + str(animAlpha)
+                s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
                 asciiLines.append(s)
+        elif len(keyDict[name]) == 1:
+            # Only a single key
+            frame, key = keyDict[name].popitem()
+            s = '    alpha {: 3.2f}'.format(key[0])
+            asciiLines.append(s)
 
 
     def getOriginalName(self, nodeName, animName):
@@ -563,7 +505,6 @@ class Node():
             originalParent = self.getOriginalName(animObj.parent.name, animName)
         asciiLines.append('  node dummy ' + originalName)
         asciiLines.append('    parent ' + originalParent)
-        #self.addNonKeyedToAscii(animObj, originalObj, asciiLines)
         if animObj.nvb.meshtype == nvb_def.Meshtype.EMITTER:
             self.addKeysToAsciiIncompat(animObj, asciiLines)
         self.addKeysToAscii(animObj, originalObj, asciiLines)

@@ -111,7 +111,7 @@ class GeometryNode():
 
     def setObjectData(self, obj):
         self.objref = obj.name # used to resolve naming conflicts
-        nvb_utils.setRotationAurora(obj, self.orientation)
+        nvb_utils.setObjectRotationAurora(obj, self.orientation)
         obj.scale         = (self.scale, self.scale, self.scale)
         obj.location      = self.position
         obj.nvb.wirecolor = self.wirecolor
@@ -422,14 +422,8 @@ class Trimesh(GeometryNode):
         material.diffuse_intensity = 1.0
         material.specular_color    = self.specular
 
-
         texName = self.bitmap.lower()
-        if (not nvb_utils.isNull(texName)):
-            # Set material alpha values. If there is a texture, this is
-            # always'0.0' and 'True'
-            material.use_transparency = True
-            material.alpha            = 0.0
-
+        if not nvb_utils.isNull(texName):
             textureSlot = material.texture_slots.add()
             # If a texture with the same name was already created treat
             # them as if they were the same, i.e. just use the old one
@@ -439,8 +433,6 @@ class Trimesh(GeometryNode):
                 textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
             textureSlot.texture_coords        = 'UV'
             textureSlot.use_map_color_diffuse = True
-            textureSlot.alpha_factor  = self.alpha
-            textureSlot.use_map_alpha = True
 
             # Load the image for the texture, but check if it was
             # already loaded before. If so, use that one.
@@ -452,11 +444,8 @@ class Trimesh(GeometryNode):
                 image = self.createImage(imgName, nvb_glob.texturePath)
                 if image is not None:
                     textureSlot.texture.image = image
-        else:
-            # Set material alpha values.
-            # No texture = material controls alpha
-            material.use_transparency = True
-            material.alpha            = self.alpha
+
+        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
 
         return material
 

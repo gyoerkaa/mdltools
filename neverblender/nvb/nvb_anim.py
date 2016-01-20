@@ -28,7 +28,7 @@ class Animation():
 
     def addAsciiNode(self, asciiBlock):
         node = nvb_animnode.Node()
-        node.getNodeFromAscii(asciiBlock)
+        node.loadAscii(asciiBlock)
         key  = node.parentName + node.name
         if key in self.nodeList:
             #TODO: Should probably raise an exception
