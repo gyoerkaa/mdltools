@@ -45,7 +45,7 @@ class Node():
         return not self.isEmpty
 
 
-    def hasAlphaAnim(self):
+    def requiresUniqueData(self):
         return (self.keys.hasAlpha() or self.alpha != None)
 
 
@@ -179,7 +179,7 @@ class Node():
 
 
     def addAnimToMaterial(self, targetMaterial, animName = ''):
-        if not self.hasAlphaAnim():
+        if not self.requiresUniqueData():
             return
 
         #actionName           = animName + '.' + targetMaterial.name

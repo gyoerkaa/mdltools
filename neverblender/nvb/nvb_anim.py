@@ -88,28 +88,81 @@ class Animation():
             animNode = self.getAnimNode(theOriginal.name, theOriginal.parent.name)
         else:
             animNode = self.getAnimNode(theOriginal.name)
+
+
+        deepCopy = False
+        if deepCopy:
+            # Always copy all data & materials.
+            # Each animation has it's own data.
+            if theOriginal.data:
+                data      = theOriginal.data.copy()
+                data.name = theOriginal.name + '.' + self.name
+                theCopy.data = data
+                # Create a copy of the material
+                if (theOriginal.active_material):
+                    material      = theOriginal.active_material.copy()
+                    material.name = theOriginal.active_material.name + '.' + self.name
+                    theCopy.active_material = material
+        else:
+            # Create only a single copy of data and materials which is
+            # shared between animations.
+            # Create an extra copy only on a on-demand basis, i.e. if there
+            # are animations attached which need it.
+            animDataName = nvb_def.animdataPrefix + theOriginal.name
+            if (objType == 'LAMP'):
+                if animDataName in bpy.data.lamps:
+                    data = bpy.data.lamps[animDataName]
+                else:
+                    data      = theOriginal.data.copy()
+                    data.name = animDataName
+                theCopy.data = data
+            elif (objType == 'MESH'):
+                if animNode.requiresUniqueData():
+                    # We need to copy the material and therefore the data block
+                    data         = theOriginal.data.copy()
+                    data.name    = theOriginal.name + '.' + self.name
+                    theCopy.data = data
+                    if (theOriginal.active_material):
+                        # Copy the material
+                        material      = theOriginal.active_material.copy()
+                        material.name = theOriginal.active_material.name + '.' + self.name
+                        theCopy.active_material = material
+                        # No need to copy the textures, as the texture settings
+                        # belong to the material texture slot, not the
+                        # texture itself
+                else:
+                    if animDataName in bpy.data.meshes:
+                        data = bpy.data.meshes[animDataName]
+                    else:
+                        data      = theOriginal.data.copy()
+                        data.name = animDataName
+                    theCopy.data = data
+
         if animNode:
+            '''
+            # Only copy as needed
             # We need to copy the data for:
             # - Lamps
             # - Meshes & materials when there are alphakeys
-
+            # (Textures aren't needed)
             if (objType == 'LAMP'):
                 data         = theOriginal.data.copy()
                 data.name    = theOriginal.name + '.' + self.name
                 theCopy.data = data
             elif (objType == 'MESH'):
-                if animNode.hasAlphaAnim():
+                if animNode.requiresUniqueData():
                     data         = theOriginal.data.copy()
                     data.name    = theOriginal.name + '.' + self.name
                     theCopy.data = data
                     # Create a copy of the material
                     if (theOriginal.active_material):
                         material      = theOriginal.active_material.copy()
-                        material.name = material.name + '.' + self.name
+                        material.name = theOriginal.active_material.name + '.' + self.name
                         theCopy.active_material = material
-                        # No need to yop the textures, as the texture alpha
+                        # No need to copy the textures, as the texture alpha
                         # belongs to the materials texture slot, not the
                         # texture itself
+            '''
             animNode.addAnimToObject(theCopy, self.name)
 
         # Link copy to the anim scene

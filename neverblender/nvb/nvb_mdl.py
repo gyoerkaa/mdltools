@@ -236,7 +236,6 @@ class Mdl():
 
         node.toAscii(bObject, asciiLines, self.validExports, self.classification, simple)
 
-
         '''
         for child in bObject.children:
             self.geometryToAscii(child, asciiLines, simple)
