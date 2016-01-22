@@ -124,11 +124,42 @@ class GeometryNode():
         return obj
 
 
+    def getAdjustedMatrix(self, obj):
+
+        if obj.parent:
+            parent_mw = obj.parent.matrix_world
+        else:
+            parent_mw = matutils.matrix()
+
+        p_mw_scale = parent_mw.to_scale()
+
+        #scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
+        #                            [0,p_mw_scale[1],0,0],
+        #                            [0,0,p_mw_scale[2],0],
+        #                            [0,0,0            ,1]])
+
+        scaled = obj.matrix_local.copy()
+        scaled[0][3] = scaled[0][3] * p_mw_scale[0]
+        scaled[1][3] = scaled[1][3] * p_mw_scale[1]
+        scaled[2][3] = scaled[2][3] * p_mw_scale[2]
+        return scaled
+
+
     def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
+        # Scaling fix
+        transmat = self.getAdjustedMatrix(obj)
+        loc = transmat.to_translation()
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        asciiLines.append(s)
+
+        rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
+        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        asciiLines.append(s)
+        '''
         loc = obj.location
         s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
         asciiLines.append(s)
@@ -136,7 +167,7 @@ class GeometryNode():
         rot = nvb_utils.getAuroraRotFromObject(obj)
         s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
         asciiLines.append(s)
-
+        '''
         color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
                                            str(round(color[1], 2)) + ' ' +
@@ -186,14 +217,28 @@ class Dummy(GeometryNode):
         else:
             asciiLines.append('  parent ' + nvb_def.null)
         scale = round(nvb_utils.getAuroraScale(obj), 3)
+
+        # Scaling fix
+        asciiLines.append('  scale 1.0')
+        '''
         if (scale != 1.0):
             asciiLines.append('  scale ' + str(scale))
+        '''
 
         dummytype = obj.nvb.dummytype
         if dummytype == nvb_def.Dummytype.MDLROOT:
             # Only parent and scale for rootdummys
             return
+        # Scaling fix
+        transmat = self.getAdjustedMatrix(obj)
+        loc = transmat.to_translation()
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        asciiLines.append(s)
 
+        rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
+        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        asciiLines.append(s)
+        '''
         loc = obj.location
         s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
         asciiLines.append(s)
@@ -201,6 +246,7 @@ class Dummy(GeometryNode):
         rot = nvb_utils.getAuroraRotFromObject(obj)
         s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
         asciiLines.append(s)
+        '''
 
         color = obj.nvb.wirecolor
         asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
@@ -601,6 +647,15 @@ class Trimesh(GeometryNode):
 
     def addMeshDataToAscii(self, obj, asciiLines, simple = False):
         mesh = obj.to_mesh(nvb_glob.scene, True, 'RENDER')
+
+        # Scaling fix
+        # TODO: Find out how exactly blender handles scaling, which matrices to use etc
+        scale = obj.matrix_world.to_scale()
+        scale_matrix = mathutils.Matrix([[scale[0],0,0,0],
+                                         [0,scale[1],0,0],
+                                         [0,0,scale[2],0],
+                                         [0,0,0       ,1]])
+        mesh.transform(scale_matrix)
 
         faceList = [] # List of triangle faces
         uvList   = [] # List of uv indices
