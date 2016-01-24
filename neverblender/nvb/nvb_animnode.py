@@ -500,9 +500,13 @@ class Node():
         originalParent = nvb_def.null
         if animObj.parent:
             originalParent = self.getOriginalName(animObj.parent.name, animName)
-        asciiLines.append('  node dummy ' + originalName)
-        asciiLines.append('    parent ' + originalParent)
-        if animObj.nvb.meshtype == nvb_def.Meshtype.EMITTER:
+
+        if originalObj.nvb.meshtype == nvb_def.Meshtype.EMITTER:
+            asciiLines.append('  node emitter ' + originalName)
+            asciiLines.append('    parent ' + originalParent)
             self.addKeysToAsciiIncompat(animObj, asciiLines)
+        else:
+            asciiLines.append('  node dummy ' + originalName)
+            asciiLines.append('    parent ' + originalParent)
         self.addKeysToAscii(animObj, originalObj, asciiLines)
         asciiLines.append('  endnode')
