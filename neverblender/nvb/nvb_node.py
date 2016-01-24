@@ -216,8 +216,14 @@ class Dummy(GeometryNode):
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        scale = round(nvb_utils.getAuroraScale(obj), 3)
 
+
+        dummytype = obj.nvb.dummytype
+        if dummytype == nvb_def.Dummytype.MDLROOT:
+            # Only parent for rootdummys
+            return
+
+        #scale = round(nvb_utils.getAuroraScale(obj), 3)
         # Scaling fix
         asciiLines.append('  scale 1.0')
         '''
@@ -225,10 +231,6 @@ class Dummy(GeometryNode):
             asciiLines.append('  scale ' + str(scale))
         '''
 
-        dummytype = obj.nvb.dummytype
-        if dummytype == nvb_def.Dummytype.MDLROOT:
-            # Only parent and scale for rootdummys
-            return
         # Scaling fix
         transmat = self.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
@@ -274,7 +276,7 @@ class Patch(GeometryNode):
     def setObjectData(self, obj):
         GeometryNode.setObjectData(self, obj)
 
-        obj.nvb.dummytype = self.dummyType
+        obj.nvb.dummytype = self.dummytype
 
 
 class Reference(GeometryNode):
@@ -310,15 +312,15 @@ class Reference(GeometryNode):
 
     def setObjectData(self, obj):
         GeometryNode.setObjectData(self, obj)
-        obj.nvb.dummytype    = self.dummyType
+        obj.nvb.dummytype    = self.dummytype
         obj.nvb.refmodel     = self.refmodel
         obj.nvb.reattachable = (self.reattachable == 1)
 
 
     def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
-        ascii_node.append('  refmodel ' + obj.nvb.refmodel)
-        ascii_node.append('  reattachable ' + str(obj.nvb.reattachable))
+        asciiLines.append('  refmodel ' + obj.nvb.refmodel)
+        asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
 
 class Trimesh(GeometryNode):
