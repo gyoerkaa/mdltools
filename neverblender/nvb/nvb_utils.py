@@ -459,6 +459,15 @@ def renameAnimScene(obj, newSuffix, oldSuffix = ''):
     return obj
 
 
+def createHookModifiers(obj):
+    skingrName = ''
+    for vg in obj.vertex_groups:
+        if vg.name in bpy.data.objects:
+            mod = obj.modifiers.new(vg.name + '.skin', 'HOOK')
+            mod.object = bpy.data.objects[vg.name]
+            mod.vertex_group = vg
+
+
 def eulerFilter(currEul, prevEul):
 
     def distance(a, b):
