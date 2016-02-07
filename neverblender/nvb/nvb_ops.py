@@ -419,7 +419,9 @@ class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
                     # Create the scene
                     newScene = bpy.data.scenes.new(newAnimName)
                     # Set fps
-                    newScene.render.fps = nvb_def.fps
+                    newScene.render.fps   = nvb_def.fps
+                    animScene.frame_start = sourceScene.frame_start
+                    animScene.frame_end   = sourceScene.frame_end
 
                     animRootDummy = nvb_utils.copyAnimScene(newScene, obj, newAnimName, oldAnimName)
                     animRootDummy.nvb.isanimation = True
