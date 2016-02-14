@@ -587,15 +587,19 @@ class Trimesh(GeometryNode):
 
         memberships = {}
         for vertIdx in tface.vertices:
-            vertex = obj.data.vertices[vertIdx]
-            for vgroupElem in vertex.groups:
-                vgroup = obj.vertex_groups[vgroupElem.group]
-                if nvb_utils.isShagr(vgroup):
-                    shagrId = nvb_utils.getShagrId(vgroup.name)
-                    if shagrId in memberships:
-                        memberships[shagrId] = memberships[shagrId] + 1
-                    else:
-                        memberships[shagrId] = 1
+            if vertIdx < len(obj.data.vertices):
+                vertex = obj.data.vertices[vertIdx]
+
+                for vgroupElem in vertex.groups:
+                    vgroup = obj.vertex_groups[vgroupElem.group]
+                    if nvb_utils.isShagr(vgroup):
+                        shagrId = nvb_utils.getShagrId(vgroup.name)
+                        if shagrId in memberships:
+                            memberships[shagrId] = memberships[shagrId] + 1
+                        else:
+                            memberships[shagrId] = 1
+            else:
+                print('Neverblender: Warning, could not match vertex to smooth group')
 
         # We'll return the one to which most vertices belong
         if memberships:
