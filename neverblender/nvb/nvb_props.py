@@ -131,6 +131,8 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                     (nvb_def.Meshtype.EMITTER, 'Emitter', '4 desc', 4)],
                                         default = nvb_def.Meshtype.TRIMESH)
 
+    autosmoothgroup  = bpy.props.BoolProperty(name = 'Auto Smooth Group', description = 'Automatically generate smooth groups during export', default = False)
+
     shadow           = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
     tilefade         = bpy.props.BoolProperty(name = 'Tilefade', description = 'Object will fade when the player is nearby. (Tilesets only)', default = False)
     render           = bpy.props.BoolProperty(name = 'Render', description = 'Whether to render this object in the scene', default = True)
