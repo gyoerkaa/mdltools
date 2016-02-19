@@ -301,6 +301,9 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             row = box.row()
             row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
+            row = box.row()
+            row.label(text = 'Smoothgroups')
+            row.prop(obj.nvb, 'smoothgroup', text='Smooth Group', expand = True)
 
             # Additional props for danglymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):

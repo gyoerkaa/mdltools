@@ -130,8 +130,10 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                     (nvb_def.Meshtype.AABB, 'AABB Walkmesh', '3 desc', 3), \
                                                     (nvb_def.Meshtype.EMITTER, 'Emitter', '4 desc', 4)],
                                         default = nvb_def.Meshtype.TRIMESH)
-
-    autosmoothgroup  = bpy.props.BoolProperty(name = 'Auto Smooth Group', description = 'Automatically generate smooth groups during export', default = False)
+    smoothgroup    = bpy.props.EnumProperty(name = 'Smoothgroup',
+                                            items = [   ('VGRP', 'Vertex Groups', 'Generate Smoothgroups from vertex groups', 0), \
+                                                        ('AUTO', 'Auto', 'Generate Smoothgroups by checking edge angles', 1), ],
+                                            default = 'VGRP')
 
     shadow           = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
     tilefade         = bpy.props.BoolProperty(name = 'Tilefade', description = 'Object will fade when the player is nearby. (Tilesets only)', default = False)
