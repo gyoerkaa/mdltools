@@ -652,7 +652,7 @@ class Trimesh(GeometryNode):
 
 
     def addMeshDataToAscii(self, obj, asciiLines, simple = False):
-        mesh = obj.to_mesh(nvb_glob.scene, True, 'RENDER')
+        mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'RENDER')
 
         # Scaling fix
         # TODO: Find out how exactly blender handles scaling, which matrices to use etc
@@ -673,12 +673,13 @@ class Trimesh(GeometryNode):
             s = '    {: 8.5f} {: 8.5f} {: 8.5f}'.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
             asciiLines.append(s)
 
+        (smoothGroups, numGroups) = mesh.calc_smooth_groups()
         # Add faces and corresponding tverts and shading groups
         tessfaces     = mesh.tessfaces
         tessfaces_uvs = mesh.tessface_uv_textures.active
         for idx in range(len(tessfaces)):
             tface        = tessfaces[idx]
-            shadingGroup = self.getFaceShagr(tface, obj)
+            shadingGroup = smoothGroups[idx]
             matIdx       = tface.material_index
 
             if (len(tface.vertices) == 3):
