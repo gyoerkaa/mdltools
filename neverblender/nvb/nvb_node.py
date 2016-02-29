@@ -1,6 +1,7 @@
 import mathutils
 import bpy
 import bpy_extras.image_utils
+import bmesh
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_glob
@@ -573,42 +574,6 @@ class Trimesh(GeometryNode):
         return obj
 
 
-    def getFaceShagr(self, tface, obj):
-        '''
-        Takes an object and one of its tessfaces as its parameters
-
-        A face belongs to a shading/vertex group, if all of
-        its vertices belong to a shading/vertex group
-        If it belongs to more than one group, the first group will be used.
-        '''
-
-        if not nvb_glob.useShadingGroups:
-            return 1
-
-        memberships = {}
-        for vertIdx in tface.vertices:
-            if vertIdx < len(obj.data.vertices):
-                vertex = obj.data.vertices[vertIdx]
-
-                for vgroupElem in vertex.groups:
-                    vgroup = obj.vertex_groups[vgroupElem.group]
-                    if nvb_utils.isShagr(vgroup):
-                        shagrId = nvb_utils.getShagrId(vgroup.name)
-                        if shagrId in memberships:
-                            memberships[shagrId] = memberships[shagrId] + 1
-                        else:
-                            memberships[shagrId] = 1
-            else:
-                print('Neverblender: Warning, could not match vertex to smooth group')
-
-        # We'll return the one to which most vertices belong
-        if memberships:
-            return max(memberships.keys(), key=(lambda k: memberships[k]))
-
-        # Doesn't belong to any shading group ? Maybe none were imported
-        return 1
-
-
     def addMaterialDataToAscii(self, obj, asciiLines):
         # Check if this object has a material assigned to it
         material = obj.active_material
@@ -652,7 +617,7 @@ class Trimesh(GeometryNode):
 
 
     def addMeshDataToAscii(self, obj, asciiLines, simple = False):
-        mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'RENDER')
+        mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb.glob.meshConvert)
 
         # Scaling fix
         # TODO: Find out how exactly blender handles scaling, which matrices to use etc
@@ -662,6 +627,24 @@ class Trimesh(GeometryNode):
                                          [0,0,scale[2],0],
                                          [0,0,0       ,1]])
         mesh.transform(scale_matrix)
+
+        # Triangulation (doing it with bmesh to retain edges marked as sharp)
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.triangulate(bm, faces=bm.faces)
+        bm.to_mesh(mesh)
+        bm.free()
+        del bm
+
+        # Calculate smooth groups
+        smoothGroups    = []
+        numSmoothGroups = 0
+        if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.smoothgroups):
+            # One single smooth group
+            smoothgroups    = [1] * len(mesh)
+            numSmoothGroups = 1
+        else:
+            (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
 
         faceList = [] # List of triangle faces
         uvList   = [] # List of uv indices
@@ -673,14 +656,13 @@ class Trimesh(GeometryNode):
             s = '    {: 8.5f} {: 8.5f} {: 8.5f}'.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
             asciiLines.append(s)
 
-        (smoothGroups, numGroups) = mesh.calc_smooth_groups()
         # Add faces and corresponding tverts and shading groups
         tessfaces     = mesh.tessfaces
         tessfaces_uvs = mesh.tessface_uv_textures.active
         for idx in range(len(tessfaces)):
-            tface        = tessfaces[idx]
-            shadingGroup = smoothGroups[idx]
-            matIdx       = tface.material_index
+            tface   = tessfaces[idx]
+            smGroup = smoothGroups[idx]
+            matIdx  = tface.material_index
 
             if (len(tface.vertices) == 3):
                 #Triangle
@@ -693,7 +675,7 @@ class Trimesh(GeometryNode):
                     uv2 = self.addUVToList(uvData.uv2, uvList)
                     uv3 = self.addUVToList(uvData.uv3, uvList)
 
-                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
+                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
 
             elif (len(tface.vertices) == 4):
                 #Quad
@@ -708,8 +690,8 @@ class Trimesh(GeometryNode):
                     uv3 = self.addUVToList(uvData.uv3, uvList)
                     uv4 = self.addUVToList(uvData.uv4, uvList)
 
-                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], shadingGroup, uv1, uv2, uv3, matIdx])
-                faceList.append([tface.vertices[2], tface.vertices[3], tface.vertices[0], shadingGroup, uv3, uv4, uv1, matIdx])
+                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
+                faceList.append([tface.vertices[2], tface.vertices[3], tface.vertices[0], smGroup, uv3, uv4, uv1, matIdx])
             else:
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
                 print('WARNING: Ngon in ' + mesh_object.name + '. Unable to export.')
@@ -1291,7 +1273,7 @@ class Aabb(Trimesh):
         self.meshtype = nvb_def.Meshtype.AABB
 
     def addAABBToAscii(self, obj, asciiLines):
-        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, 'RENDER')
+        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb.glob.meshConvert)
 
         faceList = []
         faceIdx  = 0
