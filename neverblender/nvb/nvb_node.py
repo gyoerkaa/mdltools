@@ -618,6 +618,8 @@ class Trimesh(GeometryNode):
 
     def addMeshDataToAscii(self, obj, asciiLines, simple = False):
         mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+        for p in mesh.polygons:
+            p.use_smooth = True
 
         # Scaling fix
         # TODO: Find out how exactly blender handles scaling, which matrices to use etc
@@ -642,7 +644,7 @@ class Trimesh(GeometryNode):
         numSmoothGroups = 0
         if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.smoothgroups):
             # One single smooth group
-            smoothgroups    = [1] * len(mesh)
+            smoothGroups    = [1] * len(mesh.polygons)
             numSmoothGroups = 1
         else:
             (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
@@ -658,7 +660,6 @@ class Trimesh(GeometryNode):
             asciiLines.append(s)
 
         # Add faces and corresponding tverts and shading groups
-        '''
         tessfaces     = mesh.tessfaces
         tessfaces_uvs = mesh.tessface_uv_textures.active
         for idx in range(len(tessfaces)):
@@ -698,7 +699,7 @@ class Trimesh(GeometryNode):
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
                 print('WARNING: Ngon in ' + mesh_object.name + '. Unable to export.')
                 return
-        '''
+
         if simple:
             asciiLines.append('  faces ' + str(len(faceList)))
             for f in faceList:
