@@ -637,6 +637,8 @@ class Trimesh(GeometryNode):
         bm.to_mesh(mesh)
         bm.free()
         del bm
+
+        # Recalculate tessfaces for export
         mesh.calc_tessface()
 
         # Calculate smooth groups
@@ -667,38 +669,17 @@ class Trimesh(GeometryNode):
             smGroup = smoothGroups[idx]
             matIdx  = tface.material_index
 
-            if (len(tface.vertices) == 3):
-                #Triangle
-                uv1 = 0
-                uv2 = 0
-                uv3 = 0
-                if tessfaces_uvs:
-                    uvData = tessfaces_uvs.data[idx]
-                    uv1 = self.addUVToList(uvData.uv1, uvList)
-                    uv2 = self.addUVToList(uvData.uv2, uvList)
-                    uv3 = self.addUVToList(uvData.uv3, uvList)
+            # We triangulated, so faces are always triangles
+            uv1 = 0
+            uv2 = 0
+            uv3 = 0
+            if tessfaces_uvs:
+                uvData = tessfaces_uvs.data[idx]
+                uv1 = self.addUVToList(uvData.uv1, uvList)
+                uv2 = self.addUVToList(uvData.uv2, uvList)
+                uv3 = self.addUVToList(uvData.uv3, uvList)
 
-                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
-
-            elif (len(tface.vertices) == 4):
-                #Quad
-                uv1 = 0
-                uv2 = 0
-                uv3 = 0
-                uv4 = 0
-                if tessfaces_uvs:
-                    uvData = tessfaces_uvs.data[idx]
-                    uv1 = self.addUVToList(uvData.uv1, uvList)
-                    uv2 = self.addUVToList(uvData.uv2, uvList)
-                    uv3 = self.addUVToList(uvData.uv3, uvList)
-                    uv4 = self.addUVToList(uvData.uv4, uvList)
-
-                faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
-                faceList.append([tface.vertices[2], tface.vertices[3], tface.vertices[0], smGroup, uv3, uv4, uv1, matIdx])
-            else:
-                # Ngon or no polygon at all (This should never be the case with tessfaces)
-                print('WARNING: Ngon in ' + mesh_object.name + '. Unable to export.')
-                return
+            faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
 
         if simple:
             asciiLines.append('  faces ' + str(len(faceList)))
