@@ -186,10 +186,9 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
             )
 
-    useShadingGroups = bpy.props.BoolProperty(
-            name = 'Import shading groups',
-            description = 'Import shading groups as vertex groups ' \
-                          '(Unused by blender)',
+    useSmoothGroups = bpy.props.BoolProperty(
+            name = 'Import smooth groups',
+            description = 'Import smooth groups as sharp edges',
             default = True,
             )
 
@@ -242,10 +241,10 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default = {'ANIMATION', 'WALKMESH'},
             )
 
-    useShadingGroups = bpy.props.BoolProperty(
-            name='Export Shading groups',
-            description='Export Shading Groups' \
-                        '(When disabled, every face belongs to the same group)',
+    useSmoothGroups = bpy.props.BoolProperty(
+            name='Export Smooth groups',
+            description='Generate smooth groups from sharp edges' \
+                        '(When disabled every face belongs to the same group)',
             default=True,
             )
 

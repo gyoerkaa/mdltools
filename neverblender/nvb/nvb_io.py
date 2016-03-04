@@ -35,16 +35,16 @@ def loadMdl(operator,
             context,
             filepath = '',
             imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
-            useShadingGroups = True,
+            useSmoothGroups = True,
             textureSingle = True,
             textureSearch = False,
             minimapMode = False):
     '''
     Called from blender ui
     '''
-    nvb_glob.usePltTextures   = False
-    nvb_glob.useShadingGroups = useShadingGroups
-    nvb_glob.minimapMode      = minimapMode
+    nvb_glob.usePltTextures  = False
+    nvb_glob.useSmoothGroups = useSmoothGroups
+    nvb_glob.minimapMode     = minimapMode
 
     nvb_glob.texturePath   = os.path.dirname(filepath)
     nvb_glob.textureSingle = textureSingle
@@ -85,16 +85,16 @@ def saveMdl(operator,
          context,
          filepath = '',
          exports = {'ANIMATION', 'WALKMESH'},
-         useShadingGroups = True,
+         useSmoothGroups = True,
          applyModifiers = True,
          ):
     '''
     Called from blender ui
     '''
-    nvb_glob.exports          = exports
-    nvb_glob.useShadingGroups = useShadingGroups
-    nvb_glob.applyModifiers   = applyModifiers
-    nvb_glob.scene            = bpy.context.scene
+    nvb_glob.exports         = exports
+    nvb_glob.useSmoothGroups = useSmoothGroups
+    nvb_glob.applyModifiers  = applyModifiers
+    nvb_glob.scene           = bpy.context.scene
 
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')

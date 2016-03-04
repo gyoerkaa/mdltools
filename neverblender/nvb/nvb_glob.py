@@ -1,6 +1,6 @@
 # Import/ Export
-useShadingGroups = True
-minimapMode      = False
+useSmoothGroups = True
+minimapMode     = False
 
 # Import only
 texturePath   = ''
@@ -10,6 +10,5 @@ textureSearch = False
 # Export only
 scene          = None
 meshConvert    = 'RENDER'
-smoothgroups   = True
 applyModifiers = True
 

@@ -447,24 +447,6 @@ class Trimesh(GeometryNode):
             self.facelist.matId.append(l_int(line[7]))
 
 
-    def createShadingGroups(self, obj):
-        '''
-        Converts the shading groups of a node to vertex groups
-        '''
-        if not nvb_glob.useShadingGroups:
-            return
-
-        # Create groups & add members
-        for face, shagrId in zip(self.facelist.faces, self.facelist.shdgr):
-            shagrMembers = []
-            shagrName    = nvb_utils.getShagrName(shagrId)
-            if shagrName not in obj.vertex_groups:
-                obj.vertex_groups.new(shagrName)
-            shagr = obj.vertex_groups[shagrName]
-            shagrMembers.extend(face)
-            shagr.add(shagrMembers, 1.0, 'REPLACE')
-
-
     def createMaterial(self, name):
         material = bpy.data.materials.new(name)
         material.diffuse_color     = self.diffuse
@@ -541,6 +523,23 @@ class Trimesh(GeometryNode):
                 # Apply texture to uv face
                 tessfaceUV.image = material.texture_slots[0].texture.image
 
+        if nvb_glob.useSmoothGroups:
+            mesh.update()
+
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            if hasattr(bm.edges, "ensure_lookup_table"):
+                bm.edges.ensure_lookup_table()
+            # Mark edge as sharp if its faces belong to different smooth groups
+            for e in bm.edges:
+                f = e.link_faces
+                if (len(f) > 1) and (self.facelist.shdgr[f[0].index] != self.facelist.shdgr[f[1].index]):
+                    edgeIdx = e.index
+                    mesh.edges[edgeIdx].use_edge_sharp = True
+            bm.free()
+            del bm
+            mesh.show_edge_sharp = True
+
         mesh.update()
         return mesh
 
@@ -559,7 +558,6 @@ class Trimesh(GeometryNode):
         obj.nvb.selfillumcolor   = self.selfillumcolor
         obj.nvb.ambientcolor     = self.ambient
         obj.nvb.shininess        = self.shininess
-        self.createShadingGroups(obj)
 
 
     def addToScene(self, scene):
@@ -644,7 +642,7 @@ class Trimesh(GeometryNode):
         # Calculate smooth groups
         smoothGroups    = []
         numSmoothGroups = 0
-        if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.smoothgroups):
+        if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.useSmoothGroups):
             # One single smooth group
             smoothGroups    = [1] * len(mesh.polygons)
             numSmoothGroups = 1
@@ -657,8 +655,9 @@ class Trimesh(GeometryNode):
         # Add vertices
         asciiLines.append('  verts ' + str(len(mesh.vertices)))
         l_round = round
+        formatString = '    {: 8.5f} {: 8.5f} {: 8.5f}'
         for v in mesh.vertices:
-            s = '    {: 8.5f} {: 8.5f} {: 8.5f}'.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
+            s = formatString.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
             asciiLines.append(s)
 
         # Add faces and corresponding tverts and shading groups
@@ -683,33 +682,36 @@ class Trimesh(GeometryNode):
 
         if simple:
             asciiLines.append('  faces ' + str(len(faceList)))
+
+            vertDigits        = str(len(str(len(mesh.vertices))))
+            smoothGroupDigits = str(len(str(numSmoothGroups)))
+            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
+                               '{:' + smoothGroupDigits + 'd}  ' + \
+                               '0 0 0  ' + \
+                               '{:2d}'
             for f in faceList:
-                asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
-                                            str(f[1]) + ' '  + # Vertex index
-                                            str(f[2]) + '  ' + # Vertex index
-                                            str(f[3]) + '  ' + # Shading group
-                                            str(0)    + ' '  + # Texture vertex index
-                                            str(0)    + ' '  + # Texture vertex index
-                                            str(0)    + '  ' + # Texture vertex index
-                                            str(f[7]) )        # Misc
+                s = formatString.format(f[0], f[1], f[2], f[3], f[7])
+                asciiLines.append(s)
         else:
             asciiLines.append('  faces ' + str(len(faceList)))
+
+            vertDigits        = str(len(str(len(mesh.vertices))))
+            smoothGroupDigits = str(len(str(numSmoothGroups)))
+            uvDigits          = str(len(str(len(uvList))))
+            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
+                               '{:' + smoothGroupDigits + 'd}  ' + \
+                               '{:' + uvDigits + 'd} {:' + uvDigits + 'd} {:' + uvDigits + 'd}  ' + \
+                               '{:2d}'
             for f in faceList:
-                asciiLines.append('    ' +  str(f[0]) + ' '  + # Vertex index
-                                            str(f[1]) + ' '  + # Vertex index
-                                            str(f[2]) + '  ' + # Vertex index
-                                            str(f[3]) + '  ' + # Shading group
-                                            str(f[4]) + ' '  + # Texture vertex index
-                                            str(f[5]) + ' '  + # Texture vertex index
-                                            str(f[6]) + '  ' + # Texture vertex index
-                                            str(f[7]) )        # Misc
+                s = formatString.format(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7])
+                asciiLines.append(s)
 
             if (len(uvList) > 0):
                 asciiLines.append('  tverts ' + str(len(uvList)))
+                formatString = '    {: 6.3f} {: 6.3f}'
                 for uv in uvList:
-                    asciiLines.append('    ' +  str(round(uv[0], 3)) + ' ' +
-                                                str(round(uv[1], 3)) + ' ' +
-                                                '0' )
+                    s = formatString.format(round(uv[0], 3), round(uv[1], 3))
+                    asciiLines.append(s)
 
         bpy.data.meshes.remove(mesh)
 
