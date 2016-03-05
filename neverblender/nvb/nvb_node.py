@@ -523,10 +523,10 @@ class Trimesh(GeometryNode):
                 # Apply texture to uv face
                 tessfaceUV.image = material.texture_slots[0].texture.image
 
+        # Import smooth groups as sharp edges
         if nvb_glob.useSmoothGroups:
-            mesh.update()
-
             bm = bmesh.new()
+            mesh.update()
             bm.from_mesh(mesh)
             if hasattr(bm.edges, "ensure_lookup_table"):
                 bm.edges.ensure_lookup_table()
