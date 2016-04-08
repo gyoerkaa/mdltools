@@ -10,6 +10,7 @@ class Keys():
     def __init__(self):
         self.position       = []
         self.orientation    = []
+        self.scale          = []
         self.selfillumcolor = []
         self.alpha          = []
         # Lights/lamps
@@ -31,6 +32,7 @@ class Node():
         # Non-keyed
         self.position    = None
         self.orientation = None
+        self.scale       = None
         self.alpha       = None
         # Keyed
         self.keys = Keys()

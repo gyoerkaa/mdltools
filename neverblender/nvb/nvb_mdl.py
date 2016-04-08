@@ -39,6 +39,7 @@ class Mdl():
                   'patch':      nvb_node.Patch, \
                   'reference':  nvb_node.Reference, \
                   'trimesh':    nvb_node.Trimesh,  \
+                  'animesh':    nvb_node.Animesh,  \
                   'danglymesh': nvb_node.Danglymesh, \
                   'skin':       nvb_node.Skinmesh, \
                   'emitter':    nvb_node.Emitter, \
