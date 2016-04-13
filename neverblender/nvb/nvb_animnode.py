@@ -36,6 +36,11 @@ class Node():
         self.alpha       = None
         # Keyed
         self.keys = Keys()
+        # Animesh
+        self.sampleperiod = None
+        self.animtverts = []
+        self.animverts  = []
+        self.clip = (0.0, 0.0, 0.0, 0.0)
 
         self.isEmpty = True
 
@@ -234,10 +239,6 @@ class Node():
                 curveY.keyframe_points.insert(frame, currEul.y)
                 curveZ.keyframe_points.insert(frame, currEul.z)
         elif self.orientation != None:
-            '''
-            eul = nvb_utils.nwangle2euler(self.orientation)
-            nvb_utils.setObjectRotationAurora(targetObject, self.orientation)
-            '''
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
             curveY = action.fcurves.new(data_path='rotation_euler', index=1)
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
@@ -257,15 +258,30 @@ class Node():
                 curveY.keyframe_points.insert(frame, key[2])
                 curveZ.keyframe_points.insert(frame, key[3])
         elif (self.position != None):
-            '''
-            targetObject.location = self.position
-            '''
             curveX = action.fcurves.new(data_path='location', index=0)
             curveY = action.fcurves.new(data_path='location', index=1)
             curveZ = action.fcurves.new(data_path='location', index=2)
             curveX.keyframe_points.insert(0, self.position[0])
             curveY.keyframe_points.insert(0, self.position[1])
             curveZ.keyframe_points.insert(0, self.position[2])
+
+        # Set scale channels if there are location keys
+        if (self.keys.scale):
+            curveX = action.fcurves.new(data_path='scale', index=0)
+            curveY = action.fcurves.new(data_path='scale', index=1)
+            curveZ = action.fcurves.new(data_path='scale', index=2)
+            for key in self.keys.scale:
+                frame = nvb_utils.nwtime2frame(key[0])
+                curveX.keyframe_points.insert(frame, key[1])
+                curveY.keyframe_points.insert(frame, key[1])
+                curveZ.keyframe_points.insert(frame, key[1])
+        elif (self.scale != None):
+            curveX = action.fcurves.new(data_path='scale', index=0)
+            curveY = action.fcurves.new(data_path='scale', index=1)
+            curveZ = action.fcurves.new(data_path='scale', index=2)
+            curveX.keyframe_points.insert(0, self.scale)
+            curveY.keyframe_points.insert(0, self.scale)
+            curveZ.keyframe_points.insert(0, self.scale)
 
         # Set selfillumcolor channels if there are selfillumcolor keys
         if (self.keys.selfillumcolor):

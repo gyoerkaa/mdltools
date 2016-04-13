@@ -751,11 +751,8 @@ class Animesh(GeometryNode):
         Trimesh.__init__(self, name)
         self.nodetype = 'animesh'
 
-        self.meshtype     = nvb_def.Meshtype.ANIMESH
-        self.period       = 1.0
-        self.tightness    = 1.0
-        self.displacement = 1.0
-        self.constraints  = []
+        self.meshtype = nvb_def.Meshtype.ANIMESH
+
 
 
 class Danglymesh(Trimesh):
