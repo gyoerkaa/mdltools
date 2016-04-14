@@ -147,10 +147,19 @@ class Node():
                                     l_float(line[3]),
                                     l_float(line[4]) )
                 self.isEmpty = False
+            elif label == 'scale':
+                # scale: 1 key, scalekey: >= 1 key (probably)
+                self.scale = l_float(line[1]))
+                self.isEmpty = False
+
             elif label == 'alpha':
                 # alpha: 1 key, alphakey: >= 1 key (probably)
                 self.alpha = l_float(line[1])
                 self.isEmpty = False
+            elif label == 'sampleperiod':
+                # for animeshes
+                self.sampleperiod = l_float(line[1])
+                # self.isEmpty = False # might be empty still
 
             # Keyed animations
             elif label == 'positionkey':
