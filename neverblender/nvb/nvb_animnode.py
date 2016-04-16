@@ -156,10 +156,31 @@ class Node():
                 # alpha: 1 key, alphakey: >= 1 key (probably)
                 self.alpha = l_float(line[1])
                 self.isEmpty = False
+
+            # Animeshes
             elif label == 'sampleperiod':
-                # for animeshes
                 self.sampleperiod = l_float(line[1])
-                # self.isEmpty = False # might be empty still
+                # self.isEmpty = False # might still be empty
+            elif label == 'clipu':
+                self.clip[0] = l_float(line[1])
+                # self.isEmpty = False # might still be empty
+            elif label == 'clipv':
+                self.clip[1] = l_float(line[1])
+                # self.isEmpty = False # might still be empty
+            elif label == 'clipw':
+                self.clip[2] = l_float(line[1])
+                # self.isEmpty = False # might still be empty
+            elif label == 'cliph':
+                self.clip[3] = l_float(line[1])
+                # self.isEmpty = False # might still be empty
+            elif label == 'animverts':
+                numVals = l_int(line[1])
+                self.parseKeys3f(asciiBlock[idx+1:idx+numVals+1], self.animverts)
+                self.isEmpty = False
+            elif label == 'animtverts':
+                numVals = l_int(line[1])
+                self.parseKeys3f(asciiBlock[idx+1:idx+numVals+1], self.animtverts)
+                self.isEmpty = False
 
             # Keyed animations
             elif label == 'positionkey':
