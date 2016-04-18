@@ -4,6 +4,7 @@ import bpy
 
 from . import nvb_def
 from . import nvb_utils
+from . import nvb_parse
 
 
 class Keys():
@@ -40,7 +41,7 @@ class Node():
         self.sampleperiod = None
         self.animtverts = []
         self.animverts  = []
-        self.clip = (0.0, 0.0, 0.0, 0.0)
+        self.clip = [0.0, 0.0, 0.0, 0.0]
 
         self.isEmpty = True
 
@@ -54,44 +55,6 @@ class Node():
 
     def requiresUniqueData(self):
         return (self.keys.hasAlpha() or self.alpha != None)
-
-
-    def parseKeys3f(self, asciiBlock, keyList):
-        '''
-        Parse animation keys containing 3 floats (not counting the time value)
-        '''
-        l_float = float
-        for line in asciiBlock:
-            keyList.append((l_float(line[0]),
-                            l_float(line[1]),
-                            l_float(line[2]),
-                            l_float(line[3])) )
-        self.isEmpty = False
-
-
-    def parseKeys4f(self, asciiBlock, keyList):
-        '''
-        Parse animation keys containing 4 floats (not counting the time value)
-        '''
-        l_float = float
-        for line in asciiBlock:
-            keyList.append((l_float(line[0]),
-                            l_float(line[1]),
-                            l_float(line[2]),
-                            l_float(line[3]),
-                            l_float(line[4])) )
-        self.isEmpty = False
-
-
-    def parseKeys1f(self, asciiBlock, keyList):
-        '''
-        Parse animation keys containing 1 float (not counting the time value)
-        '''
-        l_float = float
-        for line in asciiBlock:
-            keyList.append((l_float(line[0]),
-                            l_float(line[1])) )
-        self.isEmpty = False
 
 
     def parseKeysIncompat(self, asciiBlock):
@@ -115,6 +78,7 @@ class Node():
 
     def loadAscii(self, asciiBlock):
         l_float    = float
+        l_int      = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiBlock):
             try:
@@ -124,7 +88,7 @@ class Node():
                 continue
             if   label == 'node':
                 self.nodeType = line[1].lower()
-                self.name     = nvb_utils.getName(line[2])
+                self.name = nvb_utils.getName(line[2])
             elif label == 'endnode':
                 return
             elif label == 'endlist':
@@ -149,9 +113,8 @@ class Node():
                 self.isEmpty = False
             elif label == 'scale':
                 # scale: 1 key, scalekey: >= 1 key (probably)
-                self.scale = l_float(line[1]))
+                self.scale = l_float(line[1])
                 self.isEmpty = False
-
             elif label == 'alpha':
                 # alpha: 1 key, alphakey: >= 1 key (probably)
                 self.alpha = l_float(line[1])
@@ -175,44 +138,55 @@ class Node():
                 # self.isEmpty = False # might still be empty
             elif label == 'animverts':
                 numVals = l_int(line[1])
-                self.parseKeys3f(asciiBlock[idx+1:idx+numVals+1], self.animverts)
+                nvb_parse.f3(asciiBlock[idx+1:idx+numVals+1], self.animverts)
                 self.isEmpty = False
             elif label == 'animtverts':
                 numVals = l_int(line[1])
-                self.parseKeys3f(asciiBlock[idx+1:idx+numVals+1], self.animtverts)
+                nvb_parse.f3(asciiBlock[idx+1:idx+numVals+1], self.animtverts)
                 self.isEmpty = False
 
             # Keyed animations
             elif label == 'positionkey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1], self.keys.position)
+                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1], self.keys.position)
+                self.isEmpty = False
             elif label == 'orientationkey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeys4f(asciiBlock[idx+1:idx+numKeys+1], self.keys.orientation)
+                nvb_parse.f5(asciiBlock[idx+1:idx+numKeys+1], self.keys.orientation)
+                self.isEmpty = False
+            elif label == 'scalekey':
+                numKeys = self.findEnd(asciiBlock[idx+1:])
+                nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1], self.keys.scale)
+                self.isEmpty = False
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible. We'll
                 # handle them later as plain text
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 if self.nodeType == 'emitter':
-                    self.parseKeysIncompat(asciiBlock[idx:idx+numKeys+1])
+                    nvb_parse.txt(asciiBlock[idx:idx+numKeys+1], self.keys.rawascii)
                 else:
-                    self.parseKeys1f(asciiBlock[idx+1:idx+numKeys+1], self.keys.alpha)
+                    nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1], self.keys.alpha)
+                self.isEmpty = False
             elif label == 'selfillumcolorkey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1], self.keys.selfillumcolor)
+                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1], self.keys.selfillumcolor)
+                self.isEmpty = False
             # Lights/lamps only
             elif label == 'colorkey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeys3f(asciiBlock[idx+1:idx+numKeys+1], self.keys.color)
+                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1], self.keys.color)
+                self.isEmpty = False
             elif label == 'radiuskey':
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeys1f(asciiBlock[idx+1:idx+numKeys+1], self.keys.radius)
+                nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1], self.keys.radius)
+                self.isEmpty = False
 
             # Some unknown text.
             # Probably keys for emitters = incompatible with blender. Import as text.
             elif not l_isNumber(line[0]):
                 numKeys = self.findEnd(asciiBlock[idx+1:])
-                self.parseKeysIncompat(asciiBlock[idx:idx+numKeys+1])
+                nvb_parse.txt(asciiBlock[idx:idx+numKeys+1], self.keys.rawascii)
+                self.isEmpty = False
 
 
     def addAnimToMaterial(self, targetMaterial, animName = ''):

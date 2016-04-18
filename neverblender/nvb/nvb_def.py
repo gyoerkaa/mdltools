@@ -102,9 +102,9 @@ class Meshtype():
     SKIN       = 'SKI'
     AABB       = 'AAB'
     EMITTER    = 'EMT'
-    ANIMESH    = 'ANI'
+    ANIMMESH   = 'ANI'
 
-    ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMESH}
+    ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMMESH}
 
 
 class Dummytype():

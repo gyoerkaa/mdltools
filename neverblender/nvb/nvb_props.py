@@ -129,7 +129,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                     (nvb_def.Meshtype.SKIN, 'Skinmesh', '2 desc', 2), \
                                                     (nvb_def.Meshtype.AABB, 'AABB Walkmesh', '3 desc', 3), \
                                                     (nvb_def.Meshtype.EMITTER, 'Emitter', '4 desc', 4), \
-                                                    (nvb_def.Meshtype.ANIMESH, 'Animesh', '5 desc', 5)],
+                                                    (nvb_def.Meshtype.ANIMMESH, 'Animesh', '5 desc', 5)],
                                         default = nvb_def.Meshtype.TRIMESH)
     smoothgroup    = bpy.props.EnumProperty(name = 'Smoothgroup',
                                             items = [   ('NONE', 'None',   'All faces belong to a single smoothgroup.',         0),

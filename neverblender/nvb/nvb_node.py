@@ -8,6 +8,7 @@ from . import nvb_glob
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_aabb
+from . import nvb_parse
 
 class FaceList():
     def __init__(self):
@@ -25,6 +26,73 @@ class FlareList():
         self.colorshifts = []
 
 
+class RootDummy():
+    """
+    Basic node from which every other is derived
+    """
+    def __init__(self, name = 'UNNAMED'):
+        self.nodetype = 'undefined'
+
+        self.name        = name
+        self.parentName  = nvb_def.null
+        self.position    = (0.0, 0.0, 0.0)
+        self.orientation = (0.0, 0.0, 0.0, 0.0)
+        self.scale       = 1.0
+        self.wirecolor   = (0.0, 0.0, 0.0)
+
+        # Name of the corresponding object in blender
+        # (used to resolve naming conflicts)
+        self.objref  = ''
+
+
+    def __eq__(self, other):
+        if isinstance(other, Base):
+            return self.name == other.name
+
+
+    def __ne__(self, other):
+        return not self.__eq__(self, other)
+
+
+    def __str__(self):
+        return 'node ' + self.nodetype + ' ' + self.name
+
+
+    def loadAscii(self, asciiNode):
+        l_float = float
+        l_isNumber = nvb_utils.isNumber
+
+        for line in asciiNode:
+            # Check for empty line (they should be rare enough)
+            try:
+                label = line[0].lower()
+            except IndexError:
+                continue
+            else:
+                if not l_isNumber(label):
+                    if   (label == 'node'):
+                        self.name = nvb_utils.getName(line[2])
+                    elif (label  == 'endnode'):
+                        return
+                    elif (label == 'parent'):
+                        self.parentName = nvb_utils.getName(line[1])
+                    elif (label == 'position'):
+                        self.position = (l_float(line[1]),
+                                         l_float(line[2]),
+                                         l_float(line[3]) )
+                    elif (label == 'orientation'):
+                        self.orientation = (l_float(line[1]),
+                                            l_float(line[2]),
+                                            l_float(line[3]),
+                                            l_float(line[4]) )
+                    elif (label == 'scale'):
+                        self.scale = l_float(line[1])
+                    elif (label == 'wirecolor'):
+                        self.wirecolor = (l_float(line[1]),
+                                          l_float(line[2]),
+                                          l_float(line[3]) )
+
+
 class GeometryNode():
     """
     Basic node from which every other is derived
@@ -37,7 +105,7 @@ class GeometryNode():
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
-        self.wirecolor   = (0.0, 0.0, 0.0) #Unused ?
+        self.wirecolor   = (0.0, 0.0, 0.0)
 
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
@@ -55,24 +123,6 @@ class GeometryNode():
 
     def __str__(self):
         return 'node ' + self.nodetype + ' ' + self.name
-
-
-    def parse1f(self, asciiBlock, floatList):
-        l_float = float
-        for line in asciiBlock:
-            floatList.append(l_float(line[0]))
-
-
-    def parse2f(self, asciiBlock, floatList):
-        l_float = float
-        for line in asciiBlock:
-            floatList.append( (l_float(line[0]), l_float(line[1])) )
-
-
-    def parse3f(self, asciiBlock, floatList):
-        l_float = float
-        for line in asciiBlock:
-            floatList.append( (l_float(line[0]), l_float(line[1]), l_float(line[2])) )
 
 
     def loadAscii(self, asciiNode):
@@ -429,13 +479,13 @@ class Trimesh(GeometryNode):
                     self.bitmap = line[1]
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
-                    self.parse3f(asciiNode[idx+1:idx+numVals+1], self.verts)
+                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.verts)
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
                     self.parseFaceList(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
-                    self.parse2f(asciiNode[idx+1:idx+numVals+1], self.tverts)
+                    nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
 
 
     def parseFaceList(self, asciiFaces):
@@ -746,13 +796,12 @@ class Trimesh(GeometryNode):
         self.addMeshDataToAscii(obj, asciiLines, simple)
 
 
-class Animesh(GeometryNode):
+class Animmesh(Trimesh):
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'animesh'
+        self.nodetype = 'animmesh'
 
-        self.meshtype = nvb_def.Meshtype.ANIMESH
-
+        self.meshtype = nvb_def.Meshtype.ANIMMESH
 
 
 class Danglymesh(Trimesh):
@@ -792,7 +841,7 @@ class Danglymesh(Trimesh):
                     self.displacement = l_float(line[1])
                 elif (label == 'constraints'):
                     numVals = l_int(line[1])
-                    self.parse1f(asciiNode[idx+1:idx+numVals+1], self.constraints)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.constraints)
 
 
     def addConstraintsToObject(self, obj):
@@ -1144,15 +1193,15 @@ class Light(GeometryNode):
                 elif (label == 'flaresizes'):
                     # List of floats
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.sizes)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numFlares+1], self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    self.parse1f(asciiNode[idx+1:idx+numFlares+1], self.flareList.positions)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numFlares+1], self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    self.parse3f(asciiNode[idx+1:idx+numFlares+1], self.flareList.colorshifts)
+                    nvb_parse.f3(asciiNode[idx+1:idx+numFlares+1], self.flareList.colorshifts)
 
         # Load flare texture names:
         for i in range(numFlares):
