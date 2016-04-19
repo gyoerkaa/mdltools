@@ -480,12 +480,14 @@ class Trimesh(GeometryNode):
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.verts)
+                    #self.verts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
                     self.parseFaceList(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
                     nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
+                    #self.tverts = [(float(l[0]), float(l[1])) for l in asciiNode[idx+1:idx+numVals+1]]
 
 
     def parseFaceList(self, asciiFaces):
@@ -842,7 +844,7 @@ class Danglymesh(Trimesh):
                 elif (label == 'constraints'):
                     numVals = l_int(line[1])
                     nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.constraints)
-
+                    #self.constraints = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
 
     def addConstraintsToObject(self, obj):
         '''
@@ -1192,16 +1194,19 @@ class Light(GeometryNode):
                     flareTextureNamesStart = idx+1
                 elif (label == 'flaresizes'):
                     # List of floats
-                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numFlares+1], self.flareList.sizes)
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.sizes)
+                    #self.flareList.sizes = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'flarepositions'):
                     # List of floats
-                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numFlares+1], self.flareList.positions)
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.positions)
+                    #self.flareList.positions = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
-                    numFlares = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f3(asciiNode[idx+1:idx+numFlares+1], self.flareList.colorshifts)
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.flareList.colorshifts)
+                    #self.flareList.colorshifts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
 
         # Load flare texture names:
         for i in range(numFlares):

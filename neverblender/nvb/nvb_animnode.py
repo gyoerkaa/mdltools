@@ -269,7 +269,7 @@ class Node():
             curveY.keyframe_points.insert(0, self.position[1])
             curveZ.keyframe_points.insert(0, self.position[2])
 
-        # Set scale channels if there are location keys
+        # Set scale channels if there are scale keys
         if (self.keys.scale):
             curveX = action.fcurves.new(data_path='scale', index=0)
             curveY = action.fcurves.new(data_path='scale', index=1)
@@ -311,7 +311,7 @@ class Node():
                 curveG.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[2])
                 curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[3])
 
-        # For lamps: Set radius channels. Impert as distance
+        # For lamps: Set radius channels. Import as distance
         if (self.keys.radius):
             curve = action.fcurves.new(data_path='distance', index=0)
             for key in self.keys.radius:
