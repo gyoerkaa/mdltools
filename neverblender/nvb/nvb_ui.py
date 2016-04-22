@@ -194,10 +194,6 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
     def poll(cls, context):
         return (context.object and context.object.type == 'EMPTY')
 
-    @classmethod
-    def poll(cls, context):
-        return (context.object and context.object.type == 'EMPTY')
-
     def draw(self, context):
         obj    = context.object
         layout = self.layout
