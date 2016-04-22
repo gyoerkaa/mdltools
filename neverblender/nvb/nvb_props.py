@@ -32,6 +32,26 @@ class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
            description = 'Frame at which the event should fire',
            default = 1)
 
+class NVB_PG_ANIM(bpy.types.PropertyGroup):
+    '''
+    Properties for a single animation in the animation list
+    '''
+
+    name  = bpy.props.StringProperty(
+            name = 'Name',
+            description = 'Name for this event',
+            default = 'Unnamed')
+    ttime = bpy.props.FloatProperty(name = 'Transitiontime', description = 'Used for for animations only. Set for each Scene individually', default = 1, min = 0)
+    root  = bpy.props.StringProperty(name = 'Root', description = 'Entry point of the animation.', default = '')
+    mute  = bpy.props.BoolProperty(name = 'Mute', description = 'Ignore animation during export', default = False)
+
+    marker     = bpy.props.StringProperty(name = 'Marker', description = 'Start marker in the timeline', default = '')
+    frameStart = bpy.props.IntProperty(name = 'Start', description = 'Animation Start', default = 0, min = 0)
+    frameEnd   = bpy.props.IntProperty(name = 'End', description = 'Animation End', default = 0, min = 0)
+
+    eventList    = bpy.props.CollectionProperty(type = NVB_PG_ANIMEVENT)
+    eventListIdx = bpy.props.IntProperty(name = "Index for event List", default = 0)
+
 
 class NVB_PG_FLARE(bpy.types.PropertyGroup):
     '''
@@ -80,6 +100,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                  (nvb_def.Dummytype.PATCH,     'Patch node',          'Used in spells. Unknown purpose. ',                          5) ],
                                         default = nvb_def.Dummytype.NONE)
     # For MDL Rootdummy
+    prefix         = bpy.props.StringProperty(name = 'Prefix', description = 'Prefix for importing a second model', default = '')
     supermodel     = bpy.props.StringProperty(name = 'Supermodel', description = 'Name of the model to inherit animations from', default = nvb_def.null)
     classification = bpy.props.EnumProperty(name  = 'Classification',
                                             items = [ (nvb_def.Classification.UNKNOWN,   'Unknown',   'Unknown classification',              0), \
@@ -107,6 +128,10 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                      ('CL02', 'DWK: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13) ],
                                             default = 'NONE')
     animscale   = bpy.props.FloatProperty(name = 'Animationscale', description = 'Animation scale for all animations.', default = 1.00, min = 0.0)
+    # For animations
+    animList    = bpy.props.CollectionProperty(type = NVB_PG_ANIM)
+    animListIdx = bpy.props.IntProperty(name = "Index for anim List", default = 0)
+
     isanimation = bpy.props.BoolProperty(name = 'Animation', description = 'Whether this dummy and it\'s children are in an animation scene.', default = False)
     # For MDL Rootdummies in animations
     animname     = bpy.props.StringProperty(name = 'Animation name', description = 'Name of the animation.', default = '')
@@ -115,6 +140,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     animroot     = bpy.props.StringProperty(name = 'Animation Root', description = 'Entry point of the animation.', default = '')
     eventList    = bpy.props.CollectionProperty(type = NVB_PG_ANIMEVENT)
     eventListIdx = bpy.props.IntProperty(name = "Index for event List", default = 0)
+
     # For reference emptys
     refmodel     = bpy.props.StringProperty(name = 'Reference Model', description = 'Name of another mdl file', default = 'fx_ref')
     reattachable = bpy.props.BoolProperty(name = 'Reattachable', default = False)

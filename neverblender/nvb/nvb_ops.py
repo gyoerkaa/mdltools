@@ -6,6 +6,84 @@ from . import nvb_utils
 from . import nvb_io
 
 
+class NVB_LIST_OT_Anim_New(bpy.types.Operator):
+    ''' Add a new item to the flare list '''
+
+    bl_idname = 'nvb.anim_new'
+    bl_label  = 'Create new animation'
+
+    def execute(self, context):
+        context.object.nvb.animList.add()
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
+    ''' Delete the selected item from the event list '''
+
+    bl_idname = 'nvb.anim_delete'
+    bl_label = 'Delete an animation'
+
+    @classmethod
+    def poll(self, context):
+        ''' Enable only if the list isn't empty '''
+        return len(context.object.nvb.animList) > 0
+
+    def execute(self, context):
+        animList = context.object.nvb.animList
+        animIdx  = context.object.nvb.animListIdx
+
+        animList.remove(animIdx)
+        if animIdx > 0:
+            animIdx = animIdx - 1
+
+        return{'FINISHED'}
+
+
+class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
+    ''' Move an item in the animation list '''
+
+    bl_idname = 'nvb.anim_move'
+    bl_label  = 'Move an animation in the list'
+
+    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
+
+    @classmethod
+    def poll(self, context):
+        return len(context.object.nvb.animList) > 0
+
+    def move_index(self, context):
+        animList = context.object.nvb.animList
+        animIdx  = context.object.nvb.animListIdx
+
+        listLength = len(animList) - 1 # (index starts at 0)
+        newIdx = 0
+        if self.direction == 'UP':
+            newIdx = animIdx - 1
+        elif self.direction == 'DOWN':
+            newIdx = animIdx + 1
+
+        newIdx   = max(0, min(newIdx, listLength))
+        context.object.nvb.animListIdx = newIdx
+
+    def execute(self, context):
+        animList = context.object.nvb.animList
+        animIdx  = context.object.nvb.animListIdx
+
+        if self.direction == 'DOWN':
+            neighbour = animIdx + 1
+            animList.move(animIdx, neighbour)
+            self.move_index(context)
+        elif self.direction == 'UP':
+            neighbour = animIdx - 1
+            animList.move(neighbour, animIdx)
+            self.move_index(context)
+        else:
+            return{'CANCELLED'}
+
+        return{'FINISHED'}
+
+
 class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
     ''' Add a new item to the flare list '''
 

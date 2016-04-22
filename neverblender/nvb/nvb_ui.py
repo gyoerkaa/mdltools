@@ -2,7 +2,8 @@ import bpy
 
 from . import nvb_def
 
-class NVB_UILIST_LIGHTFLARES(bpy.types.UIList):
+
+class NVB_UILIST_LENSFLARES(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
 
         custom_icon = 'NONE'
@@ -10,6 +11,23 @@ class NVB_UILIST_LIGHTFLARES(bpy.types.UIList):
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(item.texture, icon = custom_icon)
+
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon = custom_icon)
+
+
+class NVB_UILIST_ANIMS(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            #layout.label(item.name, icon = custom_icon)
+            layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
+            muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
+            layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
+
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -36,7 +54,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
     format. This is only available for EMPTY objects.
     It is located under the object data panel in the properties window
     '''
-    bl_idname = 'nvb.propertypanel.object'
+    bl_idname = 'nvb.propertypanel.empty'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -160,6 +178,88 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
             row.prop(obj.nvb, 'dummysubtype')
 
 
+class NVB_PANEL_ANIMLIST(bpy.types.Panel):
+    '''
+    Property panel for additional properties needed for the mdl file
+    format. This is only available for EMPTY objects.
+    It is located under the object data panel in the properties window
+    '''
+    bl_idname = 'nvb.propertypanel.anim'
+    bl_label = 'Aurora Animation Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        return (context.object and context.object.type == 'EMPTY')
+
+    @classmethod
+    def poll(cls, context):
+        return (context.object and context.object.type == 'EMPTY')
+
+    def draw(self, context):
+        obj    = context.object
+        layout = self.layout
+
+        # Display properties depending on type of the empty
+        if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
+            sep = layout.separator()
+            # Anim Helper. Display and add/remove events.
+            row = layout.row()
+            box = row.box()
+            row = box.row()
+            row.label(text = 'Animations')
+
+            row = box.row()
+            row.template_list('NVB_UILIST_ANIMS', 'The_List', obj.nvb, 'animList', obj.nvb, 'animListIdx')
+            col = row.column(align = True)
+            col.operator('nvb.anim_new', text = '', icon='ZOOMIN')
+            col.operator('nvb.anim_delete', text = '', icon='ZOOMOUT')
+            col.separator()
+            col.operator('nvb.anim_move', icon='TRIA_UP', text = '').direction = 'UP'
+            col.operator('nvb.anim_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+            if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
+                anim = obj.nvb.animList[obj.nvb.animListIdx]
+                row = box.row()
+                row.prop(anim, 'name')
+                row = box.row()
+                row.prop_search(anim, 'root', bpy.data, 'objects')
+                row = box.row()
+                row.prop(anim, 'ttime')
+                row = box.row()
+                split = row.split()
+                col = split.column(align=True)
+                col.prop(anim, 'frameStart')
+                col.prop(anim, 'frameEnd')
+                #col = split.column(align=True)
+                #col.prop(anim, 'marker', text = '')
+                #col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')
+
+                sep = box.separator()
+                # Event Helper. Display and add/remove events.
+                row = box.row()
+                sub = box.box()
+                row = sub.row()
+                row.label(text = 'Animation Events')
+
+                row = sub.row()
+                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', anim, 'eventList', anim, 'eventListIdx')
+                col = row.column(align = True)
+                col.operator('nvb.animevent_new', text = '', icon='ZOOMIN')
+                col.operator('nvb.animevent_delete', text = '', icon='ZOOMOUT')
+                col.separator()
+                col.operator('nvb.animevent_move', icon='TRIA_UP', text = '').direction = 'UP'
+                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+                if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
+                    animEvent = anim.eventList[anim.eventListIdx]
+                    row = sub.row()
+                    row.prop(animEvent, 'name')
+                    row.prop(animEvent, 'frame')
+
+                sep = box.separator()
+
+
 class NVB_PANEL_LIGHT(bpy.types.Panel):
     '''
     Property panel for additional light or lamp properties. This
@@ -217,7 +317,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         sub.prop(obj.nvb, 'flareradius', text='Radius')
         row = box.row()
         row.active = obj.nvb.lensflares
-        row.template_list('NVB_UILIST_LIGHTFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
+        row.template_list('NVB_UILIST_LENSFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
         col = row.column(align = True)
         col.operator('nvb.lightflare_new', icon='ZOOMIN', text = '')
         col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text = '')
