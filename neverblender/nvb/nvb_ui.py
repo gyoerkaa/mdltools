@@ -75,6 +75,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         # Display properties depending on type of the empty
         if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
             if not obj.nvb.isanimation:
+                '''
                 # Animation Helper. Creates a new scene, copies all objects to it
                 # and renames them
                 row = layout.row()
@@ -89,7 +90,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
 
                 sep = layout.separator()
-
+                '''
                 row = layout.row()
                 box = row.box()
                 split = box.split()
@@ -115,6 +116,8 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row = box.row()
                 row.operator('nvb.render_minimap', text = 'Render Minimap', icon='NONE')
             else:
+                pass
+                '''
                 # MDL Rootdummy in an animation scene
                 row = layout.row()
                 box = row.box()
@@ -152,7 +155,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                     row = box.row()
                     row.prop(item, 'name')
                     row.prop(item, 'frame')
-
+                '''
         elif (obj.nvb.dummytype == nvb_def.Dummytype.PWKROOT):
             pass
 
@@ -200,7 +203,6 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
 
         # Display properties depending on type of the empty
         if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
-            sep = layout.separator()
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             box = row.box()

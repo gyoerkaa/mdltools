@@ -169,8 +169,20 @@ class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
     bl_idname = 'nvb.animevent_new'
     bl_label  = 'Add a new event to an animation'
 
+    @classmethod
+    def poll(self, context):
+        ''' Enable only if there is an animation  '''
+        obj      = context.object
+        animList = obj.nvb.animList
+
+        return len(animList) > 0
+
     def execute(self, context):
-        context.object.nvb.eventList.add()
+        obj       = context.object
+        anim      = obj.nvb.animList[obj.nvb.animListIdx]
+
+        eventList = anim.eventList
+        eventList.add()
 
         return{'FINISHED'}
 
@@ -184,11 +196,20 @@ class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         ''' Enable only if the list isn't empty '''
-        return len(context.object.nvb.eventList) > 0
+        obj      = context.object
+        animList = obj.nvb.animList
+        if len(animList) > 0:
+            anim      = animList[obj.nvb.animListIdx]
+            eventList = anim.eventList
+            return len(eventList) > 0
+
+        return False
 
     def execute(self, context):
-        eventList = context.object.nvb.eventList
-        eventIdx  = context.object.nvb.eventListIdx
+        obj  = context.object
+        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        eventList = anim.eventList
+        eventIdx  = anim.eventListIdx
 
         eventList.remove(eventIdx)
         if eventIdx > 0:
@@ -207,11 +228,21 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        return len(context.object.nvb.eventList) > 0
+        ''' Enable only if the list isn't empty '''
+        obj      = context.object
+        animList = obj.nvb.animList
+        if len(animList) > 0:
+            anim      = animList[obj.nvb.animListIdx]
+            eventList = anim.eventList
+            return len(eventList) > 0
+
+        return False
 
     def move_index(self, context):
-        eventList = context.object.nvb.eventList
-        eventIdx  = context.object.nvb.eventListIdx
+        obj  = context.object
+        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        eventList = anim.eventList
+        eventIdx  = anim.eventListIdx
 
         listLength = len(eventList) - 1 # (index starts at 0)
         newIdx = 0
@@ -221,11 +252,13 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
             newIdx = eventIdx + 1
 
         newIdx   = max(0, min(newIdx, listLength))
-        context.object.nvb.eventListIdx = newIdx
+        anim.eventListIdx = newIdx
 
     def execute(self, context):
-        eventList = context.object.nvb.eventList
-        eventIdx  = context.object.nvb.eventListIdx
+        obj  = context.object
+        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        eventList = anim.eventList
+        eventIdx  = anim.eventListIdx
 
         if self.direction == 'DOWN':
             neighbour = eventIdx + 1
@@ -384,7 +417,7 @@ class LoadWokMaterials(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
+class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
     bl_idname = "nvb.render_minimap"
     bl_label  = "Render Minimap"
 
@@ -412,7 +445,7 @@ class NVBOBJECT_OT_RenderMinimap(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
+class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
     bl_idname = "nvb.skingroup_add"
     bl_label  = "Add new Skingroup"
 
@@ -436,7 +469,7 @@ class NVBOBJECT_OT_SkingroupAdd(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
+class NVB_OBJECT_OT_AnimsceneRename(bpy.types.Operator):
     bl_idname = "nvb.animscene_rename"
     bl_label  = "Rename animation scene"
 
@@ -475,7 +508,7 @@ class NVBOBJECT_OT_AnimsceneRename(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVBOBJECT_OT_AnimsceneAdd(bpy.types.Operator):
+class NVB_OBJECT_OT_AnimsceneAdd(bpy.types.Operator):
     bl_idname = "nvb.animscene_add"
     bl_label  = "Add animation scene"
 
