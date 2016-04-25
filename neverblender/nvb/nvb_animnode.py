@@ -218,6 +218,9 @@ class Node():
         targetMaterial.animation_data_create()
         targetMaterial.animation_data.action = action
 
+    def addAnimationData(self, obj, animName):
+        pass
+
 
     def addAnimToObject(self, targetObject, animName = ''):
         '''

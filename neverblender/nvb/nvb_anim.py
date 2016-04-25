@@ -41,7 +41,7 @@ class Animation():
         self.eventList.append(event)
 
 
-    def addAnimToScene(self, scene, rootDummy):
+    def addAnimation(self, rootDummy):
         # Check for valid rootdummy
         if not rootDummy:
             return
@@ -71,7 +71,10 @@ class Animation():
 
 
     def addAnimationData(self, obj, frameStart, parent = None):
-        pass
+        animNode.addAnimationData(obj, self.name)
+
+        for child in obj.children:
+            self.addAnimationData(child, frameStart, obj)
 
 
     def copyObjectToScene(self, scene, theOriginal, parent):
