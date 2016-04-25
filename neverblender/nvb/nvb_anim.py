@@ -42,23 +42,36 @@ class Animation():
 
 
     def addAnimToScene(self, scene, rootDummy):
-        # Create a new scene
-        # Check if there is already a scene with this animation name
-        animScene = None
-        if (self.name not in bpy.data.scenes.keys()):
-            animScene = bpy.data.scenes.new(self.name)
-        else:
-            animScene = bpy.data.scenes[self.name]
-        animScene.render.fps    = nvb_def.fps
-        animScene.frame_start   = 0
-        animScene.frame_end     = nvb_utils.nwtime2frame(self.length)
-        animScene.frame_current = 0
-
+        # Check for valid rootdummy
         if not rootDummy:
-            return # Nope
+            return
 
-        # Copy objects to the new scene:
-        self.copyObjectToScene(animScene, rootDummy, None)
+        # Check if an animation with this name is already present
+        lastAnimEnd = 0
+        for anim in rootDummy.nvb.animList:
+            lastAnimEnd = anim.frameEnd
+            if anim.name == self.name:
+                return
+
+        # Add new animation to list
+        newAnim = rootDummy.nvb.animList.add()
+        newAnim.name  = self.name
+        newAnim.ttime = self.ftranstime
+        newAnim.root  = self.root
+        newAnim.frameStart = lastAnimEnd
+        newAnim.frameEnd   = newAnim.frameStart + nvb_utils.nwtime2frame(self.length)
+
+        # Add events for new animation
+        for impEvent in self.eventList:
+            newEvent = newAnim.eventList.add()
+            newEvent.name  = impEvent[1]
+            newEvent.frame = newAnim.frameStart + nvb_utils.nwtime2frame(impEvent[0])
+
+        self.addAnimationData(rootDummy, newAnim.frameStart)
+
+
+    def addAnimationData(self, obj, frameStart, parent = None):
+        pass
 
 
     def copyObjectToScene(self, scene, theOriginal, parent):
