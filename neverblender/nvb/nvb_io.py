@@ -50,8 +50,6 @@ def loadMdl(operator,
     nvb_glob.textureSingle = textureSingle
     nvb_glob.textureSearch = textureSearch
 
-    #parser = nvb_parser.Parser()
-    #parser.load(filepath)
     scene = bpy.context.scene
 
     fp = os.fsencode(filepath)
@@ -59,8 +57,8 @@ def loadMdl(operator,
 
     print('Importing: ' + filepath)
     mdl = nvb_mdl.Mdl()
-    mdl.loadAscii(asciiLines)
-    mdl.importToScene(scene, imports)
+    mdl.parse(asciiLines)
+    mdl.load(scene, imports)
 
     # Try to load walkmeshes ... pwk (placeable) and dwk (door)
     # If the files are and the option is activated we'll import them
@@ -73,8 +71,8 @@ def loadMdl(operator,
             try:
                 asciiLines = [line.strip().split() for line in open(fp, 'r')]
                 wkm = nvb_mdl.Xwk(wkmType)
-                wkm.loadAscii(asciiLines)
-                wkm.importToScene(scene, imports)
+                wkm.parse(asciiLines)
+                wkm.load(scene, imports)
             except IOError:
                 print("Neverblender: No walkmesh found at " + wkmFilepath)
 

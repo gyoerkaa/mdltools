@@ -25,7 +25,7 @@ class Mdl():
         self.validExports   = [] # needed for skinmeshes and animations
 
 
-    def loadAsciiNode(self, asciiBlock):
+    def parseNode(self, asciiBlock):
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Node')
 
@@ -54,7 +54,7 @@ class Mdl():
         self.addNode(node)
 
 
-    def loadAsciiAnimation(self, asciiBlock):
+    def parseAnimation(self, asciiBlock):
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Animation')
 
@@ -89,7 +89,7 @@ class Mdl():
                 self.animDict[anim.name] = anim
 
 
-    def importToScene(self, scene, imports):
+    def load(self, scene, imports):
         rootDummy = None
         objIdx = 0
         if ('GEOMETRY' in imports) and self.nodeDict:
@@ -139,10 +139,10 @@ class Mdl():
                     return
 
             for (animName, anim) in self.animDict.items():
-                anim.addAnimToScene(scene, rootDummy)
+                anim.addAnimation(rootDummy)
 
 
-    def loadAscii(self, asciiLines):
+    def parse(self, asciiLines):
         State = enum.Enum('State', 'START HEADER GEOMETRY GEOMETRYNODE ANIMATION')
         cs    = State.START
         blockStart = -1
@@ -198,7 +198,7 @@ class Mdl():
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
                     #node = self.parseGeometryNode(lines[blockStart:idx+1])
-                    self.loadAsciiNode(asciiLines[blockStart:idx+1])
+                    self.parseNode(asciiLines[blockStart:idx+1])
                     blockStart = -1
                     cs = State.GEOMETRY
                 elif (label == 'node'):
@@ -212,7 +212,7 @@ class Mdl():
                         raise nvb_def.MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
                 if (label == 'doneanim'):
                     if (blockStart > 0):
-                        self.loadAsciiAnimation(asciiLines[blockStart:idx+1])
+                        self.parseAnimation(asciiLines[blockStart:idx+1])
                         blockStart = -1
                     else:
                         raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
@@ -304,11 +304,11 @@ class Xwk(Mdl):
 
 
 
-    def loadAsciiAnimation(self, asciiBlock):
+    def parseAnimation(self, asciiBlock):
         pass # No animations in walkmeshes
 
 
-    def loadAscii(self, asciiLines):
+    def parse(self, asciiLines):
         # Parse the walkmesh
         blockStart = -1
         for idx, line in enumerate(asciiLines):
@@ -321,7 +321,7 @@ class Xwk(Mdl):
                 blockStart = idx
             elif (label == 'endnode'):
                 if (blockStart > 0):
-                    self.loadAsciiNode(asciiLines[blockStart:idx+1])
+                    self.parseNode(asciiLines[blockStart:idx+1])
                     blockStart = -1
                 else:
                     # "endnode" before "node"
@@ -339,7 +339,7 @@ class Xwk(Mdl):
             self.geometryToAscii(child, asciiLines, True)
 
 
-    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
         if self.nodeDict:
             # Walkmeshes have no rootdummys. We need to create one ourselves
 
@@ -407,5 +407,5 @@ class Wok(Xwk):
         self.geometryToAscii(rootDummy, asciiLines, True)
 
 
-    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
         pass
