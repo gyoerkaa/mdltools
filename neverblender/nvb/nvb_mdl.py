@@ -251,7 +251,12 @@ class Mdl():
             self.geometryToAscii(child, asciiLines, simple)
 
 
-    def animationsToAscii(self, asciiLines):
+    def animationsToAscii(self, rootDummy, asciiLines):
+        for anim in rootDummy.nvb.animList:
+            pass
+            #anim = nvb_anim.Animation()
+            #anim.toAscii(scene, animRootDummy, asciiLines, self.name)
+        '''
         for scene in bpy.data.scenes:
             animRootDummy = nvb_utils.getAnimationRootdummy(scene)
             if animRootDummy and self.validExports:
@@ -259,7 +264,7 @@ class Mdl():
                 # if animRootDummy.name.rfind(self.validExports[0]):
                 anim = nvb_anim.Animation()
                 anim.toAscii(scene, animRootDummy, asciiLines, self.name)
-
+        '''
 
 
     def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
@@ -291,7 +296,7 @@ class Mdl():
         if 'ANIMATION' in exports:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
-            self.animationsToAscii(asciiLines)
+            self.animationsToAscii(rootDummy, asciiLines)
         # The End
         asciiLines.append('donemodel ' + self.name)
         asciiLines.append('')
