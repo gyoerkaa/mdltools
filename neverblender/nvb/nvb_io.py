@@ -61,7 +61,6 @@ def loadMdl(operator,
     mdl.load(scene, imports)
 
     # Try to load walkmeshes ... pwk (placeable) and dwk (door)
-    # If the files are and the option is activated we'll import them
     if 'WALKMESH' in imports:
         filetypes = ['pwk', 'dwk']
         (wkmPath, wkmFilename) = os.path.split(filepath)
@@ -102,7 +101,7 @@ def saveMdl(operator,
         print('Exporting: ' + mdlRoot.name)
         mdl = nvb_mdl.Mdl()
         asciiLines = []
-        mdl.generateAscii(asciiLines, mdlRoot)
+        mdl.generate(asciiLines, mdlRoot)
         with open(os.fsencode(filepath), 'w') as f:
             f.write('\n'.join(asciiLines))
 
@@ -136,7 +135,7 @@ def saveMdl(operator,
 
             if wkmRoot:
                 asciiLines = []
-                wkm.generateAscii(asciiLines, wkmRoot)
+                wkm.generate(asciiLines, wkmRoot)
 
                 (wkmPath, wkmFilename) = os.path.split(filepath)
                 wkmFilepath = os.path.join(wkmPath, os.path.splitext(wkmFilename)[0] + '.' + wkm.walkmeshType)

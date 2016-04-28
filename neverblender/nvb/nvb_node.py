@@ -58,7 +58,7 @@ class RootDummy():
         return 'node ' + self.nodetype + ' ' + self.name
 
 
-    def loadAscii(self, asciiNode):
+    def parse(self, asciiNode):
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -125,7 +125,7 @@ class GeometryNode():
         return 'node ' + self.nodetype + ' ' + self.name
 
 
-    def loadAscii(self, asciiNode):
+    def parse(self, asciiNode):
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -160,7 +160,7 @@ class GeometryNode():
                                       l_float(line[3]) )
 
 
-    def setObjectData(self, obj):
+    def loadData(self, obj):
         self.objref = obj.name # used to resolve naming conflicts
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
         obj.scale         = (self.scale, self.scale, self.scale)
@@ -168,9 +168,9 @@ class GeometryNode():
         obj.nvb.wirecolor = self.wirecolor
 
 
-    def addToScene(self, scene):
+    def load(self, scene):
         obj = bpy.data.objects.new(self.name, None)
-        self.setObjectData(obj)
+        self.loadData(obj)
         scene.objects.link(obj)
         return obj
 
@@ -245,12 +245,12 @@ class Dummy(GeometryNode):
         self.dummytype = nvb_def.Dummytype.NONE
 
 
-    def loadAscii(self, asciiNode):
-        GeometryNode.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        GeometryNode.parse(self, asciiNode)
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
 
         obj.nvb.dummytype = self.dummytype
 
@@ -324,8 +324,8 @@ class Patch(GeometryNode):
         self.dummytype = nvb_def.Dummytype.PATCH
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
 
         obj.nvb.dummytype = self.dummytype
 
@@ -343,8 +343,8 @@ class Reference(GeometryNode):
         self.reattachable = 0
 
 
-    def loadAscii(self, asciiNode):
-        GeometryNode.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        GeometryNode.parse(self, asciiNode)
         l_isNumber = nvb_utils.isNumber
 
         for line in asciiNode:
@@ -361,8 +361,8 @@ class Reference(GeometryNode):
                     self.reattachable = int(line[1])
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
         obj.nvb.dummytype    = self.dummytype
         obj.nvb.refmodel     = self.refmodel
         obj.nvb.reattachable = (self.reattachable == 1)
@@ -403,7 +403,7 @@ class Trimesh(GeometryNode):
         self.tverts           = [] # list of texture vertices
 
 
-    def createImage(self, imgName, imgPath):
+    def loadImage(self, imgName, imgPath):
         image = bpy_extras.image_utils.load_image(imgName + '.tga',
                                                   imgPath,
                                                   recursive=nvb_glob.textureSearch,
@@ -417,8 +417,8 @@ class Trimesh(GeometryNode):
         return image
 
 
-    def loadAscii(self, asciiNode):
-        GeometryNode.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        GeometryNode.parse(self, asciiNode)
 
         l_int   = int
         l_float = float
@@ -499,7 +499,7 @@ class Trimesh(GeometryNode):
             self.facelist.matId.append(l_int(line[7]))
 
 
-    def createMaterial(self, name):
+    def loadMaterial(self, name):
         material = bpy.data.materials.new(name)
         material.diffuse_color     = self.diffuse
         material.diffuse_intensity = 1.0
@@ -524,7 +524,7 @@ class Trimesh(GeometryNode):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
             else:
-                image = self.createImage(imgName, nvb_glob.texturePath)
+                image = self.loadImage(imgName, nvb_glob.texturePath)
                 if image is not None:
                     textureSlot.texture.image = image
 
@@ -533,7 +533,7 @@ class Trimesh(GeometryNode):
         return material
 
 
-    def createMesh(self, name):
+    def loadMesh(self, name):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
@@ -542,7 +542,7 @@ class Trimesh(GeometryNode):
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(name)
+        material = self.loadMaterial(name)
         mesh.materials.append(material)
 
         # Create UV map
@@ -596,8 +596,8 @@ class Trimesh(GeometryNode):
         return mesh
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
 
         obj.nvb.meshtype         = self.meshtype
         obj.nvb.tilefade         = self.tilefade
@@ -612,14 +612,14 @@ class Trimesh(GeometryNode):
         obj.nvb.shininess        = self.shininess
 
 
-    def addToScene(self, scene):
+    def load(self, scene):
         if nvb_glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Dummy.convert(self, scene)
-        mesh = self.createMesh(self.name)
+        mesh = self.loadMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
-        self.setObjectData(obj)
+        self.loadData(obj)
         scene.objects.link(obj)
         return obj
 
@@ -821,8 +821,8 @@ class Danglymesh(Trimesh):
         self.constraints  = []
 
 
-    def loadAscii(self, asciiNode):
-        Trimesh.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        Trimesh.parse(self, asciiNode)
 
         l_int   = int
         l_float = float
@@ -846,7 +846,7 @@ class Danglymesh(Trimesh):
                     nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.constraints)
                     #self.constraints = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
 
-    def addConstraintsToObject(self, obj):
+    def loadConstraints(self, obj):
         '''
         Creates a vertex group for the object to contain the vertex
         weights for the danglymesh. The weights are called "constraints"
@@ -859,13 +859,13 @@ class Danglymesh(Trimesh):
         obj.nvb.constraints = vgroup.name
 
 
-    def setObjectData(self, obj):
-        Trimesh.setObjectData(self, obj)
+    def loadData(self, obj):
+        Trimesh.loadData(self, obj)
 
         obj.nvb.period       = self.period
         obj.nvb.tightness    = self.tightness
         obj.nvb.displacement = self.displacement
-        self.addConstraintsToObject(obj)
+        self.loadConstraints(obj)
 
 
     def addConstraintsToAscii(self, obj, asciiLines):
@@ -904,8 +904,8 @@ class Skinmesh(Trimesh):
         self.weights = []
 
 
-    def loadAscii(self, asciiNode):
-        Trimesh.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        Trimesh.parse(self, asciiNode)
         l_int      = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
@@ -937,7 +937,7 @@ class Skinmesh(Trimesh):
             self.weights.append(memberships)
 
 
-    def addSkinGroupsToObject(self, obj):
+    def loadSkinGroups(self, obj):
         skinGroupDict = {}
         for vertIdx, vertMemberships in enumerate(self.weights):
             for membership in vertMemberships:
@@ -949,10 +949,10 @@ class Skinmesh(Trimesh):
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
 
-    def setObjectData(self, obj):
-        Trimesh.setObjectData(self, obj)
+    def loadData(self, obj):
+        Trimesh.loadData(self, obj)
 
-        self.addSkinGroupsToObject(obj)
+        self.loadSkinGroups(obj)
 
 
     def addWeightsToAscii(self, obj, asciiLines, exportObjects):
@@ -1006,7 +1006,7 @@ class Emitter(GeometryNode):
         self.rawascii = ''
 
 
-    def loadAscii(self, asciiNode):
+    def parse(self, asciiNode):
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -1050,7 +1050,7 @@ class Emitter(GeometryNode):
                     self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
 
 
-    def createMesh(self, objName):
+    def loadMesh(self, objName):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
@@ -1074,23 +1074,23 @@ class Emitter(GeometryNode):
         obj.nvb.rawascii = txt.name
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
 
         obj.nvb.meshtype = self.meshtype
         self.addRawAscii(obj)
 
 
-    def addToScene(self, scene):
+    def load(self, scene):
         if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return GeometryNode.convert(self, scene)
 
-        mesh = self.createMesh(self.name)
+        mesh = self.loadMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
 
-        self.setObjectData(obj)
+        self.loadData(obj)
         scene.objects.link(obj)
         return obj
 
@@ -1142,8 +1142,8 @@ class Light(GeometryNode):
         self.flareList     = FlareList()
 
 
-    def loadAscii(self, asciiNode):
-        GeometryNode.loadAscii(self, asciiNode)
+    def parse(self, asciiNode):
+        GeometryNode.parse(self, asciiNode)
 
         flareTextureNamesStart = 0
         numFlares              = 0
@@ -1214,7 +1214,7 @@ class Light(GeometryNode):
             self.flareList.textures.append(texName)
 
 
-    def createLamp(self, name):
+    def loadLamp(self, name):
         lamp = bpy.data.lamps.new(name, 'POINT')
 
         # TODO: Check for negative color values and do something (works fine in blender though)
@@ -1226,8 +1226,8 @@ class Light(GeometryNode):
         return lamp
 
 
-    def setObjectData(self, obj):
-        GeometryNode.setObjectData(self, obj)
+    def loadData(self, obj):
+        GeometryNode.loadData(self, obj)
 
         switch = {'ml1': 'MAINLIGHT1', \
                   'ml2': 'MAINLIGHT2', \
@@ -1255,14 +1255,14 @@ class Light(GeometryNode):
         obj.nvb.flareradius = self.flareradius
 
 
-    def addToScene(self, scene):
+    def load(self, scene):
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return GeometryNode.convert(self, scene)
-        lamp = self.createLamp(self.name)
+        lamp = self.loadLamp(self.name)
         obj  = bpy.data.objects.new(self.name, lamp)
-        self.setObjectData(obj)
+        self.loadData(obj)
         scene.objects.link(obj)
         return obj
 
@@ -1421,7 +1421,7 @@ class Aabb(Trimesh):
         self.addAABBToAscii(obj, asciiLines)
 
 
-    def createMesh(self, name):
+    def loadMesh(self, name):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
@@ -1452,13 +1452,13 @@ class Aabb(Trimesh):
         return mesh
 
 
-    def addToScene(self, scene):
+    def load(self, scene):
         if nvb_glob.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children
             return
-        mesh = self.createMesh(self.name)
+        mesh = self.loadMesh(self.name)
         obj = bpy.data.objects.new(self.name, mesh)
-        self.setObjectData(obj)
+        self.loadData(obj)
         scene.objects.link(obj)
         return obj

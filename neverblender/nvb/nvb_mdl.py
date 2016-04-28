@@ -50,7 +50,7 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.loadAscii(asciiBlock)
+        node.parse(asciiBlock)
         self.addNode(node)
 
 
@@ -97,10 +97,10 @@ class Mdl():
 
             # The first node should be the rootdummy.
             # If the first node has a parent or isn't a dummy we don't
-            # even try to import the mdl
+            # even try to import the rest
             (nodeKey, node) = next(it)
             if (type(node) == nvb_node.Dummy) and (nvb_utils.isNull(node.parentName)):
-                obj                = node.addToScene(scene)
+                obj = node.load(scene)
                 obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
                 obj.nvb.supermodel     = self.supermodel
                 obj.nvb.classification = self.classification
@@ -112,7 +112,7 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('First node has to be a dummy without a parent.')
 
             for (nodeKey, node) in it:
-                obj = node.addToScene(scene)
+                obj = node.load(scene)
                 obj.nvb.imporder = objIdx
                 objIdx += 1
                 if (nvb_utils.isNull(node.parentName)):
@@ -218,7 +218,7 @@ class Mdl():
                         raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
 
 
-    def geometryToAscii(self, bObject, asciiLines, simple = False):
+    def generateGeomBlock(self, bObject, asciiLines, simple = False):
 
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy, \
@@ -240,7 +240,7 @@ class Mdl():
 
         '''
         for child in bObject.children:
-            self.geometryToAscii(child, asciiLines, simple)
+            self.generateGeomBlock(child, asciiLines, simple)
         '''
         childList = []
         for child in bObject.children:
@@ -248,10 +248,10 @@ class Mdl():
         childList.sort(key=lambda tup: tup[0])
 
         for (imporder, child) in childList:
-            self.geometryToAscii(child, asciiLines, simple)
+            self.generateGeomBlock(child, asciiLines, simple)
 
 
-    def animationsToAscii(self, rootDummy, asciiLines):
+    def generateAnimBlock(self, rootDummy, asciiLines):
         for anim in rootDummy.nvb.animList:
             pass
             #anim = nvb_anim.Animation()
@@ -267,7 +267,7 @@ class Mdl():
         '''
 
 
-    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
         self.name           = rootDummy.name
         self.classification = rootDummy.nvb.classification
         self.supermodel     = rootDummy.nvb.supermodel
@@ -290,13 +290,13 @@ class Mdl():
         asciiLines.append('setanimationscale ' + str(round(self.animscale, 2)))
         # Geometry
         asciiLines.append('beginmodelgeom ' + self.name)
-        self.geometryToAscii(rootDummy, asciiLines, False)
+        self.generateGeomBlock(rootDummy, asciiLines, False)
         asciiLines.append('endmodelgeom ' + self.name)
         # Animations
         if 'ANIMATION' in exports:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
-            self.animationsToAscii(rootDummy, asciiLines)
+            self.generateAnimBlock(rootDummy, asciiLines)
         # The End
         asciiLines.append('donemodel ' + self.name)
         asciiLines.append('')
@@ -333,7 +333,7 @@ class Xwk(Mdl):
                     raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
 
 
-    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
         self.name = rootDummy.name
 
         # Header
@@ -341,7 +341,7 @@ class Xwk(Mdl):
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
         # Geometry
         for child in rootDummy.children:
-            self.geometryToAscii(child, asciiLines, True)
+            self.generateGeomBlock(child, asciiLines, True)
 
 
     def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
@@ -369,10 +369,10 @@ class Xwk(Mdl):
             else:
                 node.dummytype = nvb_def.Dummytype.PWKROOT
             node.name = self.name
-            rootdummy = node.addToScene(scene)
+            rootdummy = node.load(scene)
 
             for (nodeKey, node) in self.nodeDict.items():
-                obj = node.addToScene(scene)
+                obj = node.load(scene)
                 # Check if such an object exists
                 if node.parentName in bpy.data.objects:
                     obj.parent                = bpy.data.objects[node.parentName]
@@ -390,7 +390,7 @@ class Wok(Xwk):
         self.classification = nvb_def.Classification.UNKNOWN
 
 
-    def geometryToAscii(self, bObject, asciiLines, simple):
+    def generateGeomBlock(self, bObject, asciiLines, simple):
 
         nodeType = nvb_utils.getNodeType(bObject)
         if nodeType == 'aabb':
@@ -399,17 +399,17 @@ class Wok(Xwk):
             return # We'll take the first aabb object
         else:
             for child in bObject.children:
-                self.geometryToAscii(child, asciiLines, simple)
+                self.generateGeomBlock(child, asciiLines, simple)
 
 
-    def generateAscii(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
         self.name = rootDummy.name
 
         # Header
         currentTime   = datetime.now()
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
         # Geometry = AABB
-        self.geometryToAscii(rootDummy, asciiLines, True)
+        self.generateGeomBlock(rootDummy, asciiLines, True)
 
 
     def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
