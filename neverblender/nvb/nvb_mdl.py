@@ -252,10 +252,12 @@ class Mdl():
 
 
     def generateAnimBlock(self, rootDummy, asciiLines):
-        for anim in rootDummy.nvb.animList:
-            pass
-            #anim = nvb_anim.Animation()
-            #anim.toAscii(scene, animRootDummy, asciiLines, self.name)
+        for animItem in rootDummy.nvb.animList:
+            anim = nvb_anim.Animation()
+            anim.save(asciiLines,
+                      rootDummy,
+                      bpy.context.scene,
+                      animItem)
         '''
         for scene in bpy.data.scenes:
             animRootDummy = nvb_utils.getAnimationRootdummy(scene)

@@ -17,6 +17,8 @@ class Animation():
         self.eventList = []
         self.nodeList  = collections.OrderedDict()
 
+        self.frameStart = 0
+        self.frameEnd   = 0
 
     def getAnimNode(self, nodeName, parentName = nvb_def.null):
         key = parentName + nodeName
@@ -247,6 +249,33 @@ class Animation():
 
         for (imporder, child) in childList:
             self.animNodeToAscii(child, asciiLines)
+
+    def saveNode(self, asciiLines, scene):
+        pass
+
+    def save(self, asciiLines, scene, rootDummy, animItem):
+        self.name      = animItem.name
+        self.transtime = animItem.ttime
+        self.root      = animItem.root
+
+        self.frameStart = animItem.frameStart
+        self.frameEnd   = animItem.frameEnd
+
+        self.length = nvb_utils.frame2nwtime(self.frameStart-self.frameEnd, animScene.render.fps)
+
+        asciiLines.append('newanim ' + self.name + ' ' + rootDummy.name)
+        asciiLines.append('  length ' + str(round(self.length, 5)))
+        asciiLines.append('  transtime ' + str(round(self.transtime, 3)))
+        asciiLines.append('  animroot ' + self.root)
+
+        for event in animItem.eventList:
+            eventTime = nvb_utils.frame2nwtime(event.frame, animScene.render.fps)
+            asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' + event.name)
+
+        self.saveNode(rootDummy, asciiLines, scene)
+        asciiLines.append('doneanim ' + self.name + ' ' + rootDummy.name)
+        asciiLines.append('')
+
 
     def toAscii(self, animScene, animRootDummy, asciiLines, mdlName = ''):
         self.name      = animRootDummy.nvb.animname
