@@ -250,8 +250,19 @@ class Animation():
         for (imporder, child) in childList:
             self.animNodeToAscii(child, asciiLines)
 
-    def saveNode(self, asciiLines, scene):
-        pass
+
+    def saveNode(self, asciiLines, bObject, scene):
+        node = nvb_animnode.Node()
+        node.save(bObject, asciiLines, self.name)
+
+        childList = []
+        for child in bObject.children:
+            childList.append((child.nvb.imporder, child))
+        childList.sort(key=lambda tup: tup[0])
+
+        for (imporder, child) in childList:
+            self.saveNode(child, asciiLines, bObject, scene)
+
 
     def save(self, asciiLines, scene, rootDummy, animItem):
         self.name      = animItem.name
@@ -272,7 +283,7 @@ class Animation():
             eventTime = nvb_utils.frame2nwtime(event.frame, animScene.render.fps)
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' + event.name)
 
-        self.saveNode(rootDummy, asciiLines, scene)
+        self.saveNode(asciiLines, rootDummy, scene)
         asciiLines.append('doneanim ' + self.name + ' ' + rootDummy.name)
         asciiLines.append('')
 
