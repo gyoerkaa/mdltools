@@ -159,8 +159,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                         default = nvb_def.Meshtype.TRIMESH)
     smoothgroup    = bpy.props.EnumProperty(name = 'Smoothgroup',
                                             items = [   ('NONE', 'None',   'All faces belong to a single smoothgroup.',         0),
-                                                        ('AUTO', 'Auto',   'Generate smoothgroups either from edges marked as sharp or edge angles when no sharp edges are present.',  1),
-                                                        ('ANGL', 'Angles', 'Generate smoothgroups from edge angles.',     2) ],
+                                                        ('SHARP', 'Auto',   'Generate smoothgroups from edges marked as sharp.',  1) ],
                                             default = 'AUTO')
 
     shadow           = bpy.props.BoolProperty(name = 'Shadow', description = 'Whether to cast shadows', default = True, update=nvb_update_shadow_prop)
