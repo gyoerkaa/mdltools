@@ -219,14 +219,15 @@ class Node():
         targetMaterial.animation_data.action = action
 
     def addAnimationData(self, obj, animName):
-        pass
+        actionName           = animName + '.' + self.name
+        action               = bpy.data.actions.new(name=actionName)
+        action.use_fake_user = True
 
 
     def addAnimToObject(self, targetObject, animName = ''):
         '''
         Add the animations in this node to target object
         '''
-        #actionName           = animName + '.' + targetObject.name
         actionName           = targetObject.name
         action               = bpy.data.actions.new(name=actionName)
         action.use_fake_user = True
