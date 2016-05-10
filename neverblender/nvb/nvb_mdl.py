@@ -284,7 +284,7 @@ class Mdl():
         blendFileName = os.path.basename(bpy.data.filepath)
         if not blendFileName:
             blendFileName = 'unknown'
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         asciiLines.append('filedependancy ' + blendFileName)
         asciiLines.append('newmodel ' + self.name)
         asciiLines.append('setsupermodel ' + self.name + ' ' + self.supermodel)
@@ -340,7 +340,7 @@ class Xwk(Mdl):
 
         # Header
         currentTime = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry
         for child in rootDummy.children:
             self.generateGeomBlock(child, asciiLines, True)
@@ -409,7 +409,7 @@ class Wok(Xwk):
 
         # Header
         currentTime   = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry = AABB
         self.generateGeomBlock(rootDummy, asciiLines, True)
 
