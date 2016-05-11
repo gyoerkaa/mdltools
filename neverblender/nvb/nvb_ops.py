@@ -73,10 +73,12 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
         if self.direction == 'DOWN':
             neighbour = animIdx + 1
             animList.move(animIdx, neighbour)
+            #TODO: Move whole animation, i.e. trade places
             self.move_index(context)
         elif self.direction == 'UP':
             neighbour = animIdx - 1
             animList.move(neighbour, animIdx)
+            #TODO: Move whole animation, i.e. trade places
             self.move_index(context)
         else:
             return{'CANCELLED'}
@@ -529,7 +531,7 @@ class NVB_OBJECT_OT_AnimsceneAdd(bpy.types.Operator):
                     # Create the scene
                     newScene = bpy.data.scenes.new(newAnimName)
                     # Set fps
-                    newScene.render.fps   = nvb_def.fps
+                    newScene.render.fps  = nvb_def.fps
                     newScene.frame_start = sourceScene.frame_start
                     newScene.frame_end   = sourceScene.frame_end
 
