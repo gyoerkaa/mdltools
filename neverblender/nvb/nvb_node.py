@@ -694,8 +694,12 @@ class Trimesh(GeometryNode):
         # Calculate smooth groups
         smoothGroups    = []
         numSmoothGroups = 0
-        if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.useSmoothGroups):
-            # One single smooth group
+        if (obj.nvb.smoothgroup == 'SEPR') or (not nvb_glob.useSmoothGroups):
+            # 0 = Do not use smoothgroups
+            smoothGroups    = [0] * len(mesh.polygons)
+            numSmoothGroups = 1
+        elif (obj.nvb.smoothgroup == 'SING'):
+            # All faces belong to smooth group 1
             smoothGroups    = [1] * len(mesh.polygons)
             numSmoothGroups = 1
         else:
