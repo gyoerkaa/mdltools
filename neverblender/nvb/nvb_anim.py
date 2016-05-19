@@ -73,7 +73,7 @@ class Animation():
 
 
     def addAnimationData(self, obj, frameStart, parent = None):
-        animNode.addAnimationData(obj, self.name)
+        animNode.addAnimationData(obj, frameStart, self.name)
 
         for child in obj.children:
             self.addAnimationData(child, frameStart, obj)

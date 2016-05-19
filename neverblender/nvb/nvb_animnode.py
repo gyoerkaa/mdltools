@@ -196,7 +196,7 @@ class Node():
         #actionName           = animName + '.' + targetMaterial.name
         actionName           = targetMaterial.name
         action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_user = True
+        action.use_fake_pwk_user = True
 
         # If there is a texture, use texture alpha for animations
         if targetMaterial.active_texture:
@@ -218,10 +218,11 @@ class Node():
         targetMaterial.animation_data_create()
         targetMaterial.animation_data.action = action
 
-    def addAnimationData(self, obj, animName):
+    def addAnimationData(self, obj, frameStart, animName):
         actionName           = animName + '.' + self.name
         action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_user = True
+        action.use_fake_pwk_user = True
+
 
 
     def addAnimToObject(self, targetObject, animName = ''):
@@ -230,7 +231,7 @@ class Node():
         '''
         actionName           = targetObject.name
         action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_user = True
+        action.use_fake_pwk_user = True
 
         if (self.keys.orientation):
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
