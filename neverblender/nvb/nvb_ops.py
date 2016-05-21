@@ -296,35 +296,39 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                      ('ANIMATION', 'Animations', 'Import animations'),
                      ('WALKMESH', 'Walkmesh', 'Import walkmeshes'),
                      ),
-            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
-            )
+            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'})
+
+    animMode = bpy.props.EnumProperty(
+            name = 'Animations',
+            options = {'ENUM_FLAG'},
+            items = (('NO', 'None', 'Don\'t import animations'),
+                     ('BI', 'Built-In', 'Import animations from mdl'),
+                     ('SU', 'Supermodel', 'Import animation from supermodel'),
+                     ),
+            default = 'BI')
 
     useSmoothGroups = bpy.props.BoolProperty(
             name = 'Import smooth groups',
             description = 'Import smooth groups as sharp edges',
-            default = True,
-            )
+            default = True)
 
     textureSingle = bpy.props.BoolProperty(
             name = 'One texture per image',
             description = 'Create only one texture for each image',
-            default = True,
-            )
+            default = True)
 
     textureSearch = bpy.props.BoolProperty(
             name='Image search',
             description='Search for images in subdirectories' \
                         '(Warning, may be slow)',
-            default=False,
-            )
+            default=False)
 
     # Hidden option, only used for batch minimap creation
     minimapMode = bpy.props.BoolProperty(
             name = 'Minimap Mode',
             description = 'Ignore lights and fading objects',
             default = False,
-            options = {'HIDDEN'},
-            )
+            options = {'HIDDEN'})
 
     def execute(self, context):
         keywords = self.as_keywords(ignore=('filter_glob',
@@ -342,8 +346,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(
             default = '*.mdl',
-            options = {'HIDDEN'},
-            )
+            options = {'HIDDEN'})
 
     exports = bpy.props.EnumProperty(
             name = 'Export',
@@ -351,21 +354,18 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             items = (('ANIMATION', 'Animations', 'Export animations'),
                      ('WALKMESH', 'Walkmesh', 'Attempt to create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
                      ),
-            default = {'ANIMATION', 'WALKMESH'},
-            )
+            default = {'ANIMATION', 'WALKMESH'})
 
     useSmoothGroups = bpy.props.BoolProperty(
             name='Export Smooth groups',
             description='Generate smooth groups from sharp edges' \
                         '(When disabled every face belongs to the same group)',
-            default=True,
-            )
+            default=True)
 
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting.',
-            default=True,
-            )
+            default=True)
 
     def execute(self, context):
         keywords = self.as_keywords(ignore=('filter_glob',
