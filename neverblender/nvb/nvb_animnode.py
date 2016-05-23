@@ -218,11 +218,17 @@ class Node():
         targetMaterial.animation_data_create()
         targetMaterial.animation_data.action = action
 
-    def addAnimationData(self, obj, frameStart, animName):
-        actionName           = animName + '.' + self.name
-        action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_pwk_user = True
 
+    def addAnimationData(self, obj, frameStart, animName):
+        # Add everything to a single action
+        action = None
+        if obj.animation_data:
+            action = obj.animation_data.action
+
+        if not action:
+            actionName           = animName + '.' + self.name
+            action               = bpy.data.actions.new(name=actionName)
+            action.use_fake_pwk_user = True
 
 
     def addAnimToObject(self, targetObject, animName = ''):
