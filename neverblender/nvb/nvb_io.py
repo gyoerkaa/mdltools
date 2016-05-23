@@ -34,22 +34,26 @@ def findRootDummy():
 def loadMdl(operator,
             context,
             filepath = '',
-            imports = {'GEOMETRY', 'ANIMATION', 'WALKMESH'},
-            animMode = 'BI',
-            useSmoothGroups = True,
-            textureSingle = True,
+            importGeometry = True,
+            importWalkmesh = True,
+            importSmoothGroups = True,
+            animMode = 'STD',
+            importSupermodel = False,
+            textureMode = 'STD',
             textureSearch = False,
             minimapMode = False):
     '''
     Called from blender ui
     '''
-    nvb_glob.usePltTextures  = False
-    nvb_glob.useSmoothGroups = useSmoothGroups
-    nvb_glob.minimapMode     = minimapMode
+    nvb_glob.importGeometry     = importGeometry
+    nvb_glob.importSmoothGroups = importSmoothGroups
+    nvb_glob.animMode           = animMode
 
     nvb_glob.texturePath   = os.path.dirname(filepath)
-    nvb_glob.textureSingle = textureSingle
+    nvb_glob.textureMode   = textureMode
     nvb_glob.textureSearch = textureSearch
+
+    nvb_glob.minimapMode    = minimapMode
 
     scene = bpy.context.scene
 
@@ -62,7 +66,7 @@ def loadMdl(operator,
     mdl.load(scene, imports)
 
     # Try to load walkmeshes ... pwk (placeable) and dwk (door)
-    if 'WALKMESH' in imports:
+    if importWalkmesh:
         filetypes = ['pwk', 'dwk']
         (wkmPath, wkmFilename) = os.path.split(filepath)
         for wkmType in filetypes:

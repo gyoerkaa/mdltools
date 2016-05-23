@@ -289,33 +289,41 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             options = {'HIDDEN'},
             )
 
-    imports = bpy.props.EnumProperty(
-            name = 'Import',
-            options = {'ENUM_FLAG'},
-            items = (('GEOMETRY', 'Geometry', 'Import dummys and meshes'),
-                     ('ANIMATION', 'Animations', 'Import animations'),
-                     ('WALKMESH', 'Walkmesh', 'Import walkmeshes'),
-                     ),
-            default = {'GEOMETRY', 'ANIMATION', 'WALKMESH'})
+    importGeometry = bpy.props.BoolProperty(
+            name = 'Import Geometry',
+            description = 'Disable if only animations are needed',
+            default = True)
 
-    animMode = bpy.props.EnumProperty(
-            name = 'Animations',
-            options = {'ENUM_FLAG'},
-            items = (('NO', 'None', 'Don\'t import animations'),
-                     ('BI', 'Built-In', 'Import animations from mdl'),
-                     ('SU', 'Supermodel', 'Import animation from supermodel'),
-                     ),
-            default = 'BI')
+    importWalkmesh = bpy.props.BoolProperty(
+            name = 'Import Walkmesh',
+            description = 'Attempt to load placeable and door walkmeshes',
+            default = True)
 
-    useSmoothGroups = bpy.props.BoolProperty(
+    importSmoothGroups = bpy.props.BoolProperty(
             name = 'Import smooth groups',
             description = 'Import smooth groups as sharp edges',
             default = True)
 
-    textureSingle = bpy.props.BoolProperty(
-            name = 'One texture per image',
-            description = 'Create only one texture for each image',
+    animMode = bpy.props.EnumProperty(
+            name = 'Animations',
+            options = {'ENUM_FLAG'},
+            items = (('NON', 'None', 'Don\'t import animations', 0),
+                     ('STD', 'Standard', 'Import animations to one action per object', 1),
+                     ('ADV', 'Advanced', 'Single action for each animation and object', 2)),
+            default = 'STD')
+
+    importSupermodel = bpy.props.BoolProperty(
+            name = 'Import supermodel',
+            description = 'Import animations from supermodel',
             default = True)
+
+    textureMode = bpy.props.EnumProperty(
+            name = 'Texture',
+            options = {'ENUM_FLAG'},
+            items = (('NON', 'None', 'Don\'t import textures', 0),
+                     ('STD', 'Single', 'Create only one material for per texture', 1),
+                     ('ADV', 'NLA', 'Create a seperate material for each object', 2)),
+            default = 'STD')
 
     textureSearch = bpy.props.BoolProperty(
             name='Image search',
