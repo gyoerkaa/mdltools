@@ -1,15 +1,18 @@
 # Import
 importGeometry     = True
 importSmoothGroups = True
-animMode           = 'STD'
+importAnim         = 'STD'
+
+materialMode  = 'SIN'
 
 texturePath   = ''
-textureMode   = 'STD'
 textureSearch = False
 
-minimapMode  = False
+minimapMode = False
 
 # Export
+exportSmoothGroups = True
+
 scene          = None
 meshConvert    = 'RENDER'
 applyModifiers = True

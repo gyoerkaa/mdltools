@@ -89,10 +89,10 @@ class Mdl():
                 self.animDict[anim.name] = anim
 
 
-    def load(self, scene, imports):
+    def load(self, scene):
         rootDummy = None
         objIdx = 0
-        if ('GEOMETRY' in imports) and self.nodeDict:
+        if (nvb_glob.importGeometry) and self.nodeDict:
             it = iter(self.nodeDict.items())
 
             # The first node should be the rootdummy.
@@ -127,19 +127,19 @@ class Mdl():
                         # Node with invalid parent.
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
-        if ('ANIMATION' in imports) and (not nvb_glob.minimapMode):
-            # Search for the rootDummy if not already present
+        # Attempt to import animations
+        # Search for the rootDummy if not already present
+        if not rootDummy:
+            for obj in scene.objects:
+                if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
+                    rootDummy = obj
+                    break
+            # Still none ? Don't try to import anims then
             if not rootDummy:
-                for obj in scene.objects:
-                    if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
-                        rootDummy = obj
-                        break
-                # Still none ? Don't try to import anims then
-                if not rootDummy:
-                    return
+                return
 
-            for (animName, anim) in self.animDict.items():
-                anim.addAnimation(rootDummy)
+        for (animName, anim) in self.animDict.items():
+            anim.addAnimToScene(scene, rootDummy)
 
 
     def parse(self, asciiLines):
@@ -192,8 +192,12 @@ class Mdl():
                     blockStart = idx
                     cs = State.GEOMETRYNODE
                 if (label == 'endmodelgeom'):
-                    # After this, either animations or eof
-                    cs = State.ANIMATION
+                    # After this, either animations or eof.
+                    # Or maybe we don't want animations at all.
+                    if (nvb_glob.importAnim is not 'NON') and (not nvb_glob.minimapMode):
+                        cs = State.ANIMATION
+                    else:
+                        return
 
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
@@ -346,7 +350,7 @@ class Xwk(Mdl):
             self.generateGeomBlock(child, asciiLines, True)
 
 
-    def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def load(self, scene):
         if self.nodeDict:
             # Walkmeshes have no rootdummys. We need to create one ourselves
 
@@ -414,5 +418,5 @@ class Wok(Xwk):
         self.generateGeomBlock(rootDummy, asciiLines, True)
 
 
-    def load(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def load(self, scene):
         pass

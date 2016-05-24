@@ -304,9 +304,8 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description = 'Import smooth groups as sharp edges',
             default = True)
 
-    animMode = bpy.props.EnumProperty(
+    importAnim = bpy.props.EnumProperty(
             name = 'Animations',
-            options = {'ENUM_FLAG'},
             items = (('NON', 'None', 'Don\'t import animations', 0),
                      ('STD', 'Standard', 'Import animations to one action per object', 1),
                      ('ADV', 'Advanced', 'Single action for each animation and object', 2)),
@@ -317,13 +316,12 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description = 'Import animations from supermodel',
             default = True)
 
-    textureMode = bpy.props.EnumProperty(
-            name = 'Texture',
-            options = {'ENUM_FLAG'},
-            items = (('NON', 'None', 'Don\'t import textures', 0),
-                     ('STD', 'Single', 'Create only one material for per texture', 1),
-                     ('ADV', 'NLA', 'Create a seperate material for each object', 2)),
-            default = 'STD')
+    materialMode = bpy.props.EnumProperty(
+            name = 'Materials',
+            items = (('NON', 'None', 'Don\'t create materials or import textures', 0),
+                     ('SIN', 'Single', 'Create only one material per texture, shared between objects', 1),
+                     ('MUL', 'Multiple', 'Create a seperate material for each object', 2)),
+            default = 'SIN')
 
     textureSearch = bpy.props.BoolProperty(
             name='Image search',
@@ -364,7 +362,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                      ),
             default = {'ANIMATION', 'WALKMESH'})
 
-    useSmoothGroups = bpy.props.BoolProperty(
+    exportSmoothGroups = bpy.props.BoolProperty(
             name='Export Smooth groups',
             description='Generate smooth groups from sharp edges' \
                         '(When disabled every face belongs to the same group)',

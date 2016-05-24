@@ -37,9 +37,9 @@ def loadMdl(operator,
             importGeometry = True,
             importWalkmesh = True,
             importSmoothGroups = True,
-            animMode = 'STD',
+            importAnim = 'STD',
             importSupermodel = False,
-            textureMode = 'STD',
+            materialMode = 'SIN',
             textureSearch = False,
             minimapMode = False):
     '''
@@ -47,13 +47,14 @@ def loadMdl(operator,
     '''
     nvb_glob.importGeometry     = importGeometry
     nvb_glob.importSmoothGroups = importSmoothGroups
-    nvb_glob.animMode           = animMode
+    nvb_glob.importAnim         = importAnim
+
+    nvb_glob.materialMode = materialMode
 
     nvb_glob.texturePath   = os.path.dirname(filepath)
-    nvb_glob.textureMode   = textureMode
     nvb_glob.textureSearch = textureSearch
 
-    nvb_glob.minimapMode    = minimapMode
+    nvb_glob.minimapMode = minimapMode
 
     scene = bpy.context.scene
 
@@ -63,7 +64,7 @@ def loadMdl(operator,
     print('Importing: ' + filepath)
     mdl = nvb_mdl.Mdl()
     mdl.parse(asciiLines)
-    mdl.load(scene, imports)
+    mdl.load(scene)
 
     # Try to load walkmeshes ... pwk (placeable) and dwk (door)
     if importWalkmesh:
@@ -93,10 +94,10 @@ def saveMdl(operator,
     '''
     Called from blender ui
     '''
-    nvb_glob.exports         = exports
-    nvb_glob.useSmoothGroups = useSmoothGroups
-    nvb_glob.applyModifiers  = applyModifiers
-    nvb_glob.scene           = bpy.context.scene
+    nvb_glob.exports            = exports
+    nvb_glob.exportSmoothGroups = exportSmoothGroups
+    nvb_glob.applyModifiers     = applyModifiers
+    nvb_glob.scene              = bpy.context.scene
 
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
