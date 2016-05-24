@@ -370,7 +370,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
-            description='Apply Modifiers before exporting.',
+            description='Apply Modifiers before exporting',
             default=True)
 
     def execute(self, context):
