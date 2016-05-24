@@ -10,6 +10,20 @@ def isNull(s):
     return s.lower() == nvb_def.null
 
 
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
+def isNumber(s):
+    try:
+        float(s)
+    except ValueError:
+        return False
+    else:
+
+        return True
+
+
 def getName(s):
     '''
     To be able to switch to case sensitive and back
@@ -19,13 +33,38 @@ def getName(s):
     return s
 
 
-def isNumber(s):
-    try:
-        float(s)
-    except ValueError:
-        return False
+def material_cmp1(mat1, mat2):
+    return False
+
+
+def material_cmp2(material,
+                  diffuse = (1.0, 1.0, 1.0),
+                  specular = (1.0, 1.0, 1.0),
+                  imageName = '',
+                  use_transparency = False):
+    '''
+    Compares the diffure, specular and image values of the material
+    to the parameters
+    '''
+
+    def isclose_color(c1, c2, rel_tol=0.1):
+        return (isclose(c1[0], c2[0], rel_tol) and
+                isclose(c1[1], c2[1], rel_tol) and
+                isclose(c1[2], c2[2], rel_tol) )
+
+    same = True
+    if material:
+        if imageName:
+            if material.active_texture:
+                if material.active_texture.image:
+                    same = (material.active_texture.image.name == imageName)
+        same = same and isclose_color(material.diffuse_color, diffuse)
+        same = same and isclose_color(material.specular_color, specular)
+        same = same and (material.use_transparency == use_transparency)
     else:
-        return True
+        same = False
+
+    return same
 
 
 def getValidExports(rootDummy, validExports):
@@ -189,17 +228,17 @@ def nwangle2euler(nwangle):
 
 
 def setMaterialAuroraAlpha(mat, alpha):
-    #if alpha <= 1.0:
-    mat.use_transparency = True
-    tex = mat.active_texture
-    if tex:
-        mat.alpha = 0.0
-        tslotIdx = mat.active_texture_index
-        tslot    = mat.texture_slots[tslotIdx]
-        tslot.use_map_alpha = True
-        tslot.alpha_factor  = alpha
-    else:
-        mat.alpha = alpha
+    if alpha < 1.0:
+        mat.use_transparency = True
+        tex = mat.active_texture
+        if tex:
+            mat.alpha = 0.0
+            tslotIdx = mat.active_texture_index
+            tslot    = mat.texture_slots[tslotIdx]
+            tslot.use_map_alpha = True
+            tslot.alpha_factor  = alpha
+        else:
+            mat.alpha = alpha
 
 
 def setObjectAuroraAlpha(obj, alpha):

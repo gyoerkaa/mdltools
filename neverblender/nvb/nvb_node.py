@@ -500,35 +500,56 @@ class Trimesh(GeometryNode):
 
 
     def createMaterial(self, name):
-        material = bpy.data.materials.new(name)
-        material.diffuse_color     = self.diffuse
-        material.diffuse_intensity = 1.0
-        material.specular_color    = self.specular
+        material = None
+        texName  = self.bitmap.lower()
 
-        texName = self.bitmap.lower()
-        if not nvb_utils.isNull(texName):
-            textureSlot = material.texture_slots.add()
-            # If a texture with the same name was already created treat
-            # them as if they were the same, i.e. just use the old one
-            if (texName in bpy.data.textures):
-                textureSlot.texture = bpy.data.textures[texName]
-            else:
-                textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
-            textureSlot.texture_coords        = 'UV'
-            textureSlot.use_map_color_diffuse = True
+        if nvb_glob.materialMode == 'SIN':
+            # Avoid duplicate materials.
+            # Search for similar ones, i.e.
+            # - Same image name
+            # - Similar diffuse color (10% tolerance)
+            # - Similar specular color (10% tolerance)
+            for mat in bpy.data.materials:
+                tn = ''
+                if not nvb_utils.isNull(texName):
+                    tn = texName
+                if nvb_utils.material_cmp2(mat,
+                                           self.diffuse,
+                                           self.specular,
+                                           tn,
+                                           (self.alpha < 1.0)):
+                    material = mat
+                    break
 
-            # Load the image for the texture, but check if it was
-            # already loaded before. If so, use that one.
-            imgName = self.bitmap
-            if (imgName in bpy.data.images):
-                image = bpy.data.images[imgName]
-                textureSlot.texture.image = image
-            else:
-                image = self.createImage(imgName, nvb_glob.texturePath)
-                if image is not None:
+        if not material:
+            material = bpy.data.materials.new(name)
+            material.diffuse_color     = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color    = self.specular
+
+            if not nvb_utils.isNull(texName):
+                textureSlot = material.texture_slots.add()
+                # If a texture with the same name was already created treat
+                # them as if they were the same, i.e. just use the old one
+                if (texName in bpy.data.textures):
+                    textureSlot.texture = bpy.data.textures[texName]
+                else:
+                    textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
+                textureSlot.texture_coords        = 'UV'
+                textureSlot.use_map_color_diffuse = True
+
+                # Load the image for the texture, but check if it was
+                # already loaded before. If so, use that one.
+                imgName = self.bitmap
+                if (imgName in bpy.data.images):
+                    image = bpy.data.images[imgName]
                     textureSlot.texture.image = image
+                else:
+                    image = self.createImage(imgName, nvb_glob.texturePath)
+                    if image is not None:
+                        textureSlot.texture.image = image
 
-        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
+            nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
 
         return material
 
@@ -542,41 +563,42 @@ class Trimesh(GeometryNode):
         mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
 
         # Create material
-        material = self.createMaterial(name)
-        mesh.materials.append(material)
+        if nvb_glob.materialMode != 'NON':
+            material = self.createMaterial(name)
+            mesh.materials.append(material)
 
-        # Create UV map
-        if (len(self.tverts) > 0) and (mesh.tessfaces) and (not nvb_utils.isNull(self.bitmap)):
-            uv = mesh.tessface_uv_textures.new(name + '.uv')
-            mesh.tessface_uv_textures.active = uv
+            # Create UV map
+            if (len(self.tverts) > 0) and (mesh.tessfaces) and (not nvb_utils.isNull(self.bitmap)):
+                uv = mesh.tessface_uv_textures.new(name + '.uv')
+                mesh.tessface_uv_textures.active = uv
 
-            for i in range(len(self.facelist.uvIdx)):
-                # Get a tessface
-                tessface = mesh.tessfaces[i]
-                # Apply material (there is only ever one)
-                tessface.material_index = 0
-                # Grab a uv for the face
-                tessfaceUV = mesh.tessface_uv_textures[0].data[i]
-                # Get the indices of the 3 uv's for this face
-                uvIdx = self.facelist.uvIdx[i]
+                for i in range(len(self.facelist.uvIdx)):
+                    # Get a tessface
+                    tessface = mesh.tessfaces[i]
+                    # Apply material (there is only ever one)
+                    tessface.material_index = 0
+                    # Grab a uv for the face
+                    tessfaceUV = mesh.tessface_uv_textures[0].data[i]
+                    # Get the indices of the 3 uv's for this face
+                    uvIdx = self.facelist.uvIdx[i]
 
-                # BEGIN EEEKADOODLE FIX
-                # BUG: Evil eekadoodle problem where faces that have
-                # vert index 0 at location 3 are shuffled.
-                vertIdx = self.facelist.faces[i]
-                if vertIdx[2] == 0:
-                    uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
-                # END EEEKADOODLE FIX
+                    # BEGIN EEEKADOODLE FIX
+                    # BUG: Evil eekadoodle problem where faces that have
+                    # vert index 0 at location 3 are shuffled.
+                    vertIdx = self.facelist.faces[i]
+                    if vertIdx[2] == 0:
+                        uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
+                    # END EEEKADOODLE FIX
 
-                # Add uv coordinates to face
-                tessfaceUV.uv1 = self.tverts[uvIdx[0]]
-                tessfaceUV.uv2 = self.tverts[uvIdx[1]]
-                tessfaceUV.uv3 = self.tverts[uvIdx[2]]
-                # Apply texture to uv face
-                tessfaceUV.image = material.texture_slots[0].texture.image
+                    # Add uv coordinates to face
+                    tessfaceUV.uv1 = self.tverts[uvIdx[0]]
+                    tessfaceUV.uv2 = self.tverts[uvIdx[1]]
+                    tessfaceUV.uv3 = self.tverts[uvIdx[2]]
+                    # Apply texture to uv face
+                    tessfaceUV.image = material.texture_slots[0].texture.image
 
         # Import smooth groups as sharp edges
-        if nvb_glob.useSmoothGroups:
+        if nvb_glob.importSmoothGroups:
             bm = bmesh.new()
             mesh.update()
             bm.from_mesh(mesh)
@@ -638,7 +660,7 @@ class Trimesh(GeometryNode):
                                                 str(round(color[2], 2))  )
 
             # Check if this material has a texture assigned
-            texture   = material.active_texture
+            texture = material.active_texture
             imgName = nvb_def.null
             if texture:
                 # Only image textures will be exported
@@ -694,8 +716,12 @@ class Trimesh(GeometryNode):
         # Calculate smooth groups
         smoothGroups    = []
         numSmoothGroups = 0
-        if (obj.nvb.smoothgroup == 'NONE') or (not nvb_glob.useSmoothGroups):
-            # One single smooth group
+        if (obj.nvb.smoothgroup == 'SEPR') or (not nvb_glob.exportSmoothGroups):
+            # 0 = Do not use smoothgroups
+            smoothGroups    = [0] * len(mesh.polygons)
+            numSmoothGroups = 1
+        elif (obj.nvb.smoothgroup == 'SING'):
+            # All faces belong to smooth group 1
             smoothGroups    = [1] * len(mesh.polygons)
             numSmoothGroups = 1
         else:
@@ -710,6 +736,7 @@ class Trimesh(GeometryNode):
         formatString = '    {: 8.5f} {: 8.5f} {: 8.5f}'
         for v in mesh.vertices:
             s = formatString.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
+            #s = str(l_round(v.co[0], 5)) + ' ' + str(l_round(v.co[1], 5)) + ' ' + str(l_round(v.co[2], 5))
             asciiLines.append(s)
 
         # Add faces and corresponding tverts and shading groups
@@ -732,7 +759,13 @@ class Trimesh(GeometryNode):
 
             faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
 
-        if simple:
+        # Check a texture, we don't want uv's when there is no texture
+        material = obj.active_material
+        texture  = None
+        if material:
+            texture = material.active_texture
+
+        if simple or not texture:
             asciiLines.append('  faces ' + str(len(faceList)))
 
             vertDigits        = str(len(str(len(mesh.vertices))))
@@ -743,6 +776,9 @@ class Trimesh(GeometryNode):
                                '{:2d}'
             for f in faceList:
                 s = formatString.format(f[0], f[1], f[2], f[3], f[7])
+                #s = str(l_round(f[0], vertDigits)) + ' ' + \
+                #    str(l_round(f[1], vertDigits)) + ' ' +
+
                 asciiLines.append(s)
         else:
             asciiLines.append('  faces ' + str(len(faceList)))
@@ -760,7 +796,7 @@ class Trimesh(GeometryNode):
 
             if (len(uvList) > 0):
                 asciiLines.append('  tverts ' + str(len(uvList)))
-                formatString = '    {: 6.3f} {: 6.3f}'
+                formatString = '    {: 6.3f} {: 6.3f} 0'
                 for uv in uvList:
                     s = formatString.format(round(uv[0], 3), round(uv[1], 3))
                     asciiLines.append(s)

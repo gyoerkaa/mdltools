@@ -89,10 +89,10 @@ class Mdl():
                 self.animDict[anim.name] = anim
 
 
-    def importToScene(self, scene, imports):
+    def importToScene(self, scene):
         rootDummy = None
         objIdx = 0
-        if ('GEOMETRY' in imports) and self.nodeDict:
+        if (nvb_glob.importGeometry) and self.nodeDict:
             it = iter(self.nodeDict.items())
 
             # The first node should be the rootdummy.
@@ -127,19 +127,19 @@ class Mdl():
                         # Node with invalid parent.
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
-        if ('ANIMATION' in imports) and (not nvb_glob.minimapMode):
-            # Search for the rootDummy if not already present
+        # Attempt to import animations
+        # Search for the rootDummy if not already present
+        if not rootDummy:
+            for obj in scene.objects:
+                if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
+                    rootDummy = obj
+                    break
+            # Still none ? Don't try to import anims then
             if not rootDummy:
-                for obj in scene.objects:
-                    if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
-                        rootDummy = obj
-                        break
-                # Still none ? Don't try to import anims then
-                if not rootDummy:
-                    return
+                return
 
-            for (animName, anim) in self.animDict.items():
-                anim.addAnimToScene(scene, rootDummy)
+        for (animName, anim) in self.animDict.items():
+            anim.addAnimToScene(scene, rootDummy)
 
 
     def loadAscii(self, asciiLines):
@@ -192,8 +192,12 @@ class Mdl():
                     blockStart = idx
                     cs = State.GEOMETRYNODE
                 if (label == 'endmodelgeom'):
-                    # After this, either animations or eof
-                    cs = State.ANIMATION
+                    # After this, either animations or eof.
+                    # Or maybe we don't want animations at all.
+                    if (nvb_glob.importAnim) and (not nvb_glob.minimapMode):
+                        cs = State.ANIMATION
+                    else:
+                        return
 
             elif (cs == State.GEOMETRYNODE):
                 if (label == 'endnode'):
@@ -277,7 +281,7 @@ class Mdl():
         blendFileName = os.path.basename(bpy.data.filepath)
         if not blendFileName:
             blendFileName = 'unknown'
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         asciiLines.append('filedependancy ' + blendFileName)
         asciiLines.append('newmodel ' + self.name)
         asciiLines.append('setsupermodel ' + self.name + ' ' + self.supermodel)
@@ -333,13 +337,13 @@ class Xwk(Mdl):
 
         # Header
         currentTime = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry
         for child in rootDummy.children:
             self.geometryToAscii(child, asciiLines, True)
 
 
-    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def importToScene(self, scene):
         if self.nodeDict:
             # Walkmeshes have no rootdummys. We need to create one ourselves
 
@@ -402,10 +406,10 @@ class Wok(Xwk):
 
         # Header
         currentTime   = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d %H:%M'))
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry = AABB
         self.geometryToAscii(rootDummy, asciiLines, True)
 
 
-    def importToScene(self, scene, imports = {'ANIMATION', 'WALKMESH'}):
+    def importToScene(self, scene):
         pass
