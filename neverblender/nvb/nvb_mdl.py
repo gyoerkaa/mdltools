@@ -189,8 +189,9 @@ class Mdl():
 
             elif (cs == State.GEOMETRY):
                 if (label == 'node'):
-                    blockStart = idx
-                    cs = State.GEOMETRYNODE
+                    if nvb_glob.importGeometry:
+                        blockStart = idx
+                        cs = State.GEOMETRYNODE
                 if (label == 'endmodelgeom'):
                     # After this, either animations or eof.
                     # Or maybe we don't want animations at all.
