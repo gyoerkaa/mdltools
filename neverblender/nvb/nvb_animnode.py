@@ -196,7 +196,7 @@ class Node():
         #actionName           = animName + '.' + targetMaterial.name
         actionName           = targetMaterial.name
         action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_pwk_user = True
+        action.use_fake_user = True
 
         # If there is a texture, use texture alpha for animations
         if targetMaterial.active_texture:
@@ -226,9 +226,100 @@ class Node():
             action = obj.animation_data.action
 
         if not action:
-            actionName           = animName + '.' + self.name
-            action               = bpy.data.actions.new(name=actionName)
-            action.use_fake_pwk_user = True
+            actionName = animName + '.' + self.name
+            action     = bpy.data.actions.new(name=actionName)
+            action.use_fake_user = True
+
+        # Set rotation channels if there are rotation keys
+        if (self.keys.orientation):
+            curveX = action.fcurves.new(data_path='rotation_euler', index=0)
+            curveY = action.fcurves.new(data_path='rotation_euler', index=1)
+            curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
+            currEul = None
+            prevEul = None
+            for key in self.keys.orientation:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                eul   = nvb_utils.nwangle2euler(key[1:5])
+                currEul = nvb_utils.eulerFilter(eul, prevEul)
+                prevEul = currEul
+                curveX.keyframe_points.insert(frame, currEul.x)
+                curveY.keyframe_points.insert(frame, currEul.y)
+                curveZ.keyframe_points.insert(frame, currEul.z)
+        elif self.orientation != None:
+            curveX = action.fcurves.new(data_path='rotation_euler', index=0)
+            curveY = action.fcurves.new(data_path='rotation_euler', index=1)
+            curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
+            eul = nvb_utils.nwangle2euler(self.orientation)
+            curveX.keyframe_points.insert(frameStart, eul[0])
+            curveY.keyframe_points.insert(frameStart, eul[1])
+            curveZ.keyframe_points.insert(frameStart, eul[2])
+
+        # Set location channels if there are location keys
+        if (self.keys.position):
+            curveX = action.fcurves.new(data_path='location', index=0)
+            curveY = action.fcurves.new(data_path='location', index=1)
+            curveZ = action.fcurves.new(data_path='location', index=2)
+            for key in self.keys.position:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curveX.keyframe_points.insert(frame, key[1])
+                curveY.keyframe_points.insert(frame, key[2])
+                curveZ.keyframe_points.insert(frame, key[3])
+        elif (self.position != None):
+            curveX = action.fcurves.new(data_path='location', index=0)
+            curveY = action.fcurves.new(data_path='location', index=1)
+            curveZ = action.fcurves.new(data_path='location', index=2)
+            curveX.keyframe_points.insert(frameStart, self.position[0])
+            curveY.keyframe_points.insert(frameStart, self.position[1])
+            curveZ.keyframe_points.insert(frameStart, self.position[2])
+
+        # Set scale channels if there are scale keys
+        if (self.keys.scale):
+            curveX = action.fcurves.new(data_path='scale', index=0)
+            curveY = action.fcurves.new(data_path='scale', index=1)
+            curveZ = action.fcurves.new(data_path='scale', index=2)
+            for key in self.keys.scale:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curveX.keyframe_points.insert(frame, key[1])
+                curveY.keyframe_points.insert(frame, key[1])
+                curveZ.keyframe_points.insert(frame, key[1])
+        elif (self.scale != None):
+            curveX = action.fcurves.new(data_path='scale', index=0)
+            curveY = action.fcurves.new(data_path='scale', index=1)
+            curveZ = action.fcurves.new(data_path='scale', index=2)
+            curveX.keyframe_points.insert(frameStart, self.scale)
+            curveY.keyframe_points.insert(frameStart, self.scale)
+            curveZ.keyframe_points.insert(frameStart, self.scale)
+
+        # Set selfillumcolor channels if there are selfillumcolor keys
+        if (self.keys.selfillumcolor):
+            curveR = action.fcurves.new(data_path='nvb.selfillumcolor', index=0)
+            curveG = action.fcurves.new(data_path='nvb.selfillumcolor', index=1)
+            curveB = action.fcurves.new(data_path='nvb.selfillumcolor', index=2)
+
+            for key in self.keys.selfillumcolor:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+                curveG.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[2])
+                curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[3])
+
+        # For lamps: Set color channels
+        if (self.keys.color):
+            curveR = action.fcurves.new(data_path='color', index=0)
+            curveG = action.fcurves.new(data_path='color', index=1)
+            curveB = action.fcurves.new(data_path='color', index=2)
+
+            for key in self.keys.color:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+                curveG.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[2])
+                curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[3])
+
+        # For lamps: Set radius channels. Import as distance
+        if (self.keys.radius):
+            curve = action.fcurves.new(data_path='distance', index=0)
+            for key in self.keys.radius:
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
 
 
     def addAnimToObject(self, targetObject, animName = ''):
@@ -237,7 +328,7 @@ class Node():
         '''
         actionName           = targetObject.name
         action               = bpy.data.actions.new(name=actionName)
-        action.use_fake_pwk_user = True
+        action.use_fake_user = True
 
         if (self.keys.orientation):
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
