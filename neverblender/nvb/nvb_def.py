@@ -1,6 +1,11 @@
 ﻿# Null value for parents, textures, etc.
 null = 'null'
 
+# Where to start all animations
+anim_default = 1
+# Distance between two imported animations
+anim_distance = 60
+
 
 class MalformedMdlFile(Exception):
     def __init__(self, value):

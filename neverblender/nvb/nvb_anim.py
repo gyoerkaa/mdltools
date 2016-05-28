@@ -49,18 +49,19 @@ class Animation():
             return
 
         # Check if an animation with this name is already present
-        lastAnimEnd = 0
+        animStartFrame = 0
         for anim in rootDummy.nvb.animList:
-            lastAnimEnd = anim.frameEnd
+            animStartFrame = anim.frameEnd
             if anim.name == self.name:
                 return
+        animStartFrame = animStartFrame + nvb_def.anim_distance
 
         # Add new animation to list
         newAnim = rootDummy.nvb.animList.add()
         newAnim.name  = self.name
         newAnim.ttime = self.ftranstime
         newAnim.root  = self.root
-        newAnim.frameStart = lastAnimEnd
+        newAnim.frameStart = animStartFrame
         newAnim.frameEnd   = newAnim.frameStart + nvb_utils.nwtime2frame(self.length)
 
         # Add events for new animation
