@@ -246,7 +246,8 @@ class Node():
 
         if self.keys.alpha:
             for key in self.keys.alpha:
-                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                curve.keyframe_points.insert(frame, key[1])
         elif self.alpha != None:
             curve.keyframe_points.insert(0, self.alpha)
 
