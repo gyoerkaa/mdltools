@@ -219,16 +219,51 @@ class Node():
         targetMaterial.animation_data.action = action
 
 
-    def addAnimationData(self, obj, frameStart, animName):
+    def addAnimationDataToMaterial(self, mat, frameStart, animName):
         # Add everything to a single action
         action = None
-        if obj.animation_data:
-            action = obj.animation_data.action
+        if mat.animation_data:
+            action = mat.animation_data.action
+        else:
+            mat.animation_data_create()
 
         if not action:
             actionName = animName + '.' + self.name
             action     = bpy.data.actions.new(name=actionName)
             action.use_fake_user = True
+            mat.animation_data.action = action
+
+        # If there is a texture, use texture alpha for animations
+        if mat.active_texture:
+            # Material has a texture
+            # data_path = material.texture_slots[x].alpha_factor
+            tslotIdx = mat.active_texture_index
+            curve    = action.fcurves.new(data_path='texture_slots[' + str(tslotIdx) + '].alpha_factor')
+        else:
+            # No texture.
+            # data_path = material.alpha
+            curve = action.fcurves.new(data_path='alpha')
+
+        if self.keys.alpha:
+            for key in self.keys.alpha:
+                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+        elif self.alpha != None:
+            curve.keyframe_points.insert(0, self.alpha)
+
+
+    def addAnimationDataToObject(self, obj, frameStart, animName):
+        # Add everything to a single action
+        action = None
+        if obj.animation_data:
+            action = obj.animation_data.action
+        else:
+            obj.animation_data_create()
+
+        if not action:
+            actionName = animName + '.' + self.name
+            action     = bpy.data.actions.new(name=actionName)
+            action.use_fake_user = True
+            obj.animation_data.action = action
 
         # Set rotation channels if there are rotation keys
         if (self.keys.orientation):
@@ -320,6 +355,8 @@ class Node():
             for key in self.keys.radius:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
+
+
 
 
     def addAnimToObject(self, targetObject, animName = ''):

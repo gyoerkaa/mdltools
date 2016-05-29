@@ -77,8 +77,8 @@ class Animation():
         animNode.addAnimationData(obj, frameStart, self.name)
 
         for child in obj.children:
-            self.addAnimationData(child, frameStart, obj)
-
+            self.addAnimationDataToObject(child, frameStart, obj)
+            #self.addAnimationDataToMaterial(child, frameStart, obj)
 
     def copyObjectToScene(self, scene, theOriginal, parent):
         '''
