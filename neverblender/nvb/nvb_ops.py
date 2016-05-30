@@ -314,7 +314,8 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     importSupermodel = bpy.props.BoolProperty(
             name = 'Import supermodel',
             description = 'Import animations from supermodel',
-            default = True)
+            default = False,
+            options = {'HIDDEN'})
 
     materialMode = bpy.props.EnumProperty(
             name = 'Materials',

@@ -9,15 +9,14 @@ import neverblender
 
 # Globals
 minimap_size   = 32
-z_offset       = 0.0
+z_offset       = 10.0
 input_path     = 'in'
 output_path    = 'out'
 emtpy_filename = 'empty.blend'
 empty_path     = os.path.join(os.path.dirname(__file__), emtpy_filename)
-light_color    = (1.0,1.0,1.0)
-lightsrc_imp   = False
+light_color    = (1.0, 1.0, 1.0)
 fading_obj_imp = True
-
+alpha_mode     = 'SKY'
 
 def processfile(filepath):
     '''
@@ -26,7 +25,15 @@ def processfile(filepath):
      - Render minimap
     '''
     # Import mdl file
-    bpy.ops.nvb.mdlimport(filepath=mdlfile, import_items={'GEOMETRY'}, minimapMode = True)
+    bpy.ops.nvb.mdlimport(filepath = mdlfile, 
+                          importGeometry = True, 
+                          importWalkmesh = False,
+                          importSmoothGroups = False,
+                          importAnim = 'NON',
+                          importSupermodel = False,
+                          materialMode = 'SIN',
+                          textureSearch = False,
+                          minimapMode = True)
 
     # Get mdl root
     mdlRoot = None
@@ -36,17 +43,16 @@ def processfile(filepath):
             break
 
     # Render minimap
-
     if mdlRoot:
         filename = 'mi_' + mdlRoot.name
         scene    = bpy.context.scene
         scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
         mdlRoot.nvb.minimapsize    = minimap_size
         mdlRoot.nvb.minimapzoffset = z_offset
-        neverblender.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color)
+        neverblender.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, alpha_mode)
         bpy.ops.render.render(write_still=True)
     else:
-        print('WARNING: ');
+        print('NEVERBLENDER - ERROR: No rootdummy')
 
 
 for arg in sys.argv:
@@ -67,12 +73,6 @@ for arg in sys.argv:
         input_path = words[1]
     elif (words[0] == 'nvb_output'):
         output_path = words[1]
-    elif (words[0] == 'nvb_implight'):
-        try:
-            lightsrc_imp = (int(words[1]) >= 1)
-        except:
-            print('ERROR: Could not read IMPORT_LIGHTS from generator.ini')
-            lightscr_im = False
     elif (words[0] == 'nvb_impfade'):
         try:
             fading_obj_imp = (int(words[1]) >= 1)
