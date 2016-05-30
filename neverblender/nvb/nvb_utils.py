@@ -20,7 +20,6 @@ def isNumber(s):
     except ValueError:
         return False
     else:
-
         return True
 
 
@@ -31,10 +30,6 @@ def getName(s):
     '''
     #return s.lower()
     return s
-
-
-def material_cmp1(mat1, mat2):
-    return False
 
 
 def material_cmp2(material,
@@ -273,7 +268,7 @@ def getAuroraAlpha(obj):
         return 1.0
 
 
-def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
+def setupMinimapRender(mdlroot, scene, lamp_color = (1.0, 1.0, 1.0), alpha_mode = 'SKY'):
     # Create the lamp if not already present in scene
     lampName = 'MinimapLamp'
     camName  = 'MinimapCamera'
@@ -295,8 +290,8 @@ def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     minimapLamp.data.use_specular = False
     minimapLamp.data.color        = lamp_color
     minimapLamp.data.falloff_type = 'CONSTANT'
-    minimapLamp.data.distance     = (mdlbase.nvb.minimapzoffset+20.0)*2.0
-    minimapLamp.location.z        = mdlbase.nvb.minimapzoffset+20.0
+    minimapLamp.data.distance     = (mdlroot.nvb.minimapzoffset+20.0)*2.0
+    minimapLamp.location.z        = mdlroot.nvb.minimapzoffset+20.0
 
     # Create the cam if not already present in scene
     if camName in scene.objects:
@@ -315,17 +310,18 @@ def setupMinimapRender(mdlbase, scene, lamp_color = (1.0, 1.0, 1.0)):
     # Adjust cam properties
     minimapCam.data.type        = 'ORTHO'
     minimapCam.data.ortho_scale = 10.0
-    minimapCam.location.z       = mdlbase.nvb.minimapzoffset+20.0
+    minimapCam.location.z       = mdlroot.nvb.minimapzoffset+20.0
 
     scene.camera = minimapCam
     # Adjust render settings
+    scene.render.alpha_mode                 = alpha_mode
     scene.render.use_antialiasing           = True
     scene.render.pixel_filter_type          = 'BOX'
     scene.render.antialiasing_samples       = '16'
     scene.render.use_shadows                = False
     scene.render.use_envmaps                = False
-    scene.render.resolution_x               = mdlbase.nvb.minimapsize
-    scene.render.resolution_y               = mdlbase.nvb.minimapsize
+    scene.render.resolution_x               = mdlroot.nvb.minimapsize
+    scene.render.resolution_y               = mdlroot.nvb.minimapsize
     scene.render.resolution_percentage      = 100
     scene.render.image_settings.color_mode  = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
