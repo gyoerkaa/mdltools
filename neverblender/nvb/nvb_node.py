@@ -634,10 +634,12 @@ class Trimesh(GeometryNode):
 
 
     def load(self, scene):
-        if nvb_glob.minimapMode and self.tilefade:
-            # Fading objects won't be imported in minimap mode
-            # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene)
+        if nvb_glob.minimapMode:
+            if (self.render == 0) or  self.tilefade:
+                # Fading objects or shadow meshes won't be imported in minimap mode
+                # We may need it for the tree stucture, so import it as an empty
+                return Dummy.load(self, scene)
+
         mesh = self.loadMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
         self.loadData(obj)
@@ -1110,7 +1112,7 @@ class Emitter(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return GeometryNode.convert(self, scene)
+            return GeometryNode.load(self, scene)
 
         mesh = self.loadMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
@@ -1284,7 +1286,7 @@ class Light(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return GeometryNode.convert(self, scene)
+            return GeometryNode.load(self, scene)
         lamp = self.loadLamp(self.name)
         obj  = bpy.data.objects.new(self.name, lamp)
         self.loadData(obj)
