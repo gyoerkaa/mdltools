@@ -32,6 +32,11 @@ def getName(s):
     return s
 
 
+def texture_cmt(texture,
+                imgName,
+                alpha = 1.0):
+    pass
+    
 def material_cmp2(material,
                   diffuse = (1.0, 1.0, 1.0),
                   specular = (1.0, 1.0, 1.0),
