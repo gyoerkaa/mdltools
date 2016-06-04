@@ -29,16 +29,15 @@ def processfile(filepath):
                           importGeometry = True, 
                           importWalkmesh = False,
                           importSmoothGroups = False,
-                          importAnim = 'NON',
-                          importSupermodel = False,
-                          materialMode = 'SIN',
+                          importAnim = False,
+                          materialMode = 'MUL',
                           textureSearch = False,
                           minimapMode = True)
 
     # Get mdl root
     mdlRoot = None
     for obj in bpy.data.objects:
-        if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
+        if neverblender.nvb.nvb_utils.isRootDummy(obj, neverblender.nvb.nvb_def.Dummytype.MDLROOT):
             mdlRoot = obj
             break
 
@@ -49,7 +48,7 @@ def processfile(filepath):
         scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
         mdlRoot.nvb.minimapsize    = minimap_size
         mdlRoot.nvb.minimapzoffset = z_offset
-        neverblender.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, alpha_mode)
+        neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, alpha_mode)
         bpy.ops.render.render(write_still=True)
     else:
         print('NEVERBLENDER - ERROR: No rootdummy')

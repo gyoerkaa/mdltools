@@ -640,7 +640,7 @@ class Trimesh(GeometryNode):
         if nvb_glob.minimapMode and self.tilefade:
             # Fading objects won't be imported in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Dummy.convert(self, scene)
+            return Dummy.addToScene(self, scene)
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
         self.setObjectData(obj)
@@ -1123,7 +1123,7 @@ class Emitter(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return GeometryNode.convert(self, scene)
+            return GeometryNode.addToScene(self, scene)
 
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
@@ -1297,7 +1297,7 @@ class Light(GeometryNode):
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return GeometryNode.convert(self, scene)
+            return GeometryNode.addToScene(self, scene)
         lamp = self.createLamp(self.name)
         obj  = bpy.data.objects.new(self.name, lamp)
         self.setObjectData(obj)
@@ -1494,7 +1494,7 @@ class Aabb(Trimesh):
         if nvb_glob.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children
-            return
+            return GeometryNode.addToScene(self, scene)
         mesh = self.createMesh(self.name)
         obj = bpy.data.objects.new(self.name, mesh)
         self.setObjectData(obj)
