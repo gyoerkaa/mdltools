@@ -594,8 +594,10 @@ class Trimesh(GeometryNode):
                     tessfaceUV.uv1 = self.tverts[uvIdx[0]]
                     tessfaceUV.uv2 = self.tverts[uvIdx[1]]
                     tessfaceUV.uv3 = self.tverts[uvIdx[2]]
+                    
                     # Apply texture to uv face
-                    tessfaceUV.image = material.texture_slots[0].texture.image
+                    if material.texture_slots[0]:
+                        tessfaceUV.image = material.texture_slots[0].texture.image
 
         # Import smooth groups as sharp edges
         if nvb_glob.importSmoothGroups:
