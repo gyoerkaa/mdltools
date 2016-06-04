@@ -223,6 +223,7 @@ def nwangle2euler(nwangle):
 
 
 def setMaterialAuroraAlpha(mat, alpha):
+    '''
     if alpha < 1.0:
         mat.use_transparency = True
         tex = mat.active_texture
@@ -234,7 +235,17 @@ def setMaterialAuroraAlpha(mat, alpha):
             tslot.alpha_factor  = alpha
         else:
             mat.alpha = alpha
-
+    '''
+    mat.use_transparency = True
+    tex = mat.active_texture
+    if tex:
+        mat.alpha = 0.0
+        tslotIdx = mat.active_texture_index
+        tslot    = mat.texture_slots[tslotIdx]
+        tslot.use_map_alpha = True
+        tslot.alpha_factor  = alpha
+    else:
+        mat.alpha = alpha
 
 def setObjectAuroraAlpha(obj, alpha):
     '''
