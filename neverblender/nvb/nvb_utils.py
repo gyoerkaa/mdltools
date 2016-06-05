@@ -7,7 +7,10 @@ from . import nvb_def
 
 
 def isNull(s):
-    return s.lower() == nvb_def.null
+    '''
+    A string is null if empty or "null"
+    '''
+    return (not s or s.lower() == nvb_def.null)
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -32,11 +35,40 @@ def getName(s):
     return s
 
 
-def texture_cmt(texture,
-                imgName,
-                alpha = 1.0):
-    pass
-    
+def materialExists(diffuse = (1.0, 1.0, 1.0),
+                   specular = (1.0, 1.0, 1.0),
+                   imageName = '',
+                   alpha = 1.0):
+    '''
+    Compares the diffure, specular and image values of the material
+    to the parameters
+    '''
+    def isclose_3f(a, b, rel_tol=0.1):
+        return (isclose(a[0], b[0], rel_tol) and
+                isclose(a[1], b[1], rel_tol) and
+                isclose(a[2], b[2], rel_tol) )
+
+    for material in bpy.data.materials:
+        eq = False
+        if isNull(imageName):
+            # No texture
+            eq = not material.active_texture
+            eq = eq and (material.alpha_factor == alpha)
+        else:
+            # Has to have a texture
+            if material.active_texture:
+                if material.active_texture.image:
+                    eq = (material.active_texture.image.name == imageName)
+                eq = eq and (material.texture_slots[material.active_texture_index].alpha_factor == alpha)
+
+        eq = eq and isclose_3f(material.diffuse_color, diffuse)
+        eq = eq and isclose_3f(material.specular_color, specular)
+        if eq:
+            return material
+
+    return None
+
+
 def material_cmp2(material,
                   diffuse = (1.0, 1.0, 1.0),
                   specular = (1.0, 1.0, 1.0),
@@ -251,6 +283,7 @@ def setMaterialAuroraAlpha(mat, alpha):
         tslot.alpha_factor  = alpha
     else:
         mat.alpha = alpha
+
 
 def setObjectAuroraAlpha(obj, alpha):
     '''
