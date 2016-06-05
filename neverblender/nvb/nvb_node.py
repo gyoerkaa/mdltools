@@ -503,24 +503,12 @@ class Trimesh(GeometryNode):
     def loadMaterial(self, name):
         material = None
         texName  = self.bitmap.lower()
-
         if nvb_glob.materialMode == 'SIN':
-            # Avoid duplicate materials.
-            # Search for similar ones, i.e.
-            # - Same image name
-            # - Similar diffuse color (10% tolerance)
-            # - Similar specular color (10% tolerance)
-            for mat in bpy.data.materials:
-                tn = ''
-                if not nvb_utils.isNull(texName):
-                    tn = texName
-                if nvb_utils.material_cmp2(mat,
-                                           self.diffuse,
-                                           self.specular,
-                                           tn,
-                                           (self.alpha < 1.0)):
-                    material = mat
-                    break
+            # Avoid duplicate materials, search for similar ones.
+            material = nvb_utils.materialExists(self.diffuse,
+                                                self.specular,
+                                                texName,
+                                                self.alpha)
 
         if not material:
             material = bpy.data.materials.new(name)
