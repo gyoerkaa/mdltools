@@ -408,8 +408,9 @@ class Trimesh(GeometryNode):
                                                   imgPath,
                                                   recursive=nvb_glob.textureSearch,
                                                   place_holder=False,
-                                                  ncase_cmp=False)
+                                                  ncase_cmp=True)
         if (image is None):
+            print('Neverblender - WARNING: Could not load image ' + imgName)
             image = bpy.data.images.new(imgName, 512, 512)
         else:
             image.name = imgName
