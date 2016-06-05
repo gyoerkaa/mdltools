@@ -1350,7 +1350,7 @@ class Aabb(Trimesh):
         self.meshtype = nvb_def.Meshtype.AABB
 
     def addAABBToAscii(self, obj, asciiLines):
-        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb.glob.meshConvert)
+        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
 
         faceList = []
         faceIdx  = 0
