@@ -7,7 +7,10 @@ from . import nvb_def
 
 
 def isNull(s):
-    return s.lower() == nvb_def.null
+    '''
+    A string is null if empty or "null"
+    '''
+    return (not s or s.lower() == nvb_def.null)
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
@@ -32,39 +35,38 @@ def getName(s):
     return s
 
 
-def texture_cmt(texture,
-                imgName,
-                alpha = 1.0):
-    pass
-    
-def material_cmp2(material,
-                  diffuse = (1.0, 1.0, 1.0),
-                  specular = (1.0, 1.0, 1.0),
-                  imageName = '',
-                  use_transparency = False):
+def materialExists(diffuse = (1.0, 1.0, 1.0),
+                   specular = (1.0, 1.0, 1.0),
+                   imageName = '',
+                   alpha = 1.0):
     '''
     Compares the diffure, specular and image values of the material
     to the parameters
     '''
+    def isclose_3f(a, b, rel_tol=0.1):
+        return (isclose(a[0], b[0], rel_tol) and
+                isclose(a[1], b[1], rel_tol) and
+                isclose(a[2], b[2], rel_tol) )
 
-    def isclose_color(c1, c2, rel_tol=0.1):
-        return (isclose(c1[0], c2[0], rel_tol) and
-                isclose(c1[1], c2[1], rel_tol) and
-                isclose(c1[2], c2[2], rel_tol) )
-
-    same = True
-    if material:
-        if imageName:
+    for material in bpy.data.materials:
+        eq = False
+        if isNull(imageName):
+            # No texture
+            eq = not material.active_texture
+            eq = eq and (material.alpha_factor == alpha)
+        else:
+            # Has to have a texture
             if material.active_texture:
                 if material.active_texture.image:
-                    same = (material.active_texture.image.name == imageName)
-        same = same and isclose_color(material.diffuse_color, diffuse)
-        same = same and isclose_color(material.specular_color, specular)
-        same = same and (material.use_transparency == use_transparency)
-    else:
-        same = False
+                    eq = (material.active_texture.image.name == imageName)
+                eq = eq and (material.texture_slots[material.active_texture_index].alpha_factor == alpha)
 
-    return same
+        eq = eq and isclose_3f(material.diffuse_color, diffuse)
+        eq = eq and isclose_3f(material.specular_color, specular)
+        if eq:
+            return material
+
+    return None
 
 
 def getValidExports(rootDummy, validExports):
@@ -251,17 +253,6 @@ def setMaterialAuroraAlpha(mat, alpha):
         tslot.alpha_factor  = alpha
     else:
         mat.alpha = alpha
-
-def setObjectAuroraAlpha(obj, alpha):
-    '''
-    This will set
-        1. texture_slot.alpha_factor when there is a texture
-        2. material.alpha there is no texture, but a material
-        3. Do nothing, when there is no material
-    '''
-    mat = obj.active_material
-    if mat:
-        setMaterialAuroraAlpha(mat, alpha)
 
 
 def getAuroraAlpha(obj):

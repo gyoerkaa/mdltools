@@ -79,7 +79,7 @@ def loadMdl(operator,
                 wkm.loadAscii(asciiLines)
                 wkm.importToScene(scene)
             except IOError:
-                print("Neverblender: No walkmesh found at " + wkmFilepath)
+                print("Neverblender - WARNING: No walkmesh found " + wkmFilepath)
 
     return {'FINISHED'}
 

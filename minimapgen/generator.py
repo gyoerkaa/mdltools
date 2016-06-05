@@ -25,8 +25,8 @@ def processfile(filepath):
      - Render minimap
     '''
     # Import mdl file
-    bpy.ops.nvb.mdlimport(filepath = mdlfile, 
-                          importGeometry = True, 
+    bpy.ops.nvb.mdlimport(filepath = mdlfile,
+                          importGeometry = True,
                           importWalkmesh = False,
                           importSmoothGroups = False,
                           importAnim = False,
@@ -79,7 +79,6 @@ for arg in sys.argv:
             print('ERROR: Could not read IMPORT_FADING_OBJ from generator.ini')
             fading_obj_imp = True
     elif (words[0] == 'nvb_lcolor'):
-        print(words[1])
         cval_string = words[1].split(',')
         try:
             cval_list = [ float(cval_string[0]),

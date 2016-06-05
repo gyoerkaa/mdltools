@@ -170,22 +170,22 @@ class Mdl():
                        # line should be ['setsupermodel', modelname, supermodelname]
                        self.supermodel = line[2]
                     except IndexError:
-                       print("WARNING: Unable to read supermodel. Using default value: " + self.supermodel)
+                       print("Neverblender - WARNING: Unable to read supermodel. Default value " + self.supermodel)
 
                 elif (label == 'classification'):
                     try:
                         self.classification = line[1].upper()
                     except IndexError:
-                        print("WARNING: Unable to read classification. Using default value: " + self.classification)
+                        print("Neverblender - WARNING: Unable to read classification. Default value " + self.classification)
 
                     if self.classification not in nvb_def.Classification.ALL:
-                        print("WARNING: Invalid classification '" + self.classification + "'")
+                        print("Neverblender - WARNING: Invalid classification '" + self.classification + "'")
                         self.classification = nvb_def.Classification.UNKNOWN
                 elif (label == 'setanimationscale'):
                     try:
                         self.animscale = line[1]
                     except IndexError:
-                        print("WARNING: Unable to read animationscale. Using default value: " + self.animscale)
+                        print("Neverblender - WARNING: Unable to read animationscale. Default value " + self.animscale)
 
             elif (cs == State.GEOMETRY):
                 if (label == 'node'):

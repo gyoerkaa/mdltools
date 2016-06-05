@@ -408,8 +408,10 @@ class Trimesh(GeometryNode):
                                                   imgPath,
                                                   recursive=nvb_glob.textureSearch,
                                                   place_holder=False,
-                                                  ncase_cmp=False)
+                                                  ncase_cmp=True)
         if (image is None):
+            print('Neverblender - WARNING: Could not load image ' + imgName)
+            print(imgPath)
             image = bpy.data.images.new(imgName, 512, 512)
         else:
             image.name = imgName
@@ -502,24 +504,12 @@ class Trimesh(GeometryNode):
     def createMaterial(self, name):
         material = None
         texName  = self.bitmap.lower()
-
         if nvb_glob.materialMode == 'SIN':
-            # Avoid duplicate materials.
-            # Search for similar ones, i.e.
-            # - Same image name
-            # - Similar diffuse color (10% tolerance)
-            # - Similar specular color (10% tolerance)
-            for mat in bpy.data.materials:
-                tn = ''
-                if not nvb_utils.isNull(texName):
-                    tn = texName
-                if nvb_utils.material_cmp2(mat,
-                                           self.diffuse,
-                                           self.specular,
-                                           tn,
-                                           (self.alpha < 1.0)):
-                    material = mat
-                    break
+            # Avoid duplicate materials, search for similar ones.
+            material = nvb_utils.materialExists(self.diffuse,
+                                                self.specular,
+                                                texName,
+                                                self.alpha)
 
         if not material:
             material = bpy.data.materials.new(name)
@@ -527,7 +517,7 @@ class Trimesh(GeometryNode):
             material.diffuse_intensity = 1.0
             material.specular_color    = self.specular
 
-            if not nvb_utils.isNull(texName):
+            if not nvb_utils.isNull(self.bitmap):
                 textureSlot = material.texture_slots.add()
                 # If a texture with the same name was already created treat
                 # them as if they were the same, i.e. just use the old one
@@ -594,7 +584,7 @@ class Trimesh(GeometryNode):
                     tessfaceUV.uv1 = self.tverts[uvIdx[0]]
                     tessfaceUV.uv2 = self.tverts[uvIdx[1]]
                     tessfaceUV.uv3 = self.tverts[uvIdx[2]]
-                    
+
                     # Apply texture to uv face
                     if material.texture_slots[0]:
                         tessfaceUV.image = material.texture_slots[0].texture.image
@@ -1022,7 +1012,7 @@ class Skinmesh(Trimesh):
                     line += '  ' + w[0] + ' ' + str(round(w[1], 3))
             else:
                 # No weights for this vertex ... this is a problem
-                print('WARNING: Missing vertex weight')
+                print('Neverblender - WARNING: Missing vertex weight in ' + obj.name)
                 line = 'ERROR: no weight'
             asciiLines.append(line)
 
@@ -1137,7 +1127,7 @@ class Emitter(GeometryNode):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
 
         if obj.nvb.rawascii not in bpy.data.texts:
-            print('Warning: No emitter data for ' + obj.name)
+            print('Neverblender - WARNING: No emitter data for ' + obj.name)
             return
         txt      = bpy.data.texts[obj.nvb.rawascii]
         txtLines = [l.split() for l in txt.as_string().split('\n')]
@@ -1391,7 +1381,7 @@ class Aabb(Trimesh):
                 faceIdx += 1
             else:
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
-                print('WARNING: Ngon in walkmesh. Unable to generate aabb.')
+                print('Neverblender - WARNING: Ngon in walkmesh. Unable to generate aabb.')
                 return
 
         aabbTree = []
