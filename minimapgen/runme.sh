@@ -1,8 +1,8 @@
 
 BLENDER=blender
 
-INPUT=./in
-OUTPUT=./out
+INPUT=in
+OUTPUT=out
 
 MSIZE=64
 ZOFF=10.0
