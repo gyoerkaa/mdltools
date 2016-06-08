@@ -15,7 +15,7 @@ output_path    = 'out'
 emtpy_filename = 'empty.blend'
 empty_path     = os.path.join(os.path.dirname(__file__), emtpy_filename)
 light_color    = (1.0, 1.0, 1.0)
-fading_obj_imp = True
+skipFadingObj  = False
 alpha_mode     = 'SKY'
 
 def processfile(filepath):
@@ -25,16 +25,16 @@ def processfile(filepath):
      - Render minimap
     '''
     # Import mdl file
-    bpy.ops.nvb.mdlimport(filepath = mdlfile, 
-                          importGeometry = True, 
+    bpy.ops.nvb.mdlimport(filepath = mdlfile,
+                          importGeometry = True,
                           importWalkmesh = False,
                           importSmoothGroups = False,
                           importAnim = 'NON',
                           importSupermodel = False,
                           materialMode = 'SIN',
                           textureSearch = False,
-                          minimapMode = True)
-
+                          minimapMode = True,
+                          minimapSkipFade = skipFadingObj)
     # Get mdl root
     mdlRoot = None
     for obj in bpy.data.objects:
@@ -61,41 +61,52 @@ for arg in sys.argv:
         try:
             minimap_size = int(words[1])
         except:
-            print('ERROR: Could not read MINIMAP_SIZE from generator.ini')
-            minimap_size = 32
+            print('Neverblender - ERROR: Could not read MINIMAP_SIZE from generator.ini')
+            sys.exit()
+        print('Neverblender - INFO: Minimap Size = ' + str(minimap_size))
+
     if (words[0] == 'nvb_zoff'):
         try:
             z_offset = float(words[1])
         except:
-            print('ERROR: Could not read Z_OFFSET from generator.ini')
-            z_offset = 0.0
+            print('Neverblender - ERROR: Could not read Z_OFFSET from generator.ini')
+            sys.exit()
+        print('Neverblender - INFO: Z Offset = ' + str(z_offset))
+
     elif (words[0] == 'nvb_input'):
         input_path = words[1]
+
     elif (words[0] == 'nvb_output'):
         output_path = words[1]
+
     elif (words[0] == 'nvb_impfade'):
         try:
-            fading_obj_imp = (int(words[1]) >= 1)
+            skipFadingObj = (int(words[1]) < 1)
         except:
-            print('ERROR: Could not read IMPORT_FADING_OBJ from generator.ini')
-            fading_obj_imp = True
+            print('Neverblender - ERROR: Could not read IMPORT_FADING_OBJ from generator.ini')
+            sys.exit()
+        if skipFadingObj:
+            print('Neverblender - INFO: Import Fading Objects = NO')
+        else:
+            print('Neverblender - INFO: Import Fading Objects = YES')
+
     elif (words[0] == 'nvb_lcolor'):
-        print(words[1])
         cval_string = words[1].split(',')
         try:
-            cval_list = [ float(cval_string[0]),
-                          float(cval_string[1]),
-                          float(cval_string[2]) ]
+            cval = [float(cval_string[0]),
+                    float(cval_string[1]),
+                    float(cval_string[2]) ]
         except:
-            print('ERROR: Could not read LIGHT_COLOR from generator.ini')
-            cval_list = [1.0,1.0,1.0]
+            print('Neverblender - ERROR: Could not read LIGHT_COLOR from generator.ini')
+            sys.exit()
         # Make sure the light colors are in [0.0,1.0]
-        for idx, cval in enumerate(cval_list):
-            if cval < 0.0:
-                cval_list[idx] = 0.0
-            elif cval > 1.0:
-                cval_list[idx] = 1.0
-        light_color = tuple(cval_list)
+        for i in range(3):
+            if cval[i] < 0.0:
+                cval[i] = 0.0
+            elif cval[i] > 1.0:
+                cval[i] = 1.0
+        print('Neverblender - INFO: Light color = (' + str(cval[0]) + ', ' + str(cval[1]) + ', ' + str(cval[2]) + ')')
+        light_color = tuple(cval)
 
 
 # Get all mdl files in the input directory
