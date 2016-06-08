@@ -337,6 +337,12 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default = False,
             options = {'HIDDEN'})
 
+    minimapSkipFade = bpy.props.BoolProperty(
+            name = 'Minimap Mode: Import Fading Objects',
+            description = 'Ignore fading objects',
+            default = False,
+            options = {'HIDDEN'})
+
     def execute(self, context):
         keywords = self.as_keywords(ignore=('filter_glob',
                                             'check_existing',

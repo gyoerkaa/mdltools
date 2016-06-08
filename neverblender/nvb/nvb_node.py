@@ -624,9 +624,11 @@ class Trimesh(GeometryNode):
 
     def load(self, scene):
         if nvb_glob.minimapMode:
-            if (self.render == 0) or  self.tilefade:
+            if (self.tilefade and nvb_glob.minimapSkipFade) or not self.render:
+                # Fading objects won't be imported in minimap mode
                 # Fading objects or shadow meshes won't be imported in minimap mode
-                # We may need it for the tree stucture, so import it as an empty
+
+                # We may need them for the tree stucture, so import it as an empty
                 return Dummy.load(self, scene)
 
         mesh = self.loadMesh(self.name)
