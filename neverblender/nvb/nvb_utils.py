@@ -57,8 +57,9 @@ def materialExists(diffuse = (1.0, 1.0, 1.0),
         else:
             # Has to have a texture
             if material.active_texture:
-                if material.active_texture.image:
-                    eq = (material.active_texture.image.name == imageName)
+                if material.active_texture.type == 'IMAGE':
+                    if material.active_texture.image.name:
+                        eq = (material.active_texture.image.name == imageName)
                 eq = eq and (material.texture_slots[material.active_texture_index].alpha_factor == alpha)
 
         eq = eq and isclose_3f(material.diffuse_color, diffuse)

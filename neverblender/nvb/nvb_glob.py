@@ -8,7 +8,8 @@ materialMode = 'SIN'
 texturePath   = ''
 textureSearch = False
 
-minimapMode = False
+minimapMode     = False
+minimapSkipFade = False
 
 # Export
 exportSmoothGroups = True
