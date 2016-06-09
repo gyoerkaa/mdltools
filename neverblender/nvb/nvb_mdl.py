@@ -179,7 +179,7 @@ class Mdl():
                         print("Neverblender - WARNING: Unable to read classification. Default value " + self.classification)
 
                     if self.classification not in nvb_def.Classification.ALL:
-                        print("WARNING: Invalid classification '" + self.classification + "'")
+                        print("Neverblender - WARNING: Invalid classification '" + self.classification + "'")
                         self.classification = nvb_def.Classification.UNKNOWN
                 elif (label == 'setanimationscale'):
                     try:

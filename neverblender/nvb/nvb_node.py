@@ -1002,7 +1002,7 @@ class Skinmesh(Trimesh):
                     line += '  ' + w[0] + ' ' + str(round(w[1], 3))
             else:
                 # No weights for this vertex ... this is a problem
-                print('WARNING: Missing vertex weight')
+                print('Neverblender - WARNING: Missing vertex weight')
                 line = 'ERROR: no weight'
             asciiLines.append(line)
 
@@ -1117,7 +1117,7 @@ class Emitter(GeometryNode):
         GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
 
         if obj.nvb.rawascii not in bpy.data.texts:
-            print('Warning: No emitter data for ' + obj.name)
+            print('Neverblender - Warning: No emitter data for ' + obj.name)
             return
         txt      = bpy.data.texts[obj.nvb.rawascii]
         txtLines = [l.split() for l in txt.as_string().split('\n')]
@@ -1371,7 +1371,7 @@ class Aabb(Trimesh):
                 faceIdx += 1
             else:
                 # Ngon or no polygon at all (This should never be the case with tessfaces)
-                print('WARNING: Ngon in walkmesh. Unable to generate aabb.')
+                print('Neverblender - WARNING: Ngon in walkmesh. Unable to generate aabb.')
                 return
 
         aabbTree = []
