@@ -53,6 +53,7 @@ class Animation():
         for anim in rootDummy.nvb.animList:
             animStartFrame = anim.frameEnd
             if anim.name == self.name:
+                print('Neverblender - Warning: Animation ' + self.name + ' already exisits')
                 return
         animStartFrame = animStartFrame + nvb_def.anim_distance
 
@@ -74,7 +75,9 @@ class Animation():
 
 
     def addAnimationData(self, obj, frameStart, parent = None):
-        animNode.addAnimationDataToObject(obj, frameStart, self.name)
+        animNode.addAnimationDataToObject(obj,
+                                          frameStart,
+                                          self.name)
         if obj.active_material:
             animNode.addAnimationDataToMaterial(obj.active_material,
                                                 frameStart,
