@@ -610,12 +610,12 @@ class Trimesh(GeometryNode):
         GeometryNode.loadData(self, obj)
 
         obj.nvb.meshtype         = self.meshtype
-        obj.nvb.tilefade         = self.tilefade
-        obj.nvb.render           = (self.render == 1)
-        obj.nvb.shadow           = (self.shadow == 1)
-        obj.nvb.beaming          = (self.beaming == 1)
-        obj.nvb.inheritcolor     = (self.inheritcolor == 1)
-        obj.nvb.rotatetexture    = (self.rotatetexture == 1)
+        obj.nvb.tilefade         = (self.tilefade >= 1)
+        obj.nvb.render           = (self.render >= 1)
+        obj.nvb.shadow           = (self.shadow >= 1)
+        obj.nvb.beaming          = (self.beaming >= 1)
+        obj.nvb.inheritcolor     = (self.inheritcolor >= 1)
+        obj.nvb.rotatetexture    = (self.rotatetexture >= 1)
         obj.nvb.transparencyhint = self.transparencyhint
         obj.nvb.selfillumcolor   = self.selfillumcolor
         obj.nvb.ambientcolor     = self.ambient
