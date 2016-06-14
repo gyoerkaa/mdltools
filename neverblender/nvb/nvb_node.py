@@ -614,12 +614,12 @@ class Trimesh(GeometryNode):
         GeometryNode.setObjectData(self, obj)
 
         obj.nvb.meshtype         = self.meshtype
-        obj.nvb.tilefade         = self.tilefade
-        obj.nvb.render           = (self.render == 1)
-        obj.nvb.shadow           = (self.shadow == 1)
-        obj.nvb.beaming          = (self.beaming == 1)
-        obj.nvb.inheritcolor     = (self.inheritcolor == 1)
-        obj.nvb.rotatetexture    = (self.rotatetexture == 1)
+        obj.nvb.tilefade         = (self.tilefade >= 1)
+        obj.nvb.render           = (self.render >= 1)
+        obj.nvb.shadow           = (self.shadow >= 1)
+        obj.nvb.beaming          = (self.beaming >= 1)
+        obj.nvb.inheritcolor     = (self.inheritcolor >= 1)
+        obj.nvb.rotatetexture    = (self.rotatetexture >= 1)
         obj.nvb.transparencyhint = self.transparencyhint
         obj.nvb.selfillumcolor   = self.selfillumcolor
         obj.nvb.ambientcolor     = self.ambient
@@ -627,10 +627,11 @@ class Trimesh(GeometryNode):
 
 
     def addToScene(self, scene):
-        if nvb_glob.minimapMode and self.tilefade:
-            # Fading objects won't be imported in minimap mode
-            # We may need it for the tree stucture, so import it as an empty
-            return Dummy.addToScene(self, scene)
+        if nvb_glob.minimapMode:
+            if (self.tilefade and nvb_glob.minimapSkipFade) or not self.render:
+                # Fading objects or shadow meshes won't be imported in minimap mode
+                # We may need them for the tree stucture, so import it as an empty
+                return Dummy.addToScene(self, scene)
         mesh = self.createMesh(self.name)
         obj  = bpy.data.objects.new(self.name, mesh)
         self.setObjectData(obj)
