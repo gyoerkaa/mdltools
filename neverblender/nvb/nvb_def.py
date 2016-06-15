@@ -122,7 +122,16 @@ class Dummytype():
 
     ALL = {NONE, DWKROOT, MDLROOT, PWKROOT, REFERENCE, PATCH}
 
-
+    
+class Tilefade():
+    NONE       = '0'
+    FADE       = '1'
+    BASE       = '2'
+    NEIGHBOUR  = '4'
+    
+    ALL = {NONE, FADE, BASE, NEIGHBOUR}
+    
+    
 class Classification():
     UNKNOWN   = 'UNKNOWN'
     TILE      = 'TILE'
