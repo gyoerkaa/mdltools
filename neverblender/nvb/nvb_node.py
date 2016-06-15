@@ -614,7 +614,14 @@ class Trimesh(GeometryNode):
         GeometryNode.setObjectData(self, obj)
 
         obj.nvb.meshtype         = self.meshtype
-        obj.nvb.tilefade         = (self.tilefade >= 1)
+        if self.tilefade == 1:
+            obj.nvb.tilefade = nvb_def.Tilefade.FADE
+        elif self.tilefade == 2:
+            obj.nvb.tilefade = nvb_def.Tilefade.BASE
+        elif self.tilefade == 4:
+            obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR              
+        else:
+            obj.nvb.tilefade = nvb_def.Tilefade.NONE        
         obj.nvb.render           = (self.render >= 1)
         obj.nvb.shadow           = (self.shadow >= 1)
         obj.nvb.beaming          = (self.beaming >= 1)
