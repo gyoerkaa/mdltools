@@ -829,7 +829,7 @@ class Trimesh(GeometryNode):
             # These two are for tiles only
             if classification == 'TILE':
                 asciiLines.append('  rotatetexture ' + str(int(obj.nvb.rotatetexture)))
-                asciiLines.append('  tilefade ' + str(int(obj.nvb.tilefade)))
+                asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
         self.addMeshDataToAscii(obj, asciiLines, simple)
 
