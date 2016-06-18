@@ -615,9 +615,9 @@ class Trimesh(GeometryNode):
         elif self.tilefade == 2:
             obj.nvb.tilefade = nvb_def.Tilefade.BASE
         elif self.tilefade == 4:
-            obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR              
+            obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
         else:
-            obj.nvb.tilefade = nvb_def.Tilefade.NONE  
+            obj.nvb.tilefade = nvb_def.Tilefade.NONE
         obj.nvb.render           = (self.render >= 1)
         obj.nvb.shadow           = (self.shadow >= 1)
         obj.nvb.beaming          = (self.beaming >= 1)
@@ -1259,13 +1259,13 @@ class Light(GeometryNode):
         #TODO: Check light names when exporting tiles
         obj.nvb.ambientonly   = self.ambientonly
         obj.nvb.lighttype     = switch.get(self.name[-3:], 'NONE')
-        obj.nvb.shadow        = (self.shadow == 1)
+        obj.nvb.shadow        = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
-        obj.nvb.fadinglight   = (self.fadinglight == 1)
-        obj.nvb.isdynamic     = (self.ndynamictype == 1) or (self.isdynamic == 1)
-        obj.nvb.affectdynamic = (self.affectdynamic == 1)
+        obj.nvb.fadinglight   = (self.fadinglight >= 1)
+        obj.nvb.isdynamic     = (self.ndynamictype >= 1) or (self.isdynamic >= 1)
+        obj.nvb.affectdynamic = (self.affectdynamic >= 1)
 
-        if (self.flareradius > 0) or (self.lensflares == 1):
+        if (self.flareradius > 0) or (self.lensflares >= 1):
             obj.nvb.lensflares = True
             numFlares = len(self.flareList.textures)
             for i in range(numFlares):
