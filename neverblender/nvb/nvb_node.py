@@ -1257,7 +1257,7 @@ class Light(GeometryNode):
                   'sl1': 'SOURCELIGHT1', \
                   'sl2': 'SOURCELIGHT2'}
         #TODO: Check light names when exporting tiles
-        obj.nvb.ambientonly   = self.ambientonly
+        obj.nvb.ambientonly   = (self.ambientonly >= 1)
         obj.nvb.lighttype     = switch.get(self.name[-3:], 'NONE')
         obj.nvb.shadow        = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
