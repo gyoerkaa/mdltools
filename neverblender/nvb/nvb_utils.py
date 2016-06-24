@@ -123,10 +123,14 @@ def chunker(seq, size):
 
 def getImageFilename(image):
     '''
+    Returns the image name without the file extension.
+
     '''
+    # Try getting the image name from the image source path
     filename = os.path.splitext(os.path.basename(image.filepath))[0]
     if (filename == ''):
-        return image.name
+        # If that doesn't work, get it from the image name
+        filename = os.path.splitext(os.path.basename(image.name))[0]
 
     return filename
 
