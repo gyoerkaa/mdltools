@@ -39,7 +39,7 @@ def load_settings():
     '''
     Loads settings from command line arguments
     '''
-    log('### Options ###')
+    log('##### Options #####')
 
     for arg in sys.argv:
         words=arg.split('=')
@@ -47,19 +47,19 @@ def load_settings():
             try:
                 minimap_size = int(words[1])
             except:
-                log('Neverblender - WARNING: Could not read MINIMAP_SIZE. Using Default value.')
+                log('WARNING: Could not read MINIMAP_SIZE. Using Default value.')
 
         if (words[0] == 'nvb_zoff'):
             try:
                 z_offset = float(words[1])
             except:
-                log('Neverblender - ERROR: Could not read Z_OFFSET. Using Default value.')
+                log('WARNING: Could not read Z_OFFSET. Using Default value.')
 
         elif (words[0] == 'nvb_impfade'):
             try:
                 skip_fading = (int(words[1]) < 1)
             except:
-                log('Neverblender - ERROR: Could not read IMPORT_FADING_OBJ. Using Default value.')
+                log('WARNING: Could not read IMPORT_FADING_OBJ. Using Default value.')
 
         elif (words[0] == 'nvb_lcolor'):
             cval_string = words[1].split(',')
@@ -68,7 +68,7 @@ def load_settings():
                         float(cval_string[1]),
                         float(cval_string[2]) ]
             except:
-                log('Neverblender - ERROR: Could not read LIGHT_COLOR. Using Default value.')
+                log('WARNING: Could not read LIGHT_COLOR. Using Default value.')
 
             # Make sure the light colors are in [0.0,1.0]
             for i in range(3):
@@ -99,7 +99,7 @@ def process_files():
     '''
     Processes all files in the input directory
     '''
-    log('### Processing files ###')
+    log('##### Processing files #####')
 
     for filename in os.listdir(input_path):
         if filename.endswith('.mdl'):
@@ -138,7 +138,7 @@ def process_files():
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
                 bpy.ops.render.render(write_still = True)
             else:
-                log('NEVERBLENDER - ERROR: No rootdummy')
+                log('   ERROR: No rootdummy')
 
 
 logfile = open(os.fsencode(logfile_name), 'w')
