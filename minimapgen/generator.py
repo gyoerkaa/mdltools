@@ -13,8 +13,8 @@ minimap_size = 32
 z_offset     = 10.0
 light_color  = (1.0, 1.0, 1.0)
 skip_fading  = False
-input_path   = 'in'
-output_path  = 'out'
+input_path   = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'in')
+output_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'out')
 
 
 # Some globals
@@ -84,15 +84,15 @@ def load_settings():
         elif (words[0] == 'nvb_output'):
             output_path = words[1]
 
-        log('Minimap Size: ' + str(minimap_size))
-        log('Z-Offset: ' + str(z_offset))
-        if skip_fading:
-            log('Fading Objects: Ignore')
-        else:
-            log'Fading Objects:  Import')
-        log('Light color: (' + str(cval[0]) + ', ' + str(cval[1]) + ', ' + str(cval[2]) + ')')
-        log('Input path:  ' + input_path)
-        log('Output path: ' + output_path)
+    log('Minimap Size: ' + str(minimap_size))
+    log('Z-Offset: ' + str(z_offset))
+    if skip_fading:
+        log('Fading Objects: Ignore')
+    else:
+        log('Fading Objects:  Import')
+    log('Light color: (' + str(cval[0]) + ', ' + str(cval[1]) + ', ' + str(cval[2]) + ')')
+    log('Input path:  ' + input_path)
+    log('Output path: ' + output_path)
 
 
 def process_files():
@@ -133,12 +133,15 @@ def process_files():
                 filename = 'mi_' + mdlRoot.name
                 scene    = bpy.context.scene
                 scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
+                print()
                 mdlRoot.nvb.minimapsize    = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
                 bpy.ops.render.render(write_still = True)
+                log('   DONE: Exported to ' + filename)
             else:
                 log('   ERROR: No rootdummy')
+
 
 
 logfile = open(os.fsencode(logfile_name), 'w')

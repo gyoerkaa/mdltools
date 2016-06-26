@@ -40,7 +40,8 @@ def loadMdl(operator,
             importAnim = True,
             materialMode = 'SIN',
             textureSearch = False,
-            minimapMode = False):
+            minimapMode = False,
+            minimapSkipFade = False):
     '''
     Called from blender ui
     '''
@@ -53,7 +54,8 @@ def loadMdl(operator,
     nvb_glob.texturePath   = os.path.dirname(filepath)
     nvb_glob.textureSearch = textureSearch
 
-    nvb_glob.minimapMode = minimapMode
+    nvb_glob.minimapMode     = minimapMode
+    nvb_glob.minimapSkipFade = minimapSkipFade
 
     scene = bpy.context.scene
 

@@ -1,4 +1,3 @@
-
 BLENDER=blender
 
 INPUT=in
