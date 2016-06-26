@@ -663,6 +663,8 @@ class Trimesh(GeometryNode):
                 # Only image textures will be exported
                 if (texture.type == 'IMAGE') and (texture.image):
                     imgName = nvb_utils.getImageFilename(texture.image)
+                else:
+                    imgName = nvb_def.null
             asciiLines.append('  bitmap ' + imgName)
             asciiLines.append('  alpha ' + str(round(nvb_utils.getAuroraAlpha(obj), 2)))
 
