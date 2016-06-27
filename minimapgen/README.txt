@@ -13,6 +13,9 @@ change the path to your blender executable:
 [PATH]
 BLENDER="C:\Program Files (x86)\Blender Foundation\Blender\blender.exe"
 
+Note: This in only required in the Windows version. The Linux script will ingore this 
+setting and start the installed blender version directly instead.
+
 
 #########
 # USAGE #
