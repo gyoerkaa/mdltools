@@ -97,10 +97,37 @@ def load_settings():
 
 def process_files():
     '''
-    Processes all files in the input directory
+    If a set tile was found parse it an process mdls accordingly
+    If no set file is present just process all mdl in the input dir
     '''
-    log('##### Processing files #####')
+    log('##### Processing #####')
 
+    found_set = False
+    for filename in os.listdir(input_path):
+        if filename.endswith('.set'):
+            found_set = True
+            process_set(filename)
+
+    if not found_set:
+        process_all()
+
+
+def process_set(setfile_name):
+
+    log('Processing set file: ' + setfile_name)
+    tiles  = []
+    groups = []
+
+    fp = os.fsencode(os.path.join(input_path, setfile_name))
+    blocks = [line.strip().split('[') for line in open(fp, 'r')]
+    for block in blocks:
+        pass
+
+
+def process_all():
+    '''
+    Processes all mdl files in the input directory
+    '''
     for filename in os.listdir(input_path):
         if filename.endswith('.mdl'):
             log('Processing ' + filename)
@@ -110,8 +137,8 @@ def process_files():
                                      load_ui = False)
 
             # Import mdl file
-            mdlfile = os.fsencode(os.path.join(input_path, filename))
-            bpy.ops.nvb.mdlimport(filepath = mdlfile,
+            mdlfile_path = os.fsencode(os.path.join(input_path, filename))
+            bpy.ops.nvb.mdlimport(filepath = mdlfile_path,
                                   importGeometry = True,
                                   importWalkmesh = False,
                                   importSmoothGroups = False,
@@ -143,8 +170,7 @@ def process_files():
                 log('   ERROR: No rootdummy')
 
 
-
 logfile = open(os.fsencode(logfile_name), 'w')
 load_settings()
-process_files()
+process_all()
 logfile.close()
