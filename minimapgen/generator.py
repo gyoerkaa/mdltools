@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 import bpy
 import bgl
@@ -118,9 +119,13 @@ def process_set(setfile_name):
     tiles  = []
     groups = []
 
-    fp = os.fsencode(os.path.join(input_path, setfile_name))
-    blocks = [line.strip().split('[') for line in open(fp, 'r')]
-    for block in blocks:
+    filepath = os.fsencode(os.path.join(input_path, setfile_name))
+    blocks   = []
+    with open(filepath, 'r') as fp:
+        contents = fp.read()
+        blocks = re.split('(\[.+\])', contents)
+
+    for b in blocks:
         pass
 
 
