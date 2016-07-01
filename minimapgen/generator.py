@@ -120,13 +120,14 @@ def process_set(setfile_name):
     groups = []
 
     filepath = os.fsencode(os.path.join(input_path, setfile_name))
-    blocks   = []
     with open(filepath, 'r') as fp:
         contents = fp.read()
-        blocks = re.split('(\[.+\])', contents)
 
-    for b in blocks:
-        pass
+    tiles_start  = contents.find('[TILES]')
+    groups_start = contents.find('[GROUPS]')
+
+    tiles  = contents[tiles_start:groups_start-1].strip().split()
+    groups = contents[groups_start:].strip().split()
 
 
 def process_all():
