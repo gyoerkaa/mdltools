@@ -134,29 +134,38 @@ def process_set(setfile_name):
     for g in groups_block:
         g.strip().slpit()
 
+
 def process_all():
     '''
     Processes all mdl files in the input directory
     '''
+    # Load an empty file
+    try:
+        bpy.ops.wm.open_mainfile(filepath = empty_path,
+                                 load_ui = False)
+    except:
+        log('ERROR: Unable to load empty.blend')
+        return
+
     for filename in os.listdir(input_path):
         if filename.endswith('.mdl'):
             log('Processing ' + filename)
 
-            # Load an empty file
-            bpy.ops.wm.open_mainfile(filepath = empty_path,
-                                     load_ui = False)
-
             # Import mdl file
-            mdlfile_path = os.fsencode(os.path.join(input_path, filename))
-            bpy.ops.nvb.mdlimport(filepath = mdlfile_path,
-                                  importGeometry = True,
-                                  importWalkmesh = False,
-                                  importSmoothGroups = False,
-                                  importAnim = False,
-                                  materialMode = 'MUL',
-                                  textureSearch = False,
-                                  minimapMode = True,
-                                  minimapSkipFade = skip_fading)
+            mdlfile = os.fsencode(os.path.join(input_path, filename))
+            try:
+                bpy.ops.nvb.mdlimport(filepath = mdlfile,
+                                      importGeometry = True,
+                                      importWalkmesh = False,
+                                      importSmoothGroups = False,
+                                      importAnim = False,
+                                      materialMode = 'MUL',
+                                      textureSearch = False,
+                                      minimapMode = True,
+                                      minimapSkipFade = skip_fading)
+            except RuntimeError as ex:
+                error_report = '\n'.join(ex.args)
+                print('    ERROR: ', error_report)
 
             # Get mdl root
             mdlRoot = None
@@ -170,7 +179,6 @@ def process_all():
                 filename = 'mi_' + mdlRoot.name
                 scene    = bpy.context.scene
                 scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
-                print()
                 mdlRoot.nvb.minimapsize    = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
@@ -178,6 +186,10 @@ def process_all():
                 log('   DONE: Exported to ' + filename)
             else:
                 log('   ERROR: No rootdummy')
+
+            # Load empty blend for next mdl file
+            bpy.ops.wm.open_mainfile(filepath = empty_path,
+                                     load_ui = False)
 
 
 logfile = open(os.fsencode(logfile_name), 'w')
