@@ -126,9 +126,13 @@ def process_set(setfile_name):
     tiles_start  = contents.find('[TILES]')
     groups_start = contents.find('[GROUPS]')
 
-    tiles  = contents[tiles_start:groups_start-1].strip().split()
-    groups = contents[groups_start:].strip().split()
+    tiles_block  = contents[tiles_start:groups_start-1].strip().split()
+    for b in tiles_block:
+        b.strip().slpit()
 
+    groups_block = contents[groups_start:].strip().split()
+    for g in groups_block:
+        g.strip().slpit()
 
 def process_all():
     '''
