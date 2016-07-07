@@ -113,28 +113,6 @@ def process_files():
         process_all()
 
 
-def process_set(setfile_name):
-
-    log('Processing set file: ' + setfile_name)
-    tiles  = []
-    groups = []
-
-    filepath = os.fsencode(os.path.join(input_path, setfile_name))
-    with open(filepath, 'r') as fp:
-        contents = fp.read()
-
-    tiles_start  = contents.find('[TILES]')
-    groups_start = contents.find('[GROUPS]')
-
-    tiles_block  = contents[tiles_start:groups_start-1].strip().split()
-    for b in tiles_block:
-        b.strip().slpit()
-
-    groups_block = contents[groups_start:].strip().split()
-    for g in groups_block:
-        g.strip().slpit()
-
-
 def process_all():
     '''
     Processes all mdl files in the input directory
@@ -166,7 +144,8 @@ def process_all():
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
                 print('    ERROR: ', error_report)
-
+                
+            log('    Import succesful')
             # Get mdl root
             mdlRoot = None
             for obj in bpy.data.objects:
@@ -182,14 +161,35 @@ def process_all():
                 mdlRoot.nvb.minimapsize    = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
-                bpy.ops.render.render(write_still = True)
-                log('   DONE: Exported to ' + filename)
+                bpy.ops.render.render(animation = False, write_still = True)
+                log('    Rendered to ' + filename)
             else:
-                log('   ERROR: No rootdummy')
+                log('    ERROR: No rootdummy')
 
             # Load empty blend for next mdl file
-            bpy.ops.wm.open_mainfile(filepath = empty_path,
-                                     load_ui = False)
+            bpy.ops.wm.open_mainfile(filepath = empty_path, load_ui = False)
+
+
+def process_set(setfile_name):
+
+    log('Processing set file: ' + setfile_name)
+    tiles  = []
+    groups = []
+
+    filepath = os.fsencode(os.path.join(input_path, setfile_name))
+    with open(filepath, 'r') as fp:
+        contents = fp.read()
+
+    tiles_start  = contents.find('[TILES]')
+    groups_start = contents.find('[GROUPS]')
+
+    tiles_block  = contents[tiles_start:groups_start-1].strip().split()
+    for b in tiles_block:
+        b.strip().slpit()
+
+    groups_block = contents[groups_start:].strip().split()
+    for g in groups_block:
+        g.strip().slpit()
 
 
 logfile = open(os.fsencode(logfile_name), 'w')
