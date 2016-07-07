@@ -62,6 +62,35 @@ def loadMdl(operator,
     fp = os.fsencode(filepath)
     asciiLines = [line.strip().split() for line in open(fp, 'r')]
 
+    '''
+    TODO: Split with regex, possibly in nvb_mdl.py
+
+    filedependancy XYZ (won't be imported)
+    newmodel plc_arcirc_01blh
+        METADATA
+        beginmodelgeom MODELNAME
+            node NODETYPE NODENAME_0
+            endnode NODENAME_0 (may not be there)
+            ...
+            node NODETYPE NODENAME_N
+            endnode NODENAME_N (may not be there)
+        endmodelgeom MODELNAME (may not be there)
+
+        newanim ANIMNAME_0
+        doneanim ANIMNAME_0 (may not be there)
+        ...
+        newanim ANIMNAME_M
+        doneanim ANIMNAME_M (may not be there)
+    donemodel MODELNAME (may not be there)
+
+    Split into:
+    METADATA
+
+    NODES
+
+    ANIMS
+    '''
+
     print('Importing: ' + filepath)
     mdl = nvb_mdl.Mdl()
     mdl.loadAscii(asciiLines)

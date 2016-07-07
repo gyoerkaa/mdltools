@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 import bpy
 import bgl
@@ -97,30 +98,54 @@ def load_settings():
 
 def process_files():
     '''
-    Processes all files in the input directory
+    If a set tile was found parse it an process mdls accordingly
+    If no set file is present just process all mdl in the input dir
     '''
-    log('##### Processing files #####')
+    log('##### Processing #####')
+    
+    found_set = False    
+    #for filename in os.listdir(input_path):
+    #    if filename.endswith('.set'):
+    #        found_set = True
+    #        process_set(filename)
+
+    if not found_set:
+        process_all()
+
+
+def process_all():
+    '''
+    Processes all mdl files in the input directory
+    '''
+    # Load an empty file
+    try:
+        bpy.ops.wm.open_mainfile(filepath = empty_path,
+                                 load_ui = False)
+    except:
+        log('ERROR: Unable to load empty.blend')
+        return
 
     for filename in os.listdir(input_path):
         if filename.endswith('.mdl'):
             log('Processing ' + filename)
 
-            # Load an empty file
-            bpy.ops.wm.open_mainfile(filepath = empty_path,
-                                     load_ui = False)
-
             # Import mdl file
             mdlfile = os.fsencode(os.path.join(input_path, filename))
-            bpy.ops.nvb.mdlimport(filepath = mdlfile,
-                                  importGeometry = True,
-                                  importWalkmesh = False,
-                                  importSmoothGroups = False,
-                                  importAnim = False,
-                                  materialMode = 'MUL',
-                                  textureSearch = False,
-                                  minimapMode = True,
-                                  minimapSkipFade = skip_fading)
-
+            try:
+                bpy.ops.nvb.mdlimport(filepath = mdlfile,
+                                      importGeometry = True,
+                                      importWalkmesh = False,
+                                      importSmoothGroups = False,
+                                      importAnim = False,
+                                      materialMode = 'MUL',
+                                      textureSearch = False,
+                                      minimapMode = True,
+                                      minimapSkipFade = skip_fading)
+            except RuntimeError as ex:
+                error_report = '\n'.join(ex.args)
+                print('    ERROR: ', error_report)
+                
+            log('    Import succesful')
             # Get mdl root
             mdlRoot = None
             for obj in bpy.data.objects:
@@ -133,17 +158,22 @@ def process_files():
                 filename = 'mi_' + mdlRoot.name
                 scene    = bpy.context.scene
                 scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
-                print()
                 mdlRoot.nvb.minimapsize    = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
-                bpy.ops.render.render(write_still = True)
-                log('   DONE: Exported to ' + filename)
+                bpy.ops.render.render(animation = False, write_still = True)
+                log('    DONE: Rendered to ' + filename)
             else:
-                log('   ERROR: No rootdummy')
+                log('    ERROR: No rootdummy')
+
+            # Load empty blend for next mdl file
+            bpy.ops.wm.open_mainfile(filepath = empty_path, load_ui = False)
 
 
-
+def process_set():
+    pass
+    
+    
 logfile = open(os.fsencode(logfile_name), 'w')
 load_settings()
 process_files()
