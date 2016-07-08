@@ -183,13 +183,20 @@ def process_set(setfile_name):
     tiles_start  = contents.find('[TILES]')
     groups_start = contents.find('[GROUPS]')
 
-    tiles_block  = contents[tiles_start:groups_start-1].strip().split()
-    for b in tiles_block:
-        b.strip().slpit()
+    tile_blocks  = contents[tiles_start:groups_start-1].split('[')
+    for block in tile_blocks:
+        block.strip().slpit()
 
-    groups_block = contents[groups_start:].strip().split()
-    for g in groups_block:
-        g.strip().slpit()
+    group_blocks = contents[groups_start:].split('[')
+    for block in group_blocks:
+        block.strip().slpit()
+        
+    
+    for g in groups:
+        pass
+        
+    for t in tiles:
+        pass
 
 
 logfile = open(os.fsencode(logfile_name), 'w')
