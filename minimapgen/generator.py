@@ -144,7 +144,7 @@ def process_all():
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
                 print('    ERROR: ', error_report)
-                
+
             log('    Import succesful')
             # Get mdl root
             mdlRoot = None
@@ -184,18 +184,20 @@ def process_set(setfile_name):
     groups_start = contents.find('[GROUPS]')
 
     tile_blocks  = contents[tiles_start:groups_start-1].split('[')
-    for block in tile_blocks:
-        block.strip().slpit()
-
     group_blocks = contents[groups_start:].split('[')
-    for block in group_blocks:
-        block.strip().slpit()
-        
-    
-    for g in groups:
+
+    g = group_blocks.pop[0].strip().split()
+    num_groups = g[1]
+    if num_groups >= len(group_blocks)-1:
+        log('    ERROR: Num groups mismatch')
+    for g in tile_blocks:
         pass
-        
-    for t in tiles:
+
+    t = tile_blocks.pop[0].strip().split()
+    num_tiles = g[1]
+    if num_tiles >= len(tile_blocks)-1:
+        log('    ERROR: Num groups mismatch')
+    for t in tile_blocks:
         pass
 
 
