@@ -196,7 +196,7 @@ def process_set(setfile_name):
     t = tile_blocks.pop[0].strip().split()
     num_tiles = g[1]
     if num_tiles >= len(tile_blocks)-1:
-        log('    ERROR: Num groups mismatch')
+        log('    ERROR: Num tiles mismatch')
     for t in tile_blocks:
         pass
 
