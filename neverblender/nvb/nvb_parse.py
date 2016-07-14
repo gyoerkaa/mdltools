@@ -1,4 +1,16 @@
 
+def mdl(asciiBlock, nodeList, animList):
+    pass
+
+
+def geometry(asciiBlock, nodeList):
+    pass
+
+
+def anim(asciiBlock, animList):
+    pass
+
+
 def f1(asciiBlock, floatList):
     #floatList = [float(l[0]) for l in asciiBlock]
     l_float = float
