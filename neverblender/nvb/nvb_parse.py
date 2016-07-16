@@ -1,14 +1,15 @@
 
 def mdl(asciiBlock, nodeList, animList):
-    pass
+    geometryStart   = asciiBlock.find('beginmodelgeom')
+    animationsStart = asciiBlock.find('anim')
 
 
 def geometry(asciiBlock, nodeList):
-    pass
+    nodeList = asciiBlock.split('node').strip().split()
 
 
 def anim(asciiBlock, animList):
-    pass
+    nodeList = asciiBlock.split('anim').strip().split()
 
 
 def f1(asciiBlock, floatList):
