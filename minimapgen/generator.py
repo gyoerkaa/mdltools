@@ -171,7 +171,10 @@ def process_all():
 
 
 def process_set(setfile_name):
-
+    '''
+    Imports all tiles of a tile group and renders minimaps afterwards
+    Single tiles are rendered regularly
+    '''
     log('Processing set file: ' + setfile_name)
     tiles  = []
     groups = []
