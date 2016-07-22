@@ -87,6 +87,9 @@ def f5(asciiBlock, floatList):
 
 
 def txt(asciiBlock, txtBlock):
+    '''
+    Return a block of text joined with newline (used for emitters)
+    '''
     #txtBlock = ['\n'+' '.join(l) for l in aciiBlock]
     for line in asciiBlock:
         txtBlock = txtBlock + '\n' + ' '.join(line)
