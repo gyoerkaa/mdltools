@@ -143,7 +143,7 @@ def process_all():
                                       minimapSkipFade = skip_fading)
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
-                print('    ERROR: ', error_report)
+                log('    ERROR: ', error_report)
 
             log('    Import succesful')
             # Get mdl root
