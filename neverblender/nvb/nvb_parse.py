@@ -14,7 +14,7 @@ def geometry(asciiBlock, nodeList):
     '''
     Splits geometry block into nodes
     '''
-    nodeList = asciiBlock.split('node').strip().split()
+    nodes = asciiBlock.split('node').strip().split()
     #tng = re.split('(\[TILES\].+\[GROUPS\])', contents, flags=re.DOTALL)
     #blocks = re.split('(\[.+\])', contents)
 
@@ -23,7 +23,10 @@ def anim(asciiBlock, animList):
     Splits animation block into animations
     Splits animations into header and nodes
     '''
-    nodeList = asciiBlock.split('anim').strip().split()
+    anims = asciiBlock.split('anim').strip().split()
+    anim_nodes = []
+    for a in anims:
+        anim_nodes.append(a.split('node'))
 
 
 def f1(asciiBlock, floatList):
