@@ -193,8 +193,14 @@ def process_set(setfile_name):
     num_groups = g[1]
     if num_groups >= len(group_blocks)-1:
         log('    ERROR: Num groups mismatch')
-    for g in tile_blocks:
-        pass
+    for g in group_blocks:
+        group_def = g.strip().split():
+        group_id = group_blocks.pop[0][0]
+        group_tiles = []
+        for el in group_def:
+            group_tiles.append(el[1])
+        groups.append([group_id, group_tiles])
+
 
     t = tile_blocks.pop[0].strip().split()
     num_tiles = t[1]
