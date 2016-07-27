@@ -1,16 +1,20 @@
 
-def mdl(asciiBlock, nodeList, animList):
+def mdl(mdlFile, mdl, nodeList, animList):
     '''
     Splits the mdl file into:
       - header
       - geometry
       - animations
     '''
-    geometryStart   = asciiBlock.find('beginmodelgeom')
-    animationsStart = asciiBlock.find('anim')
+    if 'beginmodelgeom' in mdlFile:
+        headerBlock, geomBlock = mdlFile.split('beginmodegeom', maxsplit = 1)
+        if 'anim' in geomBlock:
+            geomBlock, animBlock = geomBlock.split('anim', maxsplit = 1)
+    else:
+        pass #TODO: Raise an error
 
 
-def geometry(asciiBlock, nodeList):
+def geometry(geomBlock, nodeList):
     '''
     Splits geometry block into nodes
     '''
@@ -18,7 +22,8 @@ def geometry(asciiBlock, nodeList):
     #tng = re.split('(\[TILES\].+\[GROUPS\])', contents, flags=re.DOTALL)
     #blocks = re.split('(\[.+\])', contents)
 
-def anim(asciiBlock, animList):
+
+def anim(animBlock, animList):
     '''
     Splits animation block into animations
     Splits animations into header and nodes
