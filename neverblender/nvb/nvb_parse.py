@@ -1,4 +1,31 @@
 
+
+'''
+filedependancy XYZ (won't be imported)
+newmodel plc_arcirc_01blh
+    HEADER
+    beginmodelgeom MODELNAME
+        node NODETYPE NODENAME_0
+        endnode NODENAME_0 (may not be there)
+        ...
+        node NODETYPE NODENAME_N
+        endnode NODENAME_N (may not be there)
+    endmodelgeom MODELNAME (may not be there)
+
+    newanim ANIMNAME_0
+    doneanim ANIMNAME_0 (may not be there)
+    ...
+    newanim ANIMNAME_M
+    doneanim ANIMNAME_M (may not be there)
+donemodel MODELNAME (may not be there)
+
+Split into:
+HEADER
+
+NODES
+
+ANIMS
+'''
 def mdl(mdlFile, mdl, nodeList, animList):
     '''
     Splits the mdl file into:
