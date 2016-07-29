@@ -17,6 +17,9 @@ class Mdl():
         self.nodeDict      = collections.OrderedDict()
         self.animDict      = dict() # No need to retain order
 
+        self.nodes = collections.OrderedDict()
+        self.anims  = dict()
+
         self.name           = 'UNNAMED'
         self.supermodel     = nvb_def.null
         self.animscale      = 1.0
