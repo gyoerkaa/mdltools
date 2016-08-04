@@ -130,8 +130,9 @@ class Tilefade():
     NEIGHBOUR  = '4'
     
     ALL = {NONE, FADE, BASE, NEIGHBOUR}
-    
-    
+
+
+
 class Classification():
     UNKNOWN   = 'UNKNOWN'
     TILE      = 'TILE'
@@ -143,5 +144,3 @@ class Classification():
 
     ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
 
-    def __init__():
-        pass
