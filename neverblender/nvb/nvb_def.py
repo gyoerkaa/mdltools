@@ -47,7 +47,11 @@ class Animtype():
 	UNDEFINED = 'UNDEFINED'
 	RUN       = 'RUN'
 	WALK      = 'WALK'
+	CUSTOM08  = 'CUSTOM8'	
+	CUSTOM09  = 'CUSTOM9'
 	CUSTOM10  = 'CUSTOM10'
+	
+	
 
 
 class DummySubtype():
