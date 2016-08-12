@@ -43,6 +43,13 @@ wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
                   ['wok_StoneBridge'   , (0.081, 0.108, 0.139), 0.0] ]
 
 
+class Animtype():
+	UNDEFINED = 'UNDEFINED'
+	RUN       = 'RUN'
+	WALK      = 'WALK'
+	CUSTOM10  = 'CUSTOM10'
+
+
 class DummySubtype():
     NONE      = 'NONE'
     HAND      = 'HAND'
