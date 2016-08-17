@@ -12,13 +12,67 @@ from . import nvb_def
 from . import nvb_utils
 
 
+class Mdl2():
+    def __init__(self):
+        self.nodes = []
+        self.anims = []
+
+        self.name           = 'UNNAMED'
+        self.supermodel     = nvb_def.null
+        self.animscale      = 1.0
+        self.classification = nvb_def.Classification.UNKNOWN
+
+    def loadGeometry():
+        pass
+
+    def loadAnimations():
+        pass
+
+    def load():
+        loadedNodes = dict()
+        todoNodes   = []
+
+        rootDummy = None
+        objIdx = 0
+        if nvb_glob.importGeometry and self.nodes:
+            for node in self.nodes:
+                obj = node.load(scene)
+                # Save the order of nodes. We'll need to restore it during
+                # export.
+                obj.nvb.order = objIdx
+                objIdx += 1
+                # Save it for animation import
+                if obj:
+                    key = newNode.parent + newNode.name
+                    if key in self.loadedNodes:
+                        #TODO: Should probably raise an exception
+                        pass
+                    else:
+                        self.loadedNodes[key] = obj
+
+                # Set parent
+                if (nvb_utils.isNull(node.parentName)):
+                    # Node without parent
+                    obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
+                    obj.nvb.supermodel     = self.supermodel
+                    obj.nvb.classification = self.classification
+                else:
+                    # Check if the parent exists
+                    if node.parentName in bpy.data.objects:
+                        obj.parent                = bpy.data.objects[node.parentName]
+                        obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                    else:
+                        # Node with invalid parent.
+                        raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
+
+
 class Mdl():
     def __init__(self):
-        self.nodeDict      = collections.OrderedDict()
-        self.animDict      = dict() # No need to retain order
+        self.nodeDict = collections.OrderedDict()
+        self.animDict = dict() # No need to retain order
 
         self.nodes = collections.OrderedDict()
-        self.anims  = dict()
+        self.anims = dict()
 
         self.name           = 'UNNAMED'
         self.supermodel     = nvb_def.null
