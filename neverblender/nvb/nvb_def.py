@@ -44,14 +44,12 @@ wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
 
 
 class Animtype():
-	UNDEFINED = 'UNDEFINED'
-	RUN       = 'RUN'
-	WALK      = 'WALK'
-	CUSTOM08  = 'CUSTOM8'	
-	CUSTOM09  = 'CUSTOM9'
-	CUSTOM10  = 'CUSTOM10'
-	
-	
+    UNDEFINED = 'UNDEFINED'
+    RUN       = 'RUN'
+    WALK      = 'WALK'
+    CUSTOM08  = 'CUSTOM8'
+    CUSTOM09  = 'CUSTOM9'
+    CUSTOM10  = 'CUSTOM10'
 
 
 class DummySubtype():
@@ -133,13 +131,13 @@ class Dummytype():
 
     ALL = {NONE, DWKROOT, MDLROOT, PWKROOT, REFERENCE, PATCH}
 
-    
+
 class Tilefade():
     NONE       = '0'
     FADE       = '1'
     BASE       = '2'
     NEIGHBOUR  = '4'
-    
+
     ALL = {NONE, FADE, BASE, NEIGHBOUR}
 
 
@@ -155,7 +153,7 @@ class Classification():
 
     ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
 
-	
+
 classLight():
     DEFAULT    = 'DEFAULT'
     MAINLIGHT1 = 'MAIN1'

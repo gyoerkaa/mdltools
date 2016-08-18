@@ -14,7 +14,7 @@ from . import nvb_utils
 
 class Mdl2():
     def __init__(self):
-        self.nodes = []
+        self.nodes = OrderedDict()
         self.anims = []
 
         self.name           = 'UNNAMED'
@@ -29,26 +29,30 @@ class Mdl2():
         pass
 
     def load():
-        loadedNodes = dict()
-        todoNodes   = []
+        loadedObjects = collections.OrderedDict()
+        parentList    = dict()
 
         rootDummy = None
         objIdx = 0
         if nvb_glob.importGeometry and self.nodes:
             for node in self.nodes:
-                obj = node.load(scene)
+                # Creates a blender object for this node
+                obj = node.create()
                 # Save the order of nodes. We'll need to restore it during
                 # export.
                 obj.nvb.order = objIdx
                 objIdx += 1
-                # Save it for animation import
+                # Save the imported objects for animation import
                 if obj:
-                    key = newNode.parent + newNode.name
-                    if key in self.loadedNodes:
+                    key = node.parent + node.name
+                    if key in self.loadedObjects:
                         #TODO: Should probably raise an exception
                         pass
                     else:
-                        self.loadedNodes[key] = obj
+                        loadedObjects[key]   = obj
+                        parentList[obj.name] =
+                else:
+                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
                 # Set parent
                 if (nvb_utils.isNull(node.parentName)):
@@ -62,9 +66,22 @@ class Mdl2():
                         obj.parent                = bpy.data.objects[node.parentName]
                         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                     else:
-                        # Node with invalid parent.
+                        # Node with invalid parent. Push it onto a todo list
+                        # and try again after importing the other nodes
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
+            # Do parenting in a second pass for better compatiblity
+            for node in self.nodes:
+                obj = bpy.data.objects[node.objref]
+                scene.objects.link(obj)
+                # Check if the parent exists
+                if node.parentName in bpy.data.objects:
+                    obj.parent                = bpy.data.objects[node.parentName]
+                    obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                else:
+                    # Node with invalid parent. Push it onto a todo list
+                    # and try again after importing the other nodes
+                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
 class Mdl():
     def __init__(self):
