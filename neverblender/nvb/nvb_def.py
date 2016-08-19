@@ -44,12 +44,32 @@ wok_materials = [ ['wok_NotDefined'    , (0.400, 0.400, 0.400), 0.0], \
 
 
 class Animtype():
-    UNDEFINED = 'UNDEFINED'
-    RUN       = 'RUN'
-    WALK      = 'WALK'
-    CUSTOM08  = 'CUSTOM8'
-    CUSTOM09  = 'CUSTOM9'
-    CUSTOM10  = 'CUSTOM10'
+    UNDEFINED  = 'undefined'
+    WALK       = 'walk'
+	DEADBCK    = 'deadbck'
+	GUTOKDB    = 'gutokdb'
+	GUSTANDB   = 'gustandb'
+	RUN        = 'run'
+	PAUSE1     = 'pause1'
+	PAUSE2     = 'pause2'
+	TAUNT      = 'taunt'
+	SITCROSS   = 'sitcross'
+	SITCROSSPS = 'sitcrossps'
+	BOW        = 'bow'
+ 	TALKFORCE  = 'tlkforce'
+	PLPAUSE1   = 'plpause1'   
+	SITDOWN    = 'sitdown'
+	SIT        = 'sit'
+    CUSTOM01   = 'custom1'
+    CUSTOM02   = 'custom2'	
+    CUSTOM03   = 'custom3'
+    CUSTOM04   = 'custom4'
+    CUSTOM05   = 'custom5'	
+    CUSTOM06   = 'custom6'
+    CUSTOM07   = 'custom7'	
+    CUSTOM08   = 'custom8'	
+    CUSTOM09   = 'custom9'
+    CUSTOM10   = 'custom10'
 
 
 class DummySubtype():
