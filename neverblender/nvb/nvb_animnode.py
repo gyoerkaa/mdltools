@@ -547,12 +547,14 @@ class Node():
         # Object Data
         if animObj.animation_data:
             action = animObj.animation_data.action
-            self.getKeysFromAction(action, keyDict)
+            if action:
+                self.getKeysFromAction(action, keyDict)
 
         # Material/ texture data (= texture alpha_factor)
         if animObj.active_material and animObj.active_material.animation_data:
             action = animObj.active_material.animation_data.action
-            self.getKeysFromAction(action, keyDict)
+            if action:
+                self.getKeysFromAction(action, keyDict)
 
         l_str   = str
         l_round = round
