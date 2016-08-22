@@ -12,9 +12,11 @@ from . import nvb_def
 from . import nvb_utils
 
 
+
+
 class Mdl2():
     def __init__(self):
-        self.nodes = OrderedDict()
+        self.nodes = []
         self.anims = []
 
         self.name           = 'UNNAMED'
@@ -22,22 +24,16 @@ class Mdl2():
         self.animscale      = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
 
-    def loadGeometry():
-        pass
-
-    def loadAnimations():
-        pass
 
     def load():
         loadedObjects = collections.OrderedDict()
-        parentList    = dict()
 
         rootDummy = None
         objIdx = 0
         if nvb_glob.importGeometry and self.nodes:
             for node in self.nodes:
                 # Creates a blender object for this node
-                obj = node.create()
+                obj = node.createObject()
                 # Save the order of nodes. We'll need to restore it during
                 # export.
                 obj.nvb.order = objIdx
@@ -50,7 +46,6 @@ class Mdl2():
                         pass
                     else:
                         loadedObjects[key]   = obj
-                        parentList[obj.name] =
                 else:
                     raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
 
