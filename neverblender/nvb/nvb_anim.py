@@ -199,7 +199,10 @@ class Animation():
             elif (label == 'transtime'):
                 self.transtime = float(line[1])
             elif (label == 'animroot'):
-                self.root = line[1]
+                try:
+                    self.root = line[1]
+                except:
+                    self.root = 'undefined'
             elif (label == 'event'):
                 self.addEvent((float(line[1]), line[2]))
             elif (label == 'node'):
