@@ -41,14 +41,17 @@ class Mdl2():
                 # Save the imported objects for animation import
                 if obj:
                     if node.name in self.loadedObjects:
-                        loadedObjects[node.name].append(obj.name)
+                        loadedObjects[node.name].append([obj.name, node.parent, objIdx])
                     else:
-                        loadedObjects[node.name] = [obj.name]
+                        loadedObjects[node.name] = [[obj.name, node.parent, objIdx]]
 
             # Second pass: Parenting (in a second pass for better compatiblity)
             for objects in loadedObjects:
                 for obj in objects:
-                    obj = objects[0]
+                    objLoadedName = obj[0]
+                    objParentName = obj[1]
+                    objIdx        = obj[2]
+
                     # Check if the parent exists
                     if (nvb_utils.isNull(node.parentName)):
                         # Node without parent
