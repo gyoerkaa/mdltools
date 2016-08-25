@@ -12,23 +12,166 @@ from . import nvb_def
 from . import nvb_utils
 
 
+class ObjectDB(collections.OrderedDict):
+    def insertLoadedObj(self, nodeName, parentName, nodePos, loadedName):
+        if nodeName in self:
+            self[nodeName].append((parentName, nodePos, loadedName))
+        else:
+            self[nodeName] = [(parentName, nodePos, loadedName)]
+
+    def getLoadedName(self, nodeName, parentName = '', nodePos = -1):
+        match = None
+        if nodeName in self:
+            if len(self[nodeName]) > 1:
+                # Multiple objects with the same name.
+                # This is bad, but we'll try to resolve it.
+                # 1. check for same parents
+                if parentName:
+                    for potentialMatch in self[nodeName]:
+                        if (parentName == potentialMatch[0]):
+                            match = potentialMatch[2]
+                            break
+                # 2. Use the nearest node with lower position
+                if (nodePos >= 0) and not match:
+                    pmp = -1
+                    pm  = None
+                    for potentialMatch in self[nodeName]:
+                        if (potentialMatch[1] < nodePos) and \
+                           (potentialMatch[1] > pmp):
+                            pmp = potentialMatch[1]
+                            pm  = potentialMatch[2]
+                    match = pm
+            else:
+                # Only a single object with the name (ideal case)
+                match = self[nodeName][2]
+
+        return match
 
 
 class Mdl2():
     def __init__(self):
-        self.nodes = []
-        self.anims = []
-
+        # Header Data
         self.name           = 'UNNAMED'
         self.supermodel     = nvb_def.null
         self.animscale      = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
+        # Geometry
+        self.nodes = []
+        # Animations
+        self.anims = []
 
 
-    def load():
-        loadedObjects = collections.OrderedDict()
+    def loadAsciiHeader(self, asciiData):
+        asciiLines = asciiData.split('\n')
+        for line in asciiLines:
+            try:
+                label = line[0]
+            except IndexError:
+                # Probably empty line or whatever, just skip it
+                continue
+
+            if (label == 'newmodel'):
+                try:
+                    self.name = line[1]
+                except IndexError:
+                    print("Neverblender - WARNING: Unable to read model name.")
+            elif (label == 'setsupermodel'):
+                try:
+                    # line should be ['setsupermodel', modelname, supermodelname]
+                    self.supermodel = line[2]
+                except IndexError:
+                    print("Neverblender - WARNING: Unable to read supermodel. Default value " + self.supermodel)
+            elif (label == 'classification'):
+                try:
+                    self.classification = line[1].upper()
+                except IndexError:
+                    print("Neverblender - WARNING: Unable to read classification. Default value " + self.classification)
+
+                if self.classification not in nvb_def.Classification.ALL:
+                    print("Neverblender - WARNING: Invalid classification '" + self.classification + "'")
+                    self.classification = nvb_def.Classification.UNKNOWN
+            elif (label == 'setanimationscale'):
+                try:
+                    self.animscale = line[1]
+                except IndexError:
+                    print("Neverblender - WARNING: Unable to read animationscale. Default value " + self.animscale)
+
+
+    def loadAsciiGeometry(self, asciiData):
+        for asciiNode in asciiData.split('node '):
+            asciiLines = [line.strip().split() for line in asciiNode]
+            nodeType = ''
+            try:
+                nodeType = asciiBlock[0][0].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Invalid node type')
+
+            switch = {'dummy':      nvb_node.Dummy, \
+                      'patch':      nvb_node.Patch, \
+                      'reference':  nvb_node.Reference, \
+                      'trimesh':    nvb_node.Trimesh,  \
+                      'animmesh':   nvb_node.Animmesh,  \
+                      'danglymesh': nvb_node.Danglymesh, \
+                      'skin':       nvb_node.Skinmesh, \
+                      'emitter':    nvb_node.Emitter, \
+                      'light':      nvb_node.Light, \
+                      'aabb':       nvb_node.Aabb}
+            try:
+                node = switch[nodeType]()
+            except KeyError:
+                raise nvb_def.MalformedMdlFile('Invalid node type')
+
+            node.parse(asciiLines)
+            self.nodes.append(node)
+
+
+    def loadAsciiAnims(self, asciiData):
+        # Split into animations first
+        for asciiAnim in asciiData.split('newanim '):
+            # Now split the animations into header + nodes
+            animHeader, animNodes = asciiAnim.split('node ')
+
+
+    def loadAscii(self, asciiData):
+        headerBlock = []
+        geomBlock   = []
+        animBlock   = []
+        if 'beginmodelgeom' in asciiData:
+            (headerBlock, geomBlock) = asciiData.split('beginmodelgeom', maxsplit = 1)
+            if 'anim' in geomBlock:
+                geomBlock, animBlock = geomBlock.split('anim', maxsplit = 1)
+        else:
+            pass #TODO: Raise an error?
+
+        self.loadAsciiHeader(headerBlock)
+
+        if nvb_glob.importGeometry:
+            self.loadAsciiGeometry(geomBlock)
+
+        if nvb_glob.importAnim:
+            self.loadAsciiAnims(animBlock)
+
+
+    def createAsciiHeader(self):
+        pass
+
+
+    def createAsciiGeometry(self):
+        pass
+
+
+    def createAsciiAnims(self):
+        pass
+
+
+    def createAscii(self):
+        pass
+
+
+    def createObjects(self):
+        createdObjects = ObjectDB()
         rootDummy = None
-        objIdx = 0
+        nodePos = 0
         if nvb_glob.importGeometry and self.nodes:
             # First pass: Create objects
             for node in self.nodes:
@@ -36,36 +179,41 @@ class Mdl2():
                 obj = node.createObject()
                 # Save the order of nodes. We'll need to restore it during
                 # export.
-                obj.nvb.order = objIdx
-                objIdx += 1
+                obj.nvb.order = nodePos
+                nodePos += 1
                 # Save the imported objects for animation import
                 if obj:
-                    if node.name in self.loadedObjects:
-                        loadedObjects[node.name].append([obj.name, node.parent, objIdx])
-                    else:
-                        loadedObjects[node.name] = [[obj.name, node.parent, objIdx]]
+                    createdObjects.insertLoadedObj(node.name,
+                                                   node.parent,
+                                                   nodePos,
+                                                   obj.name)
 
-            # Second pass: Parenting (in a second pass for better compatiblity)
-            for objects in loadedObjects:
-                for obj in objects:
-                    objLoadedName = obj[0]
-                    objParentName = obj[1]
-                    objIdx        = obj[2]
+            # Second pass: Parenting (for better compatibility)
+            for objList in createdObjects:
+                for obj in objList:
+                    loadedName = obj[0] # Unique name of the object in blender
+                    parentName = obj[1] # Name of the parent in the mdl
+                    nodePos    = obj[2] # Position of the node in the mdl
 
                     # Check if the parent exists
-                    if (nvb_utils.isNull(node.parentName)):
-                        # Node without parent
+                    if (nvb_utils.isNull(parentName)):
+                        # Node without parent. Must be the root dummy.
                         obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
                         obj.nvb.supermodel     = self.supermodel
                         obj.nvb.classification = self.classification
-                    elif node.parentName in bpy.data.objects:
-                        obj.parent                = bpy.data.objects[node.parentName]
-                        obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                    elif parentName in createdObjects:
+                        parentLoadedName = createdObjects.getLoadedName(parentName,
+                                                                       '',
+                                                                       nodePos)
+                        if parentLoadedName:
+                            # Only a single object with the name (ideal case)
+                            obj.parent                = bpy.data.objects[parentLoadedName]
+                            obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                     else:
-                        # Node with invalid parent. Push it onto a todo list
-                        # and try again after importing the other nodes
+                        # Parent doesn't exist.
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
-                scene.objects.link(obj)
+                    scene.objects.link(obj)
+
 
 class Mdl():
     def __init__(self):
