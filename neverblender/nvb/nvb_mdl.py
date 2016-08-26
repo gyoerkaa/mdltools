@@ -131,6 +131,10 @@ class Mdl2():
             # Now split the animations into header + nodes
             animHeader, animNodes = asciiAnim.split('node ')
 
+            animation = nvb_anim.Animation()
+            animation.loadAscii(animHeader, animNodes)
+            self.addAnimation(animation)
+
 
     def loadAscii(self, asciiData):
         headerBlock = []
@@ -213,6 +217,9 @@ class Mdl2():
                         # Parent doesn't exist.
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
                     scene.objects.link(obj)
+
+            if nvb_glob.importAnims
+
 
 
 class Mdl():
