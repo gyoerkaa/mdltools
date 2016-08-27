@@ -256,3 +256,156 @@ class Trimesh(Node):
         self.verts            = [] # list of vertices
         self.facelist         = FaceList()
         self.tverts           = [] # list of texture vertices
+
+class Aabb(Trimesh):
+    '''
+    No need to import Aaabb's. Aabb nodes in mdl files will be
+    treated as trimeshes
+    '''
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
+        self.nodetype = 'aabb'
+
+        self.meshtype = nvb_def.Meshtype.AABB
+
+    def addAABBToAscii(self, obj, asciiLines):
+        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+
+        faceList = []
+        faceIdx  = 0
+        for tessface in walkmesh.tessfaces:
+            if (len(tessface.vertices) == 3):
+                # Tri
+                v0 = tessface.vertices[0]
+                v1 = tessface.vertices[1]
+                v2 = tessface.vertices[2]
+
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                faceIdx += 1
+
+            elif (len(tessface.vertices) == 4):
+                # Quad
+                v0 = tessface.vertices[0]
+                v1 = tessface.vertices[1]
+                v2 = tessface.vertices[2]
+                v3 = tessface.vertices[3]
+
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                faceIdx += 1
+
+                centroid = mathutils.Vector((walkmesh.vertices[v2].co + walkmesh.vertices[v3].co + walkmesh.vertices[v0].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v2].co, walkmesh.vertices[v3].co, walkmesh.vertices[v0].co], centroid))
+                faceIdx += 1
+            else:
+                # Ngon or no polygon at all (This should never be the case with tessfaces)
+                print('Neverblender - WARNING: Ngon in walkmesh. Unable to generate aabb.')
+                return
+
+        aabbTree = []
+        nvb_aabb.generateTree(aabbTree, faceList)
+
+        l_round = round
+        if aabbTree:
+            node = aabbTree.pop(0)
+            asciiLines.append('  aabb  ' +
+                              ' ' +
+                              str(l_round(node[0], 5)) +
+                              ' ' +
+                              str(l_round(node[1], 5)) +
+                              ' ' +
+                              str(l_round(node[2], 5)) +
+                              ' ' +
+                              str(l_round(node[3], 5)) +
+                              ' ' +
+                              str(l_round(node[4], 5)) +
+                              ' ' +
+                              str(l_round(node[5], 5)) +
+                              ' ' +
+                              str(node[6]) )
+            for node in aabbTree:
+                asciiLines.append('    ' +
+                                  str(l_round(node[0], 5)) +
+                                  ' ' +
+                                  str(l_round(node[1], 5)) +
+                                  ' ' +
+                                  str(l_round(node[2], 5)) +
+                                  ' ' +
+                                  str(l_round(node[3], 5)) +
+                                  ' ' +
+                                  str(l_round(node[4], 5)) +
+                                  ' ' +
+                                  str(l_round(node[5], 5)) +
+                                  ' ' +
+                                  str(node[6]) )
+
+
+    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
+        loc = obj.location
+        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
+                                          str(round(loc[1], 5)) + ' ' +
+                                          str(round(loc[2], 5)) )
+        rot = nvb_utils.getAuroraRotFromObject(obj)
+        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
+                                             str(round(rot[1], 5)) + ' ' +
+                                             str(round(rot[2], 5)) + ' ' +
+                                             str(round(rot[3], 5)) )
+        color = obj.nvb.wirecolor
+        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
+                                           str(round(color[1], 2)) + ' ' +
+                                           str(round(color[2], 2))  )
+        asciiLines.append('  ambient 1.0 1.0 1.0')
+        asciiLines.append('  diffuse 1.0 1.0 1.0')
+        asciiLines.append('  specular 0.0 0.0 0.0')
+        asciiLines.append('  shininess 0')
+        asciiLines.append('  bitmap NULL')
+        Trimesh.addMeshDataToAscii(self, obj, asciiLines, simple)
+        self.addAABBToAscii(obj, asciiLines)
+
+
+    def loadMesh(self, name):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(name)
+        mesh.vertices.add(len(self.verts))
+        mesh.vertices.foreach_set('co', unpack_list(self.verts))
+        mesh.tessfaces.add(len(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+
+        # Create materials
+        for wokMat in nvb_def.wok_materials:
+            matName = wokMat[0]
+            # Walkmesh materials will be shared across multiple walkmesh
+            # objects
+            if matName in bpy.data.materials:
+                material = bpy.data.materials[matName]
+            else:
+                material = bpy.data.materials.new(matName)
+                material.diffuse_color      = wokMat[1]
+                material.diffuse_intensity  = 1.0
+                material.specular_color     = (0.0,0.0,0.0)
+                material.specular_intensity = wokMat[2]
+            mesh.materials.append(material)
+
+        # Apply the walkmesh materials to each face
+        for idx, face in enumerate(mesh.tessfaces):
+            face.material_index = self.facelist.matId[idx]
+
+        mesh.update()
+        return mesh
+
+
+    def loadAscii(self, scene):
+        if nvb_glob.minimapMode:
+            # No walkmeshes in minimap mode and we don't need an empty as
+            # replacement either as AABB nodes never have children
+            return
+        mesh = self.loadMesh(self.name)
+        obj = bpy.data.objects.new(self.name, mesh)
+        self.loadData(obj)
+        scene.objects.link(obj)
+        return obj
