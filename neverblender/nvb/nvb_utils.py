@@ -26,9 +26,18 @@ def isNumber(s):
         return True
 
 
+def getAuroraString(s):
+    '''
+    Converts 'null' to empty string
+    '''
+    if isNull(s):
+        return ''
+    return s
+
+
 def getName(s):
     '''
-    To be able to switch to case sensitive and back
+    Treat 'null' as empty string
     Still not certain mdl node names are case sensitive
     '''
     #return s.lower()

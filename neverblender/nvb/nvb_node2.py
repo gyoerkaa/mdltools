@@ -10,7 +10,7 @@ class Node():
         self.nodetype = 'undefined'
 
         self.name        = name
-        self.parent      = nvb_def.null
+        self.parent      = ''
         self.position    = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale       = 1.0
@@ -44,12 +44,12 @@ class Node():
                 continue
 
             if not l_isNumber(label):
-                if   (label == 'node'):
-                    self.name = nvb_utils.getName(line[2])
+                if (label == 'node'):
+                    self.name = nvb_utils.getAuroraString(line[1])
                 elif (label  == 'endnode'):
                     return
                 elif (label == 'parent'):
-                    self.parentName = nvb_utils.getName(line[1])
+                    self.parentName = nvb_utils.getAuroraString(line[1])
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),

@@ -172,7 +172,7 @@ class Mdl2():
         pass
 
 
-    def createObjects(self):
+    def generateObjects(self):
         createdObjects = ObjectDB()
         rootDummy = None
         nodePos = 0
@@ -207,8 +207,8 @@ class Mdl2():
                         obj.nvb.classification = self.classification
                     elif parentName in createdObjects:
                         parentLoadedName = createdObjects.getLoadedName(parentName,
-                                                                       '',
-                                                                       nodePos)
+                                                                        '',
+                                                                        nodePos)
                         if parentLoadedName:
                             # Only a single object with the name (ideal case)
                             obj.parent                = bpy.data.objects[parentLoadedName]
