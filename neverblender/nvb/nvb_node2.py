@@ -14,8 +14,9 @@ class Node():
     """
     Basic node from which every other is derived
     """
+    nodetype = 'undefined'
+
     def __init__(self, name = 'unnamed'):
-        self.nodetype = 'undefined'
         self.objidx = -1 # Order in mdlfile (needs to be restored for export)
 
         self.name        = name
@@ -127,9 +128,9 @@ class Node():
             asciiLines.append('  scale ' + str(scale))
 
 
-    @staticmethod
-    def generateAscii(obj, asciiLines):
-        asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
+    @classmethod
+    def generateAscii(cls, obj, asciiLines):
+        asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
         self.generateAsciiData(obj, asciiLines)
         asciiLines.append('endnode')
 
@@ -139,9 +140,10 @@ class Dummy(Node):
     """
 
     """
+    nodetype  = 'dummy'
+
     def __init__(self, name = 'unnamed'):
         Node.__init__(self, name)
-        self.nodetype  = 'dummy'
 
         self.dummytype = nvb_def.Dummytype.NONE
 
@@ -165,9 +167,10 @@ class Patch(Node):
     '''
     Same as a plain Dummy.
     '''
+    nodetype = 'patch'
+
     def __init__(self, name = 'UNNAMED'):
         Node.__init__(self, name)
-        self.nodetype = 'patch'
 
         self.dummytype = nvb_def.Dummytype.PATCH
 
@@ -182,9 +185,10 @@ class Reference(Node):
     '''
     Contains a reference to another mdl
     '''
+    nodetype = 'reference'
+
     def __init__(self, name = 'UNNAMED'):
         Node.__init__(self, name)
-        self.nodetype = 'reference'
 
         self.dummytype    = nvb_def.Dummytype.REFERENCE
         self.refmodel     = nvb_def.null
@@ -226,9 +230,10 @@ class Reference(Node):
 
 
 class Trimesh(Node):
+    self.nodetype = 'trimesh'
+
     def __init__(self, name = 'UNNAMED'):
         Node.__init__(self, name)
-        self.nodetype = 'trimesh'
 
         self.meshtype         = nvb_def.Meshtype.TRIMESH
         self.center           = (0.0, 0.0, 0.0) # Unused ?
@@ -487,7 +492,7 @@ class Trimesh(Node):
         scene.objects.link(obj)
         return obj
 
-    @staticmethod
+    @classmethod
     def generateAsciiMaterial(obj, asciiLines):
         # Check if this object has a material assigned to it
         material = obj.active_material
@@ -520,7 +525,7 @@ class Trimesh(Node):
             asciiLines.append('  alpha 1.0')
             asciiLines.append('  bitmap ' + nvb_def.null)
 
-    @staticmethod
+    @classmethod
     def addUVToList(uv, uvList):
         '''
         Helper function to keep UVs unique
@@ -532,7 +537,7 @@ class Trimesh(Node):
             return (len(uvList)-1)
 
 
-    @staticmethod
+    @classmethod
     def generateAsciiMesh(obj, asciiLines, simple = False):
         mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
         for p in mesh.polygons:
@@ -669,9 +674,11 @@ class Trimesh(Node):
 
 
 class Animmesh(Trimesh):
+
+    nodetype = 'animmesh'
+
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'animmesh'
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
@@ -680,9 +687,10 @@ class Danglymesh(Trimesh):
     """
 
     """
+    nodetype = 'danglymesh'
+
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'danglymesh'
 
         self.meshtype     = nvb_def.Meshtype.DANGLYMESH
         self.period       = 1.0
@@ -738,7 +746,7 @@ class Danglymesh(Trimesh):
         self.createConstraints(obj)
 
 
-    @staticmethod
+    @classmethod
     def generateAsciiConstraints(obj, asciiLines):
         vgroupName = obj.nvb.constraints
         vgroup     = obj.vertex_groups[vgroupName]
@@ -768,9 +776,10 @@ class Skinmesh(Trimesh):
     Skinmeshes are Trimeshes where every vertex
     has a weight.
     """
+    nodetype = 'skin'
+
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'skin'
 
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
@@ -811,7 +820,7 @@ class Skinmesh(Trimesh):
 
         self.createSkinGroups(obj)
 
-    @staticmethod
+    @classmethod
     def generateAsciiWeights(obj, asciiLines, exportObjects):
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
@@ -857,13 +866,15 @@ class Aabb(Trimesh):
     No need to import Aaabb's. Aabb nodes in mdl files will be
     treated as trimeshes
     '''
+    nodetype = 'aabb'
+
     def __init__(self, name = 'UNNAMED'):
         Trimesh.__init__(self, name)
-        self.nodetype = 'aabb'
 
         self.meshtype = nvb_def.Meshtype.AABB
 
-    @staticmethod
+
+    @classmethod
     def generateAsciiAABB(obj, asciiLines):
         walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
 
