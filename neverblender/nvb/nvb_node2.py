@@ -130,7 +130,7 @@ class Node():
     @staticmethod
     def generateAscii(obj, asciiLines):
         asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
-        self.createAsciiData(obj, asciiLines)
+        self.generateAsciiData(obj, asciiLines)
         asciiLines.append('endnode')
 
 
@@ -153,8 +153,8 @@ class Dummy(Node):
     def createObjectData(self, obj):
          Node.createObjectData(self, obj)
 
-
-    def generateAsciiData(self, obj):
+    @staticmethod
+    def generateAsciiData(obj):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -218,8 +218,9 @@ class Reference(Node):
         obj.nvb.reattachable = (self.reattachable >= 1)
 
 
-    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Node.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
+    @staticmethod
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Node.generateAsciiData(obj, asciiLines, exportObjects, classification)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
@@ -640,7 +641,7 @@ class Trimesh(Node):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Node.generateAsciiData(self, obj, asciiLines, exportObjects, classification, simple)
+        Node.generateAsciiData(obj, asciiLines, exportObjects, classification, simple)
 
         color = obj.nvb.ambientcolor
         asciiLines.append('  ambient ' +    str(round(color[0], 2)) + ' ' +
@@ -649,8 +650,6 @@ class Trimesh(Node):
         self.generateAsciiMaterial(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if not simple:
-
-
             color = obj.nvb.selfillumcolor
             asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
                                                     str(round(color[1], 2)) + ' ' +
@@ -740,7 +739,7 @@ class Danglymesh(Trimesh):
 
 
     @staticmethod
-    def generateAsciiConstraints(self, obj, asciiLines):
+    def generateAsciiConstraints(obj, asciiLines):
         vgroupName = obj.nvb.constraints
         vgroup     = obj.vertex_groups[vgroupName]
 
@@ -755,8 +754,8 @@ class Danglymesh(Trimesh):
 
 
     @staticmethod
-    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Trimesh.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
         asciiLines.append('  period '       + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness '    + str(round(obj.nvb.tightness, 3)))
@@ -812,8 +811,8 @@ class Skinmesh(Trimesh):
 
         self.createSkinGroups(obj)
 
-
-    def generateAsciiWeights(self, obj, asciiLines, exportObjects):
+    @staticmethod
+    def generateAsciiWeights(obj, asciiLines, exportObjects):
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
@@ -846,9 +845,9 @@ class Skinmesh(Trimesh):
                 line = 'ERROR: no weight'
             asciiLines.append(line)
 
-
-    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Trimesh.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
+    @staticmethod
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
         self.generateAsciiWeights(obj, asciiLines, exportObjects)
 
@@ -864,7 +863,8 @@ class Aabb(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.AABB
 
-    def createAsciiAABB(self, obj, asciiLines):
+    @staticmethod
+    def generateAsciiAABB(obj, asciiLines):
         walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
 
         faceList = []
@@ -936,8 +936,8 @@ class Aabb(Trimesh):
                                   ' ' +
                                   str(node[6]) )
 
-
-    def createAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    @staticmethod
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -960,8 +960,8 @@ class Aabb(Trimesh):
         asciiLines.append('  specular 0.0 0.0 0.0')
         asciiLines.append('  shininess 0')
         asciiLines.append('  bitmap NULL')
-        Trimesh.addMeshDataToAscii(self, obj, asciiLines, simple)
-        self.addAABBToAscii(obj, asciiLines)
+        Trimesh.generateAsciiData(obj, asciiLines, simple)
+        self.generateAsciiAABB(obj, asciiLines)
 
 
     def createMesh(self, name):
