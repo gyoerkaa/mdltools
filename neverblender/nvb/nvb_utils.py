@@ -44,10 +44,10 @@ def getName(s):
     return s
 
 
-def materialExists(diffuse = (1.0, 1.0, 1.0),
-                   specular = (1.0, 1.0, 1.0),
-                   imageName = '',
-                   alpha = 1.0):
+def matchMaterial(diffuse = (1.0, 1.0, 1.0),
+                  specular = (1.0, 1.0, 1.0),
+                  imageName = '',
+                  alpha = 1.0):
     '''
     Compares the diffure, specular and image values of the material
     to the parameters

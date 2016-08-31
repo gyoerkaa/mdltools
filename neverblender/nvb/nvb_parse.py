@@ -1,64 +1,25 @@
+def weights(self, asciiBlock):
+    lfloat = float
+    lchunker = nvb_utils.chunker
+    for line in asciiBlock:
+        # A line looks like this
+        # [group_name, vertex_weight, group_name, vertex_weight]
+        # We create a list looking like this:
+        # [[group_name, vertex_weight], [group_name, vertex_weight]]
+        memberships = []
+        for chunk in lchunker(line, 2):
+            memberships.append( [chunk[0], lfloat(chunk[1])] )
+
+        self.weights.append(memberships)
 
 
-'''
-filedependancy XYZ (won't be imported)
-newmodel plc_arcirc_01blh
-    HEADER
-    beginmodelgeom MODELNAME
-        node NODETYPE NODENAME_0
-        endnode NODENAME_0 (may not be there)
-        ...
-        node NODETYPE NODENAME_N
-        endnode NODENAME_N (may not be there)
-    endmodelgeom MODELNAME (may not be there)
-
-    newanim ANIMNAME_0
-    doneanim ANIMNAME_0 (may not be there)
-    ...
-    newanim ANIMNAME_M
-    doneanim ANIMNAME_M (may not be there)
-donemodel MODELNAME (may not be there)
-
-Split into:
-HEADER
-
-NODES
-
-ANIMS
-'''
-def mdl(mdlFile, mdl, nodeList, animList):
-    '''
-    Splits the mdl file into:
-      - header
-      - geometry
-      - animations
-    '''
-    if 'beginmodelgeom' in mdlFile:
-        headerBlock, geomBlock = mdlFile.split('beginmodegeom', maxsplit = 1)
-        if 'anim' in geomBlock:
-            geomBlock, animBlock = geomBlock.split('anim', maxsplit = 1)
-    else:
-        pass #TODO: Raise an error
-
-
-def geometry(geomBlock, nodeList):
-    '''
-    Splits geometry block into nodes
-    '''
-    nodes = asciiBlock.split('node').strip().split()
-    #tng = re.split('(\[TILES\].+\[GROUPS\])', contents, flags=re.DOTALL)
-    #blocks = re.split('(\[.+\])', contents)
-
-
-def anim(animBlock, animList):
-    '''
-    Splits animation block into animations
-    Splits animations into header and nodes
-    '''
-    anims = asciiBlock.split('anim').strip().split()
-    anim_nodes = []
-    for a in anims:
-        anim_nodes.append(a.split('node'))
+def faces(asciiFaces, faceList):
+    l_int = int
+    for line in asciiFaces:
+        facelist.faces.append( (l_int(line[0]), l_int(line[1]), l_int(line[2])) )
+        facelist.shdgr.append(l_int(line[3]))
+        facelist.uvIdx.append( (l_int(line[4]), l_int(line[5]), l_int(line[6])) )
+        facelist.matId.append(l_int(line[7]))
 
 
 def f1(asciiBlock, floatList):

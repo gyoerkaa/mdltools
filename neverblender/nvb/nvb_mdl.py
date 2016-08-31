@@ -99,13 +99,24 @@ class Mdl2():
 
     def loadAsciiGeometry(self, asciiData):
         for asciiNode in asciiData.split('node '):
-            asciiLines = [line.strip().split() for line in asciiNode]
+            lines = [l.strip().split() for l in asciiNode.splitlines()]
+            node = None
             nodeType = ''
-            try:
-                nodeType = asciiBlock[0][0].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Invalid node type')
+            nodeName = 'UNNAMED'
 
+            # Read node Name
+            try:
+                nodeName = lines[0][1].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node name')
+
+            # Read node type
+            try:
+                nodeType = lines[0][0].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node type')
+
+            # Create an object with that node type
             switch = {'dummy':      nvb_node.Dummy, \
                       'patch':      nvb_node.Patch, \
                       'reference':  nvb_node.Reference, \
@@ -117,11 +128,12 @@ class Mdl2():
                       'light':      nvb_node.Light, \
                       'aabb':       nvb_node.Aabb}
             try:
-                node = switch[nodeType]()
+                node = switch[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
 
-            node.parse(asciiLines)
+            # Parse and add to node list
+            node.loadAscii(lines)
             self.nodes.append(node)
 
 
@@ -129,31 +141,46 @@ class Mdl2():
         # Split into animations first
         for asciiAnim in asciiData.split('newanim '):
             # Now split the animations into header + nodes
-            animHeader, animNodes = asciiAnim.split('node ')
+            anim          = None
+            animName      = 'UNNAMED'
+            animDataStart = -1
 
-            animation = nvb_anim.Animation()
-            animation.loadAscii(animHeader, animNodes)
-            self.addAnimation(animation)
+            # Read animation Name
+            try:
+                animName = lines[0][0].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read animation name')
+
+            animDataStart = asciiData.find('node ')
+
+            anim = nvb_anim.Animation(animName)
+            anim.loadAsciiHeader(asciiData[:animDataStart-1])
+            anim.loadAsciiNodes(asciiData[animDataStart:])
+            self.animations.append(anim)
 
 
     def loadAscii(self, asciiData):
-        headerBlock = []
-        geomBlock   = []
-        animBlock   = []
-        if 'beginmodelgeom' in asciiData:
-            (headerBlock, geomBlock) = asciiData.split('beginmodelgeom', maxsplit = 1)
-            if 'anim' in geomBlock:
-                geomBlock, animBlock = geomBlock.split('anim', maxsplit = 1)
+        headBlock = []
+        geomBlock = []
+        animBlock = []
+
+        geomStart = asciiData.find('node ')
+        animStart = asciiData.find('newanim ')
+
+        if (geomStart < 0):
+            # Something is wrong
+            raise nvb_def.MalformedMdlFile('Unable to find geometry')
+
+        self.loadAsciiHeader(asciiData[:geomStart-1])
+        if (animStart < 0):
+            # No animations
+            if nvb_glob.importGeometry:
+                self.loadAsciiGeometry(asciiData[geomStart:])
         else:
-            pass #TODO: Raise an error?
-
-        self.loadAsciiHeader(headerBlock)
-
-        if nvb_glob.importGeometry:
-            self.loadAsciiGeometry(geomBlock)
-
-        if nvb_glob.importAnim:
-            self.loadAsciiAnims(animBlock)
+            if nvb_glob.importGeometry:
+                self.loadAsciiGeometry(asciiData[geomStart:animStart-1])
+            if nvb_glob.importAnim:
+                self.loadAsciiGeometry(asciiData[animStart:])
 
 
     def createAsciiHeader(self):

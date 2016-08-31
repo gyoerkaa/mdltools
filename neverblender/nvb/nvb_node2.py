@@ -1,6 +1,14 @@
+import mathutils
 import bpy
+import bpy_extras.image_utils
+import bmesh
+from bpy_extras.io_utils import unpack_list, unpack_face_list
 
+from . import nvb_glob
 from . import nvb_def
+from . import nvb_utils
+from . import nvb_aabb
+from . import nvb_parse
 
 class Node():
     """
@@ -8,6 +16,7 @@ class Node():
     """
     def __init__(self, name = 'unnamed'):
         self.nodetype = 'undefined'
+        self.objidx = -1 # Order in mdlfile (needs to be restored for export)
 
         self.name        = name
         self.parent      = ''
@@ -16,14 +25,9 @@ class Node():
         self.scale       = 1.0
         self.wirecolor   = (0.0, 0.0, 0.0)
 
-        # Name of the corresponding object in blender
-        # (used to resolve naming conflicts)
-        self.objref = ''
-        self.objidx = -1
-
 
     def __eq__(self, other):
-        if isinstance(other, Base):
+        if isinstance(other, Node):
             return (self.name == other.name) and (self.parent == other.parent)
 
 
@@ -44,9 +48,7 @@ class Node():
                 continue
 
             if not l_isNumber(label):
-                if (label == 'node'):
-                    self.name = nvb_utils.getAuroraString(line[1])
-                elif (label  == 'endnode'):
+                if (label  == 'endnode'):
                     return
                 elif (label == 'parent'):
                     self.parentName = nvb_utils.getAuroraString(line[1])
@@ -81,13 +83,12 @@ class Node():
         obj = bpy.data.objects.new(self.name, None)
         obj.nvb.order = self.objIdx
 
-        self.objref = obj.name
         self.createObjectData(obj)
         return obj
 
 
     @staticmethod
-    def createAsciiData(obj, asciiLines):
+    def generateAsciiData(obj, asciiLines):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -95,11 +96,16 @@ class Node():
         # Scaling fix
         transmat = self.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
-        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5),
+                                                           round(loc[1], 5),
+                                                           round(loc[2], 5))
         asciiLines.append(s)
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
-        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5),
+                                                                       round(rot[1], 5),
+                                                                       round(rot[2], 5),
+                                                                       round(rot[3], 5))
         asciiLines.append(s)
         '''
         loc = obj.location
@@ -110,17 +116,19 @@ class Node():
         s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
         asciiLines.append(s)
         '''
-        color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
-                                           str(round(color[1], 2)) + ' ' +
-                                           str(round(color[2], 2)) )
+        col = obj.nvb.wirecolor
+        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
+                                                            round(col[1], 2),
+                                                            round(col[2], 2))
+        asciiLines.append(s)
+
         scale = round(nvb_utils.getAuroraScale(obj), 3)
         if (scale != 1.0):
             asciiLines.append('  scale ' + str(scale))
 
 
     @staticmethod
-    def createAscii(obj, asciiLines):
+    def generateAscii(obj, asciiLines):
         asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
         self.createAsciiData(obj, asciiLines)
         asciiLines.append('endnode')
@@ -138,19 +146,6 @@ class Dummy(Node):
         self.dummytype = nvb_def.Dummytype.NONE
 
 
-    def __eq__(self, other):
-        if isinstance(other, Base):
-            return (self.name == other.name) and (self.parent == other.parent)
-
-
-    def __ne__(self, other):
-        return not self.__eq__(self, other)
-
-
-    def __str__(self):
-        return 'node ' + self.nodetype + ' ' + self.name
-
-
     def loadAscii(self, asciiBlock):
         Node.loadAscii(self, asciiBlock)
 
@@ -159,16 +154,11 @@ class Dummy(Node):
          Node.createObjectData(self, obj)
 
 
-    def createObject(self):
-        """
-        Returns an object for use in blender.
-        """
-        obj = bpy.data.objects.new(self.name, None)
-        obj.nvb.order = self.objIdx
-
-        self.objref = obj.name
-        self.createObjectData(obj)
-        return obj
+    def generateAsciiData(self, obj):
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
 
 
 class Patch(Node):
@@ -176,7 +166,7 @@ class Patch(Node):
     Same as a plain Dummy.
     '''
     def __init__(self, name = 'UNNAMED'):
-        GeometryNode.__init__(self, name)
+        Node.__init__(self, name)
         self.nodetype = 'patch'
 
         self.dummytype = nvb_def.Dummytype.PATCH
@@ -202,7 +192,7 @@ class Reference(Node):
 
 
     def loadAscii(self, asciiNode):
-        GeometryNode.parse(self, asciiNode)
+        Node.loadAscii(self, asciiNode)
         l_isNumber = nvb_utils.isNumber
 
         for line in asciiNode:
@@ -213,21 +203,23 @@ class Reference(Node):
                 continue
             if not l_isNumber(label):
                 if   (label == 'refmodel'):
-                    #self.refmodel = line[1].lower()
-                    self.refmodel = line[1]
+                    self.refmodel = nvb_utils.getAuroraString(line[1])
                 elif (label == 'reattachable'):
-                    self.reattachable = int(line[1])
+                    try:
+                        self.reattachable = int(line[1])
+                    except:
+                        pass #TODO: Print a warning or smth
 
 
     def createObjectData(self, obj):
         Node.createObjectData(self, obj)
         obj.nvb.dummytype    = self.dummytype
         obj.nvb.refmodel     = self.refmodel
-        obj.nvb.reattachable = (self.reattachable == 1)
+        obj.nvb.reattachable = (self.reattachable >= 1)
 
 
-    def createAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Node.createAsciiData(self, obj, asciiLines, exportObjects, classification)
+    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Node.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
@@ -257,6 +249,610 @@ class Trimesh(Node):
         self.facelist         = FaceList()
         self.tverts           = [] # list of texture vertices
 
+
+    def createImage(self, imgName, imgPath):
+        image = bpy_extras.image_utils.load_image(imgName + '.tga',
+                                                  imgPath,
+                                                  recursive=nvb_glob.textureSearch,
+                                                  place_holder=False,
+                                                  ncase_cmp=True)
+        if (image is None):
+            print('Neverblender - WARNING: Could not load image ' + imgName)
+            image = bpy.data.images.new(imgName, 512, 512)
+        else:
+            image.name = imgName
+
+        return image
+
+
+    def loadAscii(self, asciiNode):
+        Node.loadAscii(self, asciiNode)
+
+        l_int   = int
+        l_float = float
+        l_isNumber = nvb_utils.isNumber
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if not l_isNumber(label):
+                if   (label == 'tilefade'):
+                    self.tilefade = l_int(line[1])
+                elif (label == 'render'):
+                    try:
+                        self.render = l_int(line[1])
+                    except:
+                        pass
+                elif (label == 'shadow'):
+                    try:
+                        self.shadow = l_int(line[1])
+                    except:
+                        pass
+                elif (label == 'beaming'):
+                    self.beaming = l_int(line[1])
+                elif (label == 'inheritcolor '):
+                    self.inheritcolor = l_int(line[1])
+                elif (label == 'rotatetexture'):
+                     self.rotatetexture = l_int(line[1])
+                elif (label == 'alpha'):
+                    self.alpha = l_float(line[1])
+                elif (label == 'transparencyhint'):
+                     self.transparencyhint = l_int(line[1])
+                elif (label == 'selfillumcolor'):
+                    self.selfillumcolor = (l_float(line[1]),
+                                           l_float(line[2]),
+                                           l_float(line[3]) )
+                elif (label == 'ambient'):
+                    self.ambient = (l_float(line[1]),
+                                    l_float(line[2]),
+                                    l_float(line[3]) )
+                elif (label == 'diffuse'):
+                    self.diffuse = (l_float(line[1]),
+                                    l_float(line[2]),
+                                    l_float(line[3]) )
+                elif (label == 'specular'):
+                    self.specular = (l_float(line[1]),
+                                     l_float(line[2]),
+                                     l_float(line[3]) )
+                elif (label == 'shininess'):
+                    self.shininess = l_int(l_float(line[1]))
+                elif (label == 'center'):
+                    # Unused ? Because we don't do anything with this
+                    try:
+                        self.center = ( l_float(line[1]),
+                                        l_float(line[2]),
+                                        l_float(line[3]) )
+                    except:
+                        # Probably a 'undefined' string, cannot be converted
+                        # We just let it slide and ignore it
+                        pass
+                elif (label == 'bitmap'):
+                    self.bitmap = nvb_utils.getAuroraString(line[1])
+                elif (label == 'verts'):
+                    numVals = l_int(line[1])
+                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.verts)
+                    #self.verts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
+                elif (label == 'faces'):
+                    numVals = l_int(line[1])
+                    nvb_parse.faces(asciiNode[idx+1:idx+numVals+1])
+                elif (label == 'tverts'):
+                    numVals = l_int(line[1])
+                    nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
+                    #self.tverts = [(float(l[0]), float(l[1])) for l in asciiNode[idx+1:idx+numVals+1]]
+
+
+    def createMaterial(self, name):
+        material = None
+        texName  = self.bitmap.lower()
+        if nvb_glob.materialMode == 'SIN':
+            # Avoid duplicate materials, search for similar ones.
+            material = nvb_utils.matchMaterial(self.diffuse,
+                                               self.specular,
+                                               texName,
+                                               self.alpha)
+
+        if not material:
+            material = bpy.data.materials.new(name)
+            material.diffuse_color     = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color    = self.specular
+
+            textureSlot = material.texture_slots.add()
+            # If a texture with the same name was already created treat
+            # them as if they were the same, i.e. just use the old one
+            if (texName in bpy.data.textures):
+                textureSlot.texture = bpy.data.textures[texName]
+            else:
+                textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
+            textureSlot.texture_coords        = 'UV'
+            textureSlot.use_map_color_diffuse = True
+
+            # Load the image for the texture, but check if it was
+            # already loaded before. If so, use that one.
+            imgName = self.bitmap
+            if (imgName in bpy.data.images):
+                image = bpy.data.images[imgName]
+                textureSlot.texture.image = image
+            else:
+                image = self.createImage(imgName, nvb_glob.texturePath)
+                if image is not None:
+                    textureSlot.texture.image = image
+
+        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
+
+        return material
+
+
+    def createMesh(self, name):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(name)
+        mesh.vertices.add(len(self.verts))
+        mesh.vertices.foreach_set('co', unpack_list(self.verts))
+        mesh.tessfaces.add(len(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+
+        # Create material
+        if nvb_glob.materialMode != 'NON':
+            material = self.createMaterial(name)
+            mesh.materials.append(material)
+
+            # Create UV map
+            if (len(self.tverts) > 0) and (mesh.tessfaces) and (not nvb_utils.isNull(self.bitmap)):
+                uv = mesh.tessface_uv_textures.new(name + '.uv')
+                mesh.tessface_uv_textures.active = uv
+
+                for i in range(len(self.facelist.uvIdx)):
+                    # Get a tessface
+                    tessface = mesh.tessfaces[i]
+                    # Apply material (there is only ever one)
+                    tessface.material_index = 0
+                    # Grab a uv for the face
+                    tessfaceUV = mesh.tessface_uv_textures[0].data[i]
+                    # Get the indices of the 3 uv's for this face
+                    uvIdx = self.facelist.uvIdx[i]
+
+                    # BEGIN EEEKADOODLE FIX
+                    # BUG: Evil eekadoodle problem where faces that have
+                    # vert index 0 at location 3 are shuffled.
+                    vertIdx = self.facelist.faces[i]
+                    if vertIdx[2] == 0:
+                        uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
+                    # END EEEKADOODLE FIX
+
+                    # Add uv coordinates to face
+                    tessfaceUV.uv1 = self.tverts[uvIdx[0]]
+                    tessfaceUV.uv2 = self.tverts[uvIdx[1]]
+                    tessfaceUV.uv3 = self.tverts[uvIdx[2]]
+                    # Apply texture to uv face
+                    tessfaceUV.image = material.texture_slots[0].texture.image
+
+        # Import smooth groups as sharp edges
+        if nvb_glob.importSmoothGroups:
+            bm = bmesh.new()
+            mesh.update()
+            bm.from_mesh(mesh)
+            if hasattr(bm.edges, "ensure_lookup_table"):
+                bm.edges.ensure_lookup_table()
+            # Mark edge as sharp if its faces belong to different smooth groups
+            for e in bm.edges:
+                f = e.link_faces
+                if (len(f) > 1) and (self.facelist.shdgr[f[0].index] != self.facelist.shdgr[f[1].index]):
+                    edgeIdx = e.index
+                    mesh.edges[edgeIdx].use_edge_sharp = True
+            bm.free()
+            del bm
+            mesh.show_edge_sharp = True
+
+        mesh.update()
+        return mesh
+
+
+    def createObjectData(self, obj):
+        Node.createObjectData(self, obj)
+
+        obj.nvb.meshtype         = self.meshtype
+        if self.tilefade == 1:
+            obj.nvb.tilefade = nvb_def.Tilefade.FADE
+        elif self.tilefade == 2:
+            obj.nvb.tilefade = nvb_def.Tilefade.BASE
+        elif self.tilefade == 4:
+            obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
+        else:
+            obj.nvb.tilefade = nvb_def.Tilefade.NONE
+        obj.nvb.render           = (self.render >= 1)
+        obj.nvb.shadow           = (self.shadow >= 1)
+        obj.nvb.beaming          = (self.beaming >= 1)
+        obj.nvb.inheritcolor     = (self.inheritcolor >= 1)
+        obj.nvb.rotatetexture    = (self.rotatetexture >= 1)
+        obj.nvb.transparencyhint = self.transparencyhint
+        obj.nvb.selfillumcolor   = self.selfillumcolor
+        obj.nvb.ambientcolor     = self.ambient
+        obj.nvb.shininess        = self.shininess
+
+
+    def createObject(self, scene):
+        if nvb_glob.minimapMode:
+            if ((self.tilefade >= 1) and nvb_glob.minimapSkipFade) or not self.render:
+                # Fading objects or shadow meshes won't be imported in minimap mode
+                # We may need them for the tree stucture, so import it as an empty
+                return Dummy.load(self, scene)
+
+        mesh = self.createMesh(self.name)
+        obj  = bpy.data.objects.new(self.name, mesh)
+        self.createObjectData(obj)
+        scene.objects.link(obj)
+        return obj
+
+    @staticmethod
+    def generateAsciiMaterial(obj, asciiLines):
+        # Check if this object has a material assigned to it
+        material = obj.active_material
+        if material:
+            color = material.diffuse_color
+            asciiLines.append('  diffuse ' +    str(round(color[0], 2)) + ' ' +
+                                                str(round(color[1], 2)) + ' ' +
+                                                str(round(color[2], 2))  )
+            color = material.specular_color
+            asciiLines.append('  specular ' +   str(round(color[0], 2)) + ' ' +
+                                                str(round(color[1], 2)) + ' ' +
+                                                str(round(color[2], 2))  )
+
+            # Check if this material has a texture assigned
+            texture   = material.active_texture
+            imgName = nvb_def.null
+            if texture:
+                # Only image textures will be exported
+                if (texture.type == 'IMAGE') and (texture.image):
+                    imgName = nvb_utils.getImageFilename(texture.image)
+                else:
+                    imgName = nvb_def.null
+            asciiLines.append('  bitmap ' + imgName)
+            asciiLines.append('  alpha ' + str(round(nvb_utils.getAuroraAlpha(obj), 2)))
+
+        else:
+            # No material, set some default values
+            asciiLines.append('  diffuse 1.0 1.0 1.0')
+            asciiLines.append('  specular 0.0 0.0 0.0')
+            asciiLines.append('  alpha 1.0')
+            asciiLines.append('  bitmap ' + nvb_def.null)
+
+    @staticmethod
+    def addUVToList(uv, uvList):
+        '''
+        Helper function to keep UVs unique
+        '''
+        if uv in uvList:
+            return uvList.index(uv)
+        else:
+            uvList.append(uv)
+            return (len(uvList)-1)
+
+
+    @staticmethod
+    def generateAsciiMesh(obj, asciiLines, simple = False):
+        mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+        for p in mesh.polygons:
+            p.use_smooth = True
+
+        # Scaling fix
+        # TODO: Find out how exactly blender handles scaling, which matrices to use etc
+        scale = obj.matrix_world.to_scale()
+        scale_matrix = mathutils.Matrix([[scale[0],0,0,0],
+                                         [0,scale[1],0,0],
+                                         [0,0,scale[2],0],
+                                         [0,0,0       ,1]])
+        mesh.transform(scale_matrix)
+
+        # Triangulation (doing it with bmesh to retain edges marked as sharp)
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bmesh.ops.triangulate(bm, faces=bm.faces)
+        bm.to_mesh(mesh)
+        bm.free()
+        del bm
+
+        # Recalculate tessfaces for export
+        mesh.calc_tessface()
+
+        # Calculate smooth groups
+        smoothGroups    = []
+        numSmoothGroups = 0
+        if (obj.nvb.smoothgroup == 'SEPR') or (not nvb_glob.exportSmoothGroups):
+            # 0 = Do not use smoothgroups
+            smoothGroups    = [0] * len(mesh.polygons)
+            numSmoothGroups = 1
+        elif (obj.nvb.smoothgroup == 'SING'):
+            # All faces belong to smooth group 1
+            smoothGroups    = [1] * len(mesh.polygons)
+            numSmoothGroups = 1
+        else:
+            (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
+
+        faceList = [] # List of triangle faces
+        uvList   = [] # List of uv indices
+
+        # Add vertices
+        asciiLines.append('  verts ' + str(len(mesh.vertices)))
+        l_round = round
+        formatString = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        for v in mesh.vertices:
+            s = formatString.format(l_round(v.co[0], 5), l_round(v.co[1], 5), l_round(v.co[2], 5))
+            asciiLines.append(s)
+
+        # Add faces and corresponding tverts and shading groups
+        tessfaces     = mesh.tessfaces
+        tessfaces_uvs = mesh.tessface_uv_textures.active
+        for idx in range(len(tessfaces)):
+            tface   = tessfaces[idx]
+            smGroup = smoothGroups[idx]
+            matIdx  = tface.material_index
+
+            # We triangulated, so faces are always triangles
+            uv1 = 0
+            uv2 = 0
+            uv3 = 0
+            if tessfaces_uvs:
+                uvData = tessfaces_uvs.data[idx]
+                uv1 = self.addUVToList(uvData.uv1, uvList)
+                uv2 = self.addUVToList(uvData.uv2, uvList)
+                uv3 = self.addUVToList(uvData.uv3, uvList)
+
+            faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
+
+        if simple:
+            asciiLines.append('  faces ' + str(len(faceList)))
+
+            vertDigits        = str(len(str(len(mesh.vertices))))
+            smoothGroupDigits = str(len(str(numSmoothGroups)))
+            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
+                               '{:' + smoothGroupDigits + 'd}  ' + \
+                               '0 0 0  ' + \
+                               '{:2d}'
+            for f in faceList:
+                s = formatString.format(f[0], f[1], f[2], f[3], f[7])
+                asciiLines.append(s)
+        else:
+            asciiLines.append('  faces ' + str(len(faceList)))
+
+            vertDigits        = str(len(str(len(mesh.vertices))))
+            smoothGroupDigits = str(len(str(numSmoothGroups)))
+            uvDigits          = str(len(str(len(uvList))))
+            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
+                               '{:' + smoothGroupDigits + 'd}  ' + \
+                               '{:' + uvDigits + 'd} {:' + uvDigits + 'd} {:' + uvDigits + 'd}  ' + \
+                               '{:2d}'
+            for f in faceList:
+                s = formatString.format(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7])
+                asciiLines.append(s)
+
+            if (len(uvList) > 0):
+                asciiLines.append('  tverts ' + str(len(uvList)))
+                formatString = '    {: 6.3f} {: 6.3f}'
+                for uv in uvList:
+                    s = formatString.format(round(uv[0], 3), round(uv[1], 3))
+                    asciiLines.append(s)
+
+        bpy.data.meshes.remove(mesh)
+
+
+    @staticmethod
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Node.generateAsciiData(self, obj, asciiLines, exportObjects, classification, simple)
+
+        color = obj.nvb.ambientcolor
+        asciiLines.append('  ambient ' +    str(round(color[0], 2)) + ' ' +
+                                            str(round(color[1], 2)) + ' ' +
+                                            str(round(color[2], 2))  )
+        self.generateAsciiMaterial(obj, asciiLines)
+        asciiLines.append('  shininess ' + str(obj.nvb.shininess))
+        if not simple:
+
+
+            color = obj.nvb.selfillumcolor
+            asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
+                                                    str(round(color[1], 2)) + ' ' +
+                                                    str(round(color[2], 2))  )
+
+            asciiLines.append('  render ' + str(int(obj.nvb.render)))
+            asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
+            asciiLines.append('  beaming ' + str(int(obj.nvb.beaming)))
+            asciiLines.append('  inheritcolor ' + str(int(obj.nvb.inheritcolor)))
+            asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
+            # These two are for tiles only
+            if classification == 'TILE':
+                asciiLines.append('  rotatetexture ' + str(int(obj.nvb.rotatetexture)))
+                asciiLines.append('  tilefade ' + obj.nvb.tilefade)
+
+        self.generateAsciiMesh(obj, asciiLines, simple)
+
+
+class Animmesh(Trimesh):
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
+        self.nodetype = 'animmesh'
+
+        self.meshtype = nvb_def.Meshtype.ANIMMESH
+
+
+class Danglymesh(Trimesh):
+    """
+
+    """
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
+        self.nodetype = 'danglymesh'
+
+        self.meshtype     = nvb_def.Meshtype.DANGLYMESH
+        self.period       = 1.0
+        self.tightness    = 1.0
+        self.displacement = 1.0
+        self.constraints  = []
+
+
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
+
+        l_int   = int
+        l_float = float
+        l_isNumber = nvb_utils.isNumber
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if not l_isNumber(label):
+                if   (label == 'period'):
+                    self.period = l_float(line[1])
+                elif (label == 'tightness'):
+                    self.tightness = l_float(line[1])
+                elif (label == 'displacement'):
+                    self.displacement = l_float(line[1])
+                elif (label == 'constraints'):
+                    numVals = l_int(line[1])
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.constraints)
+                    #self.constraints = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+
+
+    def createConstraints(self, obj):
+        '''
+        Creates a vertex group for the object to contain the vertex
+        weights for the danglymesh. The weights are called "constraints"
+        in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
+        '''
+        vgroup = obj.vertex_groups.new('constraints')
+        for vertexIdx, constraint in enumerate(self.constraints):
+            weight = constraint/255
+            vgroup.add([vertexIdx], weight, 'REPLACE')
+        obj.nvb.constraints = vgroup.name
+
+
+    def createObjectData(self, obj):
+        Trimesh.createObjectData(self, obj)
+
+        obj.nvb.period       = self.period
+        obj.nvb.tightness    = self.tightness
+        obj.nvb.displacement = self.displacement
+        self.createConstraints(obj)
+
+
+    @staticmethod
+    def generateAsciiConstraints(self, obj, asciiLines):
+        vgroupName = obj.nvb.constraints
+        vgroup     = obj.vertex_groups[vgroupName]
+
+        numVerts = len(obj.data.vertices)
+        asciiLines.append('  constraints ' + str(numVerts))
+        for i, v in enumerate(obj.data.vertices):
+            try:
+                asciiLines.append('    ' + str(round(vgroup.weight(i)*255, 3)))
+            except:
+                # Vertex is not part of this group
+                asciiLines.append('    0.0')
+
+
+    @staticmethod
+    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Trimesh.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
+
+        asciiLines.append('  period '       + str(round(obj.nvb.period, 3)))
+        asciiLines.append('  tightness '    + str(round(obj.nvb.tightness, 3)))
+        asciiLines.append('  displacement ' + str(round(obj.nvb.displacement, 3)))
+        self.generateAsciiConstraints(obj, asciiLines)
+
+
+class Skinmesh(Trimesh):
+    """
+    Skinmeshes are Trimeshes where every vertex
+    has a weight.
+    """
+    def __init__(self, name = 'UNNAMED'):
+        Trimesh.__init__(self, name)
+        self.nodetype = 'skin'
+
+        self.meshtype = nvb_def.Meshtype.SKIN
+        self.weights = []
+
+
+    def loadAscii(self, asciiNode):
+        Trimesh.loadAscii(self, asciiNode)
+        l_int      = int
+        l_isNumber = nvb_utils.isNumber
+        for idx, line in enumerate(asciiNode):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if not l_isNumber(label):
+                if (label == 'weights'):
+                    numVals = l_int(line[1])
+                    nvb_parse.weights(asciiNode[idx+1:idx+numVals+1], self.weights)
+                    break # Only one relevant value here, abort loop when found
+
+
+    def createSkinGroups(self, obj):
+        skinGroupDict = {}
+        for vertIdx, vertMemberships in enumerate(self.weights):
+            for membership in vertMemberships:
+                if membership[0] in skinGroupDict:
+                    skinGroupDict[membership[0]].add([vertIdx], membership[1], 'REPLACE')
+                else:
+                    vgroup = obj.vertex_groups.new(membership[0])
+                    skinGroupDict[membership[0]] = vgroup
+                    vgroup.add([vertIdx], membership[1], 'REPLACE')
+
+
+    def createObjectData(self, obj):
+        Trimesh.loadData(self, obj)
+
+        self.createSkinGroups(obj)
+
+
+    def generateAsciiWeights(self, obj, asciiLines, exportObjects):
+        # Get a list of skingroups for this object:
+        # A vertex group is a skingroup if there is an object in the mdl
+        # with the same name as the group
+        skingroups = []
+        for objName in exportObjects:
+            if objName in obj.vertex_groups:
+                skingroups.append(obj.vertex_groups[objName])
+
+        vertexWeights = []
+        for i, v in enumerate(obj.data.vertices):
+            weights = []
+            for group in skingroups:
+                try:
+                    weights.append([group.name, group.weight(i)])
+                except:
+                    # Vertex not part of this group
+                    pass
+            vertexWeights.append(weights)
+
+        numVerts = len(obj.data.vertices)
+        asciiLines.append('  weights ' + str( numVerts))
+        for weights in vertexWeights:
+            line = '  '
+            if weights:
+                for w in weights:
+                    line += '  ' + w[0] + ' ' + str(round(w[1], 3))
+            else:
+                # No weights for this vertex ... this is a problem
+                print('Neverblender - WARNING: Missing vertex weight')
+                line = 'ERROR: no weight'
+            asciiLines.append(line)
+
+
+    def generateAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Trimesh.generateAsciiData(self, obj, asciiLines, exportObjects, classification)
+
+        self.generateAsciiWeights(obj, asciiLines, exportObjects)
+
+
 class Aabb(Trimesh):
     '''
     No need to import Aaabb's. Aabb nodes in mdl files will be
@@ -268,7 +864,7 @@ class Aabb(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.AABB
 
-    def addAABBToAscii(self, obj, asciiLines):
+    def createAsciiAABB(self, obj, asciiLines):
         walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
 
         faceList = []
@@ -341,7 +937,7 @@ class Aabb(Trimesh):
                                   str(node[6]) )
 
 
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    def createAsciiData(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -368,7 +964,7 @@ class Aabb(Trimesh):
         self.addAABBToAscii(obj, asciiLines)
 
 
-    def loadMesh(self, name):
+    def createMesh(self, name):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
@@ -399,13 +995,13 @@ class Aabb(Trimesh):
         return mesh
 
 
-    def loadAscii(self, scene):
+    def createObject(self, scene):
         if nvb_glob.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children
             return
-        mesh = self.loadMesh(self.name)
+        mesh = self.createMesh(self.name)
         obj = bpy.data.objects.new(self.name, mesh)
-        self.loadData(obj)
+        self.createObjectData(obj)
         scene.objects.link(obj)
         return obj
