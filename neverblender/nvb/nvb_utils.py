@@ -557,6 +557,17 @@ def renameAnimScene(obj, newSuffix, oldSuffix = ''):
     return obj
 
 
+def addUVToList(uv, uvList):
+    '''
+    Helper function to keep UVs unique
+    '''
+    if uv in uvList:
+        return uvList.index(uv)
+    else:
+        uvList.append(uv)
+        return (len(uvList)-1)
+
+
 def createHookModifiers(obj):
     skingrName = ''
     for vg in obj.vertex_groups:

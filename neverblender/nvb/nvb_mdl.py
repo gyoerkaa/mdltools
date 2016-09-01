@@ -48,7 +48,7 @@ class ObjectDB(collections.OrderedDict):
         return match
 
 
-class Mdl2():
+class Mdl():
     def __init__(self):
         # Header Data
         self.name           = 'UNNAMED'
@@ -59,6 +59,8 @@ class Mdl2():
         self.nodes = []
         # Animations
         self.anims = []
+        # Diction
+        createdObjects = ObjectDB()
 
 
     def loadAsciiHeader(self, asciiData):
@@ -183,27 +185,24 @@ class Mdl2():
                 self.loadAsciiGeometry(asciiData[animStart:])
 
 
-    def createAsciiHeader(self):
+    def generateAsciiHeader(self):
         pass
 
 
-    def createAsciiGeometry(self):
+    def generateAsciiGeometry(self):
         pass
 
 
-    def createAsciiAnims(self):
+    def generateAsciiAnims(self):
         pass
 
 
-    def createAscii(self):
+    def generateAscii(self):
         pass
 
 
-    def generateObjects(self):
-        createdObjects = ObjectDB()
-        rootDummy = None
-        nodePos = 0
-        if nvb_glob.importGeometry and self.nodes:
+    def createObjects(self):
+        if self.nodes:
             # First pass: Create objects
             for node in self.nodes:
                 # Creates a blender object for this node
@@ -214,13 +213,13 @@ class Mdl2():
                 nodePos += 1
                 # Save the imported objects for animation import
                 if obj:
-                    createdObjects.insertLoadedObj(node.name,
-                                                   node.parent,
-                                                   nodePos,
-                                                   obj.name)
+                    self.createdObjects.insertLoadedObj(node.name,
+                                                        node.parent,
+                                                        nodePos,
+                                                        obj.name)
 
             # Second pass: Parenting (for better compatibility)
-            for objList in createdObjects:
+            for objList in self.createdObjects:
                 for obj in objList:
                     loadedName = obj[0] # Unique name of the object in blender
                     parentName = obj[1] # Name of the parent in the mdl
@@ -232,10 +231,10 @@ class Mdl2():
                         obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
                         obj.nvb.supermodel     = self.supermodel
                         obj.nvb.classification = self.classification
-                    elif parentName in createdObjects:
-                        parentLoadedName = createdObjects.getLoadedName(parentName,
-                                                                        '',
-                                                                        nodePos)
+                    elif parentName in self.createdObjects:
+                        parentLoadedName = self.createdObjects.getLoadedName(parentName,
+                                                                             '',
+                                                                             nodePos)
                         if parentLoadedName:
                             # Only a single object with the name (ideal case)
                             obj.parent                = bpy.data.objects[parentLoadedName]
@@ -245,11 +244,28 @@ class Mdl2():
                         raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
                     scene.objects.link(obj)
 
-            if nvb_glob.importAnims
+
+    def createAnimations(self):
+        for anim in self.animations:
+
+
+    def create(self):
+        createdObjects = ObjectDB()
+        rootDummy = None
+        nodePos = 0
+        if nvb_glob.importGeometry:
+            self.createObjects()
+
+            if nvb_glob.importAnims:
+                #self.createAnimations()
+                pass
+        else:
+            # Import animations only, there is no objectDB in this case
+            pass
 
 
 
-class Mdl():
+class Mdl2():
     def __init__(self):
         self.nodeDict = collections.OrderedDict()
         self.animDict = dict() # No need to retain order
@@ -547,6 +563,18 @@ class Mdl():
         # The End
         asciiLines.append('donemodel ' + self.name)
         asciiLines.append('')
+
+
+class Wkm(Mdl):
+    def __init__(self, wkmtype)
+        Mdl.__init__(self)
+
+        self.walkmeshType   = wkmtype
+
+
+    def create(self):
+        pass
+
 
 class Xwk(Mdl):
     def __init__(self, wkmType = 'pwk'):

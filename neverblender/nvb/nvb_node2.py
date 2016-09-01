@@ -10,7 +10,7 @@ from . import nvb_utils
 from . import nvb_aabb
 from . import nvb_parse
 
-class Node():
+class Node(object):
     """
     Basic node from which every other is derived
     """
@@ -89,7 +89,7 @@ class Node():
 
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines):
+    def generateAsciiData(cls, obj, asciiLines):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -131,7 +131,7 @@ class Node():
     @classmethod
     def generateAscii(cls, obj, asciiLines):
         asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
-        self.generateAsciiData(obj, asciiLines)
+        cls.generateAsciiData(cls, obj, asciiLines)
         asciiLines.append('endnode')
 
 
@@ -156,7 +156,7 @@ class Dummy(Node):
          Node.createObjectData(self, obj)
 
     @staticmethod
-    def generateAsciiData(obj):
+    def generateAsciiData(cls, obj):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -492,7 +492,7 @@ class Trimesh(Node):
         scene.objects.link(obj)
         return obj
 
-    @classmethod
+    @staticmethod
     def generateAsciiMaterial(obj, asciiLines):
         # Check if this object has a material assigned to it
         material = obj.active_material
@@ -525,19 +525,8 @@ class Trimesh(Node):
             asciiLines.append('  alpha 1.0')
             asciiLines.append('  bitmap ' + nvb_def.null)
 
-    @classmethod
-    def addUVToList(uv, uvList):
-        '''
-        Helper function to keep UVs unique
-        '''
-        if uv in uvList:
-            return uvList.index(uv)
-        else:
-            uvList.append(uv)
-            return (len(uvList)-1)
 
-
-    @classmethod
+    @staticmethod
     def generateAsciiMesh(obj, asciiLines, simple = False):
         mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
         for p in mesh.polygons:
@@ -602,9 +591,9 @@ class Trimesh(Node):
             uv3 = 0
             if tessfaces_uvs:
                 uvData = tessfaces_uvs.data[idx]
-                uv1 = self.addUVToList(uvData.uv1, uvList)
-                uv2 = self.addUVToList(uvData.uv2, uvList)
-                uv3 = self.addUVToList(uvData.uv3, uvList)
+                uv1 = nvb_utils.addUVToList(uvData.uv1, uvList)
+                uv2 = nvb_utils.addUVToList(uvData.uv2, uvList)
+                uv3 = nvb_utils.addUVToList(uvData.uv3, uvList)
 
             faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
 
@@ -666,7 +655,7 @@ class Trimesh(Node):
             asciiLines.append('  inheritcolor ' + str(int(obj.nvb.inheritcolor)))
             asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
             # These two are for tiles only
-            if classification == 'TILE':
+            if classification == nvb_def.classification.TILE:
                 asciiLines.append('  rotatetexture ' + str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
@@ -746,7 +735,7 @@ class Danglymesh(Trimesh):
         self.createConstraints(obj)
 
 
-    @classmethod
+    @staticmethod
     def generateAsciiConstraints(obj, asciiLines):
         vgroupName = obj.nvb.constraints
         vgroup     = obj.vertex_groups[vgroupName]
@@ -820,7 +809,7 @@ class Skinmesh(Trimesh):
 
         self.createSkinGroups(obj)
 
-    @classmethod
+    @staticmethod
     def generateAsciiWeights(obj, asciiLines, exportObjects):
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
@@ -861,6 +850,120 @@ class Skinmesh(Trimesh):
         self.generateAsciiWeights(obj, asciiLines, exportObjects)
 
 
+class Emitter(Node):
+    nodetype = 'emitter'
+
+    def __init__(self, name = 'UNNAMED'):
+        GeometryNode.__init__(self, name)
+
+        self.meshtype = nvb_def.Meshtype.EMITTER
+        self.xsize    = 2
+        self.ysize    = 2
+        self.rawascii = ''
+
+
+    def loadAscii(self, asciiNode):
+        l_float = float
+        l_isNumber = nvb_utils.isNumber
+
+        for line in asciiNode:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+
+            if not l_isNumber(label):
+                if   (label == 'node'):
+                    self.name = nvb_utils.getName(line[2])
+                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
+                elif (label  == 'endnode'):
+                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
+                    return
+                elif (label == 'parent'):
+                    self.parentName = nvb_utils.getName(line[1])
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'position'):
+                    self.position = (l_float(line[1]),
+                                     l_float(line[2]),
+                                     l_float(line[3]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'orientation'):
+                    self.orientation = (l_float(line[1]),
+                                        l_float(line[2]),
+                                        l_float(line[3]),
+                                        l_float(line[4]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'scale'):
+                    self.scale = l_float(line[1])
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                elif (label == 'wirecolor'):
+                    self.wirecolor = (l_float(line[1]),
+                                      l_float(line[2]),
+                                      l_float(line[3]) )
+                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
+                else:
+                    self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
+
+
+    def createTextEmitter(self, obj):
+        txt = bpy.data.texts.new(obj.name)
+        txt.write(self.rawascii)
+        obj.nvb.rawascii = txt.name
+
+
+    def createMesh(self, objName):
+        # Create the mesh itself
+        mesh = bpy.data.meshes.new(objName)
+        mesh.vertices.add(4)
+        mesh.vertices[0].co = ( self.xsize/2,  self.ysize/2, 0.0)
+        mesh.vertices[1].co = ( self.xsize/2, -self.ysize/2, 0.0)
+        mesh.vertices[2].co = (-self.xsize/2, -self.ysize/2, 0.0)
+        mesh.vertices[3].co = (-self.xsize/2,  self.ysize/2, 0.0)
+        mesh.tessfaces.add(1)
+        mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
+
+        # After calling update() tessfaces become inaccessible
+        mesh.validate()
+        mesh.update()
+
+        return mesh
+
+
+    def createObjectData(self, obj):
+        Node.createObjectData(self, obj)
+
+        obj.nvb.meshtype = self.meshtype
+        self.createTextEmitter(obj)
+
+
+    @staticmethod
+    def generateAsciiData(obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+        Node.addDataToAscii(obj, asciiLines, exportObjects, classification, simple)
+
+        if obj.nvb.rawascii not in bpy.data.texts:
+            print('Neverblender - Warning: No emitter data for ' + obj.name)
+            return
+        txt      = bpy.data.texts[obj.nvb.rawascii]
+        txtLines = [l.split() for l in txt.as_string().split('\n')]
+        for line in txtLines:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if  (label == 'node') or (label  == 'endnode') or \
+                (label == 'parent') or (label == 'position') or \
+                (label == 'orientation') or (label == 'scale') or (label == 'wirecolor'):
+                # We don't need any of this as we'll take it directly from
+                # the object
+                pass
+            else:
+                # We'll take everything that doesn't start with a #
+                if label[0] != '#':
+                    asciiLines.append('  ' + ' '.join(line))
+
+
 class Aabb(Trimesh):
     '''
     No need to import Aaabb's. Aabb nodes in mdl files will be
@@ -874,7 +977,7 @@ class Aabb(Trimesh):
         self.meshtype = nvb_def.Meshtype.AABB
 
 
-    @classmethod
+    @staticmethod
     def generateAsciiAABB(obj, asciiLines):
         walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
 
@@ -972,7 +1075,7 @@ class Aabb(Trimesh):
         asciiLines.append('  shininess 0')
         asciiLines.append('  bitmap NULL')
         Trimesh.generateAsciiData(obj, asciiLines, simple)
-        self.generateAsciiAABB(obj, asciiLines)
+        Aabb.generateAsciiAABB(obj, asciiLines)
 
 
     def createMesh(self, name):

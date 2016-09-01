@@ -60,28 +60,29 @@ def loadMdl(operator,
 
     scene = bpy.context.scene
 
-    fp = os.fsencode(filepath)
-    asciiLines = [line.strip().split() for line in open(fp, 'r')]
+    with open(os.fsencode(filepath), 'r') as mdlfile:
+        asciiMdl = mdlfile.read()
 
-    print('Importing: ' + filepath)
-    mdl = nvb_mdl.Mdl()
-    mdl.parse(asciiLines)
-    mdl.load(scene)
+        print('Neverblender: Importing ' + filepath)
+        mdl = nvb_mdl.Mdl()
+        mdl.loadAscii(asciiLines)
+        mdl.create(scene)
 
-    # Try to load walkmeshes ... pwk (placeable) and dwk (door)
-    if importWalkmesh:
-        filetypes = ['pwk', 'dwk']
-        (wkmPath, wkmFilename) = os.path.split(filepath)
-        for wkmType in filetypes:
-            wkmFilepath = os.path.join(wkmPath, os.path.splitext(wkmFilename)[0] + '.' + wkmType)
-            fp = os.fsencode(wkmFilepath)
-            try:
-                asciiLines = [line.strip().split() for line in open(fp, 'r')]
-                wkm = nvb_mdl.Xwk(wkmType)
-                wkm.parse(asciiLines)
-                wkm.load(scene, imports)
-            except IOError:
-                print("Neverblender: No walkmesh found at " + wkmFilepath)
+        # Try to load walkmeshes ... pwk (placeable) and dwk (door)
+        if importWalkmesh:
+            (mdlPath, mdlFilename) = os.path.split(filepath)
+            for wkmtype in ['pwk', 'dwk']:
+                wkmPath = os.fsencode(os.path.join(mdlPath, os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
+                try:
+                    wkmfile = open(wkmPath, 'r')
+                except IOError:
+                    print("Neverblender: No " + wkmtype + " walkmesh found")
+                else:
+                    asciiWkm = wkmfile.read()
+                    wkm = nvb_mdl.Wkm(wkmtype)
+                    wkm.parse(asciiLines)
+                    wkm.load(scene, imports)
+                    wkmfile.close()
 
     return {'FINISHED'}
 
