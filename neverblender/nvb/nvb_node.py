@@ -164,6 +164,9 @@ class Dummy(Node):
 
         self.dummytype = nvb_def.Dummytype.NONE
 
+    def setSubtype(self, subtype):
+        self.dummytype = subtype
+
 
     def loadAscii(self, asciiBlock):
         Node.loadAscii(self, asciiBlock)

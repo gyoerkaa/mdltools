@@ -201,9 +201,40 @@ class Mdl():
         pass
 
 
+    def createObjectLinks(self, scene):
+        '''
+        Handles parenting and linking the objects to a scene
+        '''
+        for objList in self.createdObjects:
+            for obj in objList:
+                loadedName = obj[0] # Unique name of the object in blender
+                parentName = obj[1] # Name of the parent in the mdl
+                nodePos    = obj[2] # Position of the node in the mdl
+
+                # Check if the parent exists
+                if (nvb_utils.isNull(parentName)):
+                    # Node without parent. Must be the root dummy.
+                    obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
+                    obj.nvb.supermodel     = self.supermodel
+                    obj.nvb.classification = self.classification
+                elif parentName in self.createdObjects:
+                    parentLoadedName = self.createdObjects.getLoadedName(parentName,
+                                                                         '',
+                                                                         nodePos)
+                    if parentLoadedName:
+                        obj.parent                = bpy.data.objects[parentLoadedName]
+                        obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                    else:
+                        #TODO...or not todo?
+                        pass
+                else:
+                    # Parent doesn't exist.
+                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
+                scene.objects.link(obj)
+
+
     def createObjects(self):
         if self.nodes:
-            # First pass: Create objects
             for node in self.nodes:
                 # Creates a blender object for this node
                 obj = node.createObject()
@@ -218,47 +249,20 @@ class Mdl():
                                                         nodePos,
                                                         obj.name)
 
-            # Second pass: Parenting (for better compatibility)
-            for objList in self.createdObjects:
-                for obj in objList:
-                    loadedName = obj[0] # Unique name of the object in blender
-                    parentName = obj[1] # Name of the parent in the mdl
-                    nodePos    = obj[2] # Position of the node in the mdl
-
-                    # Check if the parent exists
-                    if (nvb_utils.isNull(parentName)):
-                        # Node without parent. Must be the root dummy.
-                        obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
-                        obj.nvb.supermodel     = self.supermodel
-                        obj.nvb.classification = self.classification
-                    elif parentName in self.createdObjects:
-                        parentLoadedName = self.createdObjects.getLoadedName(parentName,
-                                                                             '',
-                                                                             nodePos)
-                        if parentLoadedName:
-                            # Only a single object with the name (ideal case)
-                            obj.parent                = bpy.data.objects[parentLoadedName]
-                            obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
-                    else:
-                        # Parent doesn't exist.
-                        raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
-                    scene.objects.link(obj)
-
 
     def createAnimations(self):
         for anim in self.animations:
+            pass
 
 
-    def create(self):
-        createdObjects = ObjectDB()
-        rootDummy = None
+    def create(self, scene):
         nodePos = 0
         if nvb_glob.importGeometry:
             self.createObjects()
+            self.createObjectLinks(scene)
 
             if nvb_glob.importAnims:
-                #self.createAnimations()
-                pass
+                self.createAnimations()
         else:
             # Import animations only, there is no objectDB in this case
             pass
@@ -572,8 +576,42 @@ class Wkm(Mdl):
         self.walkmeshType   = wkmtype
 
 
-    def create(self):
-        pass
+    def createObjectLinks(self, scene):
+        # We'll be adding an extra dummy and parent all objects with missing
+        # parents to it (which should be all of them)
+        wkmRootNode = nvb_node.dummy(self.name + ' ' + wkmtype)
+        #TODO: Set subtype
+        wkmRootObj  = wkmRootNode.createObject()
+        scene.objects.link(wkmRootObj)
+
+        for objList in self.createdObjects:
+            for obj in objList:
+                loadedName = obj[0] # Unique name of the object in blender
+                parentName = obj[1] # Name of the parent in the mdl
+                nodePos    = obj[2] # Position of the node in the mdl
+
+                # Check if the parent exists
+                if (nvb_utils.isNull(parentName)):
+                    # Node without parent. Must be the root dummy.
+                    obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
+                    obj.nvb.supermodel     = self.supermodel
+                    obj.nvb.classification = self.classification
+                elif parentName in self.createdObjects:
+                    parentLoadedName = self.createdObjects.getLoadedName(parentName,
+                                                                         '',
+                                                                         nodePos)
+                    if parentLoadedName:
+                        obj.parent                = bpy.data.objects[parentLoadedName]
+                        obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                    else:
+                        #TODO...or not todo?
+                        pass
+                else:
+                    # Parent doesn't exist. use our custom one
+                    obj.parent                = wkmRootObj
+                    obj.matrix_parent_inverse = wkmRootObj.parent.matrix_world.inverted()
+                scene.objects.link(obj)
+
 
 
 class Xwk(Mdl):
