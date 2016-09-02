@@ -20,6 +20,74 @@ class Animation():
         self.frameStart = 0
         self.frameEnd   = 0
 
+
+    def loadEvent(self, event):
+        self.eventList.append(event)
+
+
+    def create(self, objectDB):
+        if objectDB:
+            self.createWithDB(objectDB)
+        else:
+            self.createIndy()
+
+
+    def createWithDB(self, objectDB):
+        pass
+
+
+    def createIndy(self):
+        pass
+
+
+    def loadAsciiHeader(self, asciiData):
+        asciiLines = asciiData.split('\n')
+        for line in asciiBlock:
+            try:
+                label = line[0].lower()
+            except IndexError:
+                # Probably empty line or whatever, skip it
+                continue
+            if (label == 'length'):
+                self.length = float(line[1])
+            elif (label == 'transtime'):
+                self.transtime = float(line[1])
+            elif (label == 'animroot'):
+                try:
+                    self.root = line[1]
+                except:
+                    self.root = 'undefined'
+            elif (label == 'event'):
+                self.loadEvent((float(line[1]), line[2]))
+
+
+    def loadAsciiNodes(self, asciiData):
+        for asciiNode in asciiData.split('node '):
+            lines = [l.strip().split() for l in asciiNode.splitlines()]
+            node = None
+            nodeType = ''
+            nodeName = 'UNNAMED'
+
+            # Read node type
+            try:
+                nodeType = lines[0][0].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node type')
+
+            # Read node Name
+            try:
+                nodeName = lines[0][1].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node name')
+
+
+    def loadAscii(self, asciiData):
+        animNodesStart = asciiData.find('node ')
+        if (animNodesStart > -1):
+            anim.loadAsciiHeader(asciiData[:animNodesStart-1])
+            anim.loadAsciiNodes(asciiData[animNodesStart:])
+
+
     def getAnimNode(self, nodeName, parentName = nvb_def.null):
         key = parentName + nodeName
         if key in self.nodeList:

@@ -67,7 +67,7 @@ class Mdl():
         asciiLines = asciiData.split('\n')
         for line in asciiLines:
             try:
-                label = line[0]
+                label = line[0].lower()
             except IndexError:
                 # Probably empty line or whatever, just skip it
                 continue
@@ -106,17 +106,17 @@ class Mdl():
             nodeType = ''
             nodeName = 'UNNAMED'
 
-            # Read node Name
-            try:
-                nodeName = lines[0][1].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node name')
-
             # Read node type
             try:
                 nodeType = lines[0][0].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node type')
+
+            # Read node Name
+            try:
+                nodeName = lines[0][1].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node name')
 
             # Create an object with that node type
             switch = {'dummy':      nvb_node.Dummy, \
@@ -156,8 +156,7 @@ class Mdl():
             animDataStart = asciiData.find('node ')
 
             anim = nvb_anim.Animation(animName)
-            anim.loadAsciiHeader(asciiData[:animDataStart-1])
-            anim.loadAsciiNodes(asciiData[animDataStart:])
+            anim.loadAscii(asciiData)
             self.animations.append(anim)
 
 
