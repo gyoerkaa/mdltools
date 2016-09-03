@@ -80,6 +80,9 @@ class Animation():
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
 
+            node = nvb_animnode.Node()
+            node.loadAscii(lines)
+
 
     def loadAscii(self, asciiData):
         animNodesStart = asciiData.find('node ')
