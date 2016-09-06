@@ -106,7 +106,7 @@ class Node(object):
 
 
     @staticmethod
-    def generateAsciiData(cls, obj, asciiLines):
+    def generateAsciiData(obj, asciiLines):
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:

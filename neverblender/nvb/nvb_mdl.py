@@ -183,22 +183,93 @@ class Mdl():
             if nvb_glob.importAnim:
                 self.loadAsciiGeometry(asciiData[animStart:])
 
+    @staticmethod
+    def generateAsciiHeader(asciiLines, rootDummy):
+        blendfile = os.path.basename(bpy.data.filepath)
+        mdlname      = rootDummy.nvb.name
+        mdlclass     = rootDummy.nvb.classification
+        mdlsuper     = rootDummy.nvb.animscale
+        mdlanimscale = rootDummy.nvb.animscale
 
-    def generateAsciiHeader(self):
+        asciiLines.append('filedependancy ' + blendfile)
+        asciiLines.append('newmodel ' + mdlname)
+        asciiLines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
+        asciiLines.append('classification ' + mdlclass)
+        asciiLines.append('setanimationscale ' + str(round( mdlanimscale, 2)))
+
+
+    @staticmethod
+    def generateAsciiGeometry(asciiLines, bObject, simple = False):
+        nodeType = nvb_utils.getNodeType(bObject)
+        switch = {'dummy':      nvb_node.Dummy, \
+                  'patch':      nvb_node.Patch, \
+                  'reference':  nvb_node.Reference, \
+                  'trimesh':    nvb_node.Trimesh,  \
+                  'animmesh':   nvb_node.Animmesh, \
+                  'danglymesh': nvb_node.Danglymesh, \
+                  'skin':       nvb_node.Skinmesh, \
+                  'emitter':    nvb_node.Emitter, \
+                  'light':      nvb_node.Light, \
+                  'aabb':       nvb_node.Aabb}
+        try:
+            node = switch[nodeType]()
+        except KeyError:
+            raise nvb_def.MalformedMdlFile('Invalid node type')
+
+        node.generateAscii(bObject, asciiLines, self.validExports, self.classification, simple)
+
+        '''
+        for child in bObject.children:
+            self.generateGeomBlock(child, asciiLines, simple)
+        '''
+        childList = []
+        for child in bObject.children:
+            childList.append((child.nvb.imporder, child))
+        childList.sort(key=lambda tup: tup[0])
+
+        for (imporder, child) in childList:
+            self.generateGeomBlock(child, asciiLines, simple)
+
+
+    @staticmethod
+    def generateAsciiAnims():
         pass
 
 
-    def generateAsciiGeometry(self):
-        pass
+    @staticmethod
+    def generateAscii(asciiLines,
+                      rootDummy,
+                      exportAnim = True,
+                      exportWalkmesh = True):
+
+        # The Names of exported geometry nodes. We'll need this for skinmeshes
+        # and animations
+        validExports = []
+        nvb_utils.getValidExports(rootDummy, validExports)
 
 
-    def generateAsciiAnims(self):
-        pass
+        currentTime   = datetime.now()
+        if not blendFileName:
+            blendFileName = 'unknown'
+        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
 
+        # Header
+        Mdl.generateAsciiHeader(rootDummy)
 
-    def generateAscii(self):
-        pass
+        # Geometry
+        asciiLines.append('beginmodelgeom ' + self.name)
+        self.generateAsciiGeometry(rootDummy, asciiLines, False)
+        asciiLines.append('endmodelgeom ' + self.name)
 
+        # Animations
+        if 'ANIMATION' in exports:
+            asciiLines.append('')
+            asciiLines.append('# ANIM ASCII')
+            Mdl.generateAsciiAnims(rootDummy, asciiLines)
+
+        # The End
+        asciiLines.append('donemodel ' + self.name)
+        asciiLines.append('')
 
     def createObjectLinks(self, scene):
         '''
