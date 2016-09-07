@@ -33,10 +33,17 @@ class Animation():
 
 
     def createWithDB(self, objectDB):
+		'''
+		Create animations with a list of imported objects
+		'''
         pass
 
 
     def createIndy(self):
+		'''
+		create animation without previosly imported objects
+		May be buggy, but we try anyway
+		'''
         pass
 
 
