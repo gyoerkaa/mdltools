@@ -11,18 +11,18 @@ import neverblender
 
 # Settings from ini file:
 minimap_size = 32
-z_offset     = 10.0
-light_color  = (1.0, 1.0, 1.0)
-skip_fading  = False
-input_path   = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'in')
-output_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'out')
+z_offset = 10.0
+light_color = (1.0, 1.0, 1.0)
+skip_fading = False
+input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'in')
+output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'out')
 
 
 # Some globals
 emtpy_filename = 'empty.blend'
-empty_path     = os.path.join(os.path.dirname(__file__), emtpy_filename)
-logfile_name   = 'log.txt'
-logfile        = None
+empty_path = os.path.join(os.path.dirname(__file__), emtpy_filename)
+logfile_name = 'log.txt'
+logfile = None
 
 
 def log(message):
@@ -43,7 +43,7 @@ def load_settings():
     log('##### Options #####')
 
     for arg in sys.argv:
-        words=arg.split('=')
+        words = arg.split('=')
         if (words[0] == 'nvb_msize'):
             try:
                 minimap_size = int(words[1])
@@ -67,7 +67,7 @@ def load_settings():
             try:
                 cval = [float(cval_string[0]),
                         float(cval_string[1]),
-                        float(cval_string[2]) ]
+                        float(cval_string[2])]
             except:
                 log('WARNING: Could not read LIGHT_COLOR. Using Default value.')
 
@@ -119,8 +119,8 @@ def process_all():
     '''
     # Load an empty file
     try:
-        bpy.ops.wm.open_mainfile(filepath = empty_path,
-                                 load_ui = False)
+        bpy.ops.wm.open_mainfile(filepath=empty_path,
+                                 load_ui=False)
     except:
         log('ERROR: Unable to load empty.blend')
         return
@@ -132,15 +132,15 @@ def process_all():
             # Import mdl file
             mdlfile = os.fsencode(os.path.join(input_path, filename))
             try:
-                bpy.ops.nvb.mdlimport(filepath = mdlfile,
-                                      importGeometry = True,
-                                      importWalkmesh = False,
-                                      importSmoothGroups = False,
-                                      importAnim = False,
-                                      materialMode = 'MUL',
-                                      textureSearch = False,
-                                      minimapMode = True,
-                                      minimapSkipFade = skip_fading)
+                bpy.ops.nvb.mdlimport(filepath=mdlfile,
+                                      importGeometry=True,
+                                      importWalkmesh=False,
+                                      importSmoothGroups=False,
+                                      importAnim=False,
+                                      materialMode='MUL',
+                                      textureSearch=False,
+                                      minimapMode=True,
+                                      minimapSkipFade=skip_fading)
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
                 log('    ERROR: ', error_report)
@@ -156,18 +156,18 @@ def process_all():
             # Render minimap
             if mdlRoot:
                 filename = 'mi_' + mdlRoot.name
-                scene    = bpy.context.scene
+                scene = bpy.context.scene
                 scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
-                mdlRoot.nvb.minimapsize    = minimap_size
+                mdlRoot.nvb.minimapsize = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
                 neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
-                bpy.ops.render.render(animation = False, write_still = True)
+                bpy.ops.render.render(animation=False, write_still=True)
                 log('    Rendered to ' + filename)
             else:
                 log('    ERROR: No rootdummy')
 
             # Load empty blend for next mdl file
-            bpy.ops.wm.open_mainfile(filepath = empty_path, load_ui = False)
+            bpy.ops.wm.open_mainfile(filepath=empty_path, load_ui=False)
 
 
 def process_set(setfile_name):
@@ -176,17 +176,17 @@ def process_set(setfile_name):
     Single tiles are rendered regularly
     '''
     log('Processing set file: ' + setfile_name)
-    tiles  = []
+    tiles = []
     groups = []
 
     filepath = os.fsencode(os.path.join(input_path, setfile_name))
     with open(filepath, 'r') as fp:
         contents = fp.read()
 
-    tiles_start  = contents.find('[TILES]')
+    tiles_start = contents.find('[TILES]')
     groups_start = contents.find('[GROUPS]')
 
-    tile_blocks  = contents[tiles_start:groups_start-1].split('[')
+    tile_blocks = contents[tiles_start:groups_start-1].split('[')
     group_blocks = contents[groups_start:].split('[')
 
     g = group_blocks.pop[0].strip().split()
@@ -194,13 +194,12 @@ def process_set(setfile_name):
     if num_groups >= len(group_blocks)-1:
         log('    ERROR: Num groups mismatch')
     for g in group_blocks:
-        group_def = g.strip().split():
+        group_def = g.strip().split()
         group_id = group_blocks.pop[0][0]
         group_tiles = []
         for el in group_def:
             group_tiles.append(el[1])
         groups.append([group_id, group_tiles])
-
 
     t = tile_blocks.pop[0].strip().split()
     num_tiles = t[1]

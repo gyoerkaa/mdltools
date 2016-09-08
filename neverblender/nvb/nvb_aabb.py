@@ -1,6 +1,7 @@
 import mathutils
 
-def generateTree(aabb_tree, face_list, rlevel = 0):
+
+def generateTree(aabb_tree, face_list, rlevel=0):
 
     if (rlevel > 100):
         print('Neverblender - ERROR: Could not generate aabb. Recursion level exceeds 100')
@@ -12,8 +13,8 @@ def generateTree(aabb_tree, face_list, rlevel = 0):
         return
 
     # Calculate Bounding box centers and min/max coordinates
-    bb_min         = mathutils.Vector(( 100000.0,  100000.0,  100000.0))
-    bb_max         = mathutils.Vector((-100000.0, -100000.0, -100000.0))
+    bb_min = mathutils.Vector((100000.0,  100000.0,  100000.0))
+    bb_max = mathutils.Vector((-100000.0, -100000.0, -100000.0))
     bb_avgcentroid = mathutils.Vector((0.0, 0.0, 0.0))
     for face in face_list:
         face_vertices = face[1]
@@ -26,36 +27,40 @@ def generateTree(aabb_tree, face_list, rlevel = 0):
                     bb_min[ax] = vertex[ax]
                 # Then the max
                 if bb_max[ax] < vertex[ax]:
-                     bb_max[ax] = vertex[ax]
+                    bb_max[ax] = vertex[ax]
 
         face_centroid = face[2]
         bb_avgcentroid = bb_avgcentroid + face_centroid
 
     bb_avgcentroid = bb_avgcentroid / len(face_list)
 
-    bb_centroid = (bb_min + bb_max) /2
+    bb_centroid = (bb_min + bb_max) / 2
 
     if (len(face_list) == 1):
         # Only one face left in face list
         # This node is a leaf, save the face in the leaf
         linked_face_idx = face_list[0][0]
-        aabb_treenode = [bb_min.x, bb_min.y, bb_min.z, bb_max.x, bb_max.y, bb_max.z, linked_face_idx]
+        aabb_treenode = [bb_min.x, bb_min.y, bb_min.z,
+                         bb_max.x, bb_max.y, bb_max.z,
+                         linked_face_idx]
         aabb_tree.append(aabb_treenode)
     else:
         # This is a node in the tree
-        linked_face_idx = -1 # -1 indicates nodes
-        aabb_treenode = [bb_min.x, bb_min.y, bb_min.z, bb_max.x, bb_max.y, bb_max.z, linked_face_idx]
+        linked_face_idx = -1  # -1 indicates nodes
+        aabb_treenode = [bb_min.x, bb_min.y, bb_min.z,
+                         bb_max.x, bb_max.y, bb_max.z,
+                         linked_face_idx]
         aabb_tree.append(aabb_treenode)
 
         # Size of bounding box
         bb_size = bb_max - bb_min
 
         # Longest axis of bounding box
-        split_axis = 0 # x
+        split_axis = 0  # x
         if (bb_size.y > bb_size.x):
-            split_axis = 1 # y
+            split_axis = 1  # y
         if (bb_size.z > bb_size.y):
-            split_axis = 2 # z
+            split_axis = 2  # z
 
         # Change axis in case points are coplanar with
         # the split plane
@@ -71,15 +76,15 @@ def generateTree(aabb_tree, face_list, rlevel = 0):
 
         # Put items on the left- and rightside of the splitplane
         # into sperate lists
-        face_list_left  = []
+        face_list_left = []
         face_list_right = []
-        found_split     = False
-        tested_axes     = 1
+        found_split = False
+        tested_axes = 1
         while not found_split:
             # Sort faces by side
-            face_list_left  = []
+            face_list_left = []
             face_list_right = []
-            leftside        = True
+            leftside = True
             for face in face_list:
                 face_centroid = face[2]
 
@@ -98,7 +103,7 @@ def generateTree(aabb_tree, face_list, rlevel = 0):
                 # Try another axis to prevent degeneration
                 tested_axes += 1
 
-                split_axis  += 1
+                split_axis += 1
                 if (split_axis >= 3):
                     split_axis = 0
                 if (tested_axes >= 3):

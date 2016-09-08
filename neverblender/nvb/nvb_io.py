@@ -33,29 +33,29 @@ def findRootDummy():
 
 def loadMdl(operator,
             context,
-            filepath = '',
-            importGeometry = True,
-            importWalkmesh = True,
-            importSmoothGroups = True,
-            importAnim = 'STD',
-            importSupermodel = False,
-            materialMode = 'SIN',
-            textureSearch = False,
-            minimapMode = False,
-            minimapSkipFade = False):
+            filepath='',
+            importGeometry=True,
+            importWalkmesh=True,
+            importSmoothGroups=True,
+            importAnim='STD',
+            importSupermodel=False,
+            materialMode='SIN',
+            textureSearch=False,
+            minimapMode=False,
+            minimapSkipFade=False):
     '''
     Called from blender ui
     '''
-    nvb_glob.importGeometry     = importGeometry
+    nvb_glob.importGeometry = importGeometry
     nvb_glob.importSmoothGroups = importSmoothGroups
-    nvb_glob.importAnim         = importAnim
+    nvb_glob.importAnim = importAnim
 
     nvb_glob.materialMode = materialMode
 
-    nvb_glob.texturePath   = os.path.dirname(filepath)
+    nvb_glob.texturePath = os.path.dirname(filepath)
     nvb_glob.textureSearch = textureSearch
 
-    nvb_glob.minimapMode     = minimapMode
+    nvb_glob.minimapMode = minimapMode
     nvb_glob.minimapSkipFade = minimapSkipFade
 
     scene = bpy.context.scene
@@ -88,19 +88,18 @@ def loadMdl(operator,
 
 
 def saveMdl(operator,
-         context,
-         filepath = '',
-         exports = {'ANIMATION', 'WALKMESH'},
-         useSmoothGroups = True,
-         applyModifiers = True,
-         ):
+            context,
+            filepath='',
+            exports={'ANIMATION', 'WALKMESH'},
+            useSmoothGroups=True,
+            applyModifiers=True):
     '''
     Called from blender ui
     '''
-    nvb_glob.exports            = exports
+    nvb_glob.exports = exports
     nvb_glob.exportSmoothGroups = exportSmoothGroups
-    nvb_glob.applyModifiers     = applyModifiers
-    nvb_glob.scene              = bpy.context.scene
+    nvb_glob.applyModifiers = applyModifiers
+    nvb_glob.scene = bpy.context.scene
 
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -116,7 +115,7 @@ def saveMdl(operator,
 
         if 'WALKMESH' in exports:
             if mdl.classification == nvb_def.Classification.TILE:
-                wkm     = nvb_mdl.Wok()
+                wkm = nvb_mdl.Wok()
                 wkmRoot = mdlRoot
                 wkmType = 'wok'
             else:
@@ -126,20 +125,20 @@ def saveMdl(operator,
                 wkmRootName = mdl.name + '_pwk'
                 if (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('pwk')
+                    wkm = nvb_mdl.Xwk('pwk')
                 wkmRootName = mdl.name + '_PWK'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('pwk')
+                    wkm = nvb_mdl.Xwk('pwk')
 
                 wkmRootName = mdl.name + '_dwk'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('dwk')
+                    wkm = nvb_mdl.Xwk('dwk')
                 wkmRootName = mdl.name + '_DWK'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('dwk')
+                    wkm = nvb_mdl.Xwk('dwk')
                 # TODO: If we can't find one by name we'll look for an arbitrary one
 
             if wkmRoot:

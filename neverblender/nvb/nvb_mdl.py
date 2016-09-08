@@ -19,7 +19,7 @@ class ObjectDB(collections.OrderedDict):
         else:
             self[nodeName] = [(parentName, nodePos, loadedName)]
 
-    def getLoadedName(self, nodeName, parentName = '', nodePos = -1):
+    def getLoadedName(self, nodeName, parentName='', nodePos=-1):
         match = None
         if nodeName in self:
             if len(self[nodeName]) > 1:
@@ -34,12 +34,12 @@ class ObjectDB(collections.OrderedDict):
                 # 2. Use the nearest node with lower position
                 if (nodePos >= 0) and not match:
                     pmp = -1
-                    pm  = None
+                    pm = None
                     for potentialMatch in self[nodeName]:
                         if (potentialMatch[1] < nodePos) and \
                            (potentialMatch[1] > pmp):
                             pmp = potentialMatch[1]
-                            pm  = potentialMatch[2]
+                            pm = potentialMatch[2]
                     match = pm
             else:
                 # Only a single object with the name (ideal case)
@@ -51,9 +51,9 @@ class ObjectDB(collections.OrderedDict):
 class Mdl():
     def __init__(self):
         # Header Data
-        self.name           = 'UNNAMED'
-        self.supermodel     = nvb_def.null
-        self.animscale      = 1.0
+        self.name = 'UNNAMED'
+        self.supermodel = nvb_def.null
+        self.animscale = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
         # Geometry
         self.nodes = []
@@ -61,7 +61,6 @@ class Mdl():
         self.anims = []
         # Diction
         createdObjects = ObjectDB()
-
 
     def loadAsciiHeader(self, asciiData):
         asciiLines = asciiData.split('\n')
@@ -98,7 +97,6 @@ class Mdl():
                 except IndexError:
                     print("Neverblender - WARNING: Unable to read animationscale. Default value " + self.animscale)
 
-
     def loadAsciiGeometry(self, asciiData):
         for asciiNode in asciiData.split('node '):
             lines = [l.strip().split() for l in asciiNode.splitlines()]
@@ -119,15 +117,15 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
 
             # Create an object with that node type
-            switch = {'dummy':      nvb_node.Dummy, \
-                      'patch':      nvb_node.Patch, \
-                      'reference':  nvb_node.Reference, \
-                      'trimesh':    nvb_node.Trimesh,  \
-                      'animmesh':   nvb_node.Animmesh,  \
-                      'danglymesh': nvb_node.Danglymesh, \
-                      'skin':       nvb_node.Skinmesh, \
-                      'emitter':    nvb_node.Emitter, \
-                      'light':      nvb_node.Light, \
+            switch = {'dummy':      nvb_node.Dummy,
+                      'patch':      nvb_node.Patch,
+                      'reference':  nvb_node.Reference,
+                      'trimesh':    nvb_node.Trimesh,
+                      'animmesh':   nvb_node.Animmesh,
+                      'danglymesh': nvb_node.Danglymesh,
+                      'skin':       nvb_node.Skinmesh,
+                      'emitter':    nvb_node.Emitter,
+                      'light':      nvb_node.Light,
                       'aabb':       nvb_node.Aabb}
             try:
                 node = switch[nodeType](nodeName)
@@ -138,13 +136,12 @@ class Mdl():
             node.loadAscii(lines)
             self.nodes.append(node)
 
-
     def loadAsciiAnims(self, asciiData):
         # Split into animations first
         for asciiAnim in asciiData.split('newanim '):
             # Now split the animations into header + nodes
-            anim          = None
-            animName      = 'UNNAMED'
+            anim = None
+            animName = 'UNNAMED'
             animDataStart = -1
 
             # Read animation Name
@@ -158,7 +155,6 @@ class Mdl():
             anim = nvb_anim.Animation(animName)
             anim.loadAscii(asciiData)
             self.animations.append(anim)
-
 
     def loadAscii(self, asciiData):
         headBlock = []
@@ -186,30 +182,29 @@ class Mdl():
     @staticmethod
     def generateAsciiHeader(asciiLines, rootDummy):
         blendfile = os.path.basename(bpy.data.filepath)
-        mdlname      = rootDummy.nvb.name
-        mdlclass     = rootDummy.nvb.classification
-        mdlsuper     = rootDummy.nvb.animscale
+        mdlname = rootDummy.nvb.name
+        mdlclass = rootDummy.nvb.classification
+        mdlsuper = rootDummy.nvb.animscale
         mdlanimscale = rootDummy.nvb.animscale
 
         asciiLines.append('filedependancy ' + blendfile)
         asciiLines.append('newmodel ' + mdlname)
         asciiLines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
         asciiLines.append('classification ' + mdlclass)
-        asciiLines.append('setanimationscale ' + str(round( mdlanimscale, 2)))
-
+        asciiLines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
 
     @staticmethod
-    def generateAsciiGeometry(asciiLines, bObject, simple = False):
+    def generateAsciiGeometry(asciiLines, bObject, simple=False):
         nodeType = nvb_utils.getNodeType(bObject)
-        switch = {'dummy':      nvb_node.Dummy, \
-                  'patch':      nvb_node.Patch, \
-                  'reference':  nvb_node.Reference, \
-                  'trimesh':    nvb_node.Trimesh,  \
-                  'animmesh':   nvb_node.Animmesh, \
-                  'danglymesh': nvb_node.Danglymesh, \
-                  'skin':       nvb_node.Skinmesh, \
-                  'emitter':    nvb_node.Emitter, \
-                  'light':      nvb_node.Light, \
+        switch = {'dummy':      nvb_node.Dummy,
+                  'patch':      nvb_node.Patch,
+                  'reference':  nvb_node.Reference,
+                  'trimesh':    nvb_node.Trimesh,
+                  'animmesh':   nvb_node.Animmesh,
+                  'danglymesh': nvb_node.Danglymesh,
+                  'skin':       nvb_node.Skinmesh,
+                  'emitter':    nvb_node.Emitter,
+                  'light':      nvb_node.Light,
                   'aabb':       nvb_node.Aabb}
         try:
             node = switch[nodeType]()
@@ -230,25 +225,22 @@ class Mdl():
         for (imporder, child) in childList:
             self.generateGeomBlock(child, asciiLines, simple)
 
-
     @staticmethod
     def generateAsciiAnims():
         pass
 
-
     @staticmethod
     def generateAscii(asciiLines,
                       rootDummy,
-                      exportAnim = True,
-                      exportWalkmesh = True):
+                      exportAnim=True,
+                      exportWalkmesh=True):
 
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
         validExports = []
         nvb_utils.getValidExports(rootDummy, validExports)
 
-
-        currentTime   = datetime.now()
+        currentTime = datetime.now()
         if not blendFileName:
             blendFileName = 'unknown'
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
@@ -277,15 +269,15 @@ class Mdl():
         '''
         for objList in self.createdObjects:
             for obj in objList:
-                loadedName = obj[0] # Unique name of the object in blender
-                parentName = obj[1] # Name of the parent in the mdl
-                nodePos    = obj[2] # Position of the node in the mdl
+                loadedName = obj[0]  # Unique name of the object in blender
+                parentName = obj[1]  # Name of the parent in the mdl
+                nodePos = obj[2]  # Position of the node in the mdl
 
                 # Check if the parent exists
                 if (nvb_utils.isNull(parentName)):
                     # Node without parent. Must be the root dummy.
-                    obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
-                    obj.nvb.supermodel     = self.supermodel
+                    obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
+                    obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
                 elif parentName in self.createdObjects:
                     parentLoadedName = self.createdObjects.getLoadedName(parentName,
@@ -301,7 +293,6 @@ class Mdl():
                     # Parent doesn't exist.
                     raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
                 scene.objects.link(obj)
-
 
     def createObjects(self):
         if self.nodes:
@@ -319,11 +310,9 @@ class Mdl():
                                                         nodePos,
                                                         obj.name)
 
-
     def createAnimations(self):
         for anim in self.animations:
             pass
-
 
     def create(self, scene):
         nodePos = 0
@@ -338,22 +327,20 @@ class Mdl():
             pass
 
 
-
 class Mdl2():
     def __init__(self):
         self.nodeDict = collections.OrderedDict()
-        self.animDict = dict() # No need to retain order
+        self.animDict = dict()  # No need to retain order
 
         self.nodes = collections.OrderedDict()
         self.anims = dict()
 
-        self.name           = 'UNNAMED'
-        self.supermodel     = nvb_def.null
-        self.animscale      = 1.0
+        self.name = 'UNNAMED'
+        self.supermodel = nvb_def.null
+        self.animscale = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
 
-        self.validExports   = [] # needed for skinmeshes and animations
-
+        self.validExports = []  # needed for skinmeshes and animations
 
     def parseNode(self, asciiBlock):
         if asciiBlock is None:
@@ -365,15 +352,15 @@ class Mdl2():
         except (IndexError, AttributeError):
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        switch = {'dummy':      nvb_node.Dummy, \
-                  'patch':      nvb_node.Patch, \
-                  'reference':  nvb_node.Reference, \
-                  'trimesh':    nvb_node.Trimesh,  \
-                  'animmesh':   nvb_node.Animmesh,  \
-                  'danglymesh': nvb_node.Danglymesh, \
-                  'skin':       nvb_node.Skinmesh, \
-                  'emitter':    nvb_node.Emitter, \
-                  'light':      nvb_node.Light, \
+        switch = {'dummy':      nvb_node.Dummy,
+                  'patch':      nvb_node.Patch,
+                  'reference':  nvb_node.Reference,
+                  'trimesh':    nvb_node.Trimesh,
+                  'animmesh':   nvb_node.Animmesh,
+                  'danglymesh': nvb_node.Danglymesh,
+                  'skin':       nvb_node.Skinmesh,
+                  'emitter':    nvb_node.Emitter,
+                  'light':      nvb_node.Light,
                   'aabb':       nvb_node.Aabb}
         try:
             node = switch[nodeType]()
@@ -383,7 +370,6 @@ class Mdl2():
         node.parse(asciiBlock)
         self.addNode(node)
 
-
     def parseAnimation(self, asciiBlock):
         if asciiBlock is None:
             raise nvb_def.MalformedMdlFile('Empty Animation')
@@ -392,7 +378,6 @@ class Mdl2():
         animation.getAnimFromAscii(asciiBlock)
 
         self.addAnimation(animation)
-
 
     def addNode(self, newNode):
         # Blender requires unique object names. Names in mdls are only
@@ -409,7 +394,6 @@ class Mdl2():
             else:
                 self.nodeDict[key] = newNode
 
-
     def addAnimation(self, anim):
         if anim:
             if anim.name in self.animDict:
@@ -417,7 +401,6 @@ class Mdl2():
                 pass
             else:
                 self.animDict[anim.name] = anim
-
 
     def load(self, scene):
         rootDummy = None
@@ -431,8 +414,8 @@ class Mdl2():
             (nodeKey, node) = next(it)
             if (type(node) == nvb_node.Dummy) and (nvb_utils.isNull(node.parentName)):
                 obj = node.load(scene)
-                obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
-                obj.nvb.supermodel     = self.supermodel
+                obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
+                obj.nvb.supermodel = self.supermodel
                 obj.nvb.classification = self.classification
                 rootDummy = obj
 
@@ -451,7 +434,7 @@ class Mdl2():
                 else:
                     # Check if such an object exists
                     if node.parentName in bpy.data.objects:
-                        obj.parent                = bpy.data.objects[node.parentName]
+                        obj.parent = bpy.data.objects[node.parentName]
                         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                     else:
                         # Node with invalid parent.
@@ -471,10 +454,9 @@ class Mdl2():
         for (animName, anim) in self.animDict.items():
             anim.addAnimToScene(scene, rootDummy)
 
-
     def parse(self, asciiLines):
         State = enum.Enum('State', 'START HEADER GEOMETRY GEOMETRYNODE ANIMATION')
-        cs    = State.START
+        cs = State.START
         blockStart = -1
         for idx, line in enumerate(asciiLines):
             try:
@@ -501,7 +483,6 @@ class Mdl2():
                         self.supermodel = line[2]
                     except IndexError:
                         print("Neverblender - WARNING: Unable to read supermodel. Default value " + self.supermodel)
-
                 elif (label == 'classification'):
                     try:
                         self.classification = line[1].upper()
@@ -552,19 +533,18 @@ class Mdl2():
                     else:
                         raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
 
-
     def generateGeomBlock(self, bObject, asciiLines, simple = False):
 
         nodeType = nvb_utils.getNodeType(bObject)
-        switch = {'dummy':      nvb_node.Dummy, \
-                  'patch':      nvb_node.Patch, \
-                  'reference':  nvb_node.Reference, \
-                  'trimesh':    nvb_node.Trimesh,  \
-                  'animmesh':   nvb_node.Animmesh, \
-                  'danglymesh': nvb_node.Danglymesh, \
-                  'skin':       nvb_node.Skinmesh, \
-                  'emitter':    nvb_node.Emitter, \
-                  'light':      nvb_node.Light, \
+        switch = {'dummy':      nvb_node.Dummy,
+                  'patch':      nvb_node.Patch,
+                  'reference':  nvb_node.Reference,
+                  'trimesh':    nvb_node.Trimesh,
+                  'animmesh':   nvb_node.Animmesh,
+                  'danglymesh': nvb_node.Danglymesh,
+                  'skin':       nvb_node.Skinmesh,
+                  'emitter':    nvb_node.Emitter,
+                  'light':      nvb_node.Light,
                   'aabb':       nvb_node.Aabb}
         try:
             node = switch[nodeType]()
@@ -585,7 +565,6 @@ class Mdl2():
         for (imporder, child) in childList:
             self.generateGeomBlock(child, asciiLines, simple)
 
-
     def generateAnimBlock(self, rootDummy, asciiLines):
         for animItem in rootDummy.nvb.animList:
             anim = nvb_anim.Animation()
@@ -603,19 +582,18 @@ class Mdl2():
                 anim.toAscii(scene, animRootDummy, asciiLines, self.name)
         '''
 
-
-    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
-        self.name           = rootDummy.name
+    def generate(self, asciiLines, rootDummy, exports={'ANIMATION', 'WALKMESH'}):
+        self.name = rootDummy.name
         self.classification = rootDummy.nvb.classification
-        self.supermodel     = rootDummy.nvb.supermodel
-        self.animscale      = rootDummy.nvb.animscale
+        self.supermodel = rootDummy.nvb.supermodel
+        self.animscale = rootDummy.nvb.animscale
 
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
         nvb_utils.getValidExports(rootDummy, self.validExports)
 
         # Header
-        currentTime   = datetime.now()
+        currentTime = datetime.now()
         blendFileName = os.path.basename(bpy.data.filepath)
         if not blendFileName:
             blendFileName = 'unknown'
@@ -640,61 +618,56 @@ class Mdl2():
 
 
 class Wkm(Mdl):
-    def __init__(self, wkmtype)
+    def __init__(self, wkmtype):
         Mdl.__init__(self)
 
-        self.walkmeshType   = wkmtype
-
+        self.walkmeshType = wkmtype
 
     def createObjectLinks(self, scene):
         # We'll be adding an extra dummy and parent all objects with missing
         # parents to it (which should be all of them)
         wkmRootNode = nvb_node.dummy(self.name + ' ' + wkmtype)
         #TODO: Set subtype
-        wkmRootObj  = wkmRootNode.createObject()
+        wkmRootObj = wkmRootNode.createObject()
         scene.objects.link(wkmRootObj)
 
         for objList in self.createdObjects:
             for obj in objList:
-                loadedName = obj[0] # Unique name of the object in blender
-                parentName = obj[1] # Name of the parent in the mdl
-                nodePos    = obj[2] # Position of the node in the mdl
+                loadedName = obj[0]  # Unique name of the object in blender
+                parentName = obj[1]  # Name of the parent in the mdl
+                nodePos = obj[2]  # Position of the node in the mdl
 
                 # Check if the parent exists
                 if (nvb_utils.isNull(parentName)):
                     # Node without parent. Must be the root dummy.
-                    obj.nvb.dummytype      = nvb_def.Dummytype.MDLROOT
-                    obj.nvb.supermodel     = self.supermodel
+                    obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
+                    obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
                 elif parentName in self.createdObjects:
                     parentLoadedName = self.createdObjects.getLoadedName(parentName,
                                                                          '',
                                                                          nodePos)
                     if parentLoadedName:
-                        obj.parent                = bpy.data.objects[parentLoadedName]
+                        obj.parent = bpy.data.objects[parentLoadedName]
                         obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                     else:
                         #TODO...or not todo?
                         pass
                 else:
                     # Parent doesn't exist. use our custom one
-                    obj.parent                = wkmRootObj
+                    obj.parent = wkmRootObj
                     obj.matrix_parent_inverse = wkmRootObj.parent.matrix_world.inverted()
                 scene.objects.link(obj)
 
 
-
 class Xwk(Mdl):
-    def __init__(self, wkmType = 'pwk'):
+    def __init__(self, wkmType='pwk'):
         Mdl.__init__(self)
 
-        self.walkmeshType   = wkmType
-
-
+        self.walkmeshType = wkmType
 
     def parseAnimation(self, asciiBlock):
-        pass # No animations in walkmeshes
-
+        pass  # No animations in walkmeshes
 
     def parse(self, asciiLines):
         # Parse the walkmesh
@@ -715,8 +688,7 @@ class Xwk(Mdl):
                     # "endnode" before "node"
                     raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
 
-
-    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+    def generate(self, asciiLines, rootDummy, exports={'ANIMATION', 'WALKMESH'}):
         self.name = rootDummy.name
 
         # Header
@@ -725,7 +697,6 @@ class Xwk(Mdl):
         # Geometry
         for child in rootDummy.children:
             self.generateGeomBlock(child, asciiLines, True)
-
 
     def load(self, scene):
         if self.nodeDict:
@@ -758,7 +729,7 @@ class Xwk(Mdl):
                 obj = node.load(scene)
                 # Check if such an object exists
                 if node.parentName in bpy.data.objects:
-                    obj.parent                = bpy.data.objects[node.parentName]
+                    obj.parent = bpy.data.objects[node.parentName]
                     obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
                 else:
                     # Node with invalid parent.
@@ -766,12 +737,11 @@ class Xwk(Mdl):
 
 
 class Wok(Xwk):
-    def __init__(self, name = 'UNNAMED', wkmType = 'wok'):
-        self.nodeDict       = collections.OrderedDict()
-        self.name           = name
-        self.walkmeshType   = 'wok'
+    def __init__(self, name='UNNAMED', wkmType='wok'):
+        self.nodeDict = collections.OrderedDict()
+        self.name = name
+        self.walkmeshType = 'wok'
         self.classification = nvb_def.Classification.UNKNOWN
-
 
     def generateGeomBlock(self, bObject, asciiLines, simple):
 
@@ -779,21 +749,19 @@ class Wok(Xwk):
         if nodeType == 'aabb':
             node = nvb_node.Aabb()
             node.toAscii(bObject, asciiLines, simple)
-            return # We'll take the first aabb object
+            return  # We'll take the first aabb object
         else:
             for child in bObject.children:
                 self.generateGeomBlock(child, asciiLines, simple)
 
-
-    def generate(self, asciiLines, rootDummy, exports = {'ANIMATION', 'WALKMESH'}):
+    def generate(self, asciiLines, rootDummy, exports={'ANIMATION', 'WALKMESH'}):
         self.name = rootDummy.name
 
         # Header
-        currentTime   = datetime.now()
+        currentTime = datetime.now()
         asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry = AABB
         self.generateGeomBlock(rootDummy, asciiLines, True)
-
 
     def load(self, scene):
         pass
