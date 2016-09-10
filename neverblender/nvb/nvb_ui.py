@@ -10,11 +10,11 @@ class NVB_UILIST_LENSFLARES(bpy.types.UIList):
 
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.texture, icon = custom_icon)
+            layout.label(item.texture, icon=custom_icon)
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon = custom_icon)
+            layout.label('', icon=custom_icon)
 
 
 class NVB_UILIST_ANIMS(bpy.types.UIList):
@@ -27,11 +27,9 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
             layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
             muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
             layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
-
-
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon = custom_icon)
+            layout.label('', icon=custom_icon)
 
 
 class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
@@ -41,11 +39,11 @@ class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
 
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.name, icon = custom_icon)
+            layout.label(item.name, icon=custom_icon)
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon = custom_icon)
+            layout.label('', icon=custom_icon)
 
 
 class NVB_PANEL_EMPTY(bpy.types.Panel):
@@ -65,7 +63,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         return (context.object and context.object.type == 'EMPTY')
 
     def draw(self, context):
-        obj    = context.object
+        obj = context.object
         layout = self.layout
 
         row = layout.row()
@@ -95,26 +93,26 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 box = row.box()
                 split = box.split()
                 col = split.column()
-                col.label(text = 'Classification:')
-                col.label(text = 'Supermodel:')
-                col.label(text = 'Animation Scale:')
+                col.label(text='Classification:')
+                col.label(text='Supermodel:')
+                col.label(text='Animation Scale:')
                 col = split.column()
-                col.prop(obj.nvb, 'classification', text = '')
-                col.prop(obj.nvb, 'supermodel', text = '')
-                col.prop(obj.nvb, 'animscale', text = '')
+                col.prop(obj.nvb, 'classification', text='')
+                col.prop(obj.nvb, 'supermodel', text='')
+                col.prop(obj.nvb, 'animscale', text='')
 
                 sep = layout.separator()
 
                 # Minimap Helper.
                 row = layout.row()
                 box = row.box()
-                box.label(text = 'Minimap Helper')
+                box.label(text='Minimap Helper')
                 row = box.row()
-                row.prop(obj.nvb, 'minimapzoffset', text = 'z Offset')
+                row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
                 row = box.row()
-                row.prop(obj.nvb, 'minimapsize', text = 'Minimap size')
+                row.prop(obj.nvb, 'minimapsize', text='Minimap size')
                 row = box.row()
-                row.operator('nvb.render_minimap', text = 'Render Minimap', icon='NONE')
+                row.operator('nvb.render_minimap', text='Render Minimap', icon='NONE')
             else:
                 pass
                 '''
@@ -198,7 +196,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
         return (context.object and context.object.type == 'EMPTY')
 
     def draw(self, context):
-        obj    = context.object
+        obj = context.object
         layout = self.layout
 
         # Display properties depending on type of the empty
@@ -207,16 +205,16 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             row = layout.row()
             box = row.box()
             row = box.row()
-            row.label(text = 'Animations')
+            row.label(text='Animations')
 
             row = box.row()
             row.template_list('NVB_UILIST_ANIMS', 'The_List', obj.nvb, 'animList', obj.nvb, 'animListIdx')
-            col = row.column(align = True)
-            col.operator('nvb.anim_new', text = '', icon='ZOOMIN')
-            col.operator('nvb.anim_delete', text = '', icon='ZOOMOUT')
+            col = row.column(align=True)
+            col.operator('nvb.anim_new', text='', icon='ZOOMIN')
+            col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
             col.separator()
-            col.operator('nvb.anim_move', icon='TRIA_UP', text = '').direction = 'UP'
-            col.operator('nvb.anim_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+            col.operator('nvb.anim_move', icon='TRIA_UP', text='').direction = 'UP'
+            col.operator('nvb.anim_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
                 row = box.row()
@@ -239,16 +237,16 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 row = box.row()
                 sub = box.box()
                 row = sub.row()
-                row.label(text = 'Animation Events')
+                row.label(text='Animation Events')
 
                 row = sub.row()
                 row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', anim, 'eventList', anim, 'eventListIdx')
-                col = row.column(align = True)
-                col.operator('nvb.animevent_new', text = '', icon='ZOOMIN')
-                col.operator('nvb.animevent_delete', text = '', icon='ZOOMOUT')
+                col = row.column(align=True)
+                col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
+                col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')
                 col.separator()
-                col.operator('nvb.animevent_move', icon='TRIA_UP', text = '').direction = 'UP'
-                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+                col.operator('nvb.animevent_move', icon='TRIA_UP', text='').direction = 'UP'
+                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
                 if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
                     animEvent = anim.eventList[anim.eventListIdx]
                     row = sub.row()
@@ -277,7 +275,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
-        obj    = context.object
+        obj = context.object
         layout = self.layout
 
         row = layout.row()
@@ -316,12 +314,12 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         row = box.row()
         row.active = obj.nvb.lensflares
         row.template_list('NVB_UILIST_LENSFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
-        col = row.column(align = True)
-        col.operator('nvb.lightflare_new', icon='ZOOMIN', text = '')
-        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text = '')
+        col = row.column(align=True)
+        col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
+        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')
         col.separator()
-        col.operator('nvb.lightflare_move', icon='TRIA_UP', text = '').direction = 'UP'
-        col.operator('nvb.lightflare_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
+        col.operator('nvb.lightflare_move', icon='TRIA_UP', text='').direction = 'UP'
+        col.operator('nvb.lightflare_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
         if obj.nvb.flareListIdx >= 0 and len(obj.nvb.flareList) > 0:
             item = obj.nvb.flareList[obj.nvb.flareListIdx]
             row = box.row()
@@ -334,7 +332,6 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
             row.active = obj.nvb.lensflares
             row.prop(item, 'size')
             row.prop(item, 'position')
-
 
 
 class NVB_PANEL_MESH(bpy.types.Panel):
@@ -353,12 +350,12 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return (context.object and context.object.type == 'MESH') #context.mesh and context.object.type != 'EMPTY')
+        return (context.object and context.object.type == 'MESH')  # context.mesh and context.object.type != 'EMPTY')
 
     def draw(self, context):
-        obj      = context.object
+        obj = context.object
         obj_type = obj.type
-        layout   = self.layout
+        layout = self.layout
 
         row = layout.row()
         row.prop(obj.nvb, 'meshtype', text='Type')
@@ -374,7 +371,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = box.row()
             row.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts', text='Data')
 
-        else: # Trimesh, danglymesh, skin
+        else:  # Trimesh, danglymesh, skin
             row = layout.row()
             box = row.box()
 
@@ -388,7 +385,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = box.row()
             row.prop(obj.nvb, 'shininess', text='Shininess')
             row = box.row()
-            row.prop(obj.nvb, 'tilefade', text='Tilefade')            
+            row.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()
             col = split.column()
             col.prop(obj.nvb, 'render', text='Render')
@@ -401,8 +398,8 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = box.row()
             row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
             row = box.row()
-            row.label(text = 'Smoothgroups')
-            row.prop(obj.nvb, 'smoothgroup', text='Smooth Group', expand = True)
+            row.label(text='Smoothgroups')
+            row.prop(obj.nvb, 'smoothgroup', text='Smooth Group', expand=True)
 
             # Additional props for danglymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
@@ -411,7 +408,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.label(text = 'Danglymesh Properties')
+                row.label(text='Danglymesh Properties')
                 row = box.row()
                 row.prop_search(obj.nvb, 'constraints', obj, 'vertex_groups', text='Constraints')
                 row = box.row()
@@ -428,10 +425,10 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.label(text = 'Create vertex group: ')
-                row = box.row(align = True)
+                row.label(text='Create vertex group: ')
+                row = box.row(align=True)
                 row.prop_search(obj.nvb, 'skingroup_obj', context.scene, 'objects')
-                row.operator('nvb.skingroup_add', text = '', icon='ZOOMIN')
+                row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
 
             # Additional props for aabb walkmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
@@ -440,6 +437,6 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.operator('nvb.load_wok_mats', text = 'Load walkmesh materials', icon='NONE')
+                row.operator('nvb.load_wok_mats', text='Load walkmesh materials', icon='NONE')
                 row = box.row()
-                row.label(text = '(Warning: Removes current materials)')
+                row.label(text='(Warning: Removes current materials)')
