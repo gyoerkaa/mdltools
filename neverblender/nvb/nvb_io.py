@@ -1,3 +1,5 @@
+"""TODO: DOC."""
+
 import os
 import bpy
 
@@ -8,6 +10,7 @@ from . import nvb_utils
 
 
 def findRootDummy():
+    """TODO: DOC."""
     # Look for a rootdummy:
     # 1. Current selected object ?
     # 2. Search 'Empty' objects in the current scene
@@ -43,9 +46,7 @@ def loadMdl(operator,
             textureSearch=False,
             minimapMode=False,
             minimapSkipFade=False):
-    '''
-    Called from blender ui
-    '''
+    """Called from blender ui."""
     nvb_glob.importGeometry = importGeometry
     nvb_glob.importSmoothGroups = importSmoothGroups
     nvb_glob.importAnim = importAnim
@@ -65,14 +66,16 @@ def loadMdl(operator,
 
         print('Neverblender: Importing ' + filepath)
         mdl = nvb_mdl.Mdl()
-        mdl.loadAscii(asciiLines)
+        mdl.loadAscii(asciiMdl)
         mdl.create(scene)
 
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if importWalkmesh:
             (mdlPath, mdlFilename) = os.path.split(filepath)
             for wkmtype in ['pwk', 'dwk']:
-                wkmPath = os.fsencode(os.path.join(mdlPath, os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
+                wkmPath = os.fsencode(os.path.join(
+                    mdlPath,
+                    os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
                 try:
                     wkmfile = open(wkmPath, 'r')
                 except IOError:
@@ -80,8 +83,8 @@ def loadMdl(operator,
                 else:
                     asciiWkm = wkmfile.read()
                     wkm = nvb_mdl.Wkm(wkmtype)
-                    wkm.parse(asciiLines)
-                    wkm.load(scene, imports)
+                    wkm.loadAscii(asciiWkm)
+                    wkm.create(scene)
                     wkmfile.close()
 
     return {'FINISHED'}
@@ -93,11 +96,9 @@ def saveMdl(operator,
             exports={'ANIMATION', 'WALKMESH'},
             useSmoothGroups=True,
             applyModifiers=True):
-    '''
-    Called from blender ui
-    '''
+    """Called from blender ui."""
     nvb_glob.exports = exports
-    nvb_glob.exportSmoothGroups = exportSmoothGroups
+    nvb_glob.exportSmoothGroups = useSmoothGroups
     nvb_glob.applyModifiers = applyModifiers
     nvb_glob.scene = bpy.context.scene
 
@@ -115,9 +116,9 @@ def saveMdl(operator,
 
         if 'WALKMESH' in exports:
             if mdl.classification == nvb_def.Classification.TILE:
-                wkm = nvb_mdl.Wok()
                 wkmRoot = mdlRoot
                 wkmType = 'wok'
+                wkm = nvb_mdl.Wkm(wkmType)
             else:
                 wkmRoot = None
 
@@ -139,14 +140,17 @@ def saveMdl(operator,
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
                     wkm = nvb_mdl.Xwk('dwk')
-                # TODO: If we can't find one by name we'll look for an arbitrary one
+                # TODO: If we can't find one by name we'll look for
+                # an arbitrary one
 
             if wkmRoot:
                 asciiLines = []
                 wkm.generate(asciiLines, wkmRoot)
 
                 (wkmPath, wkmFilename) = os.path.split(filepath)
-                wkmFilepath = os.path.join(wkmPath, os.path.splitext(wkmFilename)[0] + '.' + wkm.walkmeshType)
+                wkmFilepath = os.path.join(wkmPath,
+                                           os.path.splitext(wkmFilename)[0] +
+                                           '.' + wkm.walkmeshType)
                 with open(os.fsencode(wkmFilepath), 'w') as f:
                     f.write('\n'.join(asciiLines))
 

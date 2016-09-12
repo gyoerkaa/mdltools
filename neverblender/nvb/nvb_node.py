@@ -1,3 +1,5 @@
+"""TODO: DOC."""
+
 import mathutils
 import bpy
 import bpy_extras.image_utils
@@ -12,7 +14,10 @@ from . import nvb_parse
 
 
 class FaceList():
+    """TODO: DOC."""
+
     def __init__(self):
+        """TODO: DOC."""
         self.faces = []  # int 3-tuple, vertex indices
         self.shdgr = []  # int, shading group for this face
         self.uvIdx = []  # int 3-tuple, texture/uv vertex indices
@@ -20,7 +25,10 @@ class FaceList():
 
 
 class FlareList():
+    """TODO: DOC."""
+
     def __init__(self):
+        """TODO: DOC."""
         self.textures = []
         self.sizes = []
         self.positions = []
@@ -28,12 +36,12 @@ class FlareList():
 
 
 class Node(object):
-    """
-    Basic node from which every other is derived
-    """
+    """TODO: DOC."""
+
     nodetype = 'undefined'
 
     def __init__(self, name='unnamed'):
+        """TODO: DOC."""
         self.objidx = -1  # Order in mdlfile (needs to be restored for export)
 
         self.name = name
@@ -44,16 +52,22 @@ class Node(object):
         self.wirecolor = (0.0, 0.0, 0.0)
 
     def __eq__(self, other):
+        """TODO: DOC."""
         if isinstance(other, Node):
             return (self.name == other.name) and (self.parent == other.parent)
 
     def __ne__(self, other):
+        """TODO: DOC."""
         return not self.__eq__(self, other)
 
     def __str__(self):
+        """TODO: DOC."""
         return 'node ' + self.nodetype + ' ' + self.name
 
     def loadAscii(self, asciiBlock):
+        """TODO: DOC."""
+        l_float = float
+        l_isNumber = nvb_def.isNumber
         for line in asciiBlock:
             try:
                 label = line[0].lower()
@@ -83,15 +97,14 @@ class Node(object):
                                       l_float(line[3]))
 
     def createObjectData(self, obj):
+        """TODO: DOC."""
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.wirecolor = self.wirecolor
 
     def createObject(self):
-        """
-        Returns an object for use in blender.
-        """
+        """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
         obj.nvb.order = self.objIdx
 
@@ -100,6 +113,7 @@ class Node(object):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines):
+        """TODO: DOC."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -113,18 +127,26 @@ class Node(object):
         asciiLines.append(s)
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
-        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5),
-                                                                       round(rot[1], 5),
-                                                                       round(rot[2], 5),
-                                                                       round(rot[3], 5))
+        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f}'
+        s = formatString.format(round(rot[0], 5),
+                                round(rot[1], 5),
+                                round(rot[2], 5),
+                                round(rot[3], 5))
         asciiLines.append(s)
         '''
         loc = obj.location
-        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5), round(loc[1], 5), round(loc[2], 5))
+        formatString = '  position {: 8.5f} {: 8.5f} {: 8.5f}'
+        s = formatString.format(round(loc[0], 5),
+                                round(loc[1], 5),
+                                round(loc[2], 5))
         asciiLines.append(s)
 
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        s = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(rot[0], 5), round(rot[1], 5), round(rot[2], 5), round(rot[3], 5))
+        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
+        s = formatString.format(round(rot[0], 5),
+                                round(rot[1], 5),
+                                round(rot[2], 5),
+                                round(rot[3], 5))
         asciiLines.append(s)
         '''
         col = obj.nvb.wirecolor
@@ -139,33 +161,38 @@ class Node(object):
 
     @classmethod
     def generateAscii(cls, obj, asciiLines):
+        """TODO: Doc."""
         asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
         cls.generateAsciiData(cls, obj, asciiLines)
         asciiLines.append('endnode')
 
 
 class Dummy(Node):
-    """
+    """TODO: Doc."""
 
-    """
     nodetype = 'dummy'
 
     def __init__(self, name='unnamed'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.dummytype = nvb_def.Dummytype.NONE
 
     def setSubtype(self, subtype):
+        """TODO: Doc."""
         self.dummytype = subtype
 
     def loadAscii(self, asciiBlock):
+        """TODO: Doc."""
         Node.loadAscii(self, asciiBlock)
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
 
     @staticmethod
-    def generateAsciiData(cls, obj):
+    def generateAsciiData(cls, obj, asciiLines):
+        """TODO: Doc."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -173,29 +200,30 @@ class Dummy(Node):
 
 
 class Patch(Node):
-    '''
-    Same as a plain Dummy.
-    '''
+    """Same as a plain Dummy."""
+
     nodetype = 'patch'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.dummytype = nvb_def.Dummytype.PATCH
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
 
         obj.nvb.dummytype = self.dummytype
 
 
 class Reference(Node):
-    '''
-    Contains a reference to another mdl
-    '''
+    """Contains a reference to another mdl."""
+
     nodetype = 'reference'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.dummytype = nvb_def.Dummytype.REFERENCE
@@ -203,6 +231,7 @@ class Reference(Node):
         self.reattachable = 0
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         Node.loadAscii(self, asciiNode)
         l_isNumber = nvb_utils.isNumber
 
@@ -222,6 +251,7 @@ class Reference(Node):
                         pass  # TODO: Print a warning or smth
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
         obj.nvb.dummytype = self.dummytype
         obj.nvb.refmodel = self.refmodel
@@ -229,15 +259,19 @@ class Reference(Node):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, exportObjects, classification)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
 
 class Trimesh(Node):
-    self.nodetype = 'trimesh'
+    """TODO: Doc."""
+
+    nodetype = 'trimesh'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.TRIMESH
@@ -261,11 +295,13 @@ class Trimesh(Node):
         self.tverts = []  # list of texture vertices
 
     def createImage(self, imgName, imgPath):
-        image = bpy_extras.image_utils.load_image(imgName + '.tga',
-                                                  imgPath,
-                                                  recursive=nvb_glob.textureSearch,
-                                                  place_holder=False,
-                                                  ncase_cmp=True)
+        """TODO: Doc."""
+        image = \
+            bpy_extras.image_utils.load_image(imgName + '.tga',
+                                              imgPath,
+                                              recursive=nvb_glob.textureSearch,
+                                              place_holder=False,
+                                              ncase_cmp=True)
         if (image is None):
             print('Neverblender - WARNING: Could not load image ' + imgName)
             image = bpy.data.images.new(imgName, 512, 512)
@@ -275,6 +311,7 @@ class Trimesh(Node):
         return image
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         Node.loadAscii(self, asciiNode)
 
         l_int = int
@@ -343,16 +380,19 @@ class Trimesh(Node):
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.verts)
-                    #self.verts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
+                    # self.verts = [(float(l[0]), float(l[1]), float(l[2]))
+                    # for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
                     nvb_parse.faces(asciiNode[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
                     nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
-                    #self.tverts = [(float(l[0]), float(l[1])) for l in asciiNode[idx+1:idx+numVals+1]]
+                    # self.tverts = [(float(l[0]), float(l[1]))
+                    # for l in asciiNode[idx+1:idx+numVals+1]]
 
     def createMaterial(self, name):
+        """TODO: Doc."""
         material = None
         texName = self.bitmap.lower()
         if nvb_glob.materialMode == 'SIN':
@@ -395,6 +435,7 @@ class Trimesh(Node):
         return material
 
     def createMesh(self, name):
+        """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
@@ -409,7 +450,8 @@ class Trimesh(Node):
             mesh.materials.append(material)
 
             # Create UV map
-            if (len(self.tverts) > 0) and (mesh.tessfaces) and (not nvb_utils.isNull(self.bitmap)):
+            if (len(self.tverts) > 0) and (mesh.tessfaces) and \
+               (not nvb_utils.isNull(self.bitmap)):
                 uv = mesh.tessface_uv_textures.new(name + '.uv')
                 mesh.tessface_uv_textures.active = uv
 
@@ -459,6 +501,7 @@ class Trimesh(Node):
         return mesh
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
 
         obj.nvb.meshtype = self.meshtype
@@ -481,10 +524,14 @@ class Trimesh(Node):
         obj.nvb.shininess = self.shininess
 
     def createObject(self, scene):
+        """TODO: Doc."""
         if nvb_glob.minimapMode:
-            if ((self.tilefade >= 1) and nvb_glob.minimapSkipFade) or not self.render:
-                # Fading objects or shadow meshes won't be imported in minimap mode
-                # We may need them for the tree stucture, so import it as an empty
+            if ((self.tilefade >= 1) and nvb_glob.minimapSkipFade) or \
+                (not self.render):
+                # Fading objects or shadow meshes won't be imported in
+                # minimap mode
+                # We may need them for the tree stucture, so import it
+                # as an empty
                 return Dummy.load(self, scene)
 
         mesh = self.createMesh(self.name)
@@ -495,6 +542,7 @@ class Trimesh(Node):
 
     @staticmethod
     def generateAsciiMaterial(obj, asciiLines):
+        """TODO: Doc."""
         # Check if this object has a material assigned to it
         material = obj.active_material
         if material:
@@ -528,6 +576,7 @@ class Trimesh(Node):
 
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, simple=False):
+        """TODO: Doc."""
         mesh = obj.to_mesh(nvb_glob.scene,
                            nvb_glob.applyModifiers,
                            nvb_glob.meshConvert)
@@ -535,7 +584,8 @@ class Trimesh(Node):
             p.use_smooth = True
 
         # Scaling fix
-        # TODO: Find out how exactly blender handles scaling, which matrices to use etc
+        # TODO: Find out how exactly blender handles scaling,
+        # which matrices to use etc
         scale = obj.matrix_world.to_scale()
         scale_matrix = mathutils.Matrix([[scale[0], 0, 0, 0],
                                          [0, scale[1], 0, 0],
@@ -557,7 +607,8 @@ class Trimesh(Node):
         # Calculate smooth groups
         smoothGroups = []
         numSmoothGroups = 0
-        if (obj.nvb.smoothgroup == 'SEPR') or (not nvb_glob.exportSmoothGroups):
+        if ((obj.nvb.smoothgroup == 'SEPR') or
+           (not nvb_glob.exportSmoothGroups)):
             # 0 = Do not use smoothgroups
             smoothGroups = [0] * len(mesh.polygons)
             numSmoothGroups = 1
@@ -599,7 +650,12 @@ class Trimesh(Node):
                 uv2 = nvb_utils.addUVToList(uvData.uv2, uvList)
                 uv3 = nvb_utils.addUVToList(uvData.uv3, uvList)
 
-            faceList.append([tface.vertices[0], tface.vertices[1], tface.vertices[2], smGroup, uv1, uv2, uv3, matIdx])
+            faceList.append([tface.vertices[0],
+                             tface.vertices[1],
+                             tface.vertices[2],
+                             smGroup,
+                             uv1, uv2, uv3,
+                             matIdx])
 
         if simple:
             asciiLines.append('  faces ' + str(len(faceList)))
@@ -641,50 +697,58 @@ class Trimesh(Node):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple = False):
+        """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, exportObjects, classification, simple)
 
         color = obj.nvb.ambientcolor
-        asciiLines.append('  ambient ' + str(round(color[0], 2)) + ' ' +
-                                         str(round(color[1], 2)) + ' ' +
-                                         str(round(color[2], 2)))
-        self.generateAsciiMaterial(obj, asciiLines)
+        asciiLines.append('  ambient ' +
+                          str(round(color[0], 2)) + ' ' +
+                          str(round(color[1], 2)) + ' ' +
+                          str(round(color[2], 2)))
+        Trimesh.generateAsciiMaterial(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if not simple:
             color = obj.nvb.selfillumcolor
-            asciiLines.append('  selfillumcolor ' + str(round(color[0], 2)) + ' ' +
-                                                    str(round(color[1], 2)) + ' ' +
-                                                    str(round(color[2], 2))  )
+            asciiLines.append('  selfillumcolor ' +
+                              str(round(color[0], 2)) + ' ' +
+                              str(round(color[1], 2)) + ' ' +
+                              str(round(color[2], 2)))
 
             asciiLines.append('  render ' + str(int(obj.nvb.render)))
             asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             asciiLines.append('  beaming ' + str(int(obj.nvb.beaming)))
-            asciiLines.append('  inheritcolor ' + str(int(obj.nvb.inheritcolor)))
-            asciiLines.append('  transparencyhint ' + str(obj.nvb.transparencyhint))
+            asciiLines.append('  inheritcolor ' +
+                              str(int(obj.nvb.inheritcolor)))
+            asciiLines.append('  transparencyhint ' +
+                              str(obj.nvb.transparencyhint))
             # These two are for tiles only
             if classification == nvb_def.classification.TILE:
-                asciiLines.append('  rotatetexture ' + str(int(obj.nvb.rotatetexture)))
+                asciiLines.append('  rotatetexture ' +
+                                  str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
-        self.generateAsciiMesh(obj, asciiLines, simple)
+        Trimesh.generateAsciiMesh(obj, asciiLines, simple)
 
 
 class Animmesh(Trimesh):
+    """TODO: Doc."""
 
     nodetype = 'animmesh'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Trimesh.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
 
 class Danglymesh(Trimesh):
-    """
+    """TODO: Doc."""
 
-    """
     nodetype = 'danglymesh'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Trimesh.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.DANGLYMESH
@@ -694,6 +758,7 @@ class Danglymesh(Trimesh):
         self.constraints = []
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         Trimesh.loadAscii(self, asciiNode)
 
         l_int = int
@@ -714,15 +779,18 @@ class Danglymesh(Trimesh):
                     self.displacement = l_float(line[1])
                 elif (label == 'constraints'):
                     numVals = l_int(line[1])
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.constraints)
-                    #self.constraints = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                                 self.constraints)
+                    # self.constraints = \
+                    # [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
 
     def createConstraints(self, obj):
-        '''
-        Creates a vertex group for the object to contain the vertex
+        """Create a vertex group for the object."""
+        """
+        Create a vertex group for the object to contain the vertex
         weights for the danglymesh. The weights are called "constraints"
         in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
-        '''
+        """
         vgroup = obj.vertex_groups.new('constraints')
         for vertexIdx, constraint in enumerate(self.constraints):
             weight = constraint/255
@@ -730,6 +798,7 @@ class Danglymesh(Trimesh):
         obj.nvb.constraints = vgroup.name
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Trimesh.createObjectData(self, obj)
 
         obj.nvb.period = self.period
@@ -739,6 +808,7 @@ class Danglymesh(Trimesh):
 
     @staticmethod
     def generateAsciiConstraints(obj, asciiLines):
+        """TODO: Doc."""
         vgroupName = obj.nvb.constraints
         vgroup = obj.vertex_groups[vgroupName]
 
@@ -753,30 +823,31 @@ class Danglymesh(Trimesh):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
         asciiLines.append('  period ' + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
         asciiLines.append('  displacement ' + str(round(obj.nvb.displacement, 3)))
-        self.generateAsciiConstraints(obj, asciiLines)
+        Danglymesh.generateAsciiConstraints(obj, asciiLines)
 
 
 class Skinmesh(Trimesh):
-    """
-    Skinmeshes are Trimeshes where every vertex
-    has a weight.
-    """
+    """ Skinmeshes are Trimeshes where every vertex has a weight."""
+
     nodetype = 'skin'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Trimesh.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         Trimesh.loadAscii(self, asciiNode)
-        l_int  = int
+        l_int = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
@@ -788,27 +859,33 @@ class Skinmesh(Trimesh):
             if not l_isNumber(label):
                 if (label == 'weights'):
                     numVals = l_int(line[1])
-                    nvb_parse.weights(asciiNode[idx+1:idx+numVals+1], self.weights)
-                    break  # Only one relevant value here, abort loop when found
+                    nvb_parse.weights(asciiNode[idx+1:idx+numVals+1],
+                                      self.weights)
+                    break  # Only one relevant value, abort loop when found
 
     def createSkinGroups(self, obj):
+        """TODO: Doc."""
         skinGroupDict = {}
         for vertIdx, vertMemberships in enumerate(self.weights):
             for membership in vertMemberships:
                 if membership[0] in skinGroupDict:
-                    skinGroupDict[membership[0]].add([vertIdx], membership[1], 'REPLACE')
+                    skinGroupDict[membership[0]].add([vertIdx],
+                                                     membership[1],
+                                                     'REPLACE')
                 else:
                     vgroup = obj.vertex_groups.new(membership[0])
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Trimesh.createObjectData(self, obj)
 
         self.createSkinGroups(obj)
 
     @staticmethod
     def generateAsciiWeights(obj, asciiLines, exportObjects):
+        """TODO: Doc."""
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
@@ -843,15 +920,19 @@ class Skinmesh(Trimesh):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
-        self.generateAsciiWeights(obj, asciiLines, exportObjects)
+        Skinmesh.generateAsciiWeights(obj, asciiLines, exportObjects)
 
 
 class Emitter(Node):
+    """TODO: Doc."""
+
     nodetype = 'emitter'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.EMITTER
@@ -860,6 +941,7 @@ class Emitter(Node):
         self.rawascii = ''
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -903,11 +985,13 @@ class Emitter(Node):
                     self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
 
     def createTextEmitter(self, obj):
+        """TODO: Doc."""
         txt = bpy.data.texts.new(obj.name)
         txt.write(self.rawascii)
         obj.nvb.rawascii = txt.name
 
     def createMesh(self, objName):
+        """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
@@ -925,6 +1009,7 @@ class Emitter(Node):
         return mesh
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
 
         obj.nvb.meshtype = self.meshtype
@@ -932,6 +1017,7 @@ class Emitter(Node):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         Node.addDataToAscii(obj, asciiLines, exportObjects, classification, simple)
 
         if obj.nvb.rawascii not in bpy.data.texts:
@@ -947,7 +1033,8 @@ class Emitter(Node):
                 continue
             if (label == 'node') or (label == 'endnode') or \
                (label == 'parent') or (label == 'position') or \
-               (label == 'orientation') or (label == 'scale') or (label == 'wirecolor'):
+               (label == 'orientation') or (label == 'scale') or \
+               (label == 'wirecolor'):
                 # We don't need any of this as we'll take it directly from
                 # the object
                 pass
@@ -958,9 +1045,12 @@ class Emitter(Node):
 
 
 class Light(Node):
+    """TODO: Doc."""
+
     nodetype = 'light'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Node.__init__(self, name)
 
         self.shadow = 1
@@ -979,6 +1069,7 @@ class Light(Node):
         self.flareList = FlareList()
 
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         Node.loadAscii(self, asciiNode)
 
         flareTextureNamesStart = 0
@@ -1031,18 +1122,18 @@ class Light(Node):
                 elif (label == 'flaresizes'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.sizes)
-                    #self.flareList.sizes = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.positions)
-                    #self.flareList.positions = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.flareList.colorshifts)
-                    #self.flareList.colorshifts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
+                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.colorshifts)
 
         # Load flare texture names:
         for i in range(numFlares):
@@ -1050,24 +1141,27 @@ class Light(Node):
             self.flareList.textures.append(texName)
 
     def createLamp(self, name):
+        """TODO: Doc."""
         lamp = bpy.data.lamps.new(name, 'POINT')
 
-        # TODO: Check for negative color values and do something (works fine in blender though)
+        # TODO: Check for negative color values and do something
+        # (works fine in blender though)
         lamp.color = self.color
         lamp.energy = self.multiplier
         lamp.distance = self.radius
-        #lamp.use_sphere  = True
+        # lamp.use_sphere  = True
 
         return lamp
 
     def createObjectData(self, obj):
+        """TODO: Doc."""
         Node.createObjectData(self, obj)
 
         switch = {'ml1': 'MAINLIGHT1',
                   'ml2': 'MAINLIGHT2',
                   'sl1': 'SOURCELIGHT1',
                   'sl2': 'SOURCELIGHT2'}
-        #TODO: Check light names when exporting tiles
+        # TODO: Check light names when exporting tiles
         obj.nvb.ambientonly = (self.ambientonly >= 1)
         obj.nvb.lighttype = switch.get(self.name[-3:], 'NONE')
         obj.nvb.shadow = (self.shadow >= 1)
@@ -1089,6 +1183,7 @@ class Light(Node):
         obj.nvb.flareradius = self.flareradius
 
     def createObject(self, scene):
+        """TODO: Doc."""
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
@@ -1101,9 +1196,10 @@ class Light(Node):
 
     @staticmethod
     def generateAsciiFlares(obj, asciiLines):
+        """TODO: Doc."""
         if obj.nvb.lensflares:
             asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-            #print(str(len(obj.nvb.flareList)))
+            # print(str(len(obj.nvb.flareList)))
             if len(obj.nvb.flareList) > 0:
 
                 # TODO: Clean this up
@@ -1118,45 +1214,51 @@ class Light(Node):
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
                 for flare in obj.nvb.flareList:
-                    asciiLines.append('    ' + str(round(flare.colorshift[0], 2)) + ' ' +
-                                               str(round(flare.colorshift[1], 2)) + ' ' +
-                                               str(round(flare.colorshift[2], 2)))
-        asciiLines.append('  flareradius ' + str(round(obj.nvb.flareradius, 1)))
+                    asciiLines.append('    ' +
+                                      str(round(flare.colorshift[0], 2)) + ' ' +
+                                      str(round(flare.colorshift[1], 2)) + ' ' +
+                                      str(round(flare.colorshift[2], 2)))
+        asciiLines.append('  flareradius ' +
+                          str(round(obj.nvb.flareradius, 1)))
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
         lamp = obj.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
-        asciiLines.append('  color ' + str(round(lamp.color[0], 2)) + ' ' +
-                                       str(round(lamp.color[1], 2)) + ' ' +
-                                       str(round(lamp.color[2], 2)))
+        asciiLines.append('  color ' +
+                          str(round(lamp.color[0], 2)) + ' ' +
+                          str(round(lamp.color[1], 2)) + ' ' +
+                          str(round(lamp.color[2], 2)))
         asciiLines.append('  ambientonly ' + str(int(obj.nvb.ambientonly)))
         asciiLines.append('  nDynamicType ' + str(int(obj.nvb.isdynamic)))
         asciiLines.append('  affectDynamic ' + str(int(obj.nvb.affectdynamic)))
         asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
         asciiLines.append('  lightpriority ' + str(obj.nvb.lightpriority))
         asciiLines.append('  fadingLight ' + str(int(obj.nvb.fadinglight)))
-        self.generateAsciiFlares(obj, asciiLines)
+        Light.generateAsciiFlares(obj, asciiLines)
 
 
 class Aabb(Trimesh):
-    '''
-    No need to import Aaabb's. Aabb nodes in mdl files will be
-    treated as trimeshes
-    '''
+    """TODO: Doc."""
+
     nodetype = 'aabb'
 
     def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         Trimesh.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.AABB
 
     @staticmethod
     def generateAsciiAABB(obj, asciiLines):
-        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+        """TODO: Doc."""
+        walkmesh = obj.to_mesh(nvb_glob.scene,
+                               nvb_glob.applyModifiers,
+                               nvb_glob.meshConvert)
 
         faceList = []
         faceIdx = 0
@@ -1167,8 +1269,12 @@ class Aabb(Trimesh):
                 v1 = tessface.vertices[1]
                 v2 = tessface.vertices[2]
 
-                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co +
+                                             walkmesh.vertices[v1].co +
+                                             walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co,
+                                           walkmesh.vertices[v1].co,
+                                           walkmesh.vertices[v2].co], centroid))
                 faceIdx += 1
 
             elif (len(tessface.vertices) == 4):
@@ -1178,16 +1284,26 @@ class Aabb(Trimesh):
                 v2 = tessface.vertices[2]
                 v3 = tessface.vertices[3]
 
-                centroid = mathutils.Vector((walkmesh.vertices[v0].co + walkmesh.vertices[v1].co + walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v0].co, walkmesh.vertices[v1].co, walkmesh.vertices[v2].co], centroid))
+                centroid = mathutils.Vector((walkmesh.vertices[v0].co +
+                                             walkmesh.vertices[v1].co +
+                                             walkmesh.vertices[v2].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v0].co,
+                                           walkmesh.vertices[v1].co,
+                                           walkmesh.vertices[v2].co], centroid))
                 faceIdx += 1
 
-                centroid = mathutils.Vector((walkmesh.vertices[v2].co + walkmesh.vertices[v3].co + walkmesh.vertices[v0].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v2].co, walkmesh.vertices[v3].co, walkmesh.vertices[v0].co], centroid))
+                centroid = mathutils.Vector((walkmesh.vertices[v2].co +
+                                             walkmesh.vertices[v3].co +
+                                             walkmesh.vertices[v0].co)/3)
+                faceList.append((faceIdx, [walkmesh.vertices[v2].co,
+                                           walkmesh.vertices[v3].co,
+                                           walkmesh.vertices[v0].co], centroid))
                 faceIdx += 1
             else:
-                # Ngon or no polygon at all (This should never be the case with tessfaces)
-                print('Neverblender - WARNING: Ngon in walkmesh. Unable to generate aabb.')
+                # Ngon or no polygon at all
+                # (This should never be the case with tessfaces)
+                print('Neverblender - WARNING: Ngon in walkmesh. \
+                       Unable to generate aabb.')
                 return
 
         aabbTree = []
@@ -1229,23 +1345,27 @@ class Aabb(Trimesh):
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+        """TODO: Doc."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
         loc = obj.location
-        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
-                                          str(round(loc[1], 5)) + ' ' +
-                                          str(round(loc[2], 5)))
+        asciiLines.append('  position ' +
+                          str(round(loc[0], 5)) + ' ' +
+                          str(round(loc[1], 5)) + ' ' +
+                          str(round(loc[2], 5)))
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
-                                             str(round(rot[1], 5)) + ' ' +
-                                             str(round(rot[2], 5)) + ' ' +
-                                             str(round(rot[3], 5)))
+        asciiLines.append('  orientation ' +
+                          str(round(rot[0], 5)) + ' ' +
+                          str(round(rot[1], 5)) + ' ' +
+                          str(round(rot[2], 5)) + ' ' +
+                          str(round(rot[3], 5)))
         color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
-                                           str(round(color[1], 2)) + ' ' +
-                                           str(round(color[2], 2)))
+        asciiLines.append('  wirecolor ' +
+                          str(round(color[0], 2)) + ' ' +
+                          str(round(color[1], 2)) + ' ' +
+                          str(round(color[2], 2)))
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
@@ -1255,12 +1375,14 @@ class Aabb(Trimesh):
         Aabb.generateAsciiAABB(obj, asciiLines)
 
     def createMesh(self, name):
+        """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
-        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw',
+                                   unpack_face_list(self.facelist.faces))
 
         # Create materials
         for wokMat in nvb_def.wok_materials:
@@ -1285,6 +1407,7 @@ class Aabb(Trimesh):
         return mesh
 
     def createObject(self, scene):
+        """TODO: Doc."""
         if nvb_glob.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children

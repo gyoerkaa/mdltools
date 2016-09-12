@@ -44,7 +44,7 @@ def getName(s):
     return s
 
 
-def matchMaterial(diffuse = (1.0, 1.0, 1.0),
+def matchMaterial(diffuse=(1.0, 1.0, 1.0),
                   specular = (1.0, 1.0, 1.0),
                   imageName = '',
                   alpha = 1.0):
@@ -55,7 +55,7 @@ def matchMaterial(diffuse = (1.0, 1.0, 1.0),
     def isclose_3f(a, b, rel_tol=0.1):
         return (isclose(a[0], b[0], rel_tol) and
                 isclose(a[1], b[1], rel_tol) and
-                isclose(a[2], b[2], rel_tol) )
+                isclose(a[2], b[2], rel_tol))
 
     for material in bpy.data.materials:
         eq = False
@@ -80,7 +80,7 @@ def matchMaterial(diffuse = (1.0, 1.0, 1.0),
 
 
 def material_cmp2(material,
-                  diffuse = (1.0, 1.0, 1.0),
+                  diffuse=(1.0, 1.0, 1.0),
                   specular = (1.0, 1.0, 1.0),
                   imageName = '',
                   use_transparency = False):
@@ -92,7 +92,7 @@ def material_cmp2(material,
     def isclose_color(c1, c2, rel_tol=0.1):
         return (isclose(c1[0], c2[0], rel_tol) and
                 isclose(c1[1], c2[1], rel_tol) and
-                isclose(c1[2], c2[2], rel_tol) )
+                isclose(c1[2], c2[2], rel_tol))
 
     same = True
     if material:
@@ -124,7 +124,7 @@ def getAnimationRootdummy(animScene):
     return None
 
 
-def isRootDummy(obj, dummytype = nvb_def.Dummytype.MDLROOT):
+def isRootDummy(obj, dummytype=nvb_def.Dummytype.MDLROOT):
     if not obj:
         return False
     return (obj.type == 'EMPTY') and (obj.nvb.dummytype == dummytype) and (not obj.nvb.isanimation)
@@ -134,14 +134,14 @@ def getNodeType(obj):
     '''
     Get the node type (dummy, trimesh, skin, ...) of the blender object
     '''
-    objType  = obj.type
+    objType = obj.type
     if objType == 'EMPTY':
-        if   obj.nvb.dummytype == nvb_def.Dummytype.PATCH:
+        if obj.nvb.dummytype == nvb_def.Dummytype.PATCH:
             return 'patch'
         elif obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE:
             return 'reference'
     elif objType == 'MESH':
-        if   obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
+        if obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
             return 'trimesh'
         elif obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH:
             return 'danglymesh'
@@ -176,11 +176,11 @@ def getImageFilename(image):
 
 
 def getShagrId(shagrName):
-    return  int(shagrName[-4:])
+    return int(shagrName[-4:])
 
 
 def getShagrName(shagrId):
-    return  nvb_def.shagrPrefix + "{0:0>4}".format(shagrId)
+    return nvb_def.shagrPrefix + "{0:0>4}".format(shagrId)
 
 
 def isShagr(vgroup):
@@ -192,15 +192,15 @@ def isShagr(vgroup):
 
 def setObjectRotationAurora(obj, nwangle):
     rotMode = obj.rotation_mode
-    if   rotMode == "QUATERNION":
+    if rotMode == "QUATERNION":
         q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
         obj.rotation_quaternion = q
     elif rotMode == "AXIS_ANGLE":
-        obj.rotation_axis_angle = [ auroraRot[3], \
-                                    auroraRot[0], \
-                                    auroraRot[1], \
-                                    auroraRot[2] ]
-    else: # Has to be euler
+        obj.rotation_axis_angle = [auroraRot[3],
+                                   auroraRot[0],
+                                   auroraRot[1],
+                                   auroraRot[2]]
+    else:  # Has to be euler
         q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
         eul = q.to_euler(rotMode)
         obj.rotation_euler = eul
@@ -216,15 +216,15 @@ def getAuroraRotFromObject(obj):
     '''
     rotMode = obj.rotation_mode
 
-    if   rotMode == "QUATERNION":
+    if rotMode == "QUATERNION":
         q = obj.rotation_quaternion
         return [q.axis[0], q.axis[1], q.axis[0], q.angle]
     elif rotMode == "AXIS_ANGLE":
         aa = obj.rotation_axis_angle
         return [aa[1], aa[2], aa[3], aa[0]]
-    else: # Has to be Euler
+    else:  # Has to be Euler
         eul = obj.rotation_euler
-        q   = eul.to_quaternion()
+        q = eul.to_quaternion()
         return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
     return [0.0, 0.0, 0.0, 0.0]
@@ -252,14 +252,14 @@ def getAuroraScale(obj):
     return 1.0
 
 
-def nwtime2frame(time, fps = nvb_def.fps):
+def nwtime2frame(time, fps=nvb_def.fps):
     '''
     For animations: Convert key time to frame number
     '''
     return round(fps*time)
 
 
-def frame2nwtime(frame, fps = nvb_def.fps):
+def frame2nwtime(frame, fps=nvb_def.fps):
     return round(frame / fps, 7)
 
 
@@ -292,9 +292,9 @@ def setMaterialAuroraAlpha(mat, alpha):
     if tex:
         mat.alpha = 0.0
         tslotIdx = mat.active_texture_index
-        tslot    = mat.texture_slots[tslotIdx]
+        tslot = mat.texture_slots[tslotIdx]
         tslot.use_map_alpha = True
-        tslot.alpha_factor  = alpha
+        tslot.alpha_factor = alpha
     else:
         mat.alpha = alpha
 
@@ -323,7 +323,7 @@ def getAuroraAlpha(obj):
         tex = mat.active_texture
         if tex:
             tslotIdx = mat.active_texture_index
-            tslot    = mat.texture_slots[tslotIdx]
+            tslot = mat.texture_slots[tslotIdx]
             return tslot.alpha_factor
         else:
             return mat.alpha
@@ -331,10 +331,10 @@ def getAuroraAlpha(obj):
         return 1.0
 
 
-def setupMinimapRender(mdlroot, scene, lamp_color = (1.0, 1.0, 1.0), alpha_mode = 'SKY'):
+def setupMinimapRender(mdlroot, scene, lamp_color=(1.0, 1.0, 1.0), alpha_mode='SKY'):
     # Create the lamp if not already present in scene
     lampName = 'MinimapLamp'
-    camName  = 'MinimapCamera'
+    camName = 'MinimapCamera'
 
     if lampName in scene.objects:
         minimapLamp = scene.objects[lampName]
@@ -347,14 +347,14 @@ def setupMinimapRender(mdlroot, scene, lamp_color = (1.0, 1.0, 1.0), alpha_mode 
                 lampData = bpy.data.lamps[lampName]
             else:
                 lampData = bpy.data.lamps.new(lampName, 'POINT')
-            minimapLamp = bpy.data.objects.new(lampName , lampData)
+            minimapLamp = bpy.data.objects.new(lampName, lampData)
         scene.objects.link(minimapLamp)
     # Adjust lamp properties
     minimapLamp.data.use_specular = False
-    minimapLamp.data.color        = lamp_color
+    minimapLamp.data.color = lamp_color
     minimapLamp.data.falloff_type = 'CONSTANT'
-    minimapLamp.data.distance     = (mdlroot.nvb.minimapzoffset+20.0)*2.0
-    minimapLamp.location.z        = mdlroot.nvb.minimapzoffset+20.0
+    minimapLamp.data.distance = (mdlroot.nvb.minimapzoffset+20.0)*2.0
+    minimapLamp.location.z = mdlroot.nvb.minimapzoffset+20.0
 
     # Create the cam if not already present in scene
     if camName in scene.objects:
@@ -371,26 +371,26 @@ def setupMinimapRender(mdlroot, scene, lamp_color = (1.0, 1.0, 1.0), alpha_mode 
             minimapCam = bpy.data.objects.new(camName, camData)
         scene.objects.link(minimapCam)
     # Adjust cam properties
-    minimapCam.data.type        = 'ORTHO'
+    minimapCam.data.type = 'ORTHO'
     minimapCam.data.ortho_scale = 10.0
-    minimapCam.location.z       = mdlroot.nvb.minimapzoffset+20.0
+    minimapCam.location.z = mdlroot.nvb.minimapzoffset+20.0
 
     scene.camera = minimapCam
     # Adjust render settings
-    scene.render.alpha_mode                 = alpha_mode
-    scene.render.use_antialiasing           = True
-    scene.render.pixel_filter_type          = 'BOX'
-    scene.render.antialiasing_samples       = '16'
-    scene.render.use_shadows                = False
-    scene.render.use_envmaps                = False
-    scene.render.resolution_x               = mdlroot.nvb.minimapsize
-    scene.render.resolution_y               = mdlroot.nvb.minimapsize
-    scene.render.resolution_percentage      = 100
-    scene.render.image_settings.color_mode  = 'RGB'
+    scene.render.alpha_mode = alpha_mode
+    scene.render.use_antialiasing = True
+    scene.render.pixel_filter_type = 'BOX'
+    scene.render.antialiasing_samples = '16'
+    scene.render.use_shadows = False
+    scene.render.use_envmaps = False
+    scene.render.resolution_x = mdlroot.nvb.minimapsize
+    scene.render.resolution_y = mdlroot.nvb.minimapsize
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def copyAnimSceneCheck(theOriginal, newSuffix, oldSuffix = ''):
+def copyAnimSceneCheck(theOriginal, newSuffix, oldSuffix=''):
     '''
     Checks if it possible to copy the object and it's children with the suffix
     It would be impossible if:
@@ -443,7 +443,7 @@ def copyAnimSceneCheck(theOriginal, newSuffix, oldSuffix = ''):
     return valid
 
 
-def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
+def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix='', parent=None):
     '''
     Copy object and all it's children to scene.
     For object with simple (position, rotation) or no animations we
@@ -465,8 +465,8 @@ def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
     else:
         newName = oldName + '.' + newSuffix
 
-    theCopy        = theOriginal.copy()
-    theCopy.name   = newName
+    theCopy = theOriginal.copy()
+    theCopy.name = newName
     theCopy.parent = parent
 
     # We need to copy the data for:
@@ -474,8 +474,8 @@ def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
     # - Meshes & materials when there are alphakeys
     objType = theOriginal.type
     if (objType == 'LAMP'):
-        data         = theOriginal.data.copy()
-        data.name    = newName
+        data = theOriginal.data.copy()
+        data.name = newName
         theCopy.data = data
     elif (objType == 'MESH'):
         if theOriginal.animation_data:
@@ -483,12 +483,12 @@ def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
             for fcurve in action.fcurves:
                 dataPath = fcurve.data_path
                 if dataPath.endswith('alpha_factor'):
-                    data         = theOriginal.data.copy()
-                    data.name    = newName
+                    data = theOriginal.data.copy()
+                    data.name = newName
                     theCopy.data = data
                     # Create a copy of the material
                     if (theOriginal.active_material):
-                        material      = theOriginal.active_material.copy()
+                        material = theOriginal.active_material.copy()
                         material.name = newName
                         theCopy.active_material = material
                         break
@@ -507,7 +507,7 @@ def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix = '', parent = None):
     return theCopy
 
 
-def renameAnimScene(obj, newSuffix, oldSuffix = ''):
+def renameAnimScene(obj, newSuffix, oldSuffix=''):
     '''
     Copy object and all it's children to scene.
     For object with simple (position, rotation) or no animations we
@@ -545,7 +545,7 @@ def renameAnimScene(obj, newSuffix, oldSuffix = ''):
                 if dataPath.endswith('alpha_factor'):
                     # Create a copy of the material
                     if (obj.active_material):
-                        material      = obj.active_material
+                        material = obj.active_material
                         material.name = newName
                         break
 
