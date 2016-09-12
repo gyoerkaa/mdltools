@@ -1,4 +1,6 @@
-﻿# Null value for parents, textures, etc.
+"""TODO: DOC."""﻿
+
+# Null value for parents, textures, etc.
 null = 'null'
 
 # Where to start all animations
@@ -8,10 +10,14 @@ anim_distance = 60
 
 
 class MalformedMdlFile(Exception):
+    """TODO: DOC."""
+
     def __init__(self, value):
+        """TODO: DOC."""
         self.parameter = value
 
     def __str__(self):
+        """TODO: DOC."""
         return repr(self.parameter)
 
 
@@ -45,6 +51,8 @@ wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
 
 
 class Animtype():
+    """TODO: DOC."""
+
     UNDEFINED  = 'undefined'
     PLSTAB     = 'plstab'
     PLCLOSEL   = 'plclosel'
@@ -84,18 +92,20 @@ class Animtype():
 
 
 class DummySubtype():
-    NONE      = 'NONE'
-    HAND      = 'HAND'
-    HEAD      = 'HEAD'
-    HEAD_HIT  = 'HHIT'
-    IMPACT    = 'IMPC'
-    GROUND    = 'GRND'
-    USE1      = 'USE1'
-    USE2      = 'USE2'
-    OPEN1_01  = 'O101'
-    OPEN1_02  = 'O102'
-    OPEN2_01  = 'O201'
-    OPEN2_02  = 'O202'
+    """TODO: DOC."""
+
+    NONE = 'NONE'
+    HAND = 'HAND'
+    HEAD = 'HEAD'
+    HEAD_HIT = 'HHIT'
+    IMPACT = 'IMPC'
+    GROUND = 'GRND'
+    USE1 = 'USE1'
+    USE2 = 'USE2'
+    OPEN1_01 = 'O101'
+    OPEN1_02 = 'O102'
+    OPEN2_01 = 'O201'
+    OPEN2_02 = 'O202'
     CLOSED_01 = 'CL01'
     CLOSED_02 = 'CL02'
 
@@ -142,6 +152,8 @@ class DummySubtype():
 
 
 class Meshtype():
+    """TODO: DOC."""
+
     TRIMESH = 'TRI'
     DANGLYMESH = 'DAN'
     SKIN = 'SKI'
@@ -153,6 +165,8 @@ class Meshtype():
 
 
 class Dummytype():
+    """TODO: DOC."""
+
     NONE = 'NON'
     DWKROOT = 'DWK'
     MDLROOT = 'MDL'
@@ -164,6 +178,8 @@ class Dummytype():
 
 
 class Tilefade():
+    """TODO: DOC."""
+
     NONE = '0'
     FADE = '1'
     BASE = '2'
@@ -173,6 +189,8 @@ class Tilefade():
 
 
 class Classification():
+    """TODO: DOC."""
+
     UNKNOWN = 'UNKNOWN'
     TILE = 'TILE'
     CHARACTER = 'CHARACTER'
@@ -185,6 +203,8 @@ class Classification():
 
 
 class Light():
+    """TODO: DOC."""
+
     DEFAULT = 'DEFAULT'
     MAINLIGHT1 = 'MAIN1'
     MAINLIGHT2 = 'MAIN2'

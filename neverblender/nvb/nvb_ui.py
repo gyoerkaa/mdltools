@@ -1,11 +1,15 @@
+"""TODO: DOC."""
+
 import bpy
 
 from . import nvb_def
 
 
 class NVB_UILIST_LENSFLARES(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    """TODO: DOC."""
 
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        """TODO: DOC."""
         custom_icon = 'NONE'
 
         # Supports all 3 layout types
@@ -18,12 +22,15 @@ class NVB_UILIST_LENSFLARES(bpy.types.UIList):
 
 
 class NVB_UILIST_ANIMS(bpy.types.UIList):
+    """TODO: DOC."""
+
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        """TODO: DOC."""
         custom_icon = 'NONE'
 
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            #layout.label(item.name, icon = custom_icon)
+            # layout.label(item.name, icon = custom_icon)
             layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
             muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
             layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
@@ -33,8 +40,10 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
 
 
 class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    """TODO: DOC."""
 
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        """TODO: DOC."""
         custom_icon = 'NONE'
 
         # Supports all 3 layout types
@@ -47,11 +56,12 @@ class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
 
 
 class NVB_PANEL_EMPTY(bpy.types.Panel):
-    '''
-    Property panel for additional properties needed for the mdl file
+    """Property panel for additional properties needed for the mdl file.
+
     format. This is only available for EMPTY objects.
     It is located under the object data panel in the properties window
-    '''
+    """
+
     bl_idname = 'nvb.propertypanel.empty'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
@@ -60,9 +70,11 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        """TODO: DOC."""
         return (context.object and context.object.type == 'EMPTY')
 
     def draw(self, context):
+        """TODO: DOC."""
         obj = context.object
         layout = self.layout
 
@@ -193,9 +205,11 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        """TODO: DOC."""
         return (context.object and context.object.type == 'EMPTY')
 
     def draw(self, context):
+        """TODO: DOC."""
         obj = context.object
         layout = self.layout
 
@@ -228,9 +242,9 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 col = split.column(align=True)
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
-                #col = split.column(align=True)
-                #col.prop(anim, 'marker', text = '')
-                #col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')
+                # col = split.column(align=True)
+                # col.prop(anim, 'marker', text = '')
+                # col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')
 
                 sep = box.separator()
                 # Event Helper. Display and add/remove events.
@@ -272,9 +286,11 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        """TODO: DOC."""
         return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
+        """TODO: DOC."""
         obj = context.object
         layout = self.layout
 
@@ -350,9 +366,11 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        """TODO: DOC."""
         return (context.object and context.object.type == 'MESH')  # context.mesh and context.object.type != 'EMPTY')
 
     def draw(self, context):
+        """TODO: DOC."""
         obj = context.object
         obj_type = obj.type
         layout = self.layout
