@@ -1,10 +1,13 @@
+"""TODO: DOC."""
+
 import mathutils
 
 
 def generateTree(aabb_tree, face_list, rlevel=0):
-
-    if (rlevel > 100):
-        print('Neverblender - ERROR: Could not generate aabb. Recursion level exceeds 100')
+    """TODO: DOC."""
+    if (rlevel > 128):
+        print('Neverblender - ERROR: Could not generate aabb.\
+              Recursion level exceeds 100')
         aabb_tree = []
         return
 
