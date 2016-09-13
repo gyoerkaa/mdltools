@@ -112,6 +112,27 @@ class Node(object):
         return obj
 
     @staticmethod
+    def getAdjustedMatrix(obj):
+        """TODO: DOC."""
+        if obj.parent:
+            parent_mw = obj.parent.matrix_world
+        else:
+            parent_mw = mathutils.matrix()
+
+        p_mw_scale = parent_mw.to_scale()
+
+        # scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
+        #                             [0,p_mw_scale[1],0,0],
+        #                             [0,0,p_mw_scale[2],0],
+        #                             [0,0,0            ,1]])
+
+        scaled = obj.matrix_local.copy()
+        scaled[0][3] = scaled[0][3] * p_mw_scale[0]
+        scaled[1][3] = scaled[1][3] * p_mw_scale[1]
+        scaled[2][3] = scaled[2][3] * p_mw_scale[2]
+        return scaled
+
+    @staticmethod
     def generateAsciiData(obj, asciiLines):
         """TODO: DOC."""
         if obj.parent:
@@ -119,7 +140,7 @@ class Node(object):
         else:
             asciiLines.append('  parent ' + nvb_def.null)
         # Scaling fix
-        transmat = self.getAdjustedMatrix(obj)
+        transmat = Node.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
         s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5),
                                                            round(loc[1], 5),
@@ -258,7 +279,11 @@ class Reference(Node):
         obj.nvb.reattachable = (self.reattachable >= 1)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, exportObjects, classification)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
@@ -490,7 +515,8 @@ class Trimesh(Node):
             # Mark edge as sharp if its faces belong to different smooth groups
             for e in bm.edges:
                 f = e.link_faces
-                if (len(f) > 1) and (self.facelist.shdgr[f[0].index] != self.facelist.shdgr[f[1].index]):
+                if (len(f) > 1) and \
+                   (self.facelist.shdgr[f[0].index] != self.facelist.shdgr[f[1].index]):
                     edgeIdx = e.index
                     mesh.edges[edgeIdx].use_edge_sharp = True
             bm.free()
@@ -527,7 +553,7 @@ class Trimesh(Node):
         """TODO: Doc."""
         if nvb_glob.minimapMode:
             if ((self.tilefade >= 1) and nvb_glob.minimapSkipFade) or \
-                (not self.render):
+               (not self.render):
                 # Fading objects or shadow meshes won't be imported in
                 # minimap mode
                 # We may need them for the tree stucture, so import it
@@ -546,14 +572,19 @@ class Trimesh(Node):
         # Check if this object has a material assigned to it
         material = obj.active_material
         if material:
-            color = material.diffuse_color
-            asciiLines.append('  diffuse ' + str(round(color[0], 2)) + ' ' +
-                                             str(round(color[1], 2)) + ' ' +
-                                             str(round(color[2], 2)))
-            color = material.specular_color
-            asciiLines.append('  specular ' + str(round(color[0], 2)) + ' ' +
-                                              str(round(color[1], 2)) + ' ' +
-                                              str(round(color[2], 2)))
+            diff = material.diffuse_color
+            formatString = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
+            s = formatString.format(round(diff[0], 2),
+                                    round(diff[1], 2),
+                                    round(diff[2], 2))
+            asciiLines.append(s)
+
+            spec = material.specular_color
+            formatString = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
+            s = formatString.format(round(spec[0], 2),
+                                    round(spec[1], 2),
+                                    round(spec[2], 2))
+            asciiLines.append(s)
 
             # Check if this material has a texture assigned
             texture = material.active_texture
@@ -565,7 +596,8 @@ class Trimesh(Node):
                 else:
                     imgName = nvb_def.null
             asciiLines.append('  bitmap ' + imgName)
-            asciiLines.append('  alpha ' + str(round(nvb_utils.getAuroraAlpha(obj), 2)))
+            asciiLines.append('  alpha ' +
+                              str(round(nvb_utils.getAuroraAlpha(obj), 2)))
 
         else:
             # No material, set some default values
@@ -696,9 +728,17 @@ class Trimesh(Node):
         bpy.data.meshes.remove(mesh)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple = False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, exportObjects, classification, simple)
+        Node.generateAsciiData(obj,
+                               asciiLines,
+                               exportObjects,
+                               classification,
+                               simple)
 
         color = obj.nvb.ambientcolor
         asciiLines.append('  ambient ' +
@@ -822,9 +862,16 @@ class Danglymesh(Trimesh):
                 asciiLines.append('    0.0')
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
+        Trimesh.generateAsciiData(obj,
+                                  asciiLines,
+                                  exportObjects,
+                                  classification)
 
         asciiLines.append('  period ' + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
@@ -833,7 +880,7 @@ class Danglymesh(Trimesh):
 
 
 class Skinmesh(Trimesh):
-    """ Skinmeshes are Trimeshes where every vertex has a weight."""
+    """Skinmeshes are Trimeshes where every vertex has a weight."""
 
     nodetype = 'skin'
 
@@ -919,9 +966,16 @@ class Skinmesh(Trimesh):
             asciiLines.append(line)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, exportObjects, classification)
+        Trimesh.generateAsciiData(obj,
+                                  asciiLines,
+                                  exportObjects,
+                                  classification)
 
         Skinmesh.generateAsciiWeights(obj, asciiLines, exportObjects)
 
@@ -1016,9 +1070,17 @@ class Emitter(Node):
         self.createTextEmitter(obj)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
-        Node.addDataToAscii(obj, asciiLines, exportObjects, classification, simple)
+        Node.addDataToAscii(obj,
+                            asciiLines,
+                            exportObjects,
+                            classification,
+                            simple)
 
         if obj.nvb.rawascii not in bpy.data.texts:
             print('Neverblender - Warning: No emitter data for ' + obj.name)
@@ -1222,7 +1284,11 @@ class Light(Node):
                           str(round(obj.nvb.flareradius, 1)))
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, exportObjects, classification)
 
@@ -1344,7 +1410,11 @@ class Aabb(Trimesh):
                                   str(node[6]))
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exportObjects=[], classification=nvb_def.Classification.UNKNOWN, simple=False):
+    def generateAsciiData(obj,
+                          asciiLines,
+                          exportObjects=[],
+                          classification=nvb_def.Classification.UNKNOWN,
+                          simple=False):
         """TODO: Doc."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
