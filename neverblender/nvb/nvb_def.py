@@ -1,4 +1,4 @@
-"""TODO: DOC."""﻿
+"""TODO: DOC."""
 
 # Null value for parents, textures, etc.
 null = 'null'

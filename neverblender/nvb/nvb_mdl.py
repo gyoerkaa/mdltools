@@ -77,7 +77,7 @@ class Mdl():
             try:
                 label = line[0].lower()
             except IndexError:
-                # Probably empty line or whatever, just skip it
+                # Probably empty line, skip it
                 continue
 
             if (label == 'newmodel'):
