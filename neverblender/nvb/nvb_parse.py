@@ -1,4 +1,10 @@
+"""TODO: DOC."""
+
+from . import nvb_utils
+
+
 def weights(self, asciiBlock):
+    """TODO: DOC."""
     lfloat = float
     lchunker = nvb_utils.chunker
     for line in asciiBlock:
@@ -8,85 +14,74 @@ def weights(self, asciiBlock):
         # [[group_name, vertex_weight], [group_name, vertex_weight]]
         memberships = []
         for chunk in lchunker(line, 2):
-            memberships.append( [chunk[0], lfloat(chunk[1])] )
+            memberships.append([chunk[0], lfloat(chunk[1])])
 
         self.weights.append(memberships)
 
 
 def faces(asciiFaces, faceList):
+    """TODO: DOC."""
     l_int = int
     for line in asciiFaces:
-        facelist.faces.append( (l_int(line[0]), l_int(line[1]), l_int(line[2])) )
-        facelist.shdgr.append(l_int(line[3]))
-        facelist.uvIdx.append( (l_int(line[4]), l_int(line[5]), l_int(line[6])) )
-        facelist.matId.append(l_int(line[7]))
+        faceList.faces.append((l_int(line[0]),
+                               l_int(line[1]),
+                               l_int(line[2])))
+        faceList.shdgr.append(l_int(line[3]))
+        faceList.uvIdx.append((l_int(line[4]),
+                               l_int(line[5]),
+                               l_int(line[6])))
+        faceList.matId.append(l_int(line[7]))
 
 
 def f1(asciiBlock, floatList):
-    '''
-    Parses a series on floats into a list
-    '''
-    #floatList = [float(l[0]) for l in asciiBlock]
+    """Parse a series on floats into a list."""
+    # floatList = [float(l[0]) for l in asciiBlock]
     l_float = float
     for line in asciiBlock:
         floatList.append(l_float(line[0]))
 
 
 def f2(asciiBlock, floatList):
-    '''
-    Parses a series on float tuples into a list
-    '''
-    #floatList = [(float(l[0]), float(l[1])) for l in asciiBlock]
+    """Parse a series on float tuples into a list."""
+    # floatList = [(float(l[0]), float(l[1])) for l in asciiBlock]
     l_float = float
     for line in asciiBlock:
-        floatList.append( (l_float(line[0]),
-                           l_float(line[1])) )
+        floatList.append((l_float(line[0]),
+                          l_float(line[1])))
 
 
 def f3(asciiBlock, floatList):
-    '''
-    Parses a series on float 3-tuples into a list
-    '''
-    #floatList = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiBlock]
+    """Parse a series on float 3-tuples into a list."""
     l_float = float
     for line in asciiBlock:
-        floatList.append( (l_float(line[0]),
-                           l_float(line[1]),
-                           l_float(line[2])) )
+        floatList.append((l_float(line[0]),
+                          l_float(line[1]),
+                          l_float(line[2])))
 
 
 def f4(asciiBlock, floatList):
-    '''
-    Parses a series on float 4-tuples into a list
-    '''
-    #floatList = [(float(l[0]), float(l[1]), float(l[2]), float(l[3])) for l in asciiBlock]
+    """Parse a series on float 4-tuples into a list."""
     l_float = float
     for line in asciiBlock:
-        floatList.append( (l_float(line[0]),
-                           l_float(line[1]),
-                           l_float(line[2]),
-                           l_float(line[3])) )
+        floatList.append((l_float(line[0]),
+                          l_float(line[1]),
+                          l_float(line[2]),
+                          l_float(line[3])))
 
 
 def f5(asciiBlock, floatList):
-    '''
-    Parses a series on float 5-tuples into a list
-    '''
-    #floatList = [(float(l[0]), float(l[1]), float(l[2]), float(l[3]), float(l[4])) for l in asciiBlock]
+    """Parse a series on float 5-tuples into a list."""
     l_float = float
     for line in asciiBlock:
-        floatList.append( (l_float(line[0]),
-                           l_float(line[1]),
-                           l_float(line[2]),
-                           l_float(line[3]),
-                           l_float(line[4])) )
+        floatList.append((l_float(line[0]),
+                          l_float(line[1]),
+                          l_float(line[2]),
+                          l_float(line[3]),
+                          l_float(line[4])))
 
 
 def txt(asciiBlock, txtBlock):
-    '''
-    Return a block of text joined with newline (used for emitters)
-    '''
-    #txtBlock = ['\n'+' '.join(l) for l in aciiBlock]
+    """Return a block of text joined with newline (used for emitters)."""
+    # txtBlock = ['\n'+' '.join(l) for l in aciiBlock]
     for line in asciiBlock:
         txtBlock = txtBlock + '\n' + ' '.join(line)
-
