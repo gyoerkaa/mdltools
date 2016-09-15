@@ -127,30 +127,30 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
         default=nvb_def.null)
     classification = bpy.props.EnumProperty(
                 name='Classification',
-                items = [(nvb_def.Classification.UNKNOWN,   'Unknown',   'Unknown classification',              0),
-                         (nvb_def.Classification.TILE,      'Tile',      'Tiles for a tileset',                 1),
-                         (nvb_def.Classification.CHARACTER, 'Character', 'Creatures, characters or placeables', 2),
-                         (nvb_def.Classification.DOOR,      'Door',      'Doors',                               3),
-                         (nvb_def.Classification.EFFECT,    'Effect',    'Effects',                             4),
-                         (nvb_def.Classification.GUI,       'Gui',       'Gui',                                 5),
-                         (nvb_def.Classification.ITEM,      'Item',      'Items or placeables',                 6)],
+                items=[(nvb_def.Classification.UNKNOWN, 'Unknown', 'Unknown classification', 0),
+                       (nvb_def.Classification.TILE, 'Tile', 'Tiles for a tileset', 1),
+                       (nvb_def.Classification.CHARACTER, 'Character', 'Creatures, characters or placeables', 2),
+                       (nvb_def.Classification.DOOR, 'Door', 'Doors', 3),
+                       (nvb_def.Classification.EFFECT, 'Effect', 'Effects', 4),
+                       (nvb_def.Classification.GUI, 'Gui', 'Gui', 5),
+                       (nvb_def.Classification.ITEM, 'Item', 'Items or placeables', 6)],
                 default=nvb_def.Classification.UNKNOWN)
     dummysubtype = bpy.props.EnumProperty(
                 name='Subtype',
-                items = [('NONE', 'None',            'Simple dummy object',                     0),
-                         ('HAND', 'Hand',            'Hand node for spells and effects. \n (for door and placeable models)',        1),
-                         ('HEAD', 'Head',            'Head node for spells and effects. \n (for door and placeable models)',        2),
-                         ('HHIT', 'Head hit',        'Head hit node for spells and effects. \n (for door and placeable models)',    3),
-                         ('IMPC', 'Impact',          'Impact node for spells and effects. \n (for door and placeable models)',      4),
-                         ('GRND', 'Ground',          'Ground node for spells and effects. \n (for door and placeable models)',      5),
-                         ('USE1', 'PWK: Use 1',      '1st node for "Use" animation',            6),
-                         ('USE2', 'PWK: Use 2',      '2nd node for "Use" animation',            7),
-                         ('O101', 'DWK: Open 1 1st', 'Open 1 State, 1st node for "Use" anim',   8),
-                         ('O102', 'DWK: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim',   9),
-                         ('O201', 'DWK: Open 2 1st', 'Open 2 State, 1st node for "Use" anim',  10),
-                         ('O202', 'DWK: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim',  11),
-                         ('CL01', 'DWK: Closed 1st', 'Closed State, 1st node for "Use" anim',  12),
-                         ('CL02', 'DWK: Closed 2nd', 'Closed State, 2nd node for "Use" anim',  13)],
+                items=[('NONE', 'None', 'Simple dummy object', 0),
+                       ('HAND', 'Hand', 'Hand node for spells and effects. \n (for door and placeable models)', 1),
+                       ('HEAD', 'Head', 'Head node for spells and effects. \n (for door and placeable models)', 2),
+                       ('HHIT', 'Head hit', 'Head hit node for spells and effects. \n (for door and placeable models)', 3),
+                       ('IMPC', 'Impact', 'Impact node for spells and effects. \n (for door and placeable models)', 4),
+                       ('GRND', 'Ground', 'Ground node for spells and effects. \n (for door and placeable models)', 5),
+                       ('USE1', 'PWK: Use 1', '1st node for "Use" animation', 6),
+                       ('USE2', 'PWK: Use 2', '2nd node for "Use" animation', 7),
+                       ('O101', 'DWK: Open 1 1st', 'Open 1 State, 1st node for "Use" anim', 8),
+                       ('O102', 'DWK: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim', 9),
+                       ('O201', 'DWK: Open 2 1st', 'Open 2 State, 1st node for "Use" anim', 10),
+                       ('O202', 'DWK: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim', 11),
+                       ('CL01', 'DWK: Closed 1st', 'Closed State, 1st node for "Use" anim', 12),
+                       ('CL02', 'DWK: Closed 2nd', 'Closed State, 2nd node for "Use" anim', 13)],
                 default='NONE')
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
@@ -211,12 +211,23 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Tilefade.BASE, 'Base', '???', 2),
                        (nvb_def.Tilefade.NEIGHBOUR, 'Neighbour', 'Tilefade if Neighbouring Tile fades', 3)],
                 default=nvb_def.Tilefade.NONE)
-    beaming = bpy.props.BoolProperty(name='beaming',
-                                     description='Object casts beams (?)',
-                                     default=False)
-    inheritcolor     = bpy.props.BoolProperty(name = 'Inheritcolor', description = 'Unused (?)', default = False)
-    rotatetexture    = bpy.props.BoolProperty(name = 'Rotatetexture', description = 'Automatically rotates texture to prevent seams', default = False)
-    transparencyhint = bpy.props.IntProperty(name = 'Transparency Hint', default = 0, min = 0, max = 32)
+    beaming = bpy.props.BoolProperty(
+                name='beaming',
+                description='Object casts beams (?)',
+                default=False)
+    inheritcolor = bpy.props.BoolProperty(
+                name='Inheritcolor',
+                description='Unused (?)',
+                default=False)
+    rotatetexture = bpy.props.BoolProperty(
+                name='Rotatetexture',
+                description='Automatically rotates texture to prevent seams',
+                default=False)
+    transparencyhint = bpy.props.IntProperty(
+                name='Transparency Hint',
+                description='Order of tranparency evaluation',
+                default=0,
+                min=0, max=32)
     selfillumcolor = bpy.props.FloatVectorProperty(
                 name='Selfilluminationcolor',
                 description='Makes the object glow but does not emit light',
@@ -252,17 +263,43 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default='')
 
     # For lamps
-    lighttype     = bpy.props.EnumProperty(name = 'Type', items=[('NONE', 'None', 'Simple light', 0), ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for Tiles (Editable in toolset)', 1), ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for Tiles (Editable in toolset)', 2), ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3), ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)], default = 'NONE')
-    ambientonly   = bpy.props.BoolProperty(name = 'Ambient Only', default = False)
-    lightpriority = bpy.props.IntProperty(name = 'Lightpriority', default = 3, min = 1, max = 5)
-    fadinglight   = bpy.props.BoolProperty(name = 'Fading light', default = False)
-    isdynamic     = bpy.props.BoolProperty(name = 'Is Dynamic', default = False)
-    affectdynamic = bpy.props.BoolProperty(name = 'Affect Dynamic', description = 'Affect dynamic objects', default = False)
-    negativelight = bpy.props.BoolProperty(name = 'Negative Light', default = False)
-    lensflares    = bpy.props.BoolProperty(name = 'Lensflares', default = False)
-    flareradius   = bpy.props.FloatProperty(name = 'Flare Radius', default = 0.0, min = 0.0, max = 100.0)
-    flareList     = bpy.props.CollectionProperty(type = NVB_PG_FLARE)
-    flareListIdx  = bpy.props.IntProperty(name = "Index for flare list", default = 0)
+    lighttype = bpy.props.EnumProperty(
+                name='Type',
+                items=[('NONE', 'None', 'Simple light', 0),
+                       ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for Tiles (Editable in toolset)', 1),
+                       ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for Tiles (Editable in toolset)', 2),
+                       ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3),
+                       ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)],
+                default='NONE')
+    ambientonly = bpy.props.BoolProperty(
+                name='Ambient Only',
+                default=False)
+    lightpriority = bpy.props.IntProperty(
+                name='Lightpriority',
+                default=3, min=1, max=5)
+    fadinglight = bpy.props.BoolProperty(
+                name='Fading light',
+                default=False)
+    isdynamic = bpy.props.BoolProperty(
+                name='Is Dynamic',
+                default=False)
+    affectdynamic = bpy.props.BoolProperty(
+                name='Affect Dynamic',
+                description='Affect dynamic objects',
+                default=False)
+    negativelight = bpy.props.BoolProperty(
+                name='Negative Light',
+                default=False)
+    lensflares = bpy.props.BoolProperty(
+                name='Lensflares',
+                default=False)
+    flareradius = bpy.props.FloatProperty(
+                name='Flare Radius',
+                default=0.0, min=0.0, max=100.0)
+    flareList = bpy.props.CollectionProperty(type=NVB_PG_FLARE)
+    flareListIdx = bpy.props.IntProperty(
+                name='Index for flare list',
+                default=0)
 
     # For emitters
     rawascii = bpy.props.StringProperty(
