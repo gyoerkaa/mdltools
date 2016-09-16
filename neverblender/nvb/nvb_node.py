@@ -64,7 +64,11 @@ class Node(object):
         """TODO: DOC."""
         return 'node ' + self.nodetype + ' ' + self.name
 
-    def loadAscii(self, asciiBlock):
+    def getImportIdx(self, idx):
+        """TODO: DOC."""
+        return self.objidx
+
+    def loadAscii(self, asciiBlock, idx=-1):
         """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_def.isNumber
@@ -95,6 +99,7 @@ class Node(object):
                     self.wirecolor = (l_float(line[1]),
                                       l_float(line[2]),
                                       l_float(line[3]))
+        self.objidx = idx
 
     def createObjectData(self, obj):
         """TODO: DOC."""
@@ -203,9 +208,9 @@ class Dummy(Node):
         """TODO: Doc."""
         self.dummytype = subtype
 
-    def loadAscii(self, asciiBlock):
+    def loadAscii(self, asciiBlock, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiBlock)
+        Node.loadAscii(self, asciiBlock, idx)
 
     def createObjectData(self, obj):
         """TODO: Doc."""
@@ -251,9 +256,9 @@ class Reference(Node):
         self.refmodel = nvb_def.null
         self.reattachable = 0
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode)
+        Node.loadAscii(self, asciiNode, idx)
         l_isNumber = nvb_utils.isNumber
 
         for line in asciiNode:
@@ -313,7 +318,7 @@ class Trimesh(Node):
         self.diffuse = (0.0, 0.0, 0.0)
         self.specular = (0.0, 0.0, 0.0)
         self.shininess = 0
-        self.bitmap = nvb_def.null
+        self.bitmap = ''
         self.rotatetexture = 0
         self.verts = []  # list of vertices
         self.facelist = FaceList()
@@ -335,9 +340,9 @@ class Trimesh(Node):
 
         return image
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode)
+        Node.loadAscii(self, asciiNode, idx)
 
         l_int = int
         l_float = float
@@ -475,8 +480,7 @@ class Trimesh(Node):
             mesh.materials.append(material)
 
             # Create UV map
-            if (len(self.tverts) > 0) and (mesh.tessfaces) and \
-               (not nvb_utils.isNull(self.bitmap)):
+            if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
                 uv = mesh.tessface_uv_textures.new(name + '.uv')
                 mesh.tessface_uv_textures.active = uv
 
@@ -797,9 +801,9 @@ class Danglymesh(Trimesh):
         self.displacement = 1.0
         self.constraints = []
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiNode)
+        Trimesh.loadAscii(self, asciiNode, idx)
 
         l_int = int
         l_float = float
@@ -891,9 +895,9 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiNode)
+        Trimesh.loadAscii(self, asciiNode, idx)
         l_int = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
@@ -994,7 +998,7 @@ class Emitter(Node):
         self.ysize = 2
         self.rawascii = ''
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
@@ -1014,7 +1018,7 @@ class Emitter(Node):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                     return
                 elif (label == 'parent'):
-                    self.parentName = nvb_utils.getName(line[1])
+                    self.parentName = nvb_utils.getAuroraString(line[1])
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
@@ -1130,9 +1134,9 @@ class Light(Node):
         self.flareradius = 1.0
         self.flareList = FlareList()
 
-    def loadAscii(self, asciiNode):
+    def loadAscii(self, asciiNode, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode)
+        Node.loadAscii(self, asciiNode, idx)
 
         flareTextureNamesStart = 0
         numFlares = 0

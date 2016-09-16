@@ -16,12 +16,12 @@ from . import nvb_utils
 class ObjectDB(collections.OrderedDict):
     """TODO: DOC."""
 
-    def insertLoadedObj(self, nodeName, parentName, nodePos, loadedName):
+    def insertObj(self, nodeName, parentName, objidx, loadedName):
         """TODO: DOC."""
         if nodeName in self:
-            self[nodeName].append((parentName, nodePos, loadedName))
+            self[nodeName].append((parentName, objidx, loadedName))
         else:
-            self[nodeName] = [(parentName, nodePos, loadedName)]
+            self[nodeName] = [(parentName, objidx, loadedName)]
 
     def getLoadedName(self, nodeName, parentName='', nodePos=-1):
         """TODO: DOC."""
@@ -115,7 +115,19 @@ class Mdl():
 
     def loadAsciiGeometry(self, asciiData):
         """TODO: DOC."""
-        for asciiNode in asciiData.split('node '):
+        # Helper to create nodes of matching type
+        switch = {'dummy':      nvb_node.Dummy,
+                  'patch':      nvb_node.Patch,
+                  'reference':  nvb_node.Reference,
+                  'trimesh':    nvb_node.Trimesh,
+                  'animmesh':   nvb_node.Animmesh,
+                  'danglymesh': nvb_node.Danglymesh,
+                  'skin':       nvb_node.Skinmesh,
+                  'emitter':    nvb_node.Emitter,
+                  'light':      nvb_node.Light,
+                  'aabb':       nvb_node.Aabb}
+
+        for idx, asciiNode in enumerate(asciiData.split('node ')):
             lines = [l.strip().split() for l in asciiNode.splitlines()]
             node = None
             nodeType = ''
@@ -127,33 +139,23 @@ class Mdl():
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node type')
 
-            # Read node Name
+            # Read node name
             try:
                 nodeName = lines[0][1].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
 
             # Create an object with that node type
-            switch = {'dummy':      nvb_node.Dummy,
-                      'patch':      nvb_node.Patch,
-                      'reference':  nvb_node.Reference,
-                      'trimesh':    nvb_node.Trimesh,
-                      'animmesh':   nvb_node.Animmesh,
-                      'danglymesh': nvb_node.Danglymesh,
-                      'skin':       nvb_node.Skinmesh,
-                      'emitter':    nvb_node.Emitter,
-                      'light':      nvb_node.Light,
-                      'aabb':       nvb_node.Aabb}
             try:
                 node = switch[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
 
             # Parse and add to node list
-            node.loadAscii(lines)
+            node.loadAscii(lines, idx)
             self.nodes.append(node)
 
-    def loadAsciiAnims(self, asciiData):
+    def loadAsciiAnimations(self, asciiData):
         """TODO: DOC."""
         # Split into animations first
         for asciiAnim in asciiData.split('newanim '):
@@ -163,6 +165,10 @@ class Mdl():
             anim = nvb_anim.Animation()
             anim.loadAscii(asciiData)
             self.animations.append(anim)
+
+    def loadAsciiWalkmesh(self, asciiData):
+        """TODO: DOC."""
+        pass
 
     def loadAscii(self, asciiData):
         """TODO: DOC."""
@@ -276,17 +282,18 @@ class Mdl():
 
     def createObjectLinks(self, scene):
         """Handle parenting and linking the objects to a scene."""
+        rootDummy = None
         for objList in self.createdObjects:
-            for obj in objList:
-                parentName = obj[1]  # Name of the parent in the mdl
-                nodePos = obj[2]  # Position of the node in the mdl
-
+            for objInfo in objList:
+                parentName = objInfo[0]  # Name of the parent in the mdl
+                nodePos = objInfo[1]  # Position of the node in the mdl
+                obj = bpy.data.objects[objInfo[2]]
                 # Check if the parent exists
-                if (nvb_utils.isNull(parentName)):
-                    # Node without parent. Must be the root dummy.
-                    obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
+                if parentName:
+                    # Node without parent. Must be a root dummy.
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
+                    rootDummy = obj
                 elif parentName in self.createdObjects:
                     parentLoadedName = self.createdObjects.getLoadedName(
                         parentName,
@@ -300,28 +307,23 @@ class Mdl():
                         # TODO...or not todo?
                         pass
                 else:
-                    # Parent doesn't exist.
-                    raise nvb_def.MalformedMdlFile(obj.name +
-                                                   ' has no parent ' +
-                                                   obj.parentName)
+                    # Parent doesn't exist. Parent to rootdummy
+                    obj.parent = rootDummy
+                    obj.matrix_parent_inverse = \
+                        rootDummy.parent.matrix_world.inverted()
                 scene.objects.link(obj)
 
     def createObjects(self, options):
         """TODO: DOC."""
         if self.nodes:
-            nodePos = 0
             for node in self.nodes:
                 # Creates a blender object for this node
                 obj = node.createObject(options)
-                # Save the order of nodes. We'll need to restore it during
-                # export.
-                obj.nvb.order = nodePos
-                nodePos += 1
                 # Save the imported objects for animation import
                 if obj:
                     self.createdObjects.insertLoadedObj(node.name,
                                                         node.parent,
-                                                        nodePos,
+                                                        node.objidx,
                                                         obj.name)
 
     def createAnimations(self, options):

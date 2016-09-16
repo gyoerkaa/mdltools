@@ -9,7 +9,7 @@ from . import nvb_mdl
 from . import nvb_utils
 
 
-def findRootDummy():
+def getExportMdl():
     """TODO: DOC."""
     # Look for a rootdummy:
     # 1. Current selected object ?
@@ -74,18 +74,18 @@ def loadMdl(operator,
             (mdlPath, mdlFilename) = os.path.split(filepath)
             for wkmtype in ['pwk', 'dwk']:
                 wkmPath = os.fsencode(os.path.join(
-                    mdlPath,
-                    os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
+                            mdlPath,
+                            os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
                 try:
                     wkmfile = open(wkmPath, 'r')
                 except IOError:
                     print("Neverblender: No " + wkmtype + " walkmesh found")
                 else:
                     asciiWkm = wkmfile.read()
-                    wkm = nvb_mdl.Wkm(wkmtype)
-                    wkm.loadAscii(asciiWkm)
-                    wkm.create(scene)
+                    mdl.loadAscii(asciiWkm)
                     wkmfile.close()
+
+        mdl.create(scene)
 
     return {'FINISHED'}
 
@@ -105,7 +105,7 @@ def saveMdl(operator,
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
-    mdlRoot = findRootDummy()
+    mdlRoot = getExportMdl()
     if mdlRoot:
         print('Neverblender: Exporting ' + mdlRoot.name)
         mdl = nvb_mdl.Mdl()

@@ -6,18 +6,13 @@ import os
 from . import nvb_def
 
 
-def isNull(s):
-    '''
-    A string is null if empty or "null"
-    '''
-    return (not s or s.lower() == nvb_def.null)
-
-
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    """TODO: DOC."""
     return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
 def isNumber(s):
+    """Check if the string s is a number."""
     try:
         float(s)
     except ValueError:
@@ -27,20 +22,9 @@ def isNumber(s):
 
 
 def getAuroraString(s):
-    '''
-    Converts 'null' to empty string
-    '''
-    if isNull(s):
+    """Convert 'null' to empty string."""
+    if (not s or s.lower() == nvb_def.null):
         return ''
-    return s
-
-
-def getName(s):
-    '''
-    Treat 'null' as empty string
-    Still not certain mdl node names are case sensitive
-    '''
-    #return s.lower()
     return s
 
 
@@ -59,7 +43,7 @@ def matchMaterial(diffuse=(1.0, 1.0, 1.0),
 
     for material in bpy.data.materials:
         eq = False
-        if isNull(imageName):
+        if not imageName:
             # No texture
             eq = not material.active_texture
             eq = eq and (material.alpha_factor == alpha)
