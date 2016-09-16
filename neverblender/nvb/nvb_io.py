@@ -62,12 +62,10 @@ def loadMdl(operator,
     scene = bpy.context.scene
 
     with open(os.fsencode(filepath), 'r') as mdlfile:
-        asciiMdl = mdlfile.read()
-
         print('Neverblender: Importing ' + filepath)
         mdl = nvb_mdl.Mdl()
+        asciiMdl = mdlfile.read()
         mdl.loadAscii(asciiMdl)
-        mdl.create(scene)
 
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if importWalkmesh:

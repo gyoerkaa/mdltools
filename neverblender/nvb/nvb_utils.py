@@ -103,16 +103,6 @@ def getValidExports(rootDummy, validExports):
         getValidExports(child, validExports)
 
 
-def getAnimationRootdummy(animScene):
-    """TODO: DOC."""
-    if animScene:
-        for obj in animScene.objects:
-            if obj.type == 'EMPTY':
-                if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT) and (obj.nvb.isanimation):
-                    return obj
-    return None
-
-
 def isRootDummy(obj, dummytype=nvb_def.Dummytype.MDLROOT):
     """TODO: DOC."""
     if not obj:
@@ -198,13 +188,14 @@ def setObjectRotationAurora(obj, nwangle):
 
 
 def getAuroraRotFromObject(obj):
-    '''
+    """Get Rotation as axis angle in aurora format/order.
+
     Get the rotation from an object as Axis Angle in the format used by NWN
     NWN uses     [X, Y, Z, Angle]
     Blender uses [Angle, X, Y, Z]
     Depending on rotation_mode we have to get the rotation from different
     attributes
-    '''
+    """
     rotMode = obj.rotation_mode
 
     if rotMode == "QUATERNION":
@@ -222,20 +213,18 @@ def getAuroraRotFromObject(obj):
 
 
 def getAuroraRotFromMatrix(matrix):
-    '''
+    """Get Rotation as axis angle in aurora format/order.
+
     Get the rotation from a 4x4 matrix as Axis Angle in the format used by NWN
     NWN uses     [X, Y, Z, Angle]
     Blender uses [Angle, X, Y, Z]
-    '''
+    """
     q = matrix.to_quaternion()
     return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
 
 def getAuroraScale(obj):
-    '''
-    If the scale is uniform, i.e, x=y=z, we will return
-    the value. Else we'll return 1.
-    '''
+    """If scale is uniform (x=y=z) return the value; Else return 1."""
     scale = obj.scale
     if (scale[0] == scale[1] == scale[2]):
         return scale[0]
@@ -244,9 +233,7 @@ def getAuroraScale(obj):
 
 
 def nwtime2frame(time, fps=nvb_def.fps):
-    '''
-    For animations: Convert key time to frame number
-    '''
+    """Convert key time to frame number."""
     return round(fps*time)
 
 
@@ -268,19 +255,13 @@ def nwangle2euler(nwangle):
 
 
 def setMaterialAuroraAlpha(mat, alpha):
-    '''
-    if alpha < 1.0:
-        mat.use_transparency = True
-        tex = mat.active_texture
-        if tex:
-            mat.alpha = 0.0
-            tslotIdx = mat.active_texture_index
-            tslot    = mat.texture_slots[tslotIdx]
-            tslot.use_map_alpha = True
-            tslot.alpha_factor  = alpha
-        else:
-            mat.alpha = alpha
-    '''
+    """Set the alpha value of material or texture.
+
+    This will set
+        1. texture_slot.alpha_factor when there is a texture
+        2. material.alpha there is no texture, but a material
+        3. Do nothing, when there is no material
+    """
     mat.use_transparency = True
     tex = mat.active_texture
     if tex:
@@ -294,24 +275,26 @@ def setMaterialAuroraAlpha(mat, alpha):
 
 
 def setObjectAuroraAlpha(obj, alpha):
-    '''
+    """Set the alpha value of material or texture.
+
     This will set
         1. texture_slot.alpha_factor when there is a texture
         2. material.alpha there is no texture, but a material
         3. Do nothing, when there is no material
-    '''
+    """
     mat = obj.active_material
     if mat:
         setMaterialAuroraAlpha(mat, alpha)
 
 
 def getAuroraAlpha(obj):
-    '''
+    """Get the alpha value of material or texture.
+
     This will return
         1. texture_slot.alpha_factor when there is a texture
         2. material.alpha when there is no texture
         3. 1.0 when there is no material
-    '''
+    """
     mat = obj.active_material
     if mat and mat.use_transparency:
         tex = mat.active_texture

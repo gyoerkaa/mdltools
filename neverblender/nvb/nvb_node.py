@@ -140,10 +140,6 @@ class Node(object):
     @staticmethod
     def generateAsciiData(obj, asciiLines):
         """TODO: DOC."""
-        if obj.parent:
-            asciiLines.append('  parent ' + obj.parent.name)
-        else:
-            asciiLines.append('  parent ' + nvb_def.null)
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
@@ -189,6 +185,10 @@ class Node(object):
     def generateAscii(cls, obj, asciiLines):
         """TODO: Doc."""
         asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
+        if obj.parent:
+            asciiLines.append('  parent ' + obj.parent.name)
+        else:
+            asciiLines.append('  parent ' + nvb_def.null)
         cls.generateAsciiData(cls, obj, asciiLines)
         asciiLines.append('endnode')
 
@@ -211,18 +211,6 @@ class Dummy(Node):
     def loadAscii(self, asciiBlock, idx=-1):
         """TODO: Doc."""
         Node.loadAscii(self, asciiBlock, idx)
-
-    def createObjectData(self, obj):
-        """TODO: Doc."""
-        Node.createObjectData(self, obj)
-
-    @staticmethod
-    def generateAsciiData(cls, obj, asciiLines):
-        """TODO: Doc."""
-        if obj.parent:
-            asciiLines.append('  parent ' + obj.parent.name)
-        else:
-            asciiLines.append('  parent ' + nvb_def.null)
 
 
 class Patch(Node):
@@ -879,7 +867,8 @@ class Danglymesh(Trimesh):
 
         asciiLines.append('  period ' + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
-        asciiLines.append('  displacement ' + str(round(obj.nvb.displacement, 3)))
+        asciiLines.append('  displacement ' +
+                          str(round(obj.nvb.displacement, 3)))
         Danglymesh.generateAsciiConstraints(obj, asciiLines)
 
 
@@ -1280,10 +1269,11 @@ class Light(Node):
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
                 for flare in obj.nvb.flareList:
-                    asciiLines.append('    ' +
-                                      str(round(flare.colorshift[0], 2)) + ' ' +
-                                      str(round(flare.colorshift[1], 2)) + ' ' +
-                                      str(round(flare.colorshift[2], 2)))
+                    formatString = '    {: 3.2f} {: 3.2f} {: 3.2f}'
+                    s = formatString.format(round(flare.colorshift[0], 2),
+                                            round(flare.colorshift[1], 2),
+                                            round(flare.colorshift[2], 2))
+                    asciiLines.append(s)
         asciiLines.append('  flareradius ' +
                           str(round(obj.nvb.flareradius, 1)))
 
@@ -1420,10 +1410,6 @@ class Aabb(Trimesh):
                           classification=nvb_def.Classification.UNKNOWN,
                           simple=False):
         """TODO: Doc."""
-        if obj.parent:
-            asciiLines.append('  parent ' + obj.parent.name)
-        else:
-            asciiLines.append('  parent ' + nvb_def.null)
         loc = obj.location
         asciiLines.append('  position ' +
                           str(round(loc[0], 5)) + ' ' +

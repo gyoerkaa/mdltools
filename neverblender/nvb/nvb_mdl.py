@@ -16,31 +16,31 @@ from . import nvb_utils
 class ObjectDB(collections.OrderedDict):
     """TODO: DOC."""
 
-    def insertObj(self, nodeName, parentName, objidx, loadedName):
+    def insertObj(self, asciiNodeName, asciiParentName, objidx, loadedName):
         """TODO: DOC."""
-        if nodeName in self:
-            self[nodeName].append((parentName, objidx, loadedName))
+        if asciiNodeName in self:
+            self[asciiNodeName].append((asciiParentName, objidx, loadedName))
         else:
-            self[nodeName] = [(parentName, objidx, loadedName)]
+            self[asciiNodeName] = [(asciiParentName, objidx, loadedName)]
 
-    def getLoadedName(self, nodeName, parentName='', nodePos=-1):
+    def findObj(self, asciiNodeName, asciiParentName='', nodePos=-1):
         """TODO: DOC."""
-        match = None
-        if nodeName in self:
-            if len(self[nodeName]) > 1:
+        match = ''
+        if asciiNodeName in self:
+            if len(self[asciiNodeName]) > 1:
                 # Multiple objects with the same name.
-                # This is bad, but we'll try to resolve it.
+                # This is bad, but that's why we're doing all this.
                 # 1. check for same parents
-                if parentName:
-                    for potentialMatch in self[nodeName]:
-                        if (parentName == potentialMatch[0]):
+                if asciiParentName:
+                    for potentialMatch in self[asciiParentName]:
+                        if (asciiParentName == potentialMatch[0]):
                             match = potentialMatch[2]
                             break
-                # 2. Use the nearest node with lower position
+                # 2. Use the nearest node with lowest position
                 if (nodePos >= 0) and not match:
                     pmp = -1
                     pm = None
-                    for potentialMatch in self[nodeName]:
+                    for potentialMatch in self[asciiNodeName]:
                         if (potentialMatch[1] < nodePos) and \
                            (potentialMatch[1] > pmp):
                             pmp = potentialMatch[1]
@@ -48,7 +48,7 @@ class ObjectDB(collections.OrderedDict):
                     match = pm
             else:
                 # Only a single object with the name (ideal case)
-                match = self[nodeName][2]
+                match = self[asciiNodeName][2]
 
         return match
 
@@ -68,7 +68,7 @@ class Mdl():
         # Animations
         self.anims = []
         # Diction
-        self.createdObjects = ObjectDB()
+        self.importedObjectsDB = ObjectDB()
 
     def loadAsciiHeader(self, asciiData):
         """TODO: DOC."""
@@ -116,16 +116,16 @@ class Mdl():
     def loadAsciiGeometry(self, asciiData):
         """TODO: DOC."""
         # Helper to create nodes of matching type
-        switch = {'dummy':      nvb_node.Dummy,
-                  'patch':      nvb_node.Patch,
-                  'reference':  nvb_node.Reference,
-                  'trimesh':    nvb_node.Trimesh,
-                  'animmesh':   nvb_node.Animmesh,
-                  'danglymesh': nvb_node.Danglymesh,
-                  'skin':       nvb_node.Skinmesh,
-                  'emitter':    nvb_node.Emitter,
-                  'light':      nvb_node.Light,
-                  'aabb':       nvb_node.Aabb}
+        nodelookup = {'dummy':      nvb_node.Dummy,
+                      'patch':      nvb_node.Patch,
+                      'reference':  nvb_node.Reference,
+                      'trimesh':    nvb_node.Trimesh,
+                      'animmesh':   nvb_node.Animmesh,
+                      'danglymesh': nvb_node.Danglymesh,
+                      'skin':       nvb_node.Skinmesh,
+                      'emitter':    nvb_node.Emitter,
+                      'light':      nvb_node.Light,
+                      'aabb':       nvb_node.Aabb}
 
         for idx, asciiNode in enumerate(asciiData.split('node ')):
             lines = [l.strip().split() for l in asciiNode.splitlines()]
@@ -147,7 +147,7 @@ class Mdl():
 
             # Create an object with that node type
             try:
-                node = switch[nodeType](nodeName)
+                node = nodelookup[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
 
@@ -165,10 +165,6 @@ class Mdl():
             anim = nvb_anim.Animation()
             anim.loadAscii(asciiData)
             self.animations.append(anim)
-
-    def loadAsciiWalkmesh(self, asciiData):
-        """TODO: DOC."""
-        pass
 
     def loadAscii(self, asciiData):
         """TODO: DOC."""
@@ -206,7 +202,7 @@ class Mdl():
         asciiLines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
 
     @staticmethod
-    def generateAsciiGeometry(asciiLines, bObject, simple=False):
+    def generateAsciiGeometry(asciiLines, bObject):
         """TODO: DOC."""
         nodeType = nvb_utils.getNodeType(bObject)
         switch = {'dummy':      nvb_node.Dummy,
@@ -224,37 +220,35 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.generateAscii(bObject, asciiLines, simple)
+        node.generateAscii(bObject, asciiLines)
 
-        '''
-        for child in bObject.children:
-            self.generateGeomBlock(child, asciiLines, simple)
-        '''
         childList = []
         for child in bObject.children:
             childList.append((child.nvb.imporder, child))
         childList.sort(key=lambda tup: tup[0])
 
         for (imporder, child) in childList:
-            Mdl.generateAsciiGeometry(child, asciiLines, simple)
+            Mdl.generateAsciiGeometry(asciiLines, child)
 
     @staticmethod
-    def generateAsciiAnims():
+    def generateAsciiAnims(asciiLines, rootDummy):
         """TODO: DOC."""
         pass
 
     @staticmethod
-    def generateAscii(asciiLines,
+    def generateAscii(asciiMdl,
+                      asciiWalkmesh,
                       rootDummy,
-                      exportAnim=True,
+                      exportAnims=True,
                       exportWalkmesh=True):
         """TODO: DOC."""
-        # The Names of exported geometry nodes. We'll need this for skinmeshes
-        # and animations
-        validExports = []
-        mdlName = rootDummy.name
-        nvb_utils.getValidExports(rootDummy, validExports)
+        Mdl.generateAsciiMdl(asciiMdl, rootDummy, exportAnims)
+        if exportWalkmesh:
+            Mdl.generateAsciiWalkmesh(asciiWalkmesh, rootDummy)
 
+    @staticmethod
+    def generateAsciiMeta(asciiLines):
+        """Add creation time to a list of ascii lines."""
         currentTime = datetime.now()
         blendFileName = os.path.basename(bpy.data.filepath)
         if not blendFileName:
@@ -262,29 +256,49 @@ class Mdl():
         asciiLines.append('# Exported from blender at ' +
                           currentTime.strftime('%A, %Y-%m-%d'))
 
-        # Header
-        Mdl.generateAsciiHeader(rootDummy)
+    @staticmethod
+    def generateAsciiMdl(asciiLines,
+                         rootDummy,
+                         exportAnims=True):
+        """TODO: DOC."""
+        # The Names of exported geometry nodes. We'll need this for skinmeshes
+        # and animations
+        validExports = []
+        mdlName = rootDummy.name
+        nvb_utils.getValidExports(rootDummy, validExports)
 
+        # Creation time
+        Mdl.generateAsciiMeta(asciiLines)
+        # Header
+        Mdl.generateAsciiHeader(asciiLines, rootDummy)
         # Geometry
         asciiLines.append('beginmodelgeom ' + mdlName)
         Mdl.generateAsciiGeometry(rootDummy, asciiLines, False)
         asciiLines.append('endmodelgeom ' + mdlName)
-
         # Animations
-        if exportAnim:
+        if exportAnims:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
             Mdl.generateAsciiAnims(rootDummy, asciiLines)
-
         # The End
         asciiLines.append('donemodel ' + mdlName)
         asciiLines.append('')
 
+    @staticmethod
+    def generateAsciiWalkmesh(asciiLines,
+                              rootDummy):
+        """TODO: DOC."""
+        # Creation time
+        Mdl.generateAsciiMeta(asciiLines)
+
     def createObjectLinks(self, scene):
         """Handle parenting and linking the objects to a scene."""
         rootDummy = None
-        for objList in self.createdObjects:
-            for objInfo in objList:
+        # Loop over all imported nodes
+        # There may be several nodes with the same name in the mdl.
+        # However, Blender object names are unique, we need to fix this.
+        for asciiNodeName, importedObjects in self.importedObjectsDB.items():
+            for objInfo in importedObjects:
                 parentName = objInfo[0]  # Name of the parent in the mdl
                 nodePos = objInfo[1]  # Position of the node in the mdl
                 obj = bpy.data.objects[objInfo[2]]
@@ -294,11 +308,11 @@ class Mdl():
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
                     rootDummy = obj
-                elif parentName in self.createdObjects:
-                    parentLoadedName = self.createdObjects.getLoadedName(
-                        parentName,
-                        '',
-                        nodePos)
+                elif parentName in self.importedObjectsDB:
+                    parentLoadedName = \
+                        self.importedObjectsDB.findObj(parentName,
+                                                       '',
+                                                       nodePos)
                     if parentLoadedName:
                         obj.parent = bpy.data.objects[parentLoadedName]
                         obj.matrix_parent_inverse = \
@@ -321,10 +335,10 @@ class Mdl():
                 obj = node.createObject(options)
                 # Save the imported objects for animation import
                 if obj:
-                    self.createdObjects.insertLoadedObj(node.name,
-                                                        node.parent,
-                                                        node.objidx,
-                                                        obj.name)
+                    self.importedObjectsDB.insertObj(node.name,
+                                                     node.parent,
+                                                     node.objidx,
+                                                     obj.name)
 
     def createAnimations(self, options):
         """TODO: DOC."""
@@ -362,7 +376,7 @@ class Wkm(Mdl):
         wkmRootObj = wkmRootNode.createObject()
         scene.objects.link(wkmRootObj)
 
-        for objList in self.createdObjects:
+        for objList in self.importedObjectsDB:
             for obj in objList:
                 # loadedName = obj[0]  # Unique name of the object in blender
                 parentName = obj[1]  # Name of the parent in the mdl
@@ -374,8 +388,8 @@ class Wkm(Mdl):
                     obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
-                elif parentName in self.createdObjects:
-                    parentLoadedName = self.createdObjects.getLoadedName(
+                elif parentName in self.importedObjectsDB:
+                    parentLoadedName = self.importedObjectsDB.getLoadedName(
                         parentName,
                         '',
                         nodePos)
