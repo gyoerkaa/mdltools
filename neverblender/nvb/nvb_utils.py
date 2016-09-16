@@ -1,4 +1,6 @@
-﻿import math
+"""TODO: DOC."""
+
+import math
 import mathutils
 import bpy
 import os
@@ -29,13 +31,14 @@ def getAuroraString(s):
 
 
 def matchMaterial(diffuse=(1.0, 1.0, 1.0),
-                  specular = (1.0, 1.0, 1.0),
-                  imageName = '',
-                  alpha = 1.0):
-    '''
-    Compares the diffure, specular and image values of the material
-    to the parameters
-    '''
+                  specular=(1.0, 1.0, 1.0),
+                  imageName='',
+                  alpha=1.0):
+    """Compare material values to check if a similar one is present.
+
+    Compares the diffuse, specular and image values of the material
+    to the parameters.
+    """
     def isclose_3f(a, b, rel_tol=0.1):
         return (isclose(a[0], b[0], rel_tol) and
                 isclose(a[1], b[1], rel_tol) and
@@ -65,14 +68,14 @@ def matchMaterial(diffuse=(1.0, 1.0, 1.0),
 
 def material_cmp2(material,
                   diffuse=(1.0, 1.0, 1.0),
-                  specular = (1.0, 1.0, 1.0),
-                  imageName = '',
-                  use_transparency = False):
-    '''
-    Compares the diffure, specular and image values of the material
-    to the parameters
-    '''
+                  specular=(1.0, 1.0, 1.0),
+                  imageName='',
+                  use_transparency=False):
+    """Compare material values to check if a similar one is present.
 
+    Compares the diffuse, specular and image values of the material
+    to the parameters
+    """
     def isclose_color(c1, c2, rel_tol=0.1):
         return (isclose(c1[0], c2[0], rel_tol) and
                 isclose(c1[1], c2[1], rel_tol) and
@@ -94,12 +97,14 @@ def material_cmp2(material,
 
 
 def getValidExports(rootDummy, validExports):
+    """TODO: DOC."""
     validExports.append(rootDummy.name)
     for child in rootDummy.children:
         getValidExports(child, validExports)
 
 
 def getAnimationRootdummy(animScene):
+    """TODO: DOC."""
     if animScene:
         for obj in animScene.objects:
             if obj.type == 'EMPTY':
@@ -109,15 +114,16 @@ def getAnimationRootdummy(animScene):
 
 
 def isRootDummy(obj, dummytype=nvb_def.Dummytype.MDLROOT):
+    """TODO: DOC."""
     if not obj:
         return False
-    return (obj.type == 'EMPTY') and (obj.nvb.dummytype == dummytype) and (not obj.nvb.isanimation)
+    return (obj.type == 'EMPTY') and \
+           (obj.nvb.dummytype == dummytype) and \
+           (not obj.nvb.isanimation)
 
 
 def getNodeType(obj):
-    '''
-    Get the node type (dummy, trimesh, skin, ...) of the blender object
-    '''
+    """Get the node type (dummy, trimesh, skin, ...) of the blender object."""
     objType = obj.type
     if objType == 'EMPTY':
         if obj.nvb.dummytype == nvb_def.Dummytype.PATCH:
@@ -142,14 +148,12 @@ def getNodeType(obj):
 
 
 def chunker(seq, size):
+    """TODO: DOC."""
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
 def getImageFilename(image):
-    '''
-    Returns the image name without the file extension.
-
-    '''
+    """Return the image name without the file extension."""
     # Try getting the image name from the image source path
     filename = os.path.splitext(os.path.basename(image.filepath))[0]
     if (filename == ''):
@@ -160,32 +164,35 @@ def getImageFilename(image):
 
 
 def getShagrId(shagrName):
+    """TODO: DOC."""
     return int(shagrName[-4:])
 
 
 def getShagrName(shagrId):
+    """TODO: DOC."""
     return nvb_def.shagrPrefix + "{0:0>4}".format(shagrId)
 
 
 def isShagr(vgroup):
-    '''
-    Determines wether vertex_group ist a shading group or not
-    '''
+    """TODO: DOC."""
     return (nvb_def.shagrPrefix in vgroup.name)
 
 
 def setObjectRotationAurora(obj, nwangle):
+    """TODO: DOC."""
     rotMode = obj.rotation_mode
     if rotMode == "QUATERNION":
-        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
+        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]),
+                                 nwangle[3])
         obj.rotation_quaternion = q
     elif rotMode == "AXIS_ANGLE":
-        obj.rotation_axis_angle = [auroraRot[3],
-                                   auroraRot[0],
-                                   auroraRot[1],
-                                   auroraRot[2]]
+        obj.rotation_axis_angle = [nwangle[3],
+                                   nwangle[0],
+                                   nwangle[1],
+                                   nwangle[2]]
     else:  # Has to be euler
-        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
+        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]),
+                                 nwangle[3])
         eul = q.to_euler(rotMode)
         obj.rotation_euler = eul
 
@@ -244,15 +251,18 @@ def nwtime2frame(time, fps=nvb_def.fps):
 
 
 def frame2nwtime(frame, fps=nvb_def.fps):
+    """TODO: DOC."""
     return round(frame / fps, 7)
 
 
 def euler2nwangle(eul):
+    """TODO: DOC."""
     q = eul.to_quaternion()
     return [q.axis[0], q.axis[1], q.axis[2], q.angle]
 
 
 def nwangle2euler(nwangle):
+    """TODO: DOC."""
     q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
     return q.to_euler()
 
@@ -315,7 +325,11 @@ def getAuroraAlpha(obj):
         return 1.0
 
 
-def setupMinimapRender(mdlroot, scene, lamp_color=(1.0, 1.0, 1.0), alpha_mode='SKY'):
+def setupMinimapRender(mdlroot,
+                       scene,
+                       lamp_color=(1.0, 1.0, 1.0),
+                       alpha_mode='SKY'):
+    """TODO: DOC."""
     # Create the lamp if not already present in scene
     lampName = 'MinimapLamp'
     camName = 'MinimapCamera'
@@ -374,177 +388,8 @@ def setupMinimapRender(mdlroot, scene, lamp_color=(1.0, 1.0, 1.0), alpha_mode='S
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def copyAnimSceneCheck(theOriginal, newSuffix, oldSuffix=''):
-    '''
-    Checks if it possible to copy the object and it's children with the suffix
-    It would be impossible if:
-        - An object with the same name already exists
-        - Object data with the same name already exists
-    '''
-    oldName = theOriginal.name
-    newName = 'ERROR'
-    if oldSuffix:
-        if oldName.endswith(oldSuffix):
-            newName = oldName[:len(oldName)-len(oldSuffix)]
-            if newName.endswith('.'):
-                newName = newName[:len(newName)-1]
-        else:
-            newName = oldName.partition('.')[0]
-            if not newName:
-                print('Neverblender: Unable to generate new name')
-                return False
-        newName = newName + '.' + newSuffix
-    else:
-        newName = oldName + '.' + newSuffix
-
-    if newName in bpy.data.objects:
-        print('Neverblender: Duplicate object')
-        return False
-
-    objType = theOriginal.type
-    if (objType == 'LAMP'):
-        if newName in bpy.data.lamps:
-            print('Neverblender: Duplicate lamp')
-            return False
-    elif (objType == 'MESH'):
-        if theOriginal.animation_data:
-            action = theOriginal.animation_data.action
-            for fcurve in action.fcurves:
-                dataPath = fcurve.data_path
-                if dataPath.endswith('alpha_factor'):
-                    if newName in bpy.data.materials:
-                        print('Neverblender: Duplicate Material')
-                        return False
-
-        if newName in bpy.data.actions:
-            print('Neverblender: Duplicate Action')
-            return False
-
-    valid = True
-    for child in theOriginal.children:
-        valid = valid and copyAnimSceneCheck(child, newSuffix, oldSuffix)
-
-    return valid
-
-
-def copyAnimScene(scene, theOriginal, newSuffix, oldSuffix='', parent=None):
-    '''
-    Copy object and all it's children to scene.
-    For object with simple (position, rotation) or no animations we
-    create a linked copy.
-    For alpha animation we'll need to copy the data too.
-    '''
-    oldName = theOriginal.name
-    newName = 'ERROR'
-    if oldSuffix:
-        if oldName.endswith(oldSuffix):
-            newName = oldName[:len(oldName)-len(oldSuffix)]
-            if newName.endswith('.'):
-                newName = newName[:len(newName)-1]
-        else:
-            newName = oldName.partition('.')[0]
-            if not newName:
-                return
-        newName = newName + '.' + newSuffix
-    else:
-        newName = oldName + '.' + newSuffix
-
-    theCopy = theOriginal.copy()
-    theCopy.name = newName
-    theCopy.parent = parent
-
-    # We need to copy the data for:
-    # - Lamps
-    # - Meshes & materials when there are alphakeys
-    objType = theOriginal.type
-    if (objType == 'LAMP'):
-        data = theOriginal.data.copy()
-        data.name = newName
-        theCopy.data = data
-    elif (objType == 'MESH'):
-        if theOriginal.animation_data:
-            action = theOriginal.animation_data.action
-            for fcurve in action.fcurves:
-                dataPath = fcurve.data_path
-                if dataPath.endswith('alpha_factor'):
-                    data = theOriginal.data.copy()
-                    data.name = newName
-                    theCopy.data = data
-                    # Create a copy of the material
-                    if (theOriginal.active_material):
-                        material = theOriginal.active_material.copy()
-                        material.name = newName
-                        theCopy.active_material = material
-                        break
-            actionCopy = action.copy()
-            actionCopy.name = newName
-            theCopy.animation_data.action = actionCopy
-
-    # Link copy to the anim scene
-    scene.objects.link(theCopy)
-
-    # Convert all child objects too
-    for child in theOriginal.children:
-        copyAnimScene(scene, child, newSuffix, oldSuffix, theCopy)
-
-    # Return the copied rootDummy
-    return theCopy
-
-
-def renameAnimScene(obj, newSuffix, oldSuffix=''):
-    '''
-    Copy object and all it's children to scene.
-    For object with simple (position, rotation) or no animations we
-    create a linked copy.
-    For alpha animation we'll need to copy the data too.
-    '''
-    oldName = obj.name
-    newName = 'ERROR'
-    if oldSuffix:
-        if oldName.endswith(oldSuffix):
-            newName = oldName[:len(oldName)-len(oldSuffix)]
-            if newName.endswith('.'):
-                newName = newName[:len(newName)-1]
-        else:
-            newName = oldName.partition('.')[0]
-            if not newName:
-                return
-        newName = newName + '.' + newSuffix
-    else:
-        newName = oldName + '.' + newSuffix
-
-    obj.name = newName
-    if obj.data:
-        obj.data.name = newName
-    # We need to copy the data for:
-    # - Lamps
-    # - Meshes & materials when there are alphakeys
-    objType = obj.type
-    if (objType == 'MESH'):
-        if obj.animation_data:
-            action = obj.animation_data.action
-            action.name = newName
-            for fcurve in action.fcurves:
-                dataPath = fcurve.data_path
-                if dataPath.endswith('alpha_factor'):
-                    # Create a copy of the material
-                    if (obj.active_material):
-                        material = obj.active_material
-                        material.name = newName
-                        break
-
-    # Convert all child objects too
-    for child in obj.children:
-        renameAnimScene(child, newSuffix, oldSuffix)
-
-    # Return the renamed rootDummy
-    return obj
-
-
 def addUVToList(uv, uvList):
-    '''
-    Helper function to keep UVs unique
-    '''
+    """Helper function to keep UVs unique."""
     if uv in uvList:
         return uvList.index(uv)
     else:
@@ -553,7 +398,7 @@ def addUVToList(uv, uvList):
 
 
 def createHookModifiers(obj):
-    skingrName = ''
+    """TODO: DOC."""
     for vg in obj.vertex_groups:
         if vg.name in bpy.data.objects:
             mod = obj.modifiers.new(vg.name + '.skin', 'HOOK')
@@ -562,7 +407,7 @@ def createHookModifiers(obj):
 
 
 def eulerFilter(currEul, prevEul):
-
+    """TODO: DOC."""
     def distance(a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
 

@@ -1012,7 +1012,7 @@ class Emitter(Node):
 
             if not l_isNumber(label):
                 if (label == 'node'):
-                    self.name = nvb_utils.getName(line[2])
+                    self.name = nvb_utils.getAuroraString(line[2])
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                 elif (label == 'endnode'):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
