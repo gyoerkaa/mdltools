@@ -80,7 +80,9 @@ class Node(object):
                 continue
 
             if not l_isNumber(label):
-                if (label == 'endnode'):
+                if (label == 'node'):
+                    self.name = nvb_utils.getAuroraString(line[2])
+                elif (label == 'endnode'):
                     return
                 elif (label == 'parent'):
                     self.parentName = nvb_utils.getAuroraString(line[1])
@@ -202,7 +204,7 @@ class Dummy(Node):
         """TODO: Doc."""
         Node.__init__(self, name)
 
-        self.dummytype = nvb_def.Dummytype.NONE
+        self.dummytype = nvb_def.Emptytype.NONE
 
     def setSubtype(self, subtype):
         """TODO: Doc."""
@@ -222,7 +224,7 @@ class Patch(Node):
         """TODO: Doc."""
         Node.__init__(self, name)
 
-        self.dummytype = nvb_def.Dummytype.PATCH
+        self.dummytype = nvb_def.Emptytype.PATCH
 
     def createObjectData(self, obj):
         """TODO: Doc."""
@@ -240,7 +242,7 @@ class Reference(Node):
         """TODO: Doc."""
         Node.__init__(self, name)
 
-        self.dummytype = nvb_def.Dummytype.REFERENCE
+        self.dummytype = nvb_def.Emptytype.REFERENCE
         self.refmodel = nvb_def.null
         self.reattachable = 0
 

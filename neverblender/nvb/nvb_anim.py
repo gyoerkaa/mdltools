@@ -1,4 +1,4 @@
-import collections
+"""TODO: DOC."""
 
 import bpy
 
@@ -8,120 +8,81 @@ from . import nvb_animnode
 
 
 class Animation():
+    """TODO: DOC."""
 
-    def __init__(self, name = 'UNNAMED'):
-        self.name      = name
-        self.length    = 1.0
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
+        self.name = name
+        self.length = 1.0
         self.transtime = 1.0
-        self.root      = nvb_def.null
-        self.eventList = []
-        self.nodeList  = collections.OrderedDict()
+        self.animroot = nvb_def.null
+        self.events = []
+        self.nodes = []
 
         self.frameStart = 0
-        self.frameEnd   = 0
-
-
-    def loadEvent(self, event):
-        self.eventList.append(event)
-
+        self.frameEnd = 0
 
     def create(self, objectDB):
+        """TODO: DOC."""
         if objectDB:
             self.createWithDB(objectDB)
         else:
             self.createIndy()
 
-
     def createWithDB(self, objectDB):
-		'''
-		Create animations with a list of imported objects
-		'''
+        """Create animations with a list of imported objects."""
         pass
-
 
     def createIndy(self):
-		'''
-		create animation without previosly imported objects
-		May be buggy, but we try anyway
-		'''
+        """Create animation without previosly imported objects."""
         pass
 
-
     def loadAsciiHeader(self, asciiData):
-        asciiLines = asciiData.split('\n')
-        for line in asciiBlock:
+        """TODO: DOC."""
+        lines = asciiData.splitlines()
+        for line in lines:
             try:
                 label = line[0].lower()
             except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-            if (label == 'length'):
+                continue  # Probably empty line, skip it
+            if (label == 'newanim'):
+                self.name = nvb_utils.getAuroraString(line[1])
+            elif (label == 'length'):
                 self.length = float(line[1])
             elif (label == 'transtime'):
                 self.transtime = float(line[1])
             elif (label == 'animroot'):
                 try:
-                    self.root = line[1]
+                    self.animroot = line[1]
                 except:
-                    self.root = 'undefined'
+                    self.animroot = 'undefined'
             elif (label == 'event'):
-                self.loadEvent((float(line[1]), line[2]))
-
+                self.events.append((float(line[1]), line[2]))
 
     def loadAsciiNodes(self, asciiData):
+        """TODO: DOC."""
         for asciiNode in asciiData.split('node '):
             lines = [l.strip().split() for l in asciiNode.splitlines()]
-            node = None
-            nodeType = ''
-            nodeName = 'UNNAMED'
-
-            # Read node type
-            try:
-                nodeType = lines[0][0].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node type')
-
-            # Read node Name
+            # Read node name
             try:
                 nodeName = lines[0][1].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
-
-            node = nvb_animnode.Node()
+            node = nvb_animnode.Node(nodeName)
             node.loadAscii(lines)
-
+            self.nodes.append(node)
 
     def loadAscii(self, asciiData):
+        """Load an animation from a block from an ascii mdl file."""
         animNodesStart = asciiData.find('node ')
         if (animNodesStart > -1):
-            anim.loadAsciiHeader(asciiData[:animNodesStart-1])
-            anim.loadAsciiNodes(asciiData[animNodesStart:])
-
-
-    def getAnimNode(self, nodeName, parentName = nvb_def.null):
-        key = parentName + nodeName
-        if key in self.nodeList:
-            return self.nodeList[key]
+            self.loadAsciiHeader(asciiData[:animNodesStart-1])
+            self.loadAsciiNodes(asciiData[animNodesStart:])
         else:
-            return None
-
-
-    def addAsciiNode(self, asciiBlock):
-        node = nvb_animnode.Node()
-        node.loadAscii(asciiBlock)
-        key  = node.parentName + node.name
-        if key in self.nodeList:
-            #TODO: Should probably raise an exception
-            pass
-        else:
-            self.nodeList[key] = node
-
-
-    def addEvent(self, event):
-        self.eventList.append(event)
-
+            print('Neverblender - WARNING: Failed to load an animation.')
 
     def addAnimation(self, rootDummy):
+        """TODO: DOC."""
         # Check for valid rootdummy
         if not rootDummy:
             return
@@ -151,8 +112,8 @@ class Animation():
 
         self.addAnimationData(rootDummy, newAnim.frameStart)
 
-
     def addAnimationData(self, obj, frameStart, parent = None):
+        """TODO: DOC."""
         animNode.addAnimationDataToObject(obj,
                                           frameStart,
                                           self.name)
@@ -164,8 +125,8 @@ class Animation():
         for child in obj.children:
             self.addAnimationData(child, frameStart, obj)
 
-
     def copyObjectToScene(self, scene, theOriginal, parent):
+        """TODO: DOC."""
         '''
         Copy object and all it's children to scene.
         For object with simple (position, rotation) or no animations we
@@ -192,7 +153,6 @@ class Animation():
             animNode = self.getAnimNode(theOriginal.name, theOriginal.parent.name)
         else:
             animNode = self.getAnimNode(theOriginal.name)
-
 
         deepCopy = False
         if deepCopy:
@@ -276,50 +236,15 @@ class Animation():
         for child in theOriginal.children:
             self.copyObjectToScene(scene, child, theCopy)
 
-
-    def addEventsToObject(self, rootDummy):
-        for event in self.eventList:
+    def createEvents(self, rootDummy):
+        """TODO: DOC."""
+        for event in self.events:
             newItem = rootDummy.nvb.eventList.add()
             newItem.frame = nvb_utils.nwtime2frame(event[0])
-            newItem.name  = event[1]
+            newItem.name = event[1]
 
-
-    def getAnimFromScene(self, scene, rootDummyName = ''):
-        pass
-
-
-    def getAnimFromAscii(self, asciiBlock):
-        blockStart = -1
-        for idx, line in enumerate(asciiBlock):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-            if (label == 'newanim'):
-                self.name = nvb_utils.getName(line[1])
-            elif (label == 'length'):
-                self.length = float(line[1])
-            elif (label == 'transtime'):
-                self.transtime = float(line[1])
-            elif (label == 'animroot'):
-                try:
-                    self.root = line[1]
-                except:
-                    self.root = 'undefined'
-            elif (label == 'event'):
-                self.addEvent((float(line[1]), line[2]))
-            elif (label == 'node'):
-                blockStart = idx
-            elif (label == 'endnode'):
-                if (blockStart > 0):
-                    self.addAsciiNode(asciiBlock[blockStart:idx+1])
-                    blockStart = -1
-                elif (label == 'node'):
-                    raise nvb_def.MalformedMdlFile('Unexpected "endnode"')
-
-
-    def animNodeToAscii(self, bObject, asciiLines):
+    def generateAscii(self, bObject, asciiLines):
+        """TODO: DOC."""
         node = nvb_animnode.Node()
         node.toAscii(bObject, asciiLines, self.name)
 
@@ -339,8 +264,8 @@ class Animation():
         for (imporder, child) in childList:
             self.animNodeToAscii(child, asciiLines)
 
-
     def saveNode(self, asciiLines, bObject, scene):
+        """TODO: DOC."""
         node = nvb_animnode.Node()
         node.save(bObject, asciiLines, self.name)
 
@@ -352,14 +277,14 @@ class Animation():
         for (imporder, child) in childList:
             self.saveNode(child, asciiLines, bObject, scene)
 
-
     def save(self, asciiLines, scene, rootDummy, animItem):
-        self.name      = animItem.name
+        """TODO: DOC."""
+        self.name = animItem.name
         self.transtime = animItem.ttime
-        self.root      = animItem.root
+        self.root = animItem.root
 
         self.frameStart = animItem.frameStart
-        self.frameEnd   = animItem.frameEnd
+        self.frameEnd = animItem.frameEnd
 
         self.length = nvb_utils.frame2nwtime(self.frameStart-self.frameEnd, animScene.render.fps)
 
@@ -378,10 +303,11 @@ class Animation():
 
 
     def toAscii(self, animScene, animRootDummy, asciiLines, mdlName = ''):
-        self.name      = animRootDummy.nvb.animname
-        self.length    = nvb_utils.frame2nwtime(animScene.frame_end, animScene.render.fps)
+        """TODO: DOC."""
+        self.name = animRootDummy.nvb.animname
+        self.length = nvb_utils.frame2nwtime(animScene.frame_end, animScene.render.fps)
         self.transtime = animRootDummy.nvb.transtime
-        self.root      = animRootDummy.nvb.animroot
+        self.root = animRootDummy.nvb.animroot
 
         asciiLines.append('newanim ' + self.name + ' ' + mdlName)
         asciiLines.append('  length ' + str(round(self.length, 5)))

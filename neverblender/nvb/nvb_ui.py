@@ -79,124 +79,64 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.prop(obj.nvb, 'dummytype', text='Type')
-        sep = layout.separator()
+        row.prop(obj.nvb, 'emptytype', text='Type')
+        layout.separator()
 
         # Display properties depending on type of the empty
-        if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
-            if not obj.nvb.isanimation:
-                '''
-                # Animation Helper. Creates a new scene, copies all objects to it
-                # and renames them
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.prop(obj.nvb, 'isanimation', text = 'Animation')
-                sub = row.row()
-                sub.enabled = False
-                sub.prop(obj.nvb, 'animname', text = '')
-                row = box.row(align = True)
-                row.prop(obj.nvb, 'newanimname', text = 'Create')
-                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
-
-                sep = layout.separator()
-                '''
-                row = layout.row()
-                box = row.box()
-                split = box.split()
-                col = split.column()
-                col.label(text='Classification:')
-                col.label(text='Supermodel:')
-                col.label(text='Animation Scale:')
-                col = split.column()
-                col.prop(obj.nvb, 'classification', text='')
-                col.prop(obj.nvb, 'supermodel', text='')
-                col.prop(obj.nvb, 'animscale', text='')
-
-                sep = layout.separator()
-
-                # Minimap Helper.
-                row = layout.row()
-                box = row.box()
-                box.label(text='Minimap Helper')
-                row = box.row()
-                row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
-                row = box.row()
-                row.prop(obj.nvb, 'minimapsize', text='Minimap size')
-                row = box.row()
-                row.operator('nvb.render_minimap', text='Render Minimap', icon='NONE')
-            else:
-                pass
-                '''
-                # MDL Rootdummy in an animation scene
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.prop(obj.nvb, 'isanimation', text = 'Animation')
-                sub = row.row()
-                sub.enabled = False
-                sub.prop(obj.nvb, 'animname', text = '')
-                row = box.row(align = True)
-                row.prop(obj.nvb, 'newanimname', text = 'Rename/Copy')
-                row.operator('nvb.animscene_rename', text = '', icon='FILE_REFRESH')
-                row.operator('nvb.animscene_add', text = '', icon='ZOOMIN')
-                row = box.row()
-                row.prop_search(obj.nvb, 'animroot', bpy.data, 'objects', text = 'Root')
-                row = box.row()
-                row.prop(obj.nvb, 'transtime')
-
-                sep = layout.separator()
-                # Event Helper. Display and add/remove events.
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.label(text = 'Event List')
-
-                row = box.row()
-                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', obj.nvb, 'eventList', obj.nvb, 'eventListIdx')
-                col = row.column(align = True)
-                col.operator('nvb.animevent_new', text = '', icon='ZOOMIN')
-                col.operator('nvb.animevent_delete', text = '', icon='ZOOMOUT')
-                col.separator()
-                col.operator('nvb.animevent_move', icon='TRIA_UP', text = '').direction = 'UP'
-                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text = '').direction = 'DOWN'
-                if obj.nvb.eventListIdx >= 0 and len(obj.nvb.eventList) > 0:
-                    item = obj.nvb.eventList[obj.nvb.eventListIdx]
-                    row = box.row()
-                    row.prop(item, 'name')
-                    row.prop(item, 'frame')
-                '''
-        elif (obj.nvb.dummytype == nvb_def.Dummytype.PWKROOT):
-            pass
-
-        elif (obj.nvb.dummytype == nvb_def.Dummytype.DWKROOT):
-            pass
-
-        elif (obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE):
+        if not obj.parent and (obj.nvb.emptytype == nvb_def.Emptytype.Default):
+            # No parent = Rootdummy
             row = layout.row()
             box = row.box()
+            split = box.split()
+            col = split.column()
+            col.label(text='Classification:')
+            col.label(text='Supermodel:')
+            col.label(text='Animation Scale:')
+            col = split.column()
+            col.prop(obj.nvb, 'classification', text='')
+            col.prop(obj.nvb, 'supermodel', text='')
+            col.prop(obj.nvb, 'animscale', text='')
+            layout.separator()
 
+            # Minimap Helper.
+            row = layout.row()
+            box = row.box()
+            box.label(text='Minimap Helper')
             row = box.row()
-            row.prop(obj.nvb, 'refmodel')
+            row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
             row = box.row()
-            row.prop(obj.nvb, 'reattachable')
-
+            row.prop(obj.nvb, 'minimapsize', text='Minimap size')
+            row = box.row()
+            row.operator('nvb.render_minimap',
+                         text='Render Minimap',
+                         icon='NONE')
         else:
-            row = layout.row()
-            box = row.box()
+            if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
+                row = layout.row()
+                box = row.box()
 
-            row = box.row()
-            row.prop(obj.nvb, 'wirecolor')
-            row = box.row()
-            row.prop(obj.nvb, 'dummysubtype')
+                row = box.row()
+                row.prop(obj.nvb, 'refmodel')
+                row = box.row()
+                row.prop(obj.nvb, 'reattachable')
+            else:
+                row = layout.row()
+                box = row.box()
+
+                row = box.row()
+                row.prop(obj.nvb, 'wirecolor')
+                row = box.row()
+                row.prop(obj.nvb, 'dummysubtype')
 
 
 class NVB_PANEL_ANIMLIST(bpy.types.Panel):
-    '''
+    """Property panel for animationslist.
+
     Property panel for additional properties needed for the mdl file
     format. This is only available for EMPTY objects.
     It is located under the object data panel in the properties window
-    '''
+    """
+
     bl_idname = 'nvb.propertypanel.anim'
     bl_label = 'Aurora Animation Properties'
     bl_space_type = 'PROPERTIES'
@@ -213,8 +153,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        # Display properties depending on type of the empty
-        if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
+        if not obj.parent and (obj.nvb.emptytype == nvb_def.Emptytype.Default):
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             box = row.box()
@@ -245,8 +184,8 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 # col = split.column(align=True)
                 # col.prop(anim, 'marker', text = '')
                 # col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')
+                box.separator()
 
-                sep = box.separator()
                 # Event Helper. Display and add/remove events.
                 row = box.row()
                 sub = box.box()
@@ -267,7 +206,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                     row.prop(animEvent, 'name')
                     row.prop(animEvent, 'frame')
 
-                sep = box.separator()
+                box.separator()
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):

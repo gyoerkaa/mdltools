@@ -40,7 +40,7 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 default='Unnamed')
     ttime = bpy.props.FloatProperty(
                 name='Transitiontime',
-                description='Used for for animations only.',
+                description='Used for for animations only',
                 default=1, min=0)
     root = bpy.props.StringProperty(
                 name='Root',
@@ -110,17 +110,13 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                      default=0)
 
     # For all emptys
-    dummytype = bpy.props.EnumProperty(
+    emptytype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Dummytype.NONE, 'None', 'Simple dummy object', 0),
-                       (nvb_def.Dummytype.REFERENCE, 'Reference node', 'Used in spells. Points to "fx_ref" by default', 1),
-                       (nvb_def.Dummytype.PATCH, 'Patch node', 'Used in spells. Unknown purpose.', 2)],
-                default=nvb_def.Dummytype.NONE)
+                items=[(nvb_def.Emptytype.DEFAULT, 'Default', 'Simple dummy object', 0),
+                       (nvb_def.Emptytype.REFERENCE, 'Reference node', 'Used in spells. Points to "fx_ref" by default', 1),
+                       (nvb_def.Emptytype.PATCH, 'Patch node', 'Unknown purpose.', 2)],
+                default=nvb_def.Emptytype.DEFAULT)
     # For MDL Rootdummy
-    prefix = bpy.props.StringProperty(
-            name='Prefix',
-            description='Prefix for importing a second model',
-            default='')
     supermodel = bpy.props.StringProperty(
         name='Supermodel',
         description='Name of the model to inherit animations from',
@@ -135,22 +131,22 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Classification.GUI, 'Gui', 'Gui', 5),
                        (nvb_def.Classification.ITEM, 'Item', 'Items or placeables', 6)],
                 default=nvb_def.Classification.UNKNOWN)
-    dummysubtype = bpy.props.EnumProperty(
+    dummytype = bpy.props.EnumProperty(
                 name='Subtype',
                 items=[('NONE', 'None', 'Simple dummy object', 0),
-                       ('HAND', 'Hand', 'Hand node for spells and effects. \n (for door and placeable models)', 1),
-                       ('HEAD', 'Head', 'Head node for spells and effects. \n (for door and placeable models)', 2),
-                       ('HHIT', 'Head hit', 'Head hit node for spells and effects. \n (for door and placeable models)', 3),
-                       ('IMPC', 'Impact', 'Impact node for spells and effects. \n (for door and placeable models)', 4),
-                       ('GRND', 'Ground', 'Ground node for spells and effects. \n (for door and placeable models)', 5),
-                       ('USE1', 'PWK: Use 1', '1st node for "Use" animation', 6),
-                       ('USE2', 'PWK: Use 2', '2nd node for "Use" animation', 7),
-                       ('O101', 'DWK: Open 1 1st', 'Open 1 State, 1st node for "Use" anim', 8),
-                       ('O102', 'DWK: Open 1 2nd', 'Open 1 State, 2nd node for "Use" anim', 9),
-                       ('O201', 'DWK: Open 2 1st', 'Open 2 State, 1st node for "Use" anim', 10),
-                       ('O202', 'DWK: Open 2 2nd', 'Open 2 State, 2nd node for "Use" anim', 11),
-                       ('CL01', 'DWK: Closed 1st', 'Closed State, 1st node for "Use" anim', 12),
-                       ('CL02', 'DWK: Closed 2nd', 'Closed State, 2nd node for "Use" anim', 13)],
+                       ('HAND', 'Hand', 'Hand node for vfx', 1),
+                       ('HEAD', 'Head', 'Head node for vfx', 2),
+                       ('HHIT', 'Head hit', 'Head hit node for vfx', 3),
+                       ('IMPC', 'Impact', 'Impact node for vfx', 4),
+                       ('GRND', 'Ground', 'Ground node for vfx', 5),
+                       ('USE1', 'Use 1', 'Node for "Use" animation', 6),
+                       ('USE2', 'Use 2', 'Node for "Use" animation', 7),
+                       ('O101', 'DWK: Open 1 1st', '1st node for "Use" animation', 8),
+                       ('O102', 'DWK: Open 1 2nd', '2nd node for "Use" animation', 9),
+                       ('O201', 'DWK: Open 2 1st', '1st node for "Use" animation', 10),
+                       ('O202', 'DWK: Open 2 2nd', '2nd node for "Use" animation', 11),
+                       ('CL01', 'DWK: Closed 1st', '1st node for "Use" animation', 12),
+                       ('CL02', 'DWK: Closed 2nd', '2nd node for "Use" animation', 13)],
                 default='NONE')
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
@@ -180,18 +176,18 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For mesh objects
     meshtype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Meshtype.TRIMESH, 'Trimesh', '0 desc', 0),
-                       (nvb_def.Meshtype.DANGLYMESH, 'Danglymesh', '1 desc', 1),
-                       (nvb_def.Meshtype.SKIN, 'Skinmesh', '2 desc', 2),
-                       (nvb_def.Meshtype.AABB, 'AABB Walkmesh', '3 desc', 3),
-                       (nvb_def.Meshtype.EMITTER, 'Emitter', '4 desc', 4),
-                       (nvb_def.Meshtype.ANIMMESH, 'Animesh', '5 desc', 5)],
+                items=[(nvb_def.Meshtype.TRIMESH, 'Trimesh', 'desc', 0),
+                       (nvb_def.Meshtype.DANGLYMESH, 'Danglymesh', 'desc', 1),
+                       (nvb_def.Meshtype.SKIN, 'Skinmesh', 'desc', 2),
+                       (nvb_def.Meshtype.AABB, 'AABB Walkmesh', 'desc', 3),
+                       (nvb_def.Meshtype.EMITTER, 'Emitter', 'desc', 4),
+                       (nvb_def.Meshtype.ANIMMESH, 'Animesh', 'desc', 5)],
                 default=nvb_def.Meshtype.TRIMESH)
     smoothgroup = bpy.props.EnumProperty(
                 name='Smoothgroup',
-                items=[('SEPR', 'Seperate', 'All faces have their own smoothgroup', 0),
-                       ('SING', 'Single', 'All Faces belong to the same smoothgroup', 1),
-                       ('AUTO', 'Auto', 'Generate smoothgroups either from edges marked as sharp or edge angles when no sharp edges are present', 2)],
+                items=[('SEPR', 'Seperate', 'Each face has it\'s own smoothgroup', 0),
+                       ('SING', 'Single', 'All faces belong to the same smoothgroup', 1),
+                       ('AUTO', 'Auto', 'Generate smoothgroups either from edges marked as sharp', 2)],
                 default='SEPR')
 
     shadow = bpy.props.BoolProperty(
@@ -266,8 +262,8 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     lighttype = bpy.props.EnumProperty(
                 name='Type',
                 items=[('NONE', 'None', 'Simple light', 0),
-                       ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for Tiles (Editable in toolset)', 1),
-                       ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for Tiles (Editable in toolset)', 2),
+                       ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for tiles (Editable in toolset)', 1),
+                       ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for tiles (Editable in toolset)', 2),
                        ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3),
                        ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)],
                 default='NONE')

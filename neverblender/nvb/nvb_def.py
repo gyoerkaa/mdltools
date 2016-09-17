@@ -164,17 +164,14 @@ class Meshtype():
     ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMMESH}
 
 
-class Dummytype():
+class Emptytype():
     """TODO: DOC."""
 
-    NONE = 'NON'
-    DWKROOT = 'DWK'
-    MDLROOT = 'MDL'
-    PWKROOT = 'PWK'
+    DEFAULT = 'DEF'
     REFERENCE = 'REF'
     PATCH = 'PAT'
 
-    ALL = {NONE, DWKROOT, MDLROOT, PWKROOT, REFERENCE, PATCH}
+    ALL = {DEFAULT, REFERENCE, PATCH}
 
 
 class Tilefade():

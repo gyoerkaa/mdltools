@@ -23,32 +23,31 @@ class ObjectDB(collections.OrderedDict):
         else:
             self[asciiNodeName] = [(asciiParentName, objidx, loadedName)]
 
-    def findObj(self, asciiNodeName, asciiParentName='', nodePos=-1):
+    def findObj(self, nodeName, parentName='', nodeIdx=-1):
         """TODO: DOC."""
         match = ''
-        if asciiNodeName in self:
-            if len(self[asciiNodeName]) > 1:
+        if nodeName in self:
+            if len(self[nodeName]) > 1:
                 # Multiple objects with the same name.
                 # This is bad, but that's why we're doing all this.
                 # 1. check for same parents
-                if asciiParentName:
-                    for potentialMatch in self[asciiParentName]:
-                        if (asciiParentName == potentialMatch[0]):
-                            match = potentialMatch[2]
-                            break
+                if parentName and (parentName in self):
+                    mlist = [m for m in self[parentName] if parentName == m[0]]
+                    if mlist:
+                        match = mlist[0][2]  # Arbitrary decision
                 # 2. Use the nearest node with lowest position
-                if (nodePos >= 0) and not match:
-                    pmp = -1
-                    pm = None
-                    for potentialMatch in self[asciiNodeName]:
-                        if (potentialMatch[1] < nodePos) and \
-                           (potentialMatch[1] > pmp):
-                            pmp = potentialMatch[1]
-                            pm = potentialMatch[2]
-                    match = pm
+                if (nodeIdx >= 0) and not match:
+                    mp = -1
+                    m = None
+                    for potentialMatch in self[nodeName]:
+                        if (potentialMatch[1] < nodeIdx) and \
+                           (potentialMatch[1] > mp):
+                            mp = potentialMatch[1]
+                            m = potentialMatch[2]
+                    match = m
             else:
                 # Only a single object with the name (ideal case)
-                match = self[asciiNodeName][2]
+                match = self[nodeName][2]
 
         return match
 
@@ -66,7 +65,7 @@ class Mdl():
         # Geometry
         self.nodes = []
         # Animations
-        self.anims = []
+        self.animations = []
         # Diction
         self.importedObjectsDB = ObjectDB()
 
@@ -128,46 +127,47 @@ class Mdl():
                       'aabb':       nvb_node.Aabb}
 
         for idx, asciiNode in enumerate(asciiData.split('node ')):
-            lines = [l.strip().split() for l in asciiNode.splitlines()]
-            node = None
-            nodeType = ''
-            nodeName = 'UNNAMED'
+            # Skip empty lines
+            if asciiNode:
+                lines = [l.strip().split() for l in asciiNode.splitlines()]
+                node = None
+                nodeType = ''
+                nodeName = 'UNNAMED'
+                # Read node type
+                try:
+                    nodeType = lines[0][0].lower()
+                except (IndexError, AttributeError):
+                    raise nvb_def.MalformedMdlFile('Unable to read node type')
+                # Read node name
+                try:
+                    nodeName = lines[0][1].lower()
+                except (IndexError, AttributeError):
+                    raise nvb_def.MalformedMdlFile('Unable to read node name')
+                # Create an object with that type and name
+                try:
+                    node = nodelookup[nodeType](nodeName)
+                except KeyError:
+                    raise nvb_def.MalformedMdlFile('Invalid node type')
+                # Parse the rest and add to node list
+                node.loadAscii(lines, idx)
+                self.nodes.append(node)
 
-            # Read node type
-            try:
-                nodeType = lines[0][0].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node type')
-
-            # Read node name
-            try:
-                nodeName = lines[0][1].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node name')
-
-            # Create an object with that node type
-            try:
-                node = nodelookup[nodeType](nodeName)
-            except KeyError:
-                raise nvb_def.MalformedMdlFile('Invalid node type')
-
-            # Parse and add to node list
-            node.loadAscii(lines, idx)
-            self.nodes.append(node)
+    @staticmethod
+    def loadAsciiAnimation(asciiData):
+        """Load a single animation from an ascii mdl block."""
+        anim = nvb_anim.Animation()
+        anim.loadAscii(asciiData)
+        return anim
 
     def loadAsciiAnimations(self, asciiData):
-        """TODO: DOC."""
-        # Split into animations first
-        for asciiAnim in asciiData.split('newanim '):
-            # Now split the animations into header + nodes
-            anim = None
-
-            anim = nvb_anim.Animation()
-            anim.loadAscii(asciiData)
-            self.animations.append(anim)
+        """Load all animations from an ascii mdl block."""
+        # Split into animations using 'newanim' as delimiter
+        dlm = 'newanim '
+        animList = [dlm+block for block in asciiData.split(dlm) if block != '']
+        self.animations = list(map(Mdl.loadAsciiAnimation, animList))
 
     def loadAscii(self, asciiData):
-        """TODO: DOC."""
+        """Load an mdl from an ascii mfl file."""
         geomStart = asciiData.find('node ')
         animStart = asciiData.find('newanim ')
 
@@ -342,7 +342,13 @@ class Mdl():
 
     def createAnimations(self, options):
         """TODO: DOC."""
-        for anim in self.animations:
+        # We will load the 'default' animation first, so it is at the front
+        anim = [a for a in self.animations if a.name == 'default']
+        if 'default' in self.animations:
+            pass
+            # self.animations['default'].
+
+        for anim.name, anim in self.animations.items():
             pass
 
     def create(self, scene, options):
