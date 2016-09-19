@@ -78,7 +78,6 @@ class Mdl():
             except IndexError:
                 # Probably empty line, skip it
                 continue
-
             if (label == 'newmodel'):
                 try:
                     self.name = line[1]
@@ -112,6 +111,18 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
+    @staticmethod
+    def loadAsciiNode(asciiData):
+        """Load a single node from an mdl file."""
+        node = None
+        try:
+            node = nvb_utils.nodelookup[nodeType](nodeName)
+        except KeyError:
+            raise nvb_def.MalformedMdlFile('Invalid node type')
+        # Parse the rest and add to node list
+        node.loadAscii(lines, idx)
+        return node
+
     def loadAsciiGeometry(self, asciiData):
         """TODO: DOC."""
         # Helper to create nodes of matching type
@@ -125,7 +136,11 @@ class Mdl():
                       'emitter':    nvb_node.Emitter,
                       'light':      nvb_node.Light,
                       'aabb':       nvb_node.Aabb}
-
+                      
+        dlm = 'node '
+        nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
+        self.nodes = list(map(Mdl.loadAsciiNode, animList))
+                
         for idx, asciiNode in enumerate(asciiData.split('node ')):
             # Skip empty lines
             if asciiNode:
@@ -171,7 +186,7 @@ class Mdl():
         geomStart = asciiData.find('node ')
         animStart = asciiData.find('newanim ')
 
-        if (geomStart < 0):
+        if (geomStart < 0) or (geomStart > animStart):
             # Something is wrong
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
 
