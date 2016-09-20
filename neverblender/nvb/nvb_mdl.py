@@ -71,13 +71,11 @@ class Mdl():
 
     def loadAsciiHeader(self, asciiData):
         """TODO: DOC."""
-        asciiLines = asciiData.split('\n')
-        for line in asciiLines:
+        for line in asciiData.split('\n'):
             try:
                 label = line[0].lower()
             except IndexError:
-                # Probably empty line, skip it
-                continue
+                continue  # Probably empty line, skip it
             if (label == 'newmodel'):
                 try:
                     self.name = line[1]
@@ -93,7 +91,7 @@ class Mdl():
                            Using default value " + self.supermodel)
             elif (label == 'classification'):
                 try:
-                    self.classification = line[1].upper()
+                    self.classification = line[1].lower()
                 except IndexError:
                     print("Neverblender - WARNING: Unable to read \
                            classification. \
@@ -111,18 +109,6 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
-    @staticmethod
-    def loadAsciiNode(asciiData):
-        """Load a single node from an mdl file."""
-        node = None
-        try:
-            node = nvb_utils.nodelookup[nodeType](nodeName)
-        except KeyError:
-            raise nvb_def.MalformedMdlFile('Invalid node type')
-        # Parse the rest and add to node list
-        node.loadAscii(lines, idx)
-        return node
-
     def loadAsciiGeometry(self, asciiData):
         """TODO: DOC."""
         # Helper to create nodes of matching type
@@ -136,36 +122,32 @@ class Mdl():
                       'emitter':    nvb_node.Emitter,
                       'light':      nvb_node.Light,
                       'aabb':       nvb_node.Aabb}
-                      
+
         dlm = 'node '
         nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
-        self.nodes = list(map(Mdl.loadAsciiNode, animList))
-                
-        for idx, asciiNode in enumerate(asciiData.split('node ')):
-            # Skip empty lines
-            if asciiNode:
-                lines = [l.strip().split() for l in asciiNode.splitlines()]
-                node = None
-                nodeType = ''
-                nodeName = 'UNNAMED'
-                # Read node type
-                try:
-                    nodeType = lines[0][0].lower()
-                except (IndexError, AttributeError):
-                    raise nvb_def.MalformedMdlFile('Unable to read node type')
-                # Read node name
-                try:
-                    nodeName = lines[0][1].lower()
-                except (IndexError, AttributeError):
-                    raise nvb_def.MalformedMdlFile('Unable to read node name')
-                # Create an object with that type and name
-                try:
-                    node = nodelookup[nodeType](nodeName)
-                except KeyError:
-                    raise nvb_def.MalformedMdlFile('Invalid node type')
-                # Parse the rest and add to node list
-                node.loadAscii(lines, idx)
-                self.nodes.append(node)
+        for idx, asciiNode in enumerate(nodeList):
+            asciiLines = asciiNode.splitlines()
+            node = None
+            nodeType = ''
+            nodeName = 'UNNAMED'
+            # Read node type
+            try:
+                nodeType = asciiLines[0][1].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node type')
+            # Read node name
+            try:
+                nodeName = asciiLines[0][2].lower()
+            except (IndexError, AttributeError):
+                raise nvb_def.MalformedMdlFile('Unable to read node name')
+            # Create an object with that type and name
+            try:
+                node = nodelookup[nodeType](nodeName)
+            except KeyError:
+                raise nvb_def.MalformedMdlFile('Invalid node type')
+            # Parse the rest and add to node list
+            node.loadAscii(asciiLines, idx)
+            self.nodes.append(node)
 
     @staticmethod
     def loadAsciiAnimation(asciiData):

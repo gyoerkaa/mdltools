@@ -68,11 +68,11 @@ class Node(object):
         """TODO: DOC."""
         return self.objidx
 
-    def loadAscii(self, asciiBlock, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_def.isNumber
-        for line in asciiBlock:
+        for line in asciiLines:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -210,9 +210,9 @@ class Dummy(Node):
         """TODO: Doc."""
         self.dummytype = subtype
 
-    def loadAscii(self, asciiBlock, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiBlock, idx)
+        Node.loadAscii(self, asciiLines, idx)
 
 
 class Patch(Node):
@@ -246,12 +246,12 @@ class Reference(Node):
         self.refmodel = nvb_def.null
         self.reattachable = 0
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode, idx)
+        Node.loadAscii(self, asciiLines, idx)
         l_isNumber = nvb_utils.isNumber
 
-        for line in asciiNode:
+        for line in asciiLines:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -330,14 +330,14 @@ class Trimesh(Node):
 
         return image
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode, idx)
+        Node.loadAscii(self, asciiLines, idx)
 
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiNode):
+        for idx, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -399,15 +399,15 @@ class Trimesh(Node):
                     self.bitmap = nvb_utils.getAuroraString(line[1])
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
-                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.verts)
+                    nvb_parse.f3(asciiLines[idx+1:idx+numVals+1], self.verts)
                     # self.verts = [(float(l[0]), float(l[1]), float(l[2]))
                     # for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
-                    nvb_parse.faces(asciiNode[idx+1:idx+numVals+1])
+                    nvb_parse.faces(asciiLines[idx+1:idx+numVals+1])
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
-                    nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
+                    nvb_parse.f2(asciiLines[idx+1:idx+numVals+1], self.tverts)
                     # self.tverts = [(float(l[0]), float(l[1]))
                     # for l in asciiNode[idx+1:idx+numVals+1]]
 
@@ -791,14 +791,14 @@ class Danglymesh(Trimesh):
         self.displacement = 1.0
         self.constraints = []
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiNode, idx)
+        Trimesh.loadAscii(self, asciiLines, idx)
 
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiNode):
+        for idx, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -886,12 +886,12 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiNode, idx)
+        Trimesh.loadAscii(self, asciiLines, idx)
         l_int = int
         l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiNode):
+        for idx, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -989,12 +989,12 @@ class Emitter(Node):
         self.ysize = 2
         self.rawascii = ''
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
-        for line in asciiNode:
+        for line in asciiLines:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -1125,9 +1125,9 @@ class Light(Node):
         self.flareradius = 1.0
         self.flareList = FlareList()
 
-    def loadAscii(self, asciiNode, idx=-1):
+    def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiNode, idx)
+        Node.loadAscii(self, asciiLines, idx)
 
         flareTextureNamesStart = 0
         numFlares = 0
