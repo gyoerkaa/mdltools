@@ -89,7 +89,8 @@ class Animation():
         for anim in rootDummy.nvb.animList:
             animStartFrame = anim.frameEnd
             if anim.name == self.name:
-                print('Neverblender - Warning: Animation ' + self.name + ' already exisits')
+                print('Neverblender - Warning: Animation ' +
+                      self.name + ' already exisits')
                 return
         animStartFrame = animStartFrame + nvb_def.anim_distance
 
@@ -99,13 +100,15 @@ class Animation():
         newAnim.ttime = self.ftranstime
         newAnim.root = self.root
         newAnim.frameStart = animStartFrame
-        newAnim.frameEnd = newAnim.frameStart + nvb_utils.nwtime2frame(self.length)
+        newAnim.frameEnd = newAnim.frameStart + \
+            nvb_utils.nwtime2frame(self.length)
 
         # Add events for new animation
         for impEvent in self.eventList:
             newEvent = newAnim.eventList.add()
             newEvent.name = impEvent[1]
-            newEvent.frame = newAnim.frameStart + nvb_utils.nwtime2frame(impEvent[0])
+            newEvent.frame = newAnim.frameStart + \
+                nvb_utils.nwtime2frame(impEvent[0])
 
         self.addAnimationData(rootDummy, newAnim.frameStart)
 

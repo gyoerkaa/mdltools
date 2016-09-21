@@ -813,7 +813,7 @@ class Danglymesh(Trimesh):
                     self.displacement = l_float(line[1])
                 elif (label == 'constraints'):
                     numVals = l_int(line[1])
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.constraints)
                     # self.constraints = \
                     # [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
@@ -901,7 +901,7 @@ class Skinmesh(Trimesh):
             if not l_isNumber(label):
                 if (label == 'weights'):
                     numVals = l_int(line[1])
-                    nvb_parse.weights(asciiNode[idx+1:idx+numVals+1],
+                    nvb_parse.weights(asciiLines[idx+1:idx+numVals+1],
                                       self.weights)
                     break  # Only one relevant value, abort loop when found
 
@@ -1135,7 +1135,7 @@ class Light(Node):
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiNode):
+        for idx, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -1178,23 +1178,23 @@ class Light(Node):
                     flareTextureNamesStart = idx+1
                 elif (label == 'flaresizes'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1],
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
 
         # Load flare texture names:
         for i in range(numFlares):
-            texName = asciiNode[flareTextureNamesStart+i][0]
+            texName = asciiLines[flareTextureNamesStart+i][0]
             self.flareList.textures.append(texName)
 
     def createLamp(self, name):

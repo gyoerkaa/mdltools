@@ -16,12 +16,12 @@ from . import nvb_utils
 class ObjectDB(collections.OrderedDict):
     """TODO: DOC."""
 
-    def insertObj(self, asciiNodeName, asciiParentName, objidx, loadedName):
+    def insertObj(self, asciiNodeName, asciiParentName, nodeIdx, loadedName):
         """TODO: DOC."""
         if asciiNodeName in self:
-            self[asciiNodeName].append((asciiParentName, objidx, loadedName))
+            self[asciiNodeName].append((asciiParentName, nodeIdx, loadedName))
         else:
-            self[asciiNodeName] = [(asciiParentName, objidx, loadedName)]
+            self[asciiNodeName] = [(asciiParentName, nodeIdx, loadedName)]
 
     def findObj(self, nodeName, parentName='', nodeIdx=-1):
         """TODO: DOC."""
@@ -69,9 +69,9 @@ class Mdl():
         # Diction
         self.importedObjectsDB = ObjectDB()
 
-    def loadAsciiHeader(self, asciiData):
+    def loadAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
-        for line in asciiData.split('\n'):
+        for line in asciiBlock.splitlines:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -109,7 +109,7 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
-    def loadAsciiGeometry(self, asciiData):
+    def loadAsciiGeometry(self, asciiBlock):
         """TODO: DOC."""
         # Helper to create nodes of matching type
         nodelookup = {'dummy':      nvb_node.Dummy,
@@ -124,7 +124,7 @@ class Mdl():
                       'aabb':       nvb_node.Aabb}
 
         dlm = 'node '
-        nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
+        nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
         for idx, asciiNode in enumerate(nodeList):
             asciiLines = asciiNode.splitlines()
             node = None
@@ -150,38 +150,38 @@ class Mdl():
             self.nodes.append(node)
 
     @staticmethod
-    def loadAsciiAnimation(asciiData):
+    def loadAsciiAnimation(asciiBlock):
         """Load a single animation from an ascii mdl block."""
         anim = nvb_anim.Animation()
-        anim.loadAscii(asciiData)
+        anim.loadAscii(asciiBlock)
         return anim
 
-    def loadAsciiAnimations(self, asciiData):
+    def loadAsciiAnimations(self, asciiBlock):
         """Load all animations from an ascii mdl block."""
         # Split into animations using 'newanim' as delimiter
         dlm = 'newanim '
-        animList = [dlm+block for block in asciiData.split(dlm) if block != '']
+        animList = [dlm+block for block in asciiBlock.split(dlm) if block]
         self.animations = list(map(Mdl.loadAsciiAnimation, animList))
 
-    def loadAscii(self, asciiData):
+    def loadAscii(self, asciiBlock):
         """Load an mdl from an ascii mfl file."""
-        geomStart = asciiData.find('node ')
-        animStart = asciiData.find('newanim ')
+        geomStart = asciiBlock.find('node ')
+        animStart = asciiBlock.find('newanim ')
 
         if (geomStart < 0) or (geomStart > animStart):
             # Something is wrong
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
 
-        self.loadAsciiHeader(asciiData[:geomStart-1])
+        self.loadAsciiHeader(asciiBlock[:geomStart-1])
         if (animStart < 0):
             # No animations
             if nvb_glob.importGeometry:
-                self.loadAsciiGeometry(asciiData[geomStart:])
+                self.loadAsciiGeometry(asciiBlock[geomStart:])
         else:
             if nvb_glob.importGeometry:
-                self.loadAsciiGeometry(asciiData[geomStart:animStart-1])
+                self.loadAsciiGeometry(asciiBlock[geomStart:animStart-1])
             if nvb_glob.importAnim:
-                self.loadAsciiGeometry(asciiData[animStart:])
+                self.loadAsciiGeometry(asciiBlock[animStart:])
 
     @staticmethod
     def generateAsciiHeader(asciiLines, rootDummy):
