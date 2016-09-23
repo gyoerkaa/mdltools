@@ -1,7 +1,6 @@
 """TODO: DOC."""
 
 import os
-import collections
 from datetime import datetime
 
 import bpy
@@ -11,45 +10,6 @@ from . import nvb_anim
 from . import nvb_glob
 from . import nvb_def
 from . import nvb_utils
-
-
-class ObjectDB(collections.OrderedDict):
-    """TODO: DOC."""
-
-    def insertObj(self, asciiNodeName, asciiParentName, nodeIdx, loadedName):
-        """TODO: DOC."""
-        if asciiNodeName in self:
-            self[asciiNodeName].append((asciiParentName, nodeIdx, loadedName))
-        else:
-            self[asciiNodeName] = [(asciiParentName, nodeIdx, loadedName)]
-
-    def findObj(self, nodeName, parentName='', nodeIdx=-1):
-        """TODO: DOC."""
-        match = ''
-        if nodeName in self:
-            if len(self[nodeName]) > 1:
-                # Multiple objects with the same name.
-                # This is bad, but that's why we're doing all this.
-                # 1. check for same parents
-                if parentName and (parentName in self):
-                    mlist = [m for m in self[parentName] if parentName == m[0]]
-                    if mlist:
-                        match = mlist[0][2]  # Arbitrary decision
-                # 2. Use the nearest node with lowest position
-                if (nodeIdx >= 0) and not match:
-                    mp = -1
-                    m = None
-                    for potentialMatch in self[nodeName]:
-                        if (potentialMatch[1] < nodeIdx) and \
-                           (potentialMatch[1] > mp):
-                            mp = potentialMatch[1]
-                            m = potentialMatch[2]
-                    match = m
-            else:
-                # Only a single object with the name (ideal case)
-                match = self[nodeName][2]
-
-        return match
 
 
 class Mdl():
@@ -64,10 +24,19 @@ class Mdl():
         self.classification = nvb_def.Classification.UNKNOWN
         # Geometry
         self.nodes = []
+        self.rootNode = -1  # Index of root node
         # Animations
         self.animations = []
-        # Diction
-        self.importedObjectsDB = ObjectDB()
+        # Resolve non-unique node names
+        self.nodeNameResolver = nvb_utils.NodeNameResolver()
+
+    def getRootNode(self):
+        """TODO:DOC."""
+        pass
+
+    def getRootObject(self):
+        """TODO:DOC."""
+        pass
 
     def loadAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
@@ -140,6 +109,7 @@ class Mdl():
                 nodeName = asciiLines[0][2].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
+
             # Create an object with that type and name
             try:
                 node = nodelookup[nodeType](nodeName)
@@ -162,6 +132,10 @@ class Mdl():
         dlm = 'newanim '
         animList = [dlm+block for block in asciiBlock.split(dlm) if block]
         self.animations = list(map(Mdl.loadAsciiAnimation, animList))
+
+    def loadAsciiWalkmesh(self, asciiBlock):
+        """TODO: Doc."""
+        pass
 
     def loadAscii(self, asciiBlock):
         """Load an mdl from an ascii mfl file."""
@@ -294,22 +268,47 @@ class Mdl():
         # Loop over all imported nodes
         # There may be several nodes with the same name in the mdl.
         # However, Blender object names are unique, we need to fix this.
-        for asciiNodeName, importedObjects in self.importedObjectsDB.items():
+        for node in self.nodes:
+            objName = self.nodeNameResolver.findObj(node.name,
+                                                    node.parent,
+                                                    node.id)
+            if objName:
+                obj = bpy.data.objects[objName]
+                if node.parent:
+                    objParentName = self.nodeNameResolver.findObj(node.parent,
+                                                                  '',
+                                                                  node.id)
+                    if objParentName:
+                        obj.parent = bpy.data.objects[objParentName]
+                        obj.matrix_parent_inverse = \
+                            obj.parent.matrix_world.inverted()
+                    else:
+                        # Parent doesn't exist. Parent to rootdummy
+                        obj.parent = rootDummy
+                        obj.matrix_parent_inverse = \
+                            rootDummy.parent.matrix_world.inverted()
+                else:
+                    # Node without parent. Must be a root dummy.
+                    obj.nvb.supermodel = self.supermodel
+                    obj.nvb.classification = self.classification
+                    rootDummy = obj
+
+        for asciiNodeName, importedObjects in self.nodeNameResolver.items():
             for objInfo in importedObjects:
                 parentName = objInfo[0]  # Name of the parent in the mdl
                 nodePos = objInfo[1]  # Position of the node in the mdl
                 obj = bpy.data.objects[objInfo[2]]
                 # Check if the parent exists
-                if parentName:
+                if not parentName:
                     # Node without parent. Must be a root dummy.
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
                     rootDummy = obj
-                elif parentName in self.importedObjectsDB:
+                elif parentName in self.nodeNameResolver:
                     parentLoadedName = \
-                        self.importedObjectsDB.findObj(parentName,
-                                                       '',
-                                                       nodePos)
+                        self.nodeNameResolver.findObj(parentName,
+                                                      '',
+                                                      nodePos)
                     if parentLoadedName:
                         obj.parent = bpy.data.objects[parentLoadedName]
                         obj.matrix_parent_inverse = \
@@ -332,15 +331,15 @@ class Mdl():
                 obj = node.createObject(options)
                 # Save the imported objects for animation import
                 if obj:
-                    self.importedObjectsDB.insertObj(node.name,
-                                                     node.parent,
-                                                     node.objidx,
-                                                     obj.name)
+                    self.nodeNameResolver.insertObj(node.name,
+                                                    node.parent,
+                                                    node.id,
+                                                    obj.name)
 
     def createAnimations(self, options):
         """TODO: DOC."""
         # We will load the 'default' animation first, so it is at the front
-        anim = [a for a in self.animations if a.name == 'default']
+        defaultAnim = [a for a in self.animations if a.name == 'default']
         if 'default' in self.animations:
             pass
             # self.animations['default'].
@@ -379,7 +378,7 @@ class Wkm(Mdl):
         wkmRootObj = wkmRootNode.createObject()
         scene.objects.link(wkmRootObj)
 
-        for objList in self.importedObjectsDB:
+        for objList in self.nodeNameResolver:
             for obj in objList:
                 # loadedName = obj[0]  # Unique name of the object in blender
                 parentName = obj[1]  # Name of the parent in the mdl
@@ -391,8 +390,8 @@ class Wkm(Mdl):
                     obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
-                elif parentName in self.importedObjectsDB:
-                    parentLoadedName = self.importedObjectsDB.getLoadedName(
+                elif parentName in self.nodeNameResolver:
+                    parentLoadedName = self.nodeNameResolver.getLoadedName(
                         parentName,
                         '',
                         nodePos)

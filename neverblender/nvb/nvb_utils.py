@@ -4,8 +4,49 @@ import math
 import mathutils
 import bpy
 import os
+import collections
 
 from . import nvb_def
+
+
+class NodeNameResolver(collections.OrderedDict):
+    """TODO: DOC."""
+
+    def insertObj(self, nodeName, nodeParentName, nodeIdx, objName):
+        """TODO: DOC."""
+        if nodeName in self:
+            self[nodeName].append((nodeParentName, nodeIdx, objName))
+        else:
+            self[nodeName] = [(nodeParentName, nodeIdx, objName)]
+
+    def findObj(self, nodeName, nodeParentName='', nodeIdx=-1):
+        """Find the name of the created object."""
+        objName = ''
+        if nodeName in self:
+            if len(self[nodeName]) > 1:
+                # Multiple objects with the same name.
+                # This is bad, but that's why we're doing all this.
+                # 1. check for same parents
+                if nodeParentName and (nodeParentName in self):
+                    matches = [m for m in self[nodeParentName] if
+                               nodeParentName == m[0]]
+                    if matches:
+                        objName = matches[0][2]  # Arbitrary decision
+                # 2. Use the nearest node with lowest position
+                if (nodeIdx >= 0) and not objName:
+                    mp = -1
+                    m = None
+                    for potentialMatch in self[nodeName]:
+                        if (potentialMatch[1] < nodeIdx) and \
+                           (potentialMatch[1] > mp):
+                            mp = potentialMatch[1]
+                            m = potentialMatch[2]
+                    objName = m
+            else:
+                # Only a single object with the name (ideal case)
+                objName = self[nodeName][2]
+
+        return objName
 
 
 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):

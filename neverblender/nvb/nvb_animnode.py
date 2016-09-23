@@ -35,9 +35,11 @@ class Node():
 
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
-        self.name = name
         self.nodetype = 'dummy'
-        self.parentName = nvb_def.null
+        self.id = -1
+
+        self.name = name
+        self.parent = nvb_def.null
 
         # Non-keyed
         self.position = None
@@ -80,7 +82,7 @@ class Node():
         l_isNumber = nvb_utils.isNumber
         return next((i for i, v in enumerate(asciiBlock) if not l_isNumber(v[0])), -1)
 
-    def loadAscii(self, asciiBlock):
+    def loadAscii(self, asciiBlock, idx=-1):
         """TODO: DOC."""
         l_float = float
         l_int = int
@@ -200,6 +202,7 @@ class Node():
                 nvb_parse.txt(asciiBlock[idx:idx+numKeys+1],
                               self.keys.rawascii)
                 self.isEmpty = False
+        self.id = idx
 
     def addAnimToMaterial(self, targetMaterial, animName=''):
         """TODO: DOC."""

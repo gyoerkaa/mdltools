@@ -42,7 +42,8 @@ class Node(object):
 
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
-        self.objidx = -1  # Order in mdlfile (needs to be restored for export)
+        self.createdObj = ''  # Name of the corresponding object in blender
+        self.id = -1  # Order in mdlfile (needs to be restored for export)
 
         self.name = name
         self.parent = ''
@@ -64,14 +65,20 @@ class Node(object):
         """TODO: DOC."""
         return 'node ' + self.nodetype + ' ' + self.name
 
-    def getImportIdx(self, idx):
+    def getId(self):
         """TODO: DOC."""
-        return self.objidx
+        return self.id
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def getName(self):
+        """TODO: DOC."""
+        return self.name
+
+    def loadAscii(self, asciiLines, id=-1):
         """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_def.isNumber
+
+        self.id = id
         for line in asciiLines:
             try:
                 label = line[0].lower()
@@ -101,7 +108,6 @@ class Node(object):
                     self.wirecolor = (l_float(line[1]),
                                       l_float(line[2]),
                                       l_float(line[3]))
-        self.objidx = idx
 
     def createObjectData(self, obj):
         """TODO: DOC."""
@@ -113,8 +119,8 @@ class Node(object):
     def createObject(self):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
-        obj.nvb.order = self.objIdx
-
+        obj.nvb.order = self.id
+        self.createdObj = obj.name
         self.createObjectData(obj)
         return obj
 
@@ -206,9 +212,9 @@ class Dummy(Node):
 
         self.dummytype = nvb_def.Emptytype.NONE
 
-    def setSubtype(self, subtype):
+    def setSubtype(self, dummytype):
         """TODO: Doc."""
-        self.dummytype = subtype
+        self.dummytype = dummytype
 
     def loadAscii(self, asciiLines, idx=-1):
         """TODO: Doc."""

@@ -80,7 +80,7 @@ def loadMdl(operator,
                     print("Neverblender: No " + wkmtype + " walkmesh found")
                 else:
                     asciiWkm = wkmfile.read()
-                    mdl.loadAscii(asciiWkm)
+                    mdl.loadAsciiWalkmesh(asciiWkm)
                     wkmfile.close()
 
         mdl.create(scene)
