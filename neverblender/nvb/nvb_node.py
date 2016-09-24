@@ -781,6 +781,42 @@ class Animmesh(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
+    def createMaterial(self, name):
+        """TODO: Doc."""
+        material = None
+        texName = self.bitmap.lower()
+
+        material = bpy.data.materials.new(name)
+        material.diffuse_color = self.diffuse
+        material.diffuse_intensity = 1.0
+        material.specular_color = self.specular
+
+        textureSlot = material.texture_slots.add()
+        # If a texture with the same name was already created treat
+        # them as if they were the same, i.e. just use the old one
+        if (texName in bpy.data.textures):
+            textureSlot.texture = bpy.data.textures[texName]
+        else:
+            textureSlot.texture = bpy.data.textures.new(texName,
+                                                        type='IMAGE')
+        textureSlot.texture_coords = 'UV'
+        textureSlot.use_map_color_diffuse = True
+
+        # Load the image for the texture, but check if it was
+        # already loaded before. If so, use that one.
+        imgName = self.bitmap
+        if (imgName in bpy.data.images):
+            image = bpy.data.images[imgName]
+            textureSlot.texture.image = image
+        else:
+            image = self.createImage(imgName, nvb_glob.texturePath)
+            if image is not None:
+                textureSlot.texture.image = image
+
+        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
+
+        return material
+
 
 class Danglymesh(Trimesh):
     """TODO: Doc."""

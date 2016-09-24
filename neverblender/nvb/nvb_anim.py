@@ -22,20 +22,14 @@ class Animation():
         self.frameStart = 0
         self.frameEnd = 0
 
-    def create(self, rootDummy, nodeNameResolver):
+    def create(self, rootDummy, nodeNameResolver, options):
         """Create animations with a list of imported objects."""
-        # Find the root dummy
-        rootDummyName = nodeNameDB.getRoot()
-        if not rootDummyName or (rootDummyName not in bpy.data.objects):
-            raise nvb_def.MalformedMdlFile('Neverblender - Error: Animation')
-        rootDummy = bpy.data.objects[rootDummyName]
-
         # Check if an animation with this name is already present
         lastAnimEnd = 0
-        for an in rootDummy.nvb.animList:
-            if an.frameEnd > lastAnimEnd:
-                lastAnimEnd = an.frameEnd
-            if an.name == self.name:
+        for anim in rootDummy.nvb.animList:
+            if anim.frameEnd > lastAnimEnd:
+                lastAnimEnd = anim.frameEnd
+            if anim.name == self.name:
                 print('Neverblender - Warning: Animation ' +
                       self.name + ' already exisits')
         animStartFrame = lastAnimEnd + nvb_def.anim_distance
@@ -58,7 +52,9 @@ class Animation():
 
         # Load the animation into the objects/actions
         for node in self.nodes:
-            objName = nodeNameDB.findObj(node.name, node.parent, node.objidx)
+            objName = nodeNameResolver.findObj(node.name,
+                                               node.parent,
+                                               node.objidx)
             if objName in bpy.data.objects:
                 node.addAnimToObj(bpy.data.objects[objName], animStartFrame)
 

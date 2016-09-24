@@ -135,7 +135,8 @@ class Mdl():
 
     def loadAsciiWalkmesh(self, asciiBlock):
         """TODO: Doc."""
-        pass
+        dlm = 'node '
+        nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
 
     def loadAscii(self, asciiBlock):
         """Load an mdl from an ascii mfl file."""
@@ -338,14 +339,15 @@ class Mdl():
 
     def createAnimations(self, options):
         """TODO: DOC."""
+        rootDummy = self.getRootObject()
         # We will load the 'default' animation first, so it is at the front
-        defaultAnim = [a for a in self.animations if a.name == 'default']
-        if 'default' in self.animations:
-            pass
-            # self.animations['default'].
+        defaultAnims = [a for a in self.animations if a.name == 'default']
+        for anim in defaultAnims:
+            anim.create(rootDummy, self.nodeNameResolver, options)
 
-        for anim.name, anim in self.animations.items():
-            pass
+        nonDefaultAnims = [a for a in self.animations if a.name != 'default']
+        for anim in nonDefaultAnims:
+            anim.create(rootDummy, self.nodeNameResolver, options)
 
     def create(self, scene, options):
         """TODO: DOC."""
