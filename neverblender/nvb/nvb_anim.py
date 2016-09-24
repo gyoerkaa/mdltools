@@ -264,7 +264,12 @@ class Animation():
             newItem.frame = nvb_utils.nwtime2frame(event[0])
             newItem.name = event[1]
 
-    def generateAscii(self, bObject, asciiLines):
+    @staticmethod
+    def generateAscii(anim, rootDummy, asciiLines):
+        """TODO: Doc."""
+        pass
+
+    def generateAscii2(self, bObject, asciiLines):
         """TODO: DOC."""
         node = nvb_animnode.Node()
         node.toAscii(bObject, asciiLines, self.name)
