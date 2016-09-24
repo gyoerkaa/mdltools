@@ -56,11 +56,7 @@ class Animation():
                                                node.parent,
                                                node.objidx)
             if objName in bpy.data.objects:
-                node.addAnimToObj(bpy.data.objects[objName], animStartFrame)
-
-    def create2(self):
-        """Create animation without previosly imported objects."""
-        pass
+                node.addAnimToObj(bpy.data.objects[objName], newAnim)
 
     def loadAsciiAnimHeader(self, asciiData):
         """TODO: DOC."""
