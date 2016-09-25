@@ -76,7 +76,8 @@ class Node():
         search for the first non-numeric value
         """
         l_isNumber = nvb_utils.isNumber
-        return next((i for i, v in enumerate(asciiBlock) if not l_isNumber(v[0])), -1)
+        return next((i for i, v in enumerate(asciiBlock)
+                     if not l_isNumber(v[0])), -1)
 
     def loadAscii(self, asciiBlock, id=-1):
         """TODO: DOC."""
@@ -514,14 +515,18 @@ class Node():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
-                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, val[0], val[1], val[2], val[3])
+                formatString = '      {: 6.5f} {: 6.5f} \
+                    {: 6.5f} {: 6.5f} {: 6.5f}'
+                s = formatString.format(time, val[0], val[1], val[2], val[3])
                 asciiLines.append(s)
         elif len(keyDict[name]) == 1:
             # Only a single key
             frame, key = keyDict[name].popitem()
             eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
             val = nvb_utils.euler2nwangle(eul)
-            s = '    orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'.format(val[0], val[1], val[2], val[3])
+            formatString = '    orientation \
+                            {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
+            s = formatString.format(val[0], val[1], val[2], val[3])
             asciiLines.append(s)
 
         name = 'positionkey'
@@ -529,12 +534,14 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-                s = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'.format(time, key[0], key[1], key[2])
+                formatString = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
+                s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
         elif len(keyDict[name]) == 1:
             # Only a single key
             frame, key = keyDict[name].popitem()
-            s = '    position {: 8.5f} {: 8.5f} {: 8.5f}'.format(key[0], key[1], key[2])
+            formatString = '    position {: 8.5f} {: 8.5f} {: 8.5f}'
+            s = formatString.format(key[0], key[1], key[2])
             asciiLines.append(s)
 
         name = 'scalekey'
@@ -550,7 +557,8 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-                s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
+                formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
         name = 'colorkey'
@@ -558,7 +566,8 @@ class Node():
             asciiLines.append('    ' + name + ' ' + l_str(len(keyDict[name])))
             for frame, key in keyDict[name].items():
                 time = l_round(nvb_utils.frame2nwtime(frame), 5)
-                s = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'.format(time, key[0], key[1], key[2])
+                formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
         name = 'radiuskey'

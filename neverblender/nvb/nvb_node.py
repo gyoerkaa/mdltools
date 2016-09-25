@@ -1389,9 +1389,11 @@ class Aabb(Trimesh):
                 centroid = mathutils.Vector((walkmesh.vertices[v0].co +
                                              walkmesh.vertices[v1].co +
                                              walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v0].co,
-                                           walkmesh.vertices[v1].co,
-                                           walkmesh.vertices[v2].co], centroid))
+                faceList.append((faceIdx,
+                                 [walkmesh.vertices[v0].co,
+                                  walkmesh.vertices[v1].co,
+                                  walkmesh.vertices[v2].co],
+                                 centroid))
                 faceIdx += 1
 
             elif (len(tessface.vertices) == 4):
@@ -1404,17 +1406,21 @@ class Aabb(Trimesh):
                 centroid = mathutils.Vector((walkmesh.vertices[v0].co +
                                              walkmesh.vertices[v1].co +
                                              walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v0].co,
-                                           walkmesh.vertices[v1].co,
-                                           walkmesh.vertices[v2].co], centroid))
+                faceList.append((faceIdx,
+                                 [walkmesh.vertices[v0].co,
+                                  walkmesh.vertices[v1].co,
+                                  walkmesh.vertices[v2].co],
+                                 centroid))
                 faceIdx += 1
 
                 centroid = mathutils.Vector((walkmesh.vertices[v2].co +
                                              walkmesh.vertices[v3].co +
                                              walkmesh.vertices[v0].co)/3)
-                faceList.append((faceIdx, [walkmesh.vertices[v2].co,
-                                           walkmesh.vertices[v3].co,
-                                           walkmesh.vertices[v0].co], centroid))
+                faceList.append((faceIdx,
+                                 [walkmesh.vertices[v2].co,
+                                  walkmesh.vertices[v3].co,
+                                  walkmesh.vertices[v0].co],
+                                 centroid))
                 faceIdx += 1
             else:
                 # Ngon or no polygon at all
