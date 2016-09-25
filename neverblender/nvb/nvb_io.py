@@ -53,13 +53,12 @@ def loadMdl(operator,
     options.importAnim = importAnim
     options.importSupermodel = importSupermodel
 
-    nvb_glob.materialMode = materialMode
+    options.materialMode = materialMode
+    options.texturePath = os.path.dirname(filepath)
+    options.textureSearch = textureSearch
 
-    nvb_glob.texturePath = os.path.dirname(filepath)
-    nvb_glob.textureSearch = textureSearch
-
-    nvb_glob.minimapMode = minimapMode
-    nvb_glob.minimapSkipFade = minimapSkipFade
+    options.minimapMode = minimapMode
+    options.minimapSkipFade = minimapSkipFade
 
     scene = bpy.context.scene
 

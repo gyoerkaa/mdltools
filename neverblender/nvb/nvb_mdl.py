@@ -355,7 +355,7 @@ class Mdl():
             self.createObjects(scene, options)
             self.createObjectLinks(scene, options)
 
-            if options.importAnims:
+            if options.importAnim:
                 self.createAnimations(scene, options)
         else:
             # Import animations only, there is no objectDB in this case

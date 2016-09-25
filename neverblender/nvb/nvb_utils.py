@@ -44,7 +44,7 @@ class NodeNameResolver(collections.OrderedDict):
                     objName = m
             else:
                 # Only a single object with the name (ideal case)
-                objName = self[nodeName][2]
+                objName = self[nodeName][0][2]
 
         return objName
 

@@ -330,8 +330,9 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     importAnim = bpy.props.EnumProperty(
             name='Animations',
             items=(('NON', 'None', 'Don\'t import animations', 0),
-                   ('STD', 'Standard', 'Import animations to one action per object', 1),
-                   ('ADV', 'Advanced', 'Single action for each animation and object', 2)),
+                   ('STD', 'Standard', 'Import animations', 1)),
+            # ('ADV', 'Advanced', 'Single action for each animation
+            # and object', 2)),
             default='STD')
 
     importSupermodel = bpy.props.BoolProperty(

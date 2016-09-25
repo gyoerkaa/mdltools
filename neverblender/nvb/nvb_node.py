@@ -109,19 +109,19 @@ class Node(object):
                                       l_float(line[2]),
                                       l_float(line[3]))
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: DOC."""
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.wirecolor = self.wirecolor
 
-    def createObject(self):
+    def createObject(self, options):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
         obj.nvb.imporder = self.id
         self.createdObj = obj.name
-        self.createObjectData(obj)
+        self.createObjectData(obj, options)
         return obj
 
     @staticmethod
@@ -232,9 +232,9 @@ class Patch(Node):
 
         self.dummytype = nvb_def.Emptytype.PATCH
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Node.createObjectData(self, obj)
+        Node.createObjectData(self, obj, options)
 
         obj.nvb.dummytype = self.dummytype
 
@@ -272,9 +272,9 @@ class Reference(Node):
                     except:
                         pass  # TODO: Print a warning or smth
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Node.createObjectData(self, obj)
+        Node.createObjectData(self, obj, options)
         obj.nvb.dummytype = self.dummytype
         obj.nvb.refmodel = self.refmodel
         obj.nvb.reattachable = (self.reattachable >= 1)
@@ -320,12 +320,12 @@ class Trimesh(Node):
         self.facelist = FaceList()
         self.tverts = []  # list of texture vertices
 
-    def createImage(self, imgName, imgPath):
+    def createImage(self, imgName, imgPath, imgSearch=False):
         """TODO: Doc."""
         image = \
             bpy_extras.image_utils.load_image(imgName + '.tga',
                                               imgPath,
-                                              recursive=nvb_glob.textureSearch,
+                                              recursive=imgSearch,
                                               place_holder=False,
                                               ncase_cmp=True)
         if (image is None):
@@ -420,11 +420,11 @@ class Trimesh(Node):
                     # self.tverts = [(float(l[0]), float(l[1]))
                     # for l in asciiNode[idx+1:idx+numVals+1]]
 
-    def createMaterial(self, name):
+    def createMaterial(self, name, options):
         """TODO: Doc."""
         material = None
         texName = self.bitmap.lower()
-        if nvb_glob.materialMode == 'SIN':
+        if options.materialMode == 'SIN':
             # Avoid duplicate materials, search for similar ones.
             material = nvb_utils.matchMaterial(self.diffuse,
                                                self.specular,
@@ -455,7 +455,9 @@ class Trimesh(Node):
                 image = bpy.data.images[imgName]
                 textureSlot.texture.image = image
             else:
-                image = self.createImage(imgName, nvb_glob.texturePath)
+                image = self.createImage(imgName,
+                                         options.texturePath,
+                                         options.textureSearch)
                 if image is not None:
                     textureSlot.texture.image = image
 
@@ -463,7 +465,7 @@ class Trimesh(Node):
 
         return material
 
-    def createMesh(self, name):
+    def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
@@ -474,8 +476,8 @@ class Trimesh(Node):
                                    unpack_face_list(self.facelist.faces))
 
         # Create material
-        if nvb_glob.materialMode != 'NON':
-            material = self.createMaterial(name)
+        if options.materialMode != 'NON':
+            material = self.createMaterial(name, options)
             mesh.materials.append(material)
 
             # Create UV map
@@ -509,7 +511,7 @@ class Trimesh(Node):
                     tessfaceUV.image = material.texture_slots[0].texture.image
 
         # Import smooth groups as sharp edges
-        if nvb_glob.importSmoothGroups:
+        if options.importSmoothGroups:
             bm = bmesh.new()
             mesh.update()
             bm.from_mesh(mesh)
@@ -519,7 +521,8 @@ class Trimesh(Node):
             for e in bm.edges:
                 f = e.link_faces
                 if (len(f) > 1) and \
-                   (self.facelist.shdgr[f[0].index] != self.facelist.shdgr[f[1].index]):
+                   (self.facelist.shdgr[f[0].index] !=
+                        self.facelist.shdgr[f[1].index]):
                     edgeIdx = e.index
                     mesh.edges[edgeIdx].use_edge_sharp = True
             bm.free()
@@ -529,9 +532,9 @@ class Trimesh(Node):
         mesh.update()
         return mesh
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Node.createObjectData(self, obj)
+        Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
         if self.tilefade == 1:
@@ -552,21 +555,20 @@ class Trimesh(Node):
         obj.nvb.ambientcolor = self.ambient
         obj.nvb.shininess = self.shininess
 
-    def createObject(self, scene):
+    def createObject(self, options):
         """TODO: Doc."""
-        if nvb_glob.minimapMode:
-            if ((self.tilefade >= 1) and nvb_glob.minimapSkipFade) or \
+        if options.minimapMode:
+            if ((self.tilefade >= 1) and options.minimapSkipFade) or \
                (not self.render):
                 # Fading objects or shadow meshes won't be imported in
                 # minimap mode
                 # We may need them for the tree stucture, so import it
                 # as an empty
-                return Dummy.load(self, scene)
+                return Node.createObject(self, options)
 
-        mesh = self.createMesh(self.name)
+        mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
-        self.createObjectData(obj)
-        scene.objects.link(obj)
+        self.createObjectData(obj, options)
         return obj
 
     @staticmethod
@@ -695,25 +697,29 @@ class Trimesh(Node):
         if simple:
             asciiLines.append('  faces ' + str(len(faceList)))
 
-            vertDigits = str(len(str(len(mesh.vertices))))
-            smoothGroupDigits = str(len(str(numSmoothGroups)))
-            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
-                               '{:' + smoothGroupDigits + 'd}  ' + \
-                               '0 0 0  ' + \
-                               '{:2d}'
+            vd = str(len(str(len(mesh.vertices))))
+            sd = str(len(str(numSmoothGroups)))
+            formatString = '    ' + \
+                           '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                           '{:' + sd + 'd}  ' + \
+                           '0 0 0  ' + \
+                           '{:2d}'
             for f in faceList:
-                s = formatString.format(f[0], f[1], f[2], f[3], f[7])
+                s = formatString.format(f[0], f[1], f[2],
+                                        f[3],
+                                        f[7])
                 asciiLines.append(s)
         else:
             asciiLines.append('  faces ' + str(len(faceList)))
 
-            vertDigits = str(len(str(len(mesh.vertices))))
-            smoothGroupDigits = str(len(str(numSmoothGroups)))
-            uvDigits = str(len(str(len(uvList))))
-            formatString = '    {:' + vertDigits + 'd} {:' + vertDigits + 'd} {:' + vertDigits + 'd}  ' + \
-                               '{:' + smoothGroupDigits + 'd}  ' + \
-                               '{:' + uvDigits + 'd} {:' + uvDigits + 'd} {:' + uvDigits + 'd}  ' + \
-                               '{:2d}'
+            vd = str(len(str(len(mesh.vertices))))  # Digits for vertices
+            sd = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
+            ud = str(len(str(len(uvList))))  # Digits for uv's
+            formatString = '    ' + \
+                           '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                           '{:' + sd + 'd}  ' + \
+                           '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
+                           '{:2d}'
             for f in faceList:
                 s = formatString.format(f[0], f[1], f[2],
                                         f[3],
@@ -784,7 +790,7 @@ class Animmesh(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
-    def createMaterial(self, name):
+    def createMaterial(self, name, options):
         """TODO: Doc."""
         material = None
         texName = self.bitmap.lower()
@@ -812,7 +818,9 @@ class Animmesh(Trimesh):
             image = bpy.data.images[imgName]
             textureSlot.texture.image = image
         else:
-            image = self.createImage(imgName, nvb_glob.texturePath)
+            image = self.createImage(imgName,
+                                     options.texturePath,
+                                     options.textureSearch)
             if image is not None:
                 textureSlot.texture.image = image
 
@@ -876,9 +884,9 @@ class Danglymesh(Trimesh):
             vgroup.add([vertexIdx], weight, 'REPLACE')
         obj.nvb.constraints = vgroup.name
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Trimesh.createObjectData(self, obj)
+        Trimesh.createObjectData(self, obj, options)
 
         obj.nvb.period = self.period
         obj.nvb.tightness = self.tightness
@@ -964,9 +972,9 @@ class Skinmesh(Trimesh):
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Trimesh.createObjectData(self, obj)
+        Trimesh.createObjectData(self, obj, options)
 
         self.createSkinGroups(obj)
 
@@ -1084,7 +1092,7 @@ class Emitter(Node):
         txt.write(self.rawascii)
         obj.nvb.rawascii = txt.name
 
-    def createMesh(self, objName):
+    def createMesh(self, objName, options):
         """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
@@ -1102,9 +1110,9 @@ class Emitter(Node):
 
         return mesh
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Node.createObjectData(self, obj)
+        Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
         self.createTextEmitter(obj)
@@ -1223,17 +1231,20 @@ class Light(Node):
                     flareTextureNamesStart = idx+1
                 elif (label == 'flaresizes'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:]) if not l_isNumber(v[0])), -1)
+                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
                     nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
 
@@ -1255,9 +1266,9 @@ class Light(Node):
 
         return lamp
 
-    def createObjectData(self, obj):
+    def createObjectData(self, obj, options):
         """TODO: Doc."""
-        Node.createObjectData(self, obj)
+        Node.createObjectData(self, obj, options)
 
         switch = {'ml1': 'MAINLIGHT1',
                   'ml2': 'MAINLIGHT2',
@@ -1284,16 +1295,15 @@ class Light(Node):
 
         obj.nvb.flareradius = self.flareradius
 
-    def createObject(self, scene):
+    def createObject(self, options):
         """TODO: Doc."""
-        if nvb_glob.minimapMode:
+        if options.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
-            return Node.load(self, scene)
+            return Node.createObject(self, options)
         lamp = self.createLamp(self.name)
         obj = bpy.data.objects.new(self.name, lamp)
-        self.createObjectData(obj)
-        scene.objects.link(obj)
+        self.createObjectData(obj, options)
         return obj
 
     @staticmethod
@@ -1481,7 +1491,7 @@ class Aabb(Trimesh):
         Trimesh.generateAsciiData(obj, asciiLines, simple)
         Aabb.generateAsciiAABB(obj, asciiLines)
 
-    def createMesh(self, name):
+    def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
@@ -1513,14 +1523,13 @@ class Aabb(Trimesh):
         mesh.update()
         return mesh
 
-    def createObject(self, scene):
+    def createObject(self, options):
         """TODO: Doc."""
-        if nvb_glob.minimapMode:
+        if options.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children
             return
-        mesh = self.createMesh(self.name)
+        mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
-        self.createObjectData(obj)
-        scene.objects.link(obj)
+        self.createObjectData(obj, options)
         return obj
