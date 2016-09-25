@@ -20,14 +20,22 @@ class NodeNameResolver(collections.OrderedDict):
             self[nodeName] = [(nodeParentName, nodeIdx, objName)]
 
     def findObj(self, nodeName, nodeParentName='', nodeIdx=-1):
-        """Find the name of the created object."""
+        """Find the name of the created object.
+
+        If was only one node with that name the name of the imported object
+        will be returned. However, if there were multiple nodes with the same
+        names, we will return the best match:
+            - Same parents (use '@' as parameter if the parent is unknown)
+            - If the parent is unknown the closest node with the lowest ID will
+              be returned.
+        """
         objName = ''
         if nodeName in self:
             if len(self[nodeName]) > 1:
                 # Multiple objects with the same name.
                 # This is bad, but that's why we're doing all this.
                 # 1. check for same parents
-                if nodeParentName and (nodeParentName in self):
+                if (nodeParentName != '@') and (nodeParentName in self):
                     matches = [m for m in self[nodeParentName] if
                                nodeParentName == m[0]]
                     if matches:
@@ -49,11 +57,6 @@ class NodeNameResolver(collections.OrderedDict):
         return objName
 
 
-def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-    """TODO: DOC."""
-    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
-
 def isNumber(s):
     """Check if the string s is a number."""
     try:
@@ -71,70 +74,44 @@ def getAuroraString(s):
     return s
 
 
-def matchMaterial(diffuse=(1.0, 1.0, 1.0),
-                  specular=(1.0, 1.0, 1.0),
-                  imageName='',
-                  alpha=1.0):
-    """Compare material values to check if a similar one is present.
+def findMaterial(diffuse=(1.0, 1.0, 1.0),
+                 specular=(1.0, 1.0, 1.0),
+                 imageName='',
+                 alpha=1.0):
+    """Find a material with similar values.
 
     Compares the diffuse, specular and image values of the material
     to the parameters.
     """
+    def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
     def isclose_3f(a, b, rel_tol=0.1):
         return (isclose(a[0], b[0], rel_tol) and
                 isclose(a[1], b[1], rel_tol) and
                 isclose(a[2], b[2], rel_tol))
 
-    for material in bpy.data.materials:
+    for mat in bpy.data.materials:
         eq = False
         if not imageName:
             # No texture
-            eq = not material.active_texture
-            eq = eq and (material.alpha_factor == alpha)
+            eq = not mat.active_texture
+            eq = eq and (mat.alpha_factor == alpha)
         else:
             # Has to have a texture
-            if material.active_texture:
-                if material.active_texture.type == 'IMAGE':
-                    if material.active_texture.image.name:
-                        eq = (material.active_texture.image.name == imageName)
-                eq = eq and (material.texture_slots[material.active_texture_index].alpha_factor == alpha)
+            if mat.active_texture:
+                if mat.active_texture.type == 'IMAGE':
+                    if mat.active_texture.image.name:
+                        eq = (mat.active_texture.image.name == imageName)
+                active_texslot = mat.texture_slots[mat.active_texture_index]
+                eq = eq and (active_texslot.alpha_factor == alpha)
 
-        eq = eq and isclose_3f(material.diffuse_color, diffuse)
-        eq = eq and isclose_3f(material.specular_color, specular)
+        eq = eq and isclose_3f(mat.diffuse_color, diffuse)
+        eq = eq and isclose_3f(mat.specular_color, specular)
         if eq:
-            return material
+            return mat
 
     return None
-
-
-def material_cmp2(material,
-                  diffuse=(1.0, 1.0, 1.0),
-                  specular=(1.0, 1.0, 1.0),
-                  imageName='',
-                  use_transparency=False):
-    """Compare material values to check if a similar one is present.
-
-    Compares the diffuse, specular and image values of the material
-    to the parameters
-    """
-    def isclose_color(c1, c2, rel_tol=0.1):
-        return (isclose(c1[0], c2[0], rel_tol) and
-                isclose(c1[1], c2[1], rel_tol) and
-                isclose(c1[2], c2[2], rel_tol))
-
-    same = True
-    if material:
-        if imageName:
-            if material.active_texture:
-                if material.active_texture.image:
-                    same = (material.active_texture.image.name == imageName)
-        same = same and isclose_color(material.diffuse_color, diffuse)
-        same = same and isclose_color(material.specular_color, specular)
-        same = same and (material.use_transparency == use_transparency)
-    else:
-        same = False
-
-    return same
 
 
 def getValidExports(rootDummy, validExports):
@@ -150,6 +127,22 @@ def isRootDummy(obj):
         return False
     return (obj.parent is None) and \
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
+
+
+def findRootDummy():
+    """TODO: DOC."""
+    # 1. Check the selected object and it's parents
+    obj = bpy.context.object
+    while obj:
+        if isRootDummy(obj):
+            return obj
+        obj = obj.parent
+    # Nothing was found, try checking all objects
+    matches = [rd for rd in bpy.data.objects if isRootDummy(rd)]
+    if matches:
+        return matches[0]
+
+    return None
 
 
 def getNodeType(obj):

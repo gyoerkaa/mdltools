@@ -92,7 +92,7 @@ class Node(object):
                 elif (label == 'endnode'):
                     return
                 elif (label == 'parent'):
-                    self.parentName = nvb_utils.getAuroraString(line[1])
+                    self.parent = nvb_utils.getAuroraString(line[1])
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),
@@ -426,10 +426,10 @@ class Trimesh(Node):
         texName = self.bitmap.lower()
         if options.materialMode == 'SIN':
             # Avoid duplicate materials, search for similar ones.
-            material = nvb_utils.matchMaterial(self.diffuse,
-                                               self.specular,
-                                               texName,
-                                               self.alpha)
+            material = nvb_utils.findMaterial(self.diffuse,
+                                              self.specular,
+                                              texName,
+                                              self.alpha)
 
         if not material:
             material = bpy.data.materials.new(name)
@@ -1062,7 +1062,7 @@ class Emitter(Node):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                     return
                 elif (label == 'parent'):
-                    self.parentName = nvb_utils.getAuroraString(line[1])
+                    self.parent = nvb_utils.getAuroraString(line[1])
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),

@@ -15,7 +15,7 @@ class Animation():
         self.name = name
         self.length = 1.0
         self.transtime = 1.0
-        self.animroot = nvb_def.null
+        self.animroot = ''
         self.events = []
         self.nodes = []
 
@@ -38,14 +38,14 @@ class Animation():
         # Add new animation to list
         newAnim = rootDummy.nvb.animList.add()
         newAnim.name = self.name
-        newAnim.ttime = self.ftranstime
-        newAnim.root = self.root
+        newAnim.ttime = self.transtime
+        newAnim.root = self.animroot
         newAnim.frameStart = animStartFrame
         newAnim.frameEnd = newAnim.frameStart + \
             nvb_utils.nwtime2frame(self.length)
 
         # Add events for new animation
-        for ev in self.eventList:
+        for ev in self.events:
             newEvent = newAnim.eventList.add()
             newEvent.name = ev[1]
             newEvent.frame = animStartFrame + \
@@ -55,9 +55,9 @@ class Animation():
         for node in self.nodes:
             objName = nodeNameResolver.findObj(node.name,
                                                node.parent,
-                                               node.objidx)
+                                               node.id)
             if objName in bpy.data.objects:
-                node.addAnimToObj(bpy.data.objects[objName], newAnim)
+                node.create(bpy.data.objects[objName], newAnim)
 
     def loadAsciiAnimHeader(self, asciiData):
         """TODO: DOC."""
@@ -85,10 +85,10 @@ class Animation():
         """TODO: DOC."""
         dlm = 'node '
         nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
-        asciiLines = [l.strip().split() for l in nodeList.splitlines()]
-        for idx, line in enumerate(asciiLines):
+        for idx, asciiNode in enumerate(nodeList):
+            asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
             node = nvb_animnode.Node()
-            node.loadAscii(line, idx)
+            node.loadAscii(asciiLines, idx)
             self.nodes.append(node)
 
     def loadAscii(self, asciiData):

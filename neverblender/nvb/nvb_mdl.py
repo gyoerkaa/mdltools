@@ -24,7 +24,6 @@ class Mdl():
         self.classification = nvb_def.Classification.UNKNOWN
         # Geometry
         self.nodes = []
-        self.rootNode = -1  # Index of root node
         # Animations
         self.animations = []
         # Resolve non-unique node names
@@ -32,11 +31,12 @@ class Mdl():
 
     def getRootNode(self):
         """TODO:DOC."""
-        pass
-
-    def getRootObject(self):
-        """TODO:DOC."""
-        pass
+        parentlessNodes = [n for n in self.nodes if ((not n.parent) and
+                           (n.nodetype == nvb_def.Nodetype.DUMMY))]
+        if parentlessNodes:
+            return parentlessNodes[0]
+        else:
+            return None
 
     def loadAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
@@ -156,7 +156,7 @@ class Mdl():
             if nvb_glob.importGeometry:
                 self.loadAsciiGeometry(asciiBlock[geomStart:animStart-1])
             if nvb_glob.importAnim:
-                self.loadAsciiGeometry(asciiBlock[animStart:])
+                self.loadAsciiAnimations(asciiBlock[animStart:])
 
     @staticmethod
     def generateAsciiHeader(asciiLines, rootDummy):
@@ -265,7 +265,6 @@ class Mdl():
 
     def createObjectLinks(self, scene, options):
         """Handle parenting and linking the objects to a scene."""
-        rootDummy = None
         # Loop over all imported nodes
         # There may be several nodes with the same name in the mdl.
         # However, Blender object names are unique, we need to fix this.
@@ -276,52 +275,20 @@ class Mdl():
             if objName:
                 obj = bpy.data.objects[objName]
                 if node.parent:
+                    # Using '@' to specify that the parent is unknown
                     objParentName = self.nodeNameResolver.findObj(node.parent,
-                                                                  '',
+                                                                  '@',
                                                                   node.id)
                     if objParentName:
                         obj.parent = bpy.data.objects[objParentName]
                         obj.matrix_parent_inverse = \
                             obj.parent.matrix_world.inverted()
                     else:
-                        # Parent doesn't exist. Parent to rootdummy
-                        obj.parent = rootDummy
-                        obj.matrix_parent_inverse = \
-                            rootDummy.parent.matrix_world.inverted()
+                        print('    Parent: NOT found')
                 else:
-                    # Node without parent. Must be a root dummy.
+                    # Node without parent. Treat as rootdummy.
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
-                    rootDummy = obj
-
-        for asciiNodeName, importedObjects in self.nodeNameResolver.items():
-            for objInfo in importedObjects:
-                parentName = objInfo[0]  # Name of the parent in the mdl
-                nodePos = objInfo[1]  # Position of the node in the mdl
-                obj = bpy.data.objects[objInfo[2]]
-                # Check if the parent exists
-                if not parentName:
-                    # Node without parent. Must be a root dummy.
-                    obj.nvb.supermodel = self.supermodel
-                    obj.nvb.classification = self.classification
-                    rootDummy = obj
-                elif parentName in self.nodeNameResolver:
-                    parentLoadedName = \
-                        self.nodeNameResolver.findObj(parentName,
-                                                      '',
-                                                      nodePos)
-                    if parentLoadedName:
-                        obj.parent = bpy.data.objects[parentLoadedName]
-                        obj.matrix_parent_inverse = \
-                            obj.parent.matrix_world.inverted()
-                    else:
-                        # TODO...or not todo?
-                        pass
-                else:
-                    # Parent doesn't exist. Parent to rootdummy
-                    obj.parent = rootDummy
-                    obj.matrix_parent_inverse = \
-                        rootDummy.parent.matrix_world.inverted()
                 scene.objects.link(obj)
 
     def createObjects(self, scene, options):
@@ -339,7 +306,7 @@ class Mdl():
 
     def createAnimations(self, scene, options):
         """TODO: DOC."""
-        rootDummy = self.getRootObject()
+        rootDummy = nvb_utils.findRootDummy()
         # We will load the 'default' animation first, so it is at the front
         defaultAnims = [a for a in self.animations if a.name == 'default']
         for anim in defaultAnims:
