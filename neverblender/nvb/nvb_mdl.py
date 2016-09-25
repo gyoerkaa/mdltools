@@ -40,7 +40,7 @@ class Mdl():
 
     def loadAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
-        for line in asciiBlock.splitlines:
+        for line in asciiBlock.splitlines():
             try:
                 label = line[0].lower()
             except IndexError:
@@ -95,7 +95,7 @@ class Mdl():
         dlm = 'node '
         nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
         for idx, asciiNode in enumerate(nodeList):
-            asciiLines = asciiNode.splitlines()
+            asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
             node = None
             nodeType = ''
             nodeName = 'UNNAMED'
@@ -143,7 +143,7 @@ class Mdl():
         geomStart = asciiBlock.find('node ')
         animStart = asciiBlock.find('newanim ')
 
-        if (geomStart < 0) or (geomStart > animStart):
+        if (geomStart < 0) or ((animStart > 0) and (geomStart > animStart)):
             # Something is wrong
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
 
@@ -174,9 +174,9 @@ class Mdl():
         asciiLines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
 
     @staticmethod
-    def generateAsciiGeometry(asciiLines, bObject):
+    def generateAsciiGeometry(asciiLines, obj):
         """TODO: DOC."""
-        nodeType = nvb_utils.getNodeType(bObject)
+        nodeType = nvb_utils.getNodeType(obj)
         switch = {'dummy':      nvb_node.Dummy,
                   'patch':      nvb_node.Patch,
                   'reference':  nvb_node.Reference,
@@ -192,10 +192,10 @@ class Mdl():
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.generateAscii(bObject, asciiLines)
+        node.generateAscii(obj, asciiLines)
 
         childList = []
-        for child in bObject.children:
+        for child in obj.children:
             childList.append((child.nvb.imporder, child))
         childList.sort(key=lambda tup: tup[0])
 
@@ -263,7 +263,7 @@ class Mdl():
         # Creation time
         Mdl.generateAsciiMeta(asciiLines)
 
-    def createObjectLinks(self, scene):
+    def createObjectLinks(self, scene, options):
         """Handle parenting and linking the objects to a scene."""
         rootDummy = None
         # Loop over all imported nodes
@@ -324,7 +324,7 @@ class Mdl():
                         rootDummy.parent.matrix_world.inverted()
                 scene.objects.link(obj)
 
-    def createObjects(self, options):
+    def createObjects(self, scene, options):
         """TODO: DOC."""
         if self.nodes:
             for node in self.nodes:
@@ -337,7 +337,7 @@ class Mdl():
                                                     node.id,
                                                     obj.name)
 
-    def createAnimations(self, options):
+    def createAnimations(self, scene, options):
         """TODO: DOC."""
         rootDummy = self.getRootObject()
         # We will load the 'default' animation first, so it is at the front
@@ -351,12 +351,12 @@ class Mdl():
 
     def create(self, scene, options):
         """TODO: DOC."""
-        if nvb_glob.importGeometry:
-            self.createObjects(options)
-            self.createObjectLinks(scene)
+        if options.importGeometry:
+            self.createObjects(scene, options)
+            self.createObjectLinks(scene, options)
 
-            if nvb_glob.importAnims:
-                self.createAnimations(options)
+            if options.importAnims:
+                self.createAnimations(scene, options)
         else:
             # Import animations only, there is no objectDB in this case
             pass
@@ -371,7 +371,7 @@ class Wkm(Mdl):
 
         self.walkmeshType = wkmtype
 
-    def createObjectLinks(self, scene):
+    def createObjectLinks(self, scene, options):
         """TODO: DOC."""
         # We'll be adding an extra dummy and parent all objects with missing
         # parents to it (which should be all of them)

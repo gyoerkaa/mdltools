@@ -3,6 +3,7 @@
 import bpy
 
 from . import nvb_def
+from . import nvb_utils
 
 
 class NVB_UILIST_LENSFLARES(bpy.types.UIList):
@@ -58,8 +59,8 @@ class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
 class NVB_PANEL_EMPTY(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
-    format. This is only available for EMPTY objects.
-    It is located under the object data panel in the properties window
+    This is only available for EMPTY objects.
+    It is located under the object panel in the properties window
     """
 
     bl_idname = 'nvb.propertypanel.empty'
@@ -83,7 +84,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         layout.separator()
 
         # Display properties depending on type of the empty
-        if not obj.parent and (obj.nvb.emptytype == nvb_def.Emptytype.Default):
+        if nvb_utils.isRootDummy(obj):
             # No parent = Rootdummy
             row = layout.row()
             box = row.box()
@@ -126,7 +127,7 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row = box.row()
                 row.prop(obj.nvb, 'wirecolor')
                 row = box.row()
-                row.prop(obj.nvb, 'dummysubtype')
+                row.prop(obj.nvb, 'dummytype')
 
 
 class NVB_PANEL_ANIMLIST(bpy.types.Panel):
@@ -153,7 +154,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        if not obj.parent and (obj.nvb.emptytype == nvb_def.Emptytype.Default):
+        if nvb_utils.isRootDummy(obj):
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             box = row.box()
@@ -210,13 +211,12 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):
-    '''
-    Property panel for additional light or lamp properties. This
-    holds all properties not supported by blender at the moment,
-    but used by OpenGL and the aurora engine. This is only available
-    for LAMP objects.
-    It is located under the object data panel in the properties window
-    '''
+    """Property panel for additional light or lamp properties.
+
+    This holds all properties not supported by blender,
+    but used by the aurora engine. This is only available for LAMP objects.
+    It is located under the object panel in the properties window.
+    """
     bl_idname = 'nvb.propertypanel.light'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
@@ -236,7 +236,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         row = layout.row()
         row.prop(obj.nvb, 'lighttype', text='Type')
 
-        sep = layout.separator()
+        layout.separator()
 
         row = layout.row()
         box = row.box()
@@ -255,7 +255,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         col.prop(obj.nvb, 'isdynamic', text='Is dynamic')
         col.prop(obj.nvb, 'affectdynamic', text='Affect dynamic')
 
-        sep = layout.separator()
+        layout.separator()
 
         # Lens flares
         row = layout.row()
@@ -290,13 +290,13 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
 
 class NVB_PANEL_MESH(bpy.types.Panel):
-    '''
-    Property panel for additional mesh properties. This
-    holds all properties not supported by blender at the moment,
-    but used by OpenGL and the aurora engine. This is only available
-    for MESH objects.
-    It is located under the object data panel in the properties window
-    '''
+    """Property panel for additional mesh properties.
+
+    This holds all properties not supported by blender,
+    but used by the aurora engine. This is only available for MESH objects.
+    It is located under the object panel in the properties window.
+    """
+
     bl_idname = 'nvb.propertypanel.mesh'
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
@@ -306,18 +306,17 @@ class NVB_PANEL_MESH(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        return (context.object and context.object.type == 'MESH')  # context.mesh and context.object.type != 'EMPTY')
+        return (context.object and context.object.type == 'MESH')
 
     def draw(self, context):
         """TODO: DOC."""
         obj = context.object
-        obj_type = obj.type
         layout = self.layout
 
         row = layout.row()
         row.prop(obj.nvb, 'meshtype', text='Type')
 
-        sep = layout.separator()
+        layout.separator()
 
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             row = layout.row()
@@ -326,7 +325,9 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = box.row()
             row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
             row = box.row()
-            row.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts', text='Data')
+            row.prop_search(obj.nvb, 'rawascii',
+                            bpy.data, 'texts',
+                            text='Data')
 
         else:  # Trimesh, danglymesh, skin
             row = layout.row()
@@ -360,14 +361,16 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             # Additional props for danglymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
-                sep = layout.separator()
+                layout.separator()
 
                 row = layout.row()
                 box = row.box()
                 row = box.row()
                 row.label(text='Danglymesh Properties')
                 row = box.row()
-                row.prop_search(obj.nvb, 'constraints', obj, 'vertex_groups', text='Constraints')
+                row.prop_search(obj.nvb, 'constraints',
+                                obj, 'vertex_groups',
+                                text='Constraints')
                 row = box.row()
                 row.prop(obj.nvb, 'period', text='Period')
                 row = box.row()
@@ -377,23 +380,25 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             # Additional props for skins
             elif (obj.nvb.meshtype == nvb_def.Meshtype.SKIN):
-                sep = layout.separator()
+                layout.separator()
 
                 row = layout.row()
                 box = row.box()
                 row = box.row()
                 row.label(text='Create vertex group: ')
                 row = box.row(align=True)
-                row.prop_search(obj.nvb, 'skingroup_obj', context.scene, 'objects')
+                row.prop_search(obj.nvb, 'skingroup_obj',
+                                context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
 
             # Additional props for aabb walkmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
-                sep = layout.separator()
+                layout.separator()
 
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.operator('nvb.load_wok_mats', text='Load walkmesh materials', icon='NONE')
+                row.operator('nvb.load_wok_mats',
+                             text='Load walkmesh materials', icon='NONE')
                 row = box.row()
                 row.label(text='(Warning: Removes current materials)')

@@ -47,9 +47,11 @@ def loadMdl(operator,
             minimapMode=False,
             minimapSkipFade=False):
     """Called from blender ui."""
-    nvb_glob.importGeometry = importGeometry
-    nvb_glob.importSmoothGroups = importSmoothGroups
-    nvb_glob.importAnim = importAnim
+    options = nvb_def.ImportOptions()
+    options.importGeometry = importGeometry
+    options.importSmoothGroups = importSmoothGroups
+    options.importAnim = importAnim
+    options.importSupermodel = importSupermodel
 
     nvb_glob.materialMode = materialMode
 
@@ -83,7 +85,7 @@ def loadMdl(operator,
                     mdl.loadAsciiWalkmesh(asciiWkm)
                     wkmfile.close()
 
-        mdl.create(scene)
+        mdl.create(scene, options)
 
     return {'FINISHED'}
 

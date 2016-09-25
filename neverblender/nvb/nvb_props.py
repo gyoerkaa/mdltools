@@ -112,10 +112,10 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For all emptys
     emptytype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Emptytype.DEFAULT, 'Default', 'Simple dummy object', 0),
+                items=[(nvb_def.Emptytype.DUMMY, 'Dummy', 'Simple dummy object', 0),
                        (nvb_def.Emptytype.REFERENCE, 'Reference node', 'Used in spells. Points to "fx_ref" by default', 1),
                        (nvb_def.Emptytype.PATCH, 'Patch node', 'Unknown purpose.', 2)],
-                default=nvb_def.Emptytype.DEFAULT)
+                default=nvb_def.Emptytype.DUMMY)
     # For MDL Rootdummy
     supermodel = bpy.props.StringProperty(
         name='Supermodel',
@@ -124,7 +124,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     classification = bpy.props.EnumProperty(
                 name='Classification',
                 items=[(nvb_def.Classification.UNKNOWN, 'Unknown', 'Unknown classification', 0),
-                       (nvb_def.Classification.TILE, 'Tile', 'Tiles for a tileset', 1),
+                       (nvb_def.Classification.TILE, 'Tile', 'Tiles for tilesets', 1),
                        (nvb_def.Classification.CHARACTER, 'Character', 'Creatures, characters or placeables', 2),
                        (nvb_def.Classification.DOOR, 'Door', 'Doors', 3),
                        (nvb_def.Classification.EFFECT, 'Effect', 'Effects', 4),

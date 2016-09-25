@@ -9,20 +9,27 @@ from . import nvb_io
 
 
 class NVB_LIST_OT_Anim_New(bpy.types.Operator):
-    """Add a new item to the flare list."""
+    """Add a new animation to the animation list."""
 
     bl_idname = 'nvb.anim_new'
     bl_label = 'Create new animation'
 
     def execute(self, context):
         """TODO: DOC."""
-        context.object.nvb.animList.add()
+        newAnim = context.object.nvb.animList.add()
+        newAnim.root = context.object.name
+        lastAnimEnd = nvb_def.anim_globstart
+        for anim in context.object.nvb.animList:
+            if anim.frameEnd > lastAnimEnd:
+                lastAnimEnd = anim.frameEnd
+        newAnim.frameStart = lastAnimEnd + nvb_def.anim_offset
+        newAnim.frameEnd = newAnim.frameStart
 
         return{'FINISHED'}
 
 
 class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
-    """Delete the selected item from the event list."""
+    """Delete the selected animation from the animation list."""
 
     bl_idname = 'nvb.anim_delete'
     bl_label = 'Delete an animation'
@@ -50,7 +57,9 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
     bl_idname = 'nvb.anim_move'
     bl_label = 'Move an animation in the list'
 
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
+    direction = bpy.props.EnumProperty(items=(
+                                       ('UP', 'Up', ''),
+                                       ('DOWN', 'Down', '')))
 
     @classmethod
     def poll(self, context):
@@ -487,7 +496,8 @@ class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
         if skingrName:
             if (skingrName not in obj.vertex_groups.keys()):
                 # Create the vertex group
-                vertGroup = obj.vertex_groups.new(skingrName)
+                # vertGroup = obj.vertex_groups.new(skingrName)
+                obj.vertex_groups.new(skingrName)
                 obj.nvb.skingroup_obj = ''
 
                 self.report({'INFO'}, 'Created vertex group ' + skingrName)
@@ -498,95 +508,3 @@ class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
         else:
             self.report({'INFO'}, 'Empty Name')
             return {'CANCELLED'}
-
-
-class NVB_OBJECT_OT_AnimsceneRename(bpy.types.Operator):
-    """TODO: DOC."""
-
-    bl_idname = "nvb.animscene_rename"
-    bl_label = "Rename animation scene"
-
-    @classmethod
-    def poll(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        return (obj.type == 'EMPTY') and (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT) and obj.nvb.isanimation
-
-    def execute(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        newAnimName = obj.nvb.newanimname
-        oldAnimName = obj.nvb.animname
-        sourceScene = context.scene
-        # Check if there is already a scene with this animation name
-        if (newAnimName != ''):
-            if (newAnimName not in bpy.data.scenes):
-                if nvb_utils.copyAnimSceneCheck(obj, newAnimName, oldAnimName):
-                    sourceScene.name = newAnimName
-
-                    animRootDummy = nvb_utils.renameAnimScene(obj, newAnimName, oldAnimName)
-                    animRootDummy.nvb.animname = newAnimName
-                    animRootDummy.nvb.newanimname = ''
-
-                    sourceScene.update()
-                else:
-                    self.report({'INFO'}, 'Duplicate Object')
-                    return {'CANCELLED'}
-            else:
-                self.report({'INFO'}, 'Scene already present')
-                return {'CANCELLED'}
-        else:
-            self.report({'INFO'}, 'Empty Name')
-            return {'CANCELLED'}
-
-        self.report({'INFO'}, 'Renamed animation ' + oldAnimName + ' to ' + newAnimName)
-        return{'FINISHED'}
-
-
-class NVB_OBJECT_OT_AnimsceneAdd(bpy.types.Operator):
-    """TODO: DOC."""
-
-    bl_idname = "nvb.animscene_add"
-    bl_label = "Add animation scene"
-
-    @classmethod
-    def poll(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        return (obj.type == 'EMPTY') and (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT)
-
-    def execute(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        newAnimName = obj.nvb.newanimname
-        oldAnimName = obj.nvb.animname
-        sourceScene = context.scene
-        # Check if there is already a scene with this animation name
-        if (newAnimName != ''):
-            if (newAnimName not in bpy.data.scenes):
-                if nvb_utils.copyAnimSceneCheck(obj, newAnimName, oldAnimName):
-                    # Create the scene
-                    newScene = bpy.data.scenes.new(newAnimName)
-                    # Set fps
-                    newScene.render.fps = nvb_def.fps
-                    newScene.frame_start = sourceScene.frame_start
-                    newScene.frame_end = sourceScene.frame_end
-
-                    animRootDummy = nvb_utils.copyAnimScene(newScene, obj, newAnimName, oldAnimName)
-                    animRootDummy.nvb.isanimation = True
-                    animRootDummy.nvb.animname = newAnimName
-                    animRootDummy.nvb.newanimname = ''
-
-                    newScene.update()
-                else:
-                    self.report({'INFO'}, 'Duplicate Objects')
-                    return {'CANCELLED'}
-            else:
-                self.report({'INFO'}, 'Scene already present')
-                return {'CANCELLED'}
-        else:
-            self.report({'INFO'}, 'Empty Name')
-            return {'CANCELLED'}
-
-        self.report({'INFO'}, 'New animation ' + newAnimName)
-        return{'FINISHED'}

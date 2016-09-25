@@ -76,7 +76,7 @@ class Node(object):
     def loadAscii(self, asciiLines, id=-1):
         """TODO: DOC."""
         l_float = float
-        l_isNumber = nvb_def.isNumber
+        l_isNumber = nvb_utils.isNumber
 
         self.id = id
         for line in asciiLines:
@@ -119,7 +119,7 @@ class Node(object):
     def createObject(self):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
-        obj.nvb.order = self.id
+        obj.nvb.imporder = self.id
         self.createdObj = obj.name
         self.createObjectData(obj)
         return obj
@@ -204,13 +204,13 @@ class Node(object):
 class Dummy(Node):
     """TODO: Doc."""
 
-    nodetype = 'dummy'
+    nodetype = nvb_def.Nodetype.DUMMY
 
     def __init__(self, name='unnamed'):
         """TODO: Doc."""
         Node.__init__(self, name)
 
-        self.dummytype = nvb_def.Emptytype.NONE
+        self.dummytype = nvb_def.Dummytype.NONE
 
     def setSubtype(self, dummytype):
         """TODO: Doc."""
@@ -224,7 +224,7 @@ class Dummy(Node):
 class Patch(Node):
     """Same as a plain Dummy."""
 
-    nodetype = 'patch'
+    nodetype = nvb_def.Nodetype.PATCH
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -242,7 +242,7 @@ class Patch(Node):
 class Reference(Node):
     """Contains a reference to another mdl."""
 
-    nodetype = 'reference'
+    nodetype = nvb_def.Nodetype.REFERENCE
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -294,7 +294,7 @@ class Reference(Node):
 class Trimesh(Node):
     """TODO: Doc."""
 
-    nodetype = 'trimesh'
+    nodetype = nvb_def.Nodetype.TRIMESH
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -405,15 +405,18 @@ class Trimesh(Node):
                     self.bitmap = nvb_utils.getAuroraString(line[1])
                 elif (label == 'verts'):
                     numVals = l_int(line[1])
-                    nvb_parse.f3(asciiLines[idx+1:idx+numVals+1], self.verts)
+                    nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
+                                 self.verts)
                     # self.verts = [(float(l[0]), float(l[1]), float(l[2]))
                     # for l in asciiNode[idx+1:idx+numVals+1]]
                 elif (label == 'faces'):
                     numVals = l_int(line[1])
-                    nvb_parse.faces(asciiLines[idx+1:idx+numVals+1])
+                    nvb_parse.faces(asciiLines[idx+1:idx+numVals+1],
+                                    self.facelist)
                 elif (label == 'tverts'):
                     numVals = l_int(line[1])
-                    nvb_parse.f2(asciiLines[idx+1:idx+numVals+1], self.tverts)
+                    nvb_parse.f2(asciiLines[idx+1:idx+numVals+1],
+                                 self.tverts)
                     # self.tverts = [(float(l[0]), float(l[1]))
                     # for l in asciiNode[idx+1:idx+numVals+1]]
 
@@ -773,7 +776,7 @@ class Trimesh(Node):
 class Animmesh(Trimesh):
     """TODO: Doc."""
 
-    nodetype = 'animmesh'
+    nodetype = nvb_def.Nodetype.ANIMMESH
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -821,7 +824,7 @@ class Animmesh(Trimesh):
 class Danglymesh(Trimesh):
     """TODO: Doc."""
 
-    nodetype = 'danglymesh'
+    nodetype = nvb_def.Nodetype.DANGLYMESH
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -919,7 +922,7 @@ class Danglymesh(Trimesh):
 class Skinmesh(Trimesh):
     """Skinmeshes are Trimeshes where every vertex has a weight."""
 
-    nodetype = 'skin'
+    nodetype = nvb_def.Nodetype.SKIN
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -1020,7 +1023,7 @@ class Skinmesh(Trimesh):
 class Emitter(Node):
     """TODO: Doc."""
 
-    nodetype = 'emitter'
+    nodetype = nvb_def.Nodetype.EMITTER
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -1146,7 +1149,7 @@ class Emitter(Node):
 class Light(Node):
     """TODO: Doc."""
 
-    nodetype = 'light'
+    nodetype = nvb_def.Nodetype.LIGHT
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
@@ -1349,7 +1352,7 @@ class Light(Node):
 class Aabb(Trimesh):
     """TODO: Doc."""
 
-    nodetype = 'aabb'
+    nodetype = nvb_def.Nodetype.AABB
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""

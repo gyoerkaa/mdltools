@@ -144,38 +144,25 @@ def getValidExports(rootDummy, validExports):
         getValidExports(child, validExports)
 
 
-def isRootDummy(obj, dummytype=nvb_def.Dummytype.MDLROOT):
+def isRootDummy(obj):
     """TODO: DOC."""
     if not obj:
         return False
-    return (obj.type == 'EMPTY') and \
-           (obj.nvb.dummytype == dummytype) and \
-           (not obj.nvb.isanimation)
+    return (obj.parent is None) and \
+           (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
 def getNodeType(obj):
     """Get the node type (dummy, trimesh, skin, ...) of the blender object."""
     objType = obj.type
     if objType == 'EMPTY':
-        if obj.nvb.dummytype == nvb_def.Dummytype.PATCH:
-            return 'patch'
-        elif obj.nvb.dummytype == nvb_def.Dummytype.REFERENCE:
-            return 'reference'
+        return obj.nvb.emptytype
     elif objType == 'MESH':
-        if obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
-            return 'trimesh'
-        elif obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH:
-            return 'danglymesh'
-        elif obj.nvb.meshtype == nvb_def.Meshtype.SKIN:
-            return 'skin'
-        elif obj.nvb.meshtype == nvb_def.Meshtype.EMITTER:
-            return 'emitter'
-        elif obj.nvb.meshtype == nvb_def.Meshtype.AABB:
-            return 'aabb'
+        return obj.nvb.meshtype
     elif objType == 'LAMP':
-        return 'light'
+        return nvb_def.Nodetype.LIGHT
 
-    return 'dummy'
+    return nvb_def.Nodetype.DUMMY
 
 
 def chunker(seq, size):
@@ -192,21 +179,6 @@ def getImageFilename(image):
         filename = os.path.splitext(os.path.basename(image.name))[0]
 
     return filename
-
-
-def getShagrId(shagrName):
-    """TODO: DOC."""
-    return int(shagrName[-4:])
-
-
-def getShagrName(shagrId):
-    """TODO: DOC."""
-    return nvb_def.shagrPrefix + "{0:0>4}".format(shagrId)
-
-
-def isShagr(vgroup):
-    """TODO: DOC."""
-    return (nvb_def.shagrPrefix in vgroup.name)
 
 
 def setObjectRotationAurora(obj, nwangle):
@@ -273,12 +245,12 @@ def getAuroraScale(obj):
     return 1.0
 
 
-def nwtime2frame(time, fps=nvb_def.fps):
+def nwtime2frame(time, fps=nvb_def.anim_fps):
     """Convert key time to frame number."""
     return round(fps*time)
 
 
-def frame2nwtime(frame, fps=nvb_def.fps):
+def frame2nwtime(frame, fps=nvb_def.anim_fps):
     """TODO: DOC."""
     return round(frame / fps, 7)
 

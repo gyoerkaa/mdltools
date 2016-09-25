@@ -1,30 +1,16 @@
 """TODO: DOC."""
 
+import collections
+
 # Null value for parents, textures, etc.
 null = 'null'
-
 # Where to start all animations
-anim_default = 1
-# Distance between two imported animations
-anim_distance = 60
-
-
-class MalformedMdlFile(Exception):
-    """TODO: DOC."""
-
-    def __init__(self, value):
-        """TODO: DOC."""
-        self.parameter = value
-
-    def __str__(self):
-        """TODO: DOC."""
-        return repr(self.parameter)
-
-
+anim_globstart = 1
+# offset between two imported animations
+anim_offset = 60
 # Some presets
-fps = 30
-shagrPrefix = 'shagr.'
-animdataPrefix = 'anim.'
+anim_fps = 30
+# Predefined walkmesh materials
 wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_Dirt',          (0.610, 0.235, 0.050), 0.0],
                  ['wok_Obscuring',     (0.100, 0.100, 0.100), 0.5],
@@ -48,6 +34,46 @@ wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_Sand',          (1.000, 1.000, 0.000), 0.0],
                  ['wok_BareBones',     (0.500, 0.500, 0.100), 0.0],
                  ['wok_StoneBridge',   (0.081, 0.108, 0.139), 0.0]]
+
+
+class ImportOptions():
+    """TODO: DOC."""
+
+    importGeometry = True
+    importWalkmesh = True
+    importSmoothGroups = True
+    importAnim = 'STD'
+    importSupermodel = False
+    # Options for textures and materials
+    materialMode = 'SIN'
+    texturePath = ''
+    textureSearch = False
+    # for minimap generator
+    minimapMode = False
+    minimapSkipFade = False
+
+
+class ExportOptions():
+    """TODO: DOC."""
+
+    exportAnim = True
+    exportWalkmesh = True
+    exportSmoothGroups = True
+
+    meshConvert = 'RENDER'
+    applyModifiers = True
+
+
+class MalformedMdlFile(Exception):
+    """TODO: DOC."""
+
+    def __init__(self, value):
+        """TODO: DOC."""
+        self.parameter = value
+
+    def __str__(self):
+        """TODO: DOC."""
+        return repr(self.parameter)
 
 
 class Animtype():
@@ -91,7 +117,7 @@ class Animtype():
     CUSTOM10   = 'custom10'
 
 
-class DummySubtype():
+class Dummytype():
     """TODO: DOC."""
 
     NONE = 'NONE'
@@ -154,12 +180,12 @@ class DummySubtype():
 class Meshtype():
     """TODO: DOC."""
 
-    TRIMESH = 'TRI'
-    DANGLYMESH = 'DAN'
-    SKIN = 'SKI'
-    AABB = 'AAB'
-    EMITTER = 'EMT'
-    ANIMMESH = 'ANI'
+    TRIMESH = 'trimesh'
+    DANGLYMESH = 'danglymesh'
+    SKIN = 'skin'
+    AABB = 'aabb'
+    EMITTER = 'emitter'
+    ANIMMESH = 'animmesh'
 
     ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMMESH}
 
@@ -167,11 +193,19 @@ class Meshtype():
 class Emptytype():
     """TODO: DOC."""
 
-    DEFAULT = 'DEF'
-    REFERENCE = 'REF'
-    PATCH = 'PAT'
+    DUMMY = 'dummy'
+    REFERENCE = 'reference'
+    PATCH = 'patch'
 
-    ALL = {DEFAULT, REFERENCE, PATCH}
+    ALL = {DUMMY, REFERENCE, PATCH}
+
+
+class Nodetype(Emptytype, Meshtype):
+    """TODO: Doc."""
+
+    LIGHT = 'LIGHT'
+
+    ALL = {LIGHT} | Emptytype.ALL | Meshtype.ALL
 
 
 class Tilefade():

@@ -391,9 +391,33 @@ class Node():
             self.createDataMat(obj.active_material, anim)
 
     @staticmethod
+    def generateAsciiKeys(obj, anim, asciiLines):
+        """TODO: DOC."""
+        pass
+
+    @staticmethod
+    def generateAsciiKeysEmitter(obj, anim, asciiLines):
+        """TODO: DOC."""
+        pass
+
+    @staticmethod
     def generateAscii(obj, anim, asciiLines):
         """TODO:Doc."""
-        pass
+        if not obj:
+            return
+        # Type + Name
+        nodeType = nvb_utils.getNodeType(obj)
+        asciiLines.append('  node ' + nodeType + ' ' + obj.name)
+        # Parent
+        if obj.parent:
+            asciiLines.append('    parent ' + obj.parent.name)
+        else:
+            asciiLines.appent('    parent null')
+        # Animation Data
+        if nodeType == nvb_def.Meshtype.EMITTER:
+            Node.generateAsciiKeysEmitter(obj, anim, asciiLines)
+        Node.generateAsciiKeys(obj, anim, asciiLines)
+        asciiLines.append('  endnode')
 
     def getKeysFromAction(self, action, keyDict):
         """TODO: DOC."""
