@@ -25,7 +25,7 @@ class NodeNameResolver(collections.OrderedDict):
         If was only one node with that name the name of the imported object
         will be returned. However, if there were multiple nodes with the same
         names, we will return the best match:
-            - Same parents (use '@' as parameter if the parent is unknown)
+            - Same parents (use '?' as parameter if the parent is unknown)
             - If the parent is unknown the closest node with the lowest ID will
               be returned.
         """
@@ -35,7 +35,7 @@ class NodeNameResolver(collections.OrderedDict):
                 # Multiple objects with the same name.
                 # This is bad, but that's why we're doing all this.
                 # 1. check for same parents
-                if (nodeParentName != '@') and (nodeParentName in self):
+                if (nodeParentName != '?') and (nodeParentName in self):
                     matches = [m for m in self[nodeParentName] if
                                nodeParentName == m[0]]
                     if matches:

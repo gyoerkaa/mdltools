@@ -1,7 +1,5 @@
 """TODO: DOC."""
 
-import collections
-
 # Null value for parents, textures, etc.
 null = 'null'
 # Where to start all animations

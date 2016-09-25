@@ -78,7 +78,7 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
-    def loadAsciiGeometry(self, asciiBlock):
+    def loadAsciiGeometry(self, asciiBlock, walkmesh=False):
         """TODO: DOC."""
         # Helper to create nodes of matching type
         nodelookup = {'dummy':      nvb_node.Dummy,
@@ -117,7 +117,13 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse the rest and add to node list
             node.loadAscii(asciiLines, idx)
+            if walkmesh:
+                node.parent = '!'
             self.nodes.append(node)
+
+    def loadAsciiWalkmesh(self, asciiBlock):
+        """TODO: Doc."""
+        self.loadAsciiGeometry(asciiBlock, True)
 
     @staticmethod
     def loadAsciiAnimation(asciiBlock):
@@ -133,15 +139,10 @@ class Mdl():
         animList = [dlm+block for block in asciiBlock.split(dlm) if block]
         self.animations = list(map(Mdl.loadAsciiAnimation, animList))
 
-    def loadAsciiWalkmesh(self, asciiBlock):
-        """TODO: Doc."""
-        dlm = 'node '
-        nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
-
     def loadAscii(self, asciiBlock):
         """Load an mdl from an ascii mfl file."""
-        geomStart = asciiBlock.find('node ')
-        animStart = asciiBlock.find('newanim ')
+        geomStart = asciiBlock.find('node ')  # Look for the first 'node'
+        animStart = asciiBlock.find('newanim ')  # Look for the first 'newanim'
 
         if (geomStart < 0) or ((animStart > 0) and (geomStart > animStart)):
             # Something is wrong
@@ -275,9 +276,9 @@ class Mdl():
             if objName:
                 obj = bpy.data.objects[objName]
                 if node.parent:
-                    # Using '@' to specify that the parent is unknown
+                    # Using '?' to specify that the parent is unknown
                     objParentName = self.nodeNameResolver.findObj(node.parent,
-                                                                  '@',
+                                                                  '?',
                                                                   node.id)
                     if objParentName:
                         obj.parent = bpy.data.objects[objParentName]
