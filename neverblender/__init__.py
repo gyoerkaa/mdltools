@@ -16,7 +16,6 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
@@ -28,7 +27,6 @@ bl_info = {
                 "",
     "tracker_url": "",
     "category": "Import-Export"}
-
 
 if 'bpy' in locals():
     import importlib
@@ -53,27 +51,31 @@ else:
     from .nvb import nvb_ui
 
 import bpy
-import bpy_extras
 
 
 def menu_func_export(self, context):
+    """TODO:Doc."""
     self.layout.operator(nvb_ops.MdlExport.bl_idname, text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
+    """TODO:Doc."""
     self.layout.operator(nvb_ops.MdlImport.bl_idname, text="Aurora (.mdl)")
 
 
 def register():
+    """TODO:Doc."""
     bpy.utils.register_module(__name__)
 
-    bpy.types.Object.nvb = bpy.props.PointerProperty(type=nvb_props.NVB_PG_OBJECT)
+    bpy.types.Object.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_OBJECT)
 
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
 
 
 def unregister():
+    """TODO:Doc."""
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
     bpy.types.INFO_MT_file_import.remove(menu_func_import)
 

@@ -36,7 +36,7 @@ class Node():
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
         self.nodetype = 'dummy'
-        self.id = -1
+        self.idx = -1
 
         self.name = name
         self.parent = nvb_def.null
@@ -60,15 +60,6 @@ class Node():
         """Return false if the node is empty, i.e. no anims attached."""
         return not self.isEmpty
 
-    def parseKeysIncompat(self, asciiBlock):
-        """Parse animation keys incompatible with blender.
-
-        They will be saved as plain text.
-        """
-        for line in asciiBlock:
-            self.keys.rawascii = self.keys.rawascii + '\n' + ' '.join(line)
-        self.isEmpty = False
-
     def findEnd(self, asciiBlock):
         """Find the end of a key list.
 
@@ -79,12 +70,13 @@ class Node():
         return next((i for i, v in enumerate(asciiBlock)
                      if not l_isNumber(v[0])), -1)
 
-    def loadAscii(self, asciiBlock, id=-1):
+    def loadAscii(self, asciiBlock, idx=-1):
         """TODO: DOC."""
         l_float = float
         l_int = int
         l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiBlock):
+        self.idx = idx
+        for i, line in enumerate(asciiBlock):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -137,94 +129,61 @@ class Node():
                 # self.isEmpty = False # might still be empty
             elif label == 'animverts':
                 numVals = l_int(line[1])
-                nvb_parse.f3(asciiBlock[idx+1:idx+numVals+1], self.animverts)
+                nvb_parse.f3(asciiBlock[i+1:i+numVals+1], self.animverts)
                 self.isEmpty = False
             elif label == 'animtverts':
                 numVals = l_int(line[1])
-                nvb_parse.f3(asciiBlock[idx+1:idx+numVals+1], self.animtverts)
+                nvb_parse.f3(asciiBlock[i+1:i+numVals+1], self.animtverts)
                 self.isEmpty = False
             # Keyed animations
             elif label == 'positionkey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1],
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1],
                              self.keys.position)
                 self.isEmpty = False
             elif label == 'orientationkey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f5(asciiBlock[idx+1:idx+numKeys+1],
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f5(asciiBlock[i+1:i+numKeys+1],
                              self.keys.orientation)
                 self.isEmpty = False
             elif label == 'scalekey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1],
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f2(asciiBlock[i+1:i+numKeys+1],
                              self.keys.scale)
                 self.isEmpty = False
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible. We'll
                 # handle them later as plain text
-                numKeys = self.findEnd(asciiBlock[idx+1:])
+                numKeys = self.findEnd(asciiBlock[i+1:])
                 if self.nodeType == 'emitter':
-                    nvb_parse.txt(asciiBlock[idx:idx+numKeys+1],
+                    nvb_parse.txt(asciiBlock[i:i+numKeys+1],
                                   self.keys.rawascii)
                 else:
-                    nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1],
+                    nvb_parse.f2(asciiBlock[i+1:i+numKeys+1],
                                  self.keys.alpha)
                 self.isEmpty = False
             elif label == 'selfillumcolorkey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1],
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1],
                              self.keys.selfillumcolor)
                 self.isEmpty = False
             # Lights/lamps only
             elif label == 'colorkey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f4(asciiBlock[idx+1:idx+numKeys+1], self.keys.color)
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1], self.keys.color)
                 self.isEmpty = False
             elif label == 'radiuskey':
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.f2(asciiBlock[idx+1:idx+numKeys+1], self.keys.radius)
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.f2(asciiBlock[i+1:i+numKeys+1], self.keys.radius)
                 self.isEmpty = False
             # Some unknown text.
             # Probably keys for emitters = incompatible with blender.
             # Import as text.
             elif not l_isNumber(line[0]):
-                numKeys = self.findEnd(asciiBlock[idx+1:])
-                nvb_parse.txt(asciiBlock[idx:idx+numKeys+1],
+                numKeys = self.findEnd(asciiBlock[i+1:])
+                nvb_parse.txt(asciiBlock[i:i+numKeys+1],
                               self.keys.rawascii)
                 self.isEmpty = False
-        self.id = id
-
-    def addAnimToMaterial(self, targetMaterial, animName=''):
-        """TODO: DOC."""
-        if not self.requiresUniqueData():
-            return
-
-        # actionName           = animName + '.' + targetMaterial.name
-        actionName = targetMaterial.name
-        action = bpy.data.actions.new(name=actionName)
-        action.use_fake_user = True
-
-        # If there is a texture, use texture alpha for animations
-        if targetMaterial.active_texture:
-            # Material has a texture
-            # data_path = material.texture_slots[x].alpha_factor
-            tslotIdx = targetMaterial.active_texture_index
-            dp = 'texture_slots[' + str(tslotIdx) + '].alpha_factor'
-            curve = action.fcurves.new(data_path=dp)
-        else:
-            # No texture.
-            # data_path = material.alpha
-            curve = action.fcurves.new(data_path='alpha')
-
-        if self.keys.alpha:
-            for key in self.keys.alpha:
-                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                             key[1])
-        elif self.alpha is not None:
-            curve.keyframe_points.insert(0, self.alpha)
-
-        targetMaterial.animation_data_create()
-        targetMaterial.animation_data.action = action
 
     def createDataMat(self, mat, anim):
         """TODO: DOC."""
@@ -385,11 +344,17 @@ class Node():
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
                                              key[1])
 
+    def createDataEmit(self, obj, anim):
+        """TODO:Doc."""
+        pass
+
     def create(self, obj, anim):
         """TODO:Doc."""
         self.createDataObj(obj, anim)
         if obj.active_material:
             self.createDataMat(obj.active_material, anim)
+        if nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER:
+            self.createDataEmit(obj, anim)
 
     @staticmethod
     def generateAsciiKeys(obj, anim, asciiLines):

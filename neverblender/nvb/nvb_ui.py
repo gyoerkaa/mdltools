@@ -9,7 +9,8 @@ from . import nvb_utils
 class NVB_UILIST_LENSFLARES(bpy.types.UIList):
     """TODO: DOC."""
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
         """TODO: DOC."""
         custom_icon = 'NONE'
 
@@ -25,7 +26,8 @@ class NVB_UILIST_LENSFLARES(bpy.types.UIList):
 class NVB_UILIST_ANIMS(bpy.types.UIList):
     """TODO: DOC."""
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
         """TODO: DOC."""
         custom_icon = 'NONE'
 
@@ -33,7 +35,10 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             # layout.label(item.name, icon = custom_icon)
             layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
-            muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
+            if item.mute:
+                muteIcon = 'RESTRICT_RENDER_ON'
+            else:
+                muteIcon = 'RESTRICT_RENDER_OFF'
             layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -43,7 +48,8 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
 class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
     """TODO: DOC."""
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
         """TODO: DOC."""
         custom_icon = 'NONE'
 
@@ -169,6 +175,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.separator()
             col.operator('nvb.anim_move', icon='TRIA_UP', text='').direction = 'UP'
             col.operator('nvb.anim_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
+            col.operator('nvb.anim_adjusttimeline', icon='TIME', text='')
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
                 row = box.row()
@@ -182,6 +189,8 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 col = split.column(align=True)
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
+                row = box.row()
+                row.prop(anim, 'rawAscii')
                 # col = split.column(align=True)
                 # col.prop(anim, 'marker', text = '')
                 # col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')

@@ -1,21 +1,10 @@
-"""TODO: DOC."""
-
-# Import
-importGeometry = True
-importSmoothGroups = True
-importAnim = 'STD'
-
-materialMode = 'SIN'
-
-texturePath = ''
-textureSearch = False
-
-minimapMode = False
-minimapSkipFade = False
+"""TODO: Delete this."""
 
 # Export
-exportSmoothGroups = True
 exportAnim = True
+exportWalkmesh = True
+exportSmoothGroups = True
+
 
 scene = None
 meshConvert = 'RENDER'

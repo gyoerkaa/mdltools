@@ -3,39 +3,12 @@
 import os
 import bpy
 
-from . import nvb_glob
 from . import nvb_def
 from . import nvb_mdl
 from . import nvb_utils
 
 
-def getExportMdl():
-    """TODO: DOC."""
-    # Look for a rootdummy:
-    # 1. Current selected object ?
-    # 2. Search 'Empty' objects in the current scene
-    # 4. Search all objects
-
-    obj = bpy.context.object
-    # Selected object
-    if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
-        return obj
-    else:
-        # Search objects in active scene
-        if nvb_glob.scene:
-            for obj in nvb_glob.scene.objects:
-                if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
-                    return obj
-        # Search all data
-        for obj in bpy.data.objects:
-            if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
-                return obj
-
-    return None
-
-
-def loadMdl(operator,
-            context,
+def loadMdl(operator, context,
             filepath='',
             importGeometry=True,
             importWalkmesh=True,
@@ -66,7 +39,7 @@ def loadMdl(operator,
         print('Neverblender: Importing ' + filepath)
         mdl = nvb_mdl.Mdl()
         asciiMdl = mdlfile.read()
-        mdl.loadAscii(asciiMdl)
+        mdl.loadAscii(asciiMdl, options)
 
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if importWalkmesh:
@@ -76,56 +49,56 @@ def loadMdl(operator,
                             mdlPath,
                             os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
                 try:
-                    wkmfile = open(wkmPath, 'r')
+                    wkmFile = open(wkmPath, 'r')
                 except IOError:
                     print("Neverblender: No " + wkmtype + " walkmesh found")
                 else:
-                    asciiWkm = wkmfile.read()
-                    mdl.loadAsciiWalkmesh(asciiWkm)
-                    wkmfile.close()
+                    asciiWkm = wkmFile.read()
+                    mdl.loadAscii(asciiWkm, options)
+                    wkmFile.close()
 
         mdl.create(scene, options)
 
     return {'FINISHED'}
 
 
-def saveMdl(operator,
-            context,
-            mdlFilepath='',
+def saveMdl(operator, context,
+            filepath='',
             exports={'ANIMATION', 'WALKMESH'},
             useSmoothGroups=True,
             applyModifiers=True):
     """Called from blender ui."""
-    nvb_glob.exports = exports
-    nvb_glob.exportSmoothGroups = useSmoothGroups
-    nvb_glob.applyModifiers = applyModifiers
-    nvb_glob.scene = bpy.context.scene
+    options = nvb_def.ExportOptions()
+    options.exportAnim = 'ANIMATION' in exports
+    options.exportWalkmesh = 'WALKMESH' in exports
+    options.exportSmoothGroups = useSmoothGroups
+    options.applyModifiers = applyModifiers
 
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
-    mdlRoot = getExportMdl()
-    if mdlRoot:
-        print('Neverblender: Exporting ' + mdlRoot.name)
-        mdl = nvb_mdl.Mdl()
+    rootDummy = nvb_utils.findRootDummy(bpy.context.object)
+    options.classification = rootDummy.classification
+    if rootDummy:
+        print('Neverblender: Exporting ' + rootDummy.name)
         asciiLines = []
-        mdl.generateAscii(asciiLines, mdlRoot)
-        with open(os.fsencode(mdlFilepath), 'w') as f:
+        nvb_mdl.Mdl.generateAscii(rootDummy, asciiLines, options)
+        with open(os.fsencode(filepath), 'w') as f:
             f.write('\n'.join(asciiLines))
 
-        if 'WALKMESH' in exports:
+        if options.exportWalkmesh:
             print('Neverblender: Exporting walkmesh.')
             asciiLines = []
-            nvb_mdl.generateAsciiWalkmesh(asciiLines, mdlRoot)
+            nvb_mdl.Mdl.generateAsciiWalkmesh(rootDummy, asciiLines, options)
 
-            wkmFileExt = '.pwk'
-            if mdlRoot.nvb.classification == nvb_def.classification.DOOR:
-                wkmFileExt = '.dwk'
-            elif mdlRoot.nvb.classification == nvb_def.classification.TILE:
-                wkmFileExt = '.wok'
+            wkmtype = '.pwk'
+            if rootDummy.nvb.classification == nvb_def.classification.DOOR:
+                wkmtype = '.dwk'
+            elif rootDummy.nvb.classification == nvb_def.classification.TILE:
+                wkmtype = '.wok'
 
-            wkmFilepath = os.path.splitext(mdlFilepath)[0] + wkmFileExt
-            with open(os.fsencode(wkmFilepath), 'w') as f:
+            wkmPath = os.path.splitext(filepath)[0] + wkmtype
+            with open(os.fsencode(wkmPath), 'w') as f:
                 f.write('\n'.join(asciiLines))
 
     return {'FINISHED'}

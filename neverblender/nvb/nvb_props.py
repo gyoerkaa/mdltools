@@ -50,9 +50,17 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 name='Mute',
                 description='Ignore animation during export',
                 default=False)
-    marker = bpy.props.StringProperty(
-                name='Marker',
+    markerStart = bpy.props.StringProperty(
+                name='Start Marker',
                 description='Start marker in the timeline',
+                default='')
+    markerEnd = bpy.props.StringProperty(
+                name='End Marker',
+                description='End marker in the timeline',
+                default='')
+    rawAscii = bpy.props.StringProperty(
+                name='Emitter Data',
+                description='Incompatible Emitter data loaded as plain text',
                 default='')
     frameStart = bpy.props.IntProperty(
                 name='Start',
@@ -112,9 +120,12 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For all emptys
     emptytype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Emptytype.DUMMY, 'Dummy', 'Simple dummy object', 0),
-                       (nvb_def.Emptytype.REFERENCE, 'Reference node', 'Used in spells. Points to "fx_ref" by default', 1),
-                       (nvb_def.Emptytype.PATCH, 'Patch node', 'Unknown purpose.', 2)],
+                items=[(nvb_def.Emptytype.DUMMY,
+                        'Dummy', 'Simple dummy object', 0),
+                       (nvb_def.Emptytype.REFERENCE,
+                        'Reference node', 'Used in spells. Default value "fx_ref"', 1),
+                       (nvb_def.Emptytype.PATCH,
+                        'Patch node', 'Unknown purpose', 2)],
                 default=nvb_def.Emptytype.DUMMY)
     # For MDL Rootdummy
     supermodel = bpy.props.StringProperty(
@@ -123,31 +134,54 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
         default=nvb_def.null)
     classification = bpy.props.EnumProperty(
                 name='Classification',
-                items=[(nvb_def.Classification.UNKNOWN, 'Unknown', 'Unknown classification', 0),
-                       (nvb_def.Classification.TILE, 'Tile', 'Tiles for tilesets', 1),
-                       (nvb_def.Classification.CHARACTER, 'Character', 'Creatures, characters or placeables', 2),
-                       (nvb_def.Classification.DOOR, 'Door', 'Doors', 3),
-                       (nvb_def.Classification.EFFECT, 'Effect', 'Effects', 4),
-                       (nvb_def.Classification.GUI, 'Gui', 'Gui', 5),
-                       (nvb_def.Classification.ITEM, 'Item', 'Items or placeables', 6)],
+                items=[(nvb_def.Classification.UNKNOWN,
+                        'Unknown', 'Unknown classification', 0),
+                       (nvb_def.Classification.TILE,
+                        'Tile', 'Tiles for tilesets', 1),
+                       (nvb_def.Classification.CHARACTER,
+                        'Character', 'Creatures, characters or placeables', 2),
+                       (nvb_def.Classification.DOOR,
+                        'Door', 'Doors', 3),
+                       (nvb_def.Classification.EFFECT,
+                        'Effect', 'Effects', 4),
+                       (nvb_def.Classification.GUI,
+                        'Gui', 'Gui', 5),
+                       (nvb_def.Classification.ITEM,
+                        'Item', 'Items or placeables', 6)
+                       ],
                 default=nvb_def.Classification.UNKNOWN)
     dummytype = bpy.props.EnumProperty(
-                name='Subtype',
-                items=[('NONE', 'None', 'Simple dummy object', 0),
-                       ('HAND', 'Hand', 'Hand node for vfx', 1),
-                       ('HEAD', 'Head', 'Head node for vfx', 2),
-                       ('HHIT', 'Head hit', 'Head hit node for vfx', 3),
-                       ('IMPC', 'Impact', 'Impact node for vfx', 4),
-                       ('GRND', 'Ground', 'Ground node for vfx', 5),
-                       ('USE1', 'Use 1', 'Node for "Use" animation', 6),
-                       ('USE2', 'Use 2', 'Node for "Use" animation', 7),
-                       ('O101', 'DWK: Open 1 1st', '1st node for "Use" animation', 8),
-                       ('O102', 'DWK: Open 1 2nd', '2nd node for "Use" animation', 9),
-                       ('O201', 'DWK: Open 2 1st', '1st node for "Use" animation', 10),
-                       ('O202', 'DWK: Open 2 2nd', '2nd node for "Use" animation', 11),
-                       ('CL01', 'DWK: Closed 1st', '1st node for "Use" animation', 12),
-                       ('CL02', 'DWK: Closed 2nd', '2nd node for "Use" animation', 13)],
-                default='NONE')
+                name='Type',
+                items=[(nvb_def.Dummytype.DEFAULT,
+                        'None', 'Simple dummy object', 0),
+                       (nvb_def.Dummytype.HAND,
+                        'Hand', 'Hand node for vfx', 1),
+                       (nvb_def.Dummytype.HEAD,
+                        'Head', 'Head node for vfx', 2),
+                       (nvb_def.Dummytype.HEAD_HIT,
+                        'Head hit', 'Head hit node for vfx', 3),
+                       (nvb_def.Dummytype.IMPACT,
+                        'Impact', 'Impact node for vfx', 4),
+                       (nvb_def.Dummytype.GROUND,
+                        'Ground', 'Ground node for vfx', 5),
+                       (nvb_def.Dummytype.USE1,
+                        'Use 1', 'Node for "Use" animation', 6),
+                       (nvb_def.Dummytype.USE2,
+                        'Use 2', 'Node for "Use" animation', 7),
+                       (nvb_def.Dummytype.OPEN1_01,
+                        'DWK: Open 1 1st', '1st node for "Use" animation', 8),
+                       (nvb_def.Dummytype.OPEN1_02,
+                        'DWK: Open 1 2nd', '2nd node for "Use" animation', 9),
+                       (nvb_def.Dummytype.OPEN2_01,
+                        'DWK: Open 2 1st', '1st node for "Use" animation', 10),
+                       (nvb_def.Dummytype.OPEN2_02,
+                        'DWK: Open 2 2nd', '2nd node for "Use" animation', 11),
+                       (nvb_def.Dummytype.CLOSED_01,
+                        'DWK: Closed 1st', '1st node for "Use" animation', 12),
+                       (nvb_def.Dummytype.CLOSED_01,
+                        'DWK: Closed 2nd', '2nd node for "Use" animation', 13)
+                       ],
+                default=nvb_def.Dummytype.DEFAULT)
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
                 description='Animation scale for all animations',
@@ -185,9 +219,13 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default=nvb_def.Meshtype.TRIMESH)
     smoothgroup = bpy.props.EnumProperty(
                 name='Smoothgroup',
-                items=[('SEPR', 'Seperate', 'Each face has it\'s own smoothgroup', 0),
-                       ('SING', 'Single', 'All faces belong to the same smoothgroup', 1),
-                       ('AUTO', 'Auto', 'Generate smoothgroups either from edges marked as sharp', 2)],
+                items=[('SEPR',
+                        'Seperate', 'Each face has it\'s own group', 0),
+                       ('SING',
+                        'Single', 'All faces belong to the same group', 1),
+                       ('AUTO',
+                        'Auto', 'Generate groups from sharp edges', 2)
+                       ],
                 default='SEPR')
 
     shadow = bpy.props.BoolProperty(
@@ -202,10 +240,15 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
 
     tilefade = bpy.props.EnumProperty(
                 name='Tilefade',
-                items=[(nvb_def.Tilefade.NONE, 'None', 'Tilefade disabled', 0),
-                       (nvb_def.Tilefade.FADE, 'Fade', 'Tilefade enabled', 1),
-                       (nvb_def.Tilefade.BASE, 'Base', '???', 2),
-                       (nvb_def.Tilefade.NEIGHBOUR, 'Neighbour', 'Tilefade if Neighbouring Tile fades', 3)],
+                items=[(nvb_def.Tilefade.NONE,
+                        'None', 'Tilefade disabled', 0),
+                       (nvb_def.Tilefade.FADE,
+                        'Fade', 'Tilefade enabled', 1),
+                       (nvb_def.Tilefade.BASE,
+                        'Base', '???', 2),
+                       (nvb_def.Tilefade.NEIGHBOUR,
+                        'Neighbour', 'Tilefade if Neighbouring Tile fades', 3)
+                       ],
                 default=nvb_def.Tilefade.NONE)
     beaming = bpy.props.BoolProperty(
                 name='beaming',
@@ -261,12 +304,18 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For lamps
     lighttype = bpy.props.EnumProperty(
                 name='Type',
-                items=[('NONE', 'None', 'Simple light', 0),
-                       ('MAINLIGHT1', 'Mainlight 1', 'Mainlight for tiles (Editable in toolset)', 1),
-                       ('MAINLIGHT2', 'Mainlight 2', 'Mainlight for tiles (Editable in toolset)', 2),
-                       ('SOURCELIGHT1', 'Sourcelight 1', 'Editable in toolset', 3),
-                       ('SOURCELIGHT2', 'Sourcelight 2', 'Editable in toolset', 4)],
-                default='NONE')
+                items=[(nvb_def.Light.DEFAULT,
+                        'Default', 'Simple light', 0),
+                       (nvb_def.Light.MAIN1,
+                        'Mainlight 1', 'For tiles (Editable in toolset)', 1),
+                       (nvb_def.Light.MAIN2,
+                        'Mainlight 2', 'For tiles (Editable in toolset)', 2),
+                       (nvb_def.Light.SOURCE1,
+                        'Sourcelight 1', 'For tiles (Editable in toolset)', 3),
+                       (nvb_def.Light.SOURCE2,
+                        'Sourcelight 2', 'For tiles (Editable in toolset)', 4)
+                       ],
+                default=nvb_def.Light.DEFAULT)
     ambientonly = bpy.props.BoolProperty(
                 name='Ambient Only',
                 default=False)

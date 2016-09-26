@@ -24,23 +24,11 @@ class Animation():
 
     def create(self, rootDummy, nodeNameResolver, options):
         """Create animations with a list of imported objects."""
-        # Get the first usable frame, i.e. the last frame
-        # of the last animation
-        lastAnimEnd = nvb_def.anim_globstart
-        for anim in rootDummy.nvb.animList:
-            if anim.frameEnd > lastAnimEnd:
-                lastAnimEnd = anim.frameEnd
-            if anim.name == self.name:
-                print('Neverblender - Warning: Animation ' +
-                      self.name + ' already exisits')
-        animStartFrame = lastAnimEnd + nvb_def.anim_offset
-
         # Add new animation to list
-        newAnim = rootDummy.nvb.animList.add()
+        newAnim = nvb_utils.createAnimListItem(rootDummy)
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
-        newAnim.frameStart = animStartFrame
         newAnim.frameEnd = newAnim.frameStart + \
             nvb_utils.nwtime2frame(self.length)
 
@@ -48,15 +36,15 @@ class Animation():
         for ev in self.events:
             newEvent = newAnim.eventList.add()
             newEvent.name = ev[1]
-            newEvent.frame = animStartFrame + \
+            newEvent.frame = newAnim.frameStart + \
                 nvb_utils.nwtime2frame(ev[0])
 
         # Load the animation into the objects/actions
         for node in self.nodes:
             objName = nodeNameResolver.findObj(node.name,
                                                node.parent,
-                                               node.id)
-            if objName in bpy.data.objects:
+                                               node.idx)
+            if objName and objName in bpy.data.objects:
                 node.create(bpy.data.objects[objName], newAnim)
 
     def loadAsciiAnimHeader(self, asciiData):
@@ -103,7 +91,7 @@ class Animation():
     @staticmethod
     def generateAsciiNodes(obj, anim, asciiLines):
         """TODO: Doc."""
-        nvb_animnode.Node.generateAscii(anim, obj, asciiLines)
+        nvb_animnode.Node.generateAscii(obj, anim, asciiLines)
 
         childList = []
         for child in obj.children:
@@ -114,7 +102,7 @@ class Animation():
             Animation.generateAsciiGeometry(child, anim, asciiLines)
 
     @staticmethod
-    def generateAscii(anim, rootDummy, asciiLines):
+    def generateAscii(rootDummy, anim, asciiLines, options):
         """TODO: Doc."""
         if anim.mute:
             # Don't export mute animations
@@ -135,7 +123,7 @@ class Animation():
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
                               event.name)
 
-        Animation.generateAsciiNodes(anim, rootDummy, asciiLines)
+        Animation.generateAsciiNodes(rootDummy, anim, asciiLines)
 
         asciiLines.append('doneanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('')

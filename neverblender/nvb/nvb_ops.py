@@ -8,24 +8,61 @@ from . import nvb_utils
 from . import nvb_io
 
 
+class NVB_LIST_OT_Anim_AdjustTimeline(bpy.types.Operator):
+    """Set the Start and end frames of the timeline."""
+
+    bl_idname = 'nvb.anim_adjusttimeline'
+    bl_label = 'Set start and end frame of the timeline to the animation'
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if animation list is empty."""
+        return len(context.object.nvb.animList) > 0
+
+    def execute(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        animList = obj.nvb.animList
+        animIdx = obj.nvb.animListIdx
+
+        anim = animList[animIdx]
+        scene = context.scene
+        if (scene.frame_start == anim.frameStart) and \
+           (scene.frame_end == anim.frameEnd):
+            # Set timeline to all current animation
+            scene.frame_start = 1
+            lastFrame = 1
+            for anim in animList:
+                if lastFrame < anim.frameEnd:
+                    lastFrame = anim.frameEnd
+            scene.frame_end = lastFrame
+        else:
+            # Set timeline to the current animation
+            scene.frame_start = anim.frameStart
+            scene.frame_end = anim.frameEnd
+
+        scene.frame_current = scene.frame_start
+
+        return {'FINISHED'}
+
+
 class NVB_LIST_OT_Anim_New(bpy.types.Operator):
     """Add a new animation to the animation list."""
 
     bl_idname = 'nvb.anim_new'
     bl_label = 'Create new animation'
 
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        return context.object is not None
+
     def execute(self, context):
         """TODO: DOC."""
-        newAnim = context.object.nvb.animList.add()
-        newAnim.root = context.object.name
-        lastAnimEnd = nvb_def.anim_globstart
-        for anim in context.object.nvb.animList:
-            if anim.frameEnd > lastAnimEnd:
-                lastAnimEnd = anim.frameEnd
-        newAnim.frameStart = lastAnimEnd + nvb_def.anim_offset
-        newAnim.frameEnd = newAnim.frameStart
+        obj = context.object
+        nvb_utils.createAnimListItem(obj)
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
@@ -36,19 +73,20 @@ class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        """Enable only if the list isn't empty."""
+        """Prevent execution if animation list is empty."""
         return len(context.object.nvb.animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        animList = context.object.nvb.animList
-        animIdx = context.object.nvb.animListIdx
+        obj = context.object
+        animList = obj.nvb.animList
+        animIdx = obj.nvb.animListIdx
 
         animList.remove(animIdx)
         if animIdx > 0:
             animIdx = animIdx - 1
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
@@ -63,7 +101,7 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        """TODO: DOC."""
+        """Prevent execution if animation list is empty."""
         return len(context.object.nvb.animList) > 0
 
     def move_index(self, context):
@@ -97,9 +135,9 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
             # TODO: Move whole animation, i.e. trade places
             self.move_index(context)
         else:
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
@@ -113,7 +151,7 @@ class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
         if (context.object.type == 'LAMP'):
             context.object.nvb.flareList.add()
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_LightFlare_Delete(bpy.types.Operator):
@@ -136,7 +174,7 @@ class NVB_LIST_OT_LightFlare_Delete(bpy.types.Operator):
         if flareIdx > 0:
             flareIdx = flareIdx - 1
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
@@ -145,7 +183,8 @@ class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
     bl_idname = 'nvb.lightflare_move'
     bl_label = 'Move an item in the flare list'
 
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
+    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
+                                              ('DOWN', 'Down', '')))
 
     @classmethod
     def poll(self, context):
@@ -181,9 +220,9 @@ class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
             flareList.move(neighbour, flareIdx)
             self.move_index(context)
         else:
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
@@ -206,9 +245,10 @@ class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
         anim = obj.nvb.animList[obj.nvb.animListIdx]
 
         eventList = anim.eventList
-        eventList.add()
+        newEvent = eventList.add()
+        newEvent.frame = anim.frameStart
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
@@ -249,7 +289,8 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
     bl_idname = 'nvb.animevent_move'
     bl_label = 'Move an item in the event  list'
 
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''), ('DOWN', 'Down', '')))
+    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
+                                              ('DOWN', 'Down', '')))
 
     @classmethod
     def poll(self, context):
@@ -390,7 +431,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export',
             options={'ENUM_FLAG'},
             items=(('ANIMATION', 'Animations', 'Export animations'),
-                   ('WALKMESH', 'Walkmesh', 'Attempt to create walkmesh file (.pwk, .dwk or .wok depending on classification)'),
+                   ('WALKMESH', 'Walkmesh', 'Export a walkmesh'),
                    ),
             default={'ANIMATION', 'WALKMESH'})
 

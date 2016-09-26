@@ -34,34 +34,6 @@ wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_StoneBridge',   (0.081, 0.108, 0.139), 0.0]]
 
 
-class ImportOptions():
-    """TODO: DOC."""
-
-    importGeometry = True
-    importWalkmesh = True
-    importSmoothGroups = True
-    importAnim = 'STD'
-    importSupermodel = False
-    # Options for textures and materials
-    materialMode = 'SIN'
-    texturePath = ''
-    textureSearch = False
-    # for minimap generator
-    minimapMode = False
-    minimapSkipFade = False
-
-
-class ExportOptions():
-    """TODO: DOC."""
-
-    exportAnim = True
-    exportWalkmesh = True
-    exportSmoothGroups = True
-
-    meshConvert = 'RENDER'
-    applyModifiers = True
-
-
 class MalformedMdlFile(Exception):
     """TODO: DOC."""
 
@@ -73,9 +45,8 @@ class MalformedMdlFile(Exception):
         """TODO: DOC."""
         return repr(self.parameter)
 
-
+"""
 class Animtype():
-    """TODO: DOC."""
 
     UNDEFINED  = 'undefined'
     PLSTAB     = 'plstab'
@@ -113,12 +84,13 @@ class Animtype():
     CUSTOM08   = 'custom8'
     CUSTOM09   = 'custom9'
     CUSTOM10   = 'custom10'
+"""
 
 
 class Dummytype():
     """TODO: DOC."""
 
-    NONE = 'NONE'
+    DEFAULT = 'DEFAULT'
     HAND = 'HAND'
     HEAD = 'HEAD'
     HEAD_HIT = 'HHIT'
@@ -133,8 +105,10 @@ class Dummytype():
     CLOSED_01 = 'CL01'
     CLOSED_02 = 'CL02'
 
-    SUFFIX_LIST = [('use01',     USE1),
-                   ('use02',     USE2),
+    suffix_list = [('dwk_use01', USE1),
+                   ('pwk_use01', USE1),
+                   ('dwk_use02', USE2),
+                   ('pwk_use02', USE2),
                    ('hand',      HAND),
                    ('head',      HEAD),
                    ('head_hit',  HEAD_HIT),
@@ -150,29 +124,37 @@ class Dummytype():
                    ('closed_01', CLOSED_01),
                    ('closed_02', CLOSED_02)]
 
-    SUFFIX_PWK = {NONE:     '',
+    suffic_pwk = {DEFAULT:  '',
                   HAND:     'hand',
                   HEAD:     'head',
                   HEAD_HIT: 'head_hit',
                   IMPACT:   'impact',
                   GROUND:   'ground',
-                  USE1:     'use01',
-                  USE2:     'use02'}
+                  USE1:     'dwk_use01',
+                  USE2:     'dwk_use02'}
 
-    SUFFIX_DWK = {NONE:      '',
+    suffix_dwk = {DEFAULT:   '',
                   HAND:      'hand',
                   HEAD:      'head',
                   HEAD_HIT:  'hhit',
                   IMPACT:    'impc',
                   GROUND:    'grnd',
-                  USE1:      'use01',
-                  USE2:      'use02',
+                  USE1:      'pwk_use01',
+                  USE2:      'pwk_use02',
                   OPEN1_01:  'open1_01',
                   OPEN1_02:  'open1_02',
                   OPEN2_01:  'open2_01',
                   OPEN2_02:  'open2_02',
                   CLOSED_01: 'closed_01',
                   CLOSED_02: 'closed_02'}
+
+    @classmethod
+    def getDummyType(cls, nodeName):
+        """TODO: Doc."""
+        for suffix in cls.suffix_list:
+            if nodeName.endswith(suffix[0]):
+                return suffix[1]
+        return cls.DEFAULT
 
 
 class Meshtype():
@@ -235,9 +217,51 @@ class Light():
     """TODO: DOC."""
 
     DEFAULT = 'DEFAULT'
-    MAINLIGHT1 = 'MAIN1'
-    MAINLIGHT2 = 'MAIN2'
-    TILELIGHT1 = 'MAIN1'
-    TILELIGHT2 = 'MAIN2'
+    MAIN1 = 'MAIN1'
+    MAIN2 = 'MAIN2'
+    SOURCE1 = 'SOURCE1'
+    SOURCE2 = 'SOURCE2'
 
-    ALL = {DEFAULT, MAINLIGHT1, MAINLIGHT2, TILELIGHT1, TILELIGHT2}
+    ALL = {DEFAULT, MAIN1, MAIN2, SOURCE1, SOURCE2}
+
+    suffix_list = [('ml1', MAIN1),
+                   ('ml2', MAIN2),
+                   ('???', SOURCE1),
+                   ('???', SOURCE2)]
+
+    @classmethod
+    def getLightType(cls, nodeName):
+        """TODO: Doc."""
+        for suffix in cls.suffix_list:
+            if nodeName.endswith(suffix[0]):
+                return suffix[1]
+        return cls.DEFAULT
+
+
+class ImportOptions():
+    """TODO: DOC."""
+
+    importGeometry = True
+    importWalkmesh = True
+    importSmoothGroups = True
+    importAnim = 'STD'
+    importSupermodel = False
+    # Options for textures and materials
+    materialMode = 'SIN'
+    texturePath = ''
+    textureSearch = False
+    # for minimap generator
+    minimapMode = False
+    minimapSkipFade = False
+
+
+class ExportOptions():
+    """TODO: DOC."""
+
+    exportAnim = True
+    exportWalkmesh = True
+    exportSmoothGroups = True
+
+    meshConvert = 'RENDER'
+    applyModifiers = True
+    classification = Classification.UNKNOWN

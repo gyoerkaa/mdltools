@@ -114,11 +114,21 @@ def findMaterial(diffuse=(1.0, 1.0, 1.0),
     return None
 
 
-def getValidExports(rootDummy, validExports):
-    """TODO: DOC."""
-    validExports.append(rootDummy.name)
-    for child in rootDummy.children:
-        getValidExports(child, validExports)
+def getWalkmeshObjects(obj, classification, objList=[]):
+    """Get a list of object names belonging to the walkmesh."""
+    if classification == nvb_def.Classification.DOOR:
+        # Door
+        pass
+    elif classification == nvb_def.Classification.TILE:
+        # Tile
+        if (getNodeType(obj) == nvb_def.Nodetype.AABB):
+            objList.append(obj.name)
+    else:
+        # Try to find objects for placeables
+        pass
+
+    for child in obj.children:
+        getWalkmeshObjects(child, classification, objList)
 
 
 def isRootDummy(obj):
@@ -129,20 +139,37 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def findRootDummy():
+def findRootDummy(obj=None):
     """TODO: DOC."""
-    # 1. Check the selected object and it's parents
-    obj = bpy.context.object
+    # 1. Check the object and its parents
     while obj:
         if isRootDummy(obj):
             return obj
         obj = obj.parent
-    # Nothing was found, try checking all objects
-    matches = [rd for rd in bpy.data.objects if isRootDummy(rd)]
+    # 2. Nothing was found, try checking the objects in the current scene
+    if bpy.context.scene:
+        matches = [m for m in bpy.context.scene.objects if isRootDummy(m)]
+        if matches:
+            return matches[0]
+    # 3. Still nothing, try checking all objects
+    matches = [m for m in bpy.data.objects if isRootDummy(m)]
     if matches:
         return matches[0]
 
     return None
+
+
+def createAnimListItem(obj):
+    """TODO: Doc."""
+    newAnim = obj.nvb.animList.add()
+    newAnim.root = obj.name
+    lastAnimEnd = nvb_def.anim_globstart
+    for anim in obj.nvb.animList:
+        if anim.frameEnd > lastAnimEnd:
+            lastAnimEnd = anim.frameEnd
+    newAnim.frameStart = lastAnimEnd + nvb_def.anim_offset
+    newAnim.frameEnd = newAnim.frameStart
+    return newAnim
 
 
 def getNodeType(obj):
