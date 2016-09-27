@@ -338,6 +338,21 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                             bpy.data, 'texts',
                             text='Data')
 
+        # Additional props for aabb walkmeshes
+        elif (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH):
+            row = layout.row()
+            box = row.box()
+
+            row = box.row()
+            row.prop(obj.nvb, 'walkmeshtype', text='Walkmeshtype')
+            box.separator()
+            if (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE):
+                row = box.row()
+                row.operator('nvb.load_wok_mats',
+                             text='Load walkmesh materials', icon='NONE')
+                row = box.row()
+                row.label(text='(Warning: Removes current materials)')
+
         else:  # Trimesh, danglymesh, skin
             row = layout.row()
             box = row.box()
@@ -399,15 +414,3 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row.prop_search(obj.nvb, 'skingroup_obj',
                                 context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
-
-            # Additional props for aabb walkmeshes
-            elif (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
-                layout.separator()
-
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.operator('nvb.load_wok_mats',
-                             text='Load walkmesh materials', icon='NONE')
-                row = box.row()
-                row.label(text='(Warning: Removes current materials)')

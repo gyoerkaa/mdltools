@@ -455,10 +455,7 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
 
 class LoadWokMaterials(bpy.types.Operator):
-    """Load all materials for aabb walkmeshes for the selected object.
-
-    Current material slots will be deleted.
-    """
+    """Load all materials for aabb walkmeshes for the selected object."""
 
     bl_idname = "nvb.load_wok_mats"
     bl_label = "Load walkmesh materials"

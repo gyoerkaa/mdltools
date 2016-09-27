@@ -213,10 +213,24 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 items=[(nvb_def.Meshtype.TRIMESH, 'Trimesh', 'desc', 0),
                        (nvb_def.Meshtype.DANGLYMESH, 'Danglymesh', 'desc', 1),
                        (nvb_def.Meshtype.SKIN, 'Skinmesh', 'desc', 2),
-                       (nvb_def.Meshtype.AABB, 'AABB Walkmesh', 'desc', 3),
+                       (nvb_def.Meshtype.WALKMESH, 'Walkmesh', 'desc', 3),
                        (nvb_def.Meshtype.EMITTER, 'Emitter', 'desc', 4),
                        (nvb_def.Meshtype.ANIMMESH, 'Animesh', 'desc', 5)],
                 default=nvb_def.Meshtype.TRIMESH)
+    walkmeshtype = bpy.props.EnumProperty(
+                name='Type',
+                items=[(nvb_def.Walkmeshtype.PWK,
+                        'Placeable', 'Placeable walkmesh', 0),
+                       (nvb_def.Walkmeshtype.DWKOPEN1,
+                        'Door: Open 1', 'desc', 1),
+                       (nvb_def.Walkmeshtype.DWKOPEN2,
+                        'Door: Open 2', 'desc', 2),
+                       (nvb_def.Walkmeshtype.DWKCLOSED,
+                        'Door: Closed', 'desc', 2),
+                       (nvb_def.Walkmeshtype.TILE,
+                        'Tileset', 'Walkmesh for tilesets', 3)
+                       ],
+                default=nvb_def.Walkmeshtype.PWK)
     smoothgroup = bpy.props.EnumProperty(
                 name='Smoothgroup',
                 items=[('SEPR',

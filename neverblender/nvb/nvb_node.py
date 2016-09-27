@@ -220,7 +220,7 @@ class Dummy(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.emptytype = self.emptytype
-        obj.nvb.dummytype = nvb_def.Dummytype.getDummyType(self.name)
+        obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
 
 
 class Patch(Node):
@@ -299,6 +299,7 @@ class Trimesh(Node):
         Node.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.TRIMESH
+        self.walkmeshtype = nvb_def.Walkmeshtype.PWK  # Default values
         self.center = (0.0, 0.0, 0.0)  # Unused ?
         self.tilefade = 0
         self.render = 1
@@ -1345,7 +1346,8 @@ class Aabb(Trimesh):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
 
-        self.meshtype = nvb_def.Meshtype.AABB
+        self.meshtype = nvb_def.Meshtype.WALKMESH
+        self.walkmeshtype = nvb_def.Walkmeshtype.TILE
 
     @staticmethod
     def generateAsciiAABB(obj, asciiLines, options):
@@ -1501,6 +1503,13 @@ class Aabb(Trimesh):
 
         mesh.update()
         return mesh
+
+    def createObjectData(self, obj, options):
+        """TODO: Doc."""
+        Trimesh.createObjectData(self, obj, options)
+
+        obj.nvb.meshtype = self.meshtype
+        obj.nvb.walkmeshtype = nvb_def.Walkmeshtype.TILE
 
     def createObject(self, options):
         """TODO: Doc."""

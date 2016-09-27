@@ -105,9 +105,9 @@ class Dummytype():
     CLOSED_01 = 'CL01'
     CLOSED_02 = 'CL02'
 
-    suffix_list = [('dwk_use01', USE1),
+    suffix_list = [('dp_dwk_use01', USE1),
                    ('pwk_use01', USE1),
-                   ('dwk_use02', USE2),
+                   ('dp_dwk_use02', USE2),
                    ('pwk_use02', USE2),
                    ('hand',      HAND),
                    ('head',      HEAD),
@@ -124,7 +124,7 @@ class Dummytype():
                    ('closed_01', CLOSED_01),
                    ('closed_02', CLOSED_02)]
 
-    suffic_pwk = {DEFAULT:  '',
+    suffix_pwk = {DEFAULT:  '',
                   HAND:     'hand',
                   HEAD:     'head',
                   HEAD_HIT: 'head_hit',
@@ -149,7 +149,7 @@ class Dummytype():
                   CLOSED_02: 'closed_02'}
 
     @classmethod
-    def getDummyType(cls, nodeName):
+    def getType(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
@@ -163,11 +163,11 @@ class Meshtype():
     TRIMESH = 'trimesh'
     DANGLYMESH = 'danglymesh'
     SKIN = 'skin'
-    AABB = 'aabb'
+    WALKMESH = 'walkmesh'
     EMITTER = 'emitter'
     ANIMMESH = 'animmesh'
 
-    ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMMESH}
+    ALL = {TRIMESH, DANGLYMESH, SKIN, WALKMESH, EMITTER, ANIMMESH}
 
 
 class Emptytype():
@@ -183,9 +183,32 @@ class Emptytype():
 class Nodetype(Emptytype, Meshtype):
     """TODO: Doc."""
 
-    LIGHT = 'LIGHT'
+    LIGHT = 'light'
+    AABB = 'aabb'
 
-    ALL = {LIGHT} | Emptytype.ALL | Meshtype.ALL
+    ALL = {LIGHT, AABB} | Emptytype.ALL | Meshtype.ALL
+
+
+class Walkmeshtype():
+    """TODO: Doc."""
+
+    TILE = 'tile'
+    PWK = 'pwk'
+    DWKOPEN1 = 'dwko1'
+    DWKOPEN2 = 'dwko2'
+    DWKCLOSED = 'dwkcl'
+
+    suffix_list = [('wg_open1', DWKOPEN1),
+                   ('wg_open2', DWKOPEN2),
+                   ('wg_closed', DWKCLOSED)]
+
+    @classmethod
+    def getType(cls, nodeName):
+        """TODO: Doc."""
+        for suffix in cls.suffix_list:
+            if nodeName.endswith(suffix[0]):
+                return suffix[1]
+        return cls.PWK
 
 
 class Tilefade():
@@ -230,7 +253,7 @@ class Light():
                    ('???', SOURCE2)]
 
     @classmethod
-    def getLightType(cls, nodeName):
+    def getType(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
