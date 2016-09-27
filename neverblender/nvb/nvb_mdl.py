@@ -7,7 +7,6 @@ import bpy
 
 from . import nvb_node
 from . import nvb_anim
-from . import nvb_glob
 from . import nvb_def
 from . import nvb_utils
 
@@ -120,6 +119,7 @@ class Mdl():
             # Set Walkmesh stuff
             node.parent = '!'  # Always parent to rootdummy
             if node.nodetype == nvb_def.Nodetype.TRIMESH:
+                node.meshtype = nvb_def.Meshtype.WALKMESH
                 node.walkmeshtype = nvb_def.Walkmeshtype.getType(node.name)
             self.nodes.append(node)
 
@@ -192,19 +192,21 @@ class Mdl():
         geomStart = asciiBlock.find('node ')  # Look for the first 'node'
         animStart = asciiBlock.find('newanim ')  # Look for the first 'newanim'
 
+        if (animStart > 0) and (geomStart > animStart):
+            raise nvb_def.MalformedMdlFile('Animations before geometry')
+        if (geomStart < 0):
+            raise nvb_def.MalformedMdlFile('Unable to find geometry')
         self.loadAsciiHeader(asciiBlock[:geomStart-1])
+        # Import Geometry
         if options.importGeometry:
-            if (geomStart < 0):
-                # Something is wrong
-                raise nvb_def.MalformedMdlFile('Unable to find geometry')
-            self.loadAsciiGeometry(asciiBlock[geomStart:])
-
-        if options.importAnim:
-            if (animStart > 0) and (geomStart > animStart):
-                # Something is wrong
-                raise nvb_def.MalformedMdlFile('Unable to find geometry')
             if (animStart > 0):
-                self.loadAsciiAnimations(asciiBlock[animStart:])
+                # Animations present, skip them
+                self.loadAsciiGeometry(asciiBlock[geomStart:animStart])
+            else:
+                self.loadAsciiGeometry(asciiBlock[geomStart:])
+        # Import Animations
+        if options.importAnim and (animStart > 0):
+            self.loadAsciiAnimations(asciiBlock[animStart:])
 
     @staticmethod
     def generateAsciiHeader(rootDummy, asciiLines, options):
@@ -300,10 +302,14 @@ class Mdl():
 
     def createObjectLinks(self, scene, options):
         """Handle parenting and linking the objects to a scene."""
+        print('####### Link #####')
         # We'll need this for objects with missing parents (or walkmeshes)
         rootNode = self.getRootNode()
         if rootNode:
-            rootObj = self.nodeNameResolver.findObj(rootNode.name, '')
+            rootObjName = self.nodeNameResolver.findObj(rootNode.name, '')
+            print('node: ' + rootNode.name)
+            print('obj: ' + rootObjName)
+            rootObj = bpy.data.objects[rootObjName]
         # Loop over all imported nodes
         # There may be several nodes with the same name in the mdl.
         # However, Blender object names are unique, we need to fix this.
@@ -336,16 +342,22 @@ class Mdl():
 
     def createObjects(self, scene, options):
         """TODO: DOC."""
+        print('####### Create #####')
         if self.nodes:
             for node in self.nodes:
                 # Creates a blender object for this node
                 obj = node.createObject(options)
                 # Save the imported objects for animation import
+                print('node name:   ' + node.name)
+                print('node parent: ' + node.parent)
+                print('obj name:    ' + obj.name)
                 if obj:
                     self.nodeNameResolver.insertObj(node.name,
                                                     node.parent,
                                                     node.idx,
                                                     obj.name)
+                else:
+                    print('INTERNAL ERROR')
 
     def createAnimations(self, scene, options):
         """TODO: DOC."""

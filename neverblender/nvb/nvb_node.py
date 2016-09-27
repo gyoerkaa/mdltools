@@ -536,6 +536,7 @@ class Trimesh(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
+        obj.nvb.walkmeshtype = self.walkmeshtype
         if self.tilefade == 1:
             obj.nvb.tilefade = nvb_def.Tilefade.FADE
         elif self.tilefade == 2:
@@ -1503,13 +1504,6 @@ class Aabb(Trimesh):
 
         mesh.update()
         return mesh
-
-    def createObjectData(self, obj, options):
-        """TODO: Doc."""
-        Trimesh.createObjectData(self, obj, options)
-
-        obj.nvb.meshtype = self.meshtype
-        obj.nvb.walkmeshtype = nvb_def.Walkmeshtype.TILE
 
     def createObject(self, options):
         """TODO: Doc."""

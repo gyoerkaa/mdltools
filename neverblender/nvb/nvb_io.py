@@ -45,14 +45,14 @@ def loadMdl(operator, context,
         if importWalkmesh:
             (mdlPath, mdlFilename) = os.path.split(filepath)
             for wkmtype in ['pwk', 'dwk']:
-                wkmPath = os.fsencode(os.path.join(
-                            mdlPath,
-                            os.path.splitext(mdlFilename)[0] + '.' + wkmtype))
+                wkmFilename = os.path.splitext(mdlFilename)[0] + '.' + wkmtype
+                wkmPath = os.fsencode(os.path.join(mdlPath, wkmFilename))
                 try:
                     wkmFile = open(wkmPath, 'r')
                 except IOError:
                     print("Neverblender: No " + wkmtype + " walkmesh found")
                 else:
+                    print('Neverblender: Importing ' + wkmFilename)
                     asciiWkm = wkmFile.read()
                     mdl.loadAsciiWalkmesh(asciiWkm, options)
                     wkmFile.close()
