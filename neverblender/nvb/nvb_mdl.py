@@ -39,7 +39,8 @@ class Mdl():
 
     def loadAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
-        for line in asciiBlock.splitlines():
+        asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
+        for line in asciiLines:
             try:
                 label = line[0].lower()
             except IndexError:
@@ -196,6 +197,7 @@ class Mdl():
             raise nvb_def.MalformedMdlFile('Animations before geometry')
         if (geomStart < 0):
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
+        
         self.loadAsciiHeader(asciiBlock[:geomStart-1])
         # Import Geometry
         if options.importGeometry:
@@ -302,13 +304,10 @@ class Mdl():
 
     def createObjectLinks(self, scene, options):
         """Handle parenting and linking the objects to a scene."""
-        print('####### Link #####')
         # We'll need this for objects with missing parents (or walkmeshes)
         rootNode = self.getRootNode()
         if rootNode:
             rootObjName = self.nodeNameResolver.findObj(rootNode.name, '')
-            print('node: ' + rootNode.name)
-            print('obj: ' + rootObjName)
             rootObj = bpy.data.objects[rootObjName]
         # Loop over all imported nodes
         # There may be several nodes with the same name in the mdl.
@@ -342,15 +341,11 @@ class Mdl():
 
     def createObjects(self, scene, options):
         """TODO: DOC."""
-        print('####### Create #####')
         if self.nodes:
             for node in self.nodes:
                 # Creates a blender object for this node
                 obj = node.createObject(options)
                 # Save the imported objects for animation import
-                print('node name:   ' + node.name)
-                print('node parent: ' + node.parent)
-                print('obj name:    ' + obj.name)
                 if obj:
                     self.nodeNameResolver.insertObj(node.name,
                                                     node.parent,

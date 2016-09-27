@@ -47,10 +47,11 @@ class Animation():
             if objName and objName in bpy.data.objects:
                 node.create(bpy.data.objects[objName], newAnim)
 
-    def loadAsciiAnimHeader(self, asciiData):
+    def loadAsciiAnimHeader(self, asciiBlock):
         """TODO: DOC."""
-        lines = asciiData.splitlines()
-        for line in lines:
+        asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
+        for line in asciiLines:
+            print(line)
             try:
                 label = line[0].lower()
             except IndexError:

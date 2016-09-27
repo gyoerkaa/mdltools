@@ -360,6 +360,8 @@ class Node():
 
     def create(self, obj, anim):
         """TODO:Doc."""
+        if self.isEmpty:
+            return
         self.createDataObj(obj, anim)
         if obj.active_material:
             self.createDataMat(obj.active_material, anim)
