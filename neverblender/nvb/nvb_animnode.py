@@ -23,7 +23,7 @@ class Keys():
         self.color = []
         self.radius = []
         # Emitters ... incompatible. Import as text
-        self.rawascii = ''
+        self.rawascii = []
 
     def hasAlpha(self):
         """TODO: DOC."""
@@ -36,7 +36,7 @@ class Node():
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
         self.nodetype = 'dummy'
-        self.idx = -1
+        self.nodeidx = -1
 
         self.name = name
         self.parent = nvb_def.null
@@ -70,13 +70,13 @@ class Node():
         return next((i for i, v in enumerate(asciiBlock)
                      if not l_isNumber(v[0])), -1)
 
-    def loadAscii(self, asciiBlock, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         l_float = float
         l_int = int
         l_isNumber = nvb_utils.isNumber
-        self.idx = idx
-        for i, line in enumerate(asciiBlock):
+        self.nodeidx = nodeidx
+        for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except IndexError:
@@ -129,60 +129,58 @@ class Node():
                 # self.isEmpty = False # might still be empty
             elif label == 'animverts':
                 numVals = l_int(line[1])
-                nvb_parse.f3(asciiBlock[i+1:i+numVals+1], self.animverts)
+                nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
                 self.isEmpty = False
             elif label == 'animtverts':
                 numVals = l_int(line[1])
-                nvb_parse.f3(asciiBlock[i+1:i+numVals+1], self.animtverts)
+                nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
                 self.isEmpty = False
             # Keyed animations
             elif label == 'positionkey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1],
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                              self.keys.position)
                 self.isEmpty = False
             elif label == 'orientationkey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f5(asciiBlock[i+1:i+numKeys+1],
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
                              self.keys.orientation)
                 self.isEmpty = False
             elif label == 'scalekey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f2(asciiBlock[i+1:i+numKeys+1],
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
                              self.keys.scale)
                 self.isEmpty = False
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible. We'll
                 # handle them later as plain text
-                numKeys = self.findEnd(asciiBlock[i+1:])
+                numKeys = self.findEnd(asciiLines[i+1:])
                 if self.nodeType == 'emitter':
-                    nvb_parse.txt(asciiBlock[i:i+numKeys+1],
+                    nvb_parse.txt(asciiLines[i:i+numKeys+1],
                                   self.keys.rawascii)
                 else:
-                    nvb_parse.f2(asciiBlock[i+1:i+numKeys+1],
+                    nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
                                  self.keys.alpha)
                 self.isEmpty = False
             elif label == 'selfillumcolorkey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1],
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                              self.keys.selfillumcolor)
                 self.isEmpty = False
             # Lights/lamps only
             elif label == 'colorkey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f4(asciiBlock[i+1:i+numKeys+1], self.keys.color)
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.keys.color)
                 self.isEmpty = False
             elif label == 'radiuskey':
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.f2(asciiBlock[i+1:i+numKeys+1], self.keys.radius)
+                numKeys = self.findEnd(asciiLines[i+1:])
+                nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.keys.radius)
                 self.isEmpty = False
-            # Some unknown text.
-            # Probably keys for emitters = incompatible with blender.
-            # Import as text.
+            # Some unknown label.
+            # Probably keys for emitters, incompatible, save as plain text
             elif not l_isNumber(line[0]):
-                numKeys = self.findEnd(asciiBlock[i+1:])
-                nvb_parse.txt(asciiBlock[i:i+numKeys+1],
-                              self.keys.rawascii)
+                numKeys = self.findEnd(asciiLines[i+1:])
+                self.keys.rawascii.extend(asciiLines[i:i+numKeys+1])
                 self.isEmpty = False
 
     @staticmethod
@@ -270,9 +268,10 @@ class Node():
             curveX.keyframe_points.insert(frameStart, eul[0])
             curveY.keyframe_points.insert(frameStart, eul[1])
             curveZ.keyframe_points.insert(frameStart, eul[2])
-            curveX.keyframe_points.insert(frameEnd, eul[0])
-            curveY.keyframe_points.insert(frameEnd, eul[1])
-            curveZ.keyframe_points.insert(frameEnd, eul[2])
+            if frameStart != frameEnd:
+                curveX.keyframe_points.insert(frameEnd, eul[0])
+                curveY.keyframe_points.insert(frameEnd, eul[1])
+                curveZ.keyframe_points.insert(frameEnd, eul[2])
         # Set location channels if there are location keys
         if (self.keys.position):
             dp = 'location'
@@ -354,11 +353,33 @@ class Node():
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
                                              key[1])
 
-    def createDataEmit(self, obj, anim):
+    def createDataEmit(self, obj, anim, options):
         """TODO:Doc."""
-        pass
+        # Add imcompatible animations (emitters) as a text object
+        if (self.keys.rawascii):
+            # Get the text file
+            txt = None
+            if anim.rawascii and (anim.rawascii in bpy.data.texts):
+                txt = bpy.data.texts[anim.rawascii]
+            if not txt:
+                txt = bpy.data.texts.new(options.mdlname +
+                                         '.anim.' + anim.name)
+                anim.rawascii = txt.name
+            # Convert nwn time to frames and write to text file
+            txt.write('  node ' + self.nodetype + ' ' + self.name)
+            l_isNumber = nvb_utils.isNumber
+            frameStart = anim.frameStart
+            for line in self.keys.rawascii:
+                if l_isNumber(line[0]):
+                    nwtime = float(line[0])
+                    frame = frameStart + nvb_utils.nwtime2frame(nwtime)
+                    txt.write('\n      ' +
+                              str(frame) + ' ' + ' '.join(line[1:]))
+                else:
+                    txt.write('\n    ' + ' '.join(line))
+            txt.write('\n  endnode')
 
-    def create(self, obj, anim):
+    def create(self, obj, anim, options):
         """TODO:Doc."""
         if self.isEmpty:
             return
@@ -366,7 +387,7 @@ class Node():
         if obj.active_material:
             self.createDataMat(obj.active_material, anim)
         if nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER:
-            self.createDataEmit(obj, anim)
+            self.createDataEmit(obj, anim, options)
 
     @staticmethod
     def generateAsciiKeys(obj, anim, asciiLines):
@@ -404,7 +425,6 @@ class Node():
             axis = fcurve.array_index
             dataPath = fcurve.data_path
             name = ''
-            # print(dataPath)
             if dataPath == 'rotation_euler':
                 name = 'orientationkey'
             elif dataPath == 'rotation_axis_angle':
@@ -567,24 +587,6 @@ class Node():
             frame, key = keyDict[name].popitem()
             s = '    alpha {: 3.2f}'.format(key[0])
             asciiLines.append(s)
-
-    def getOriginalName(self, nodeName, animName):
-        """TODO: DOC."""
-        if nodeName.endswith(animName):
-            orig = nodeName[:len(nodeName)-len(animName)]
-            if orig.endswith('.'):
-                orig = orig[:len(orig)-1]
-            return orig
-
-        # Try to separate the name by the first '.'
-        # This is unsafe, but we have no choice if we want to maintain some
-        # flexibility. It will be up to the user to name the object properly
-        orig = nodeName.partition('.')[0]
-        if orig:
-            return orig
-
-        # Couldn't find anything ? Return the string itself
-        return nodeName
 
     def toAscii(self, animObj, asciiLines, animName):
         """TODO: DOC."""

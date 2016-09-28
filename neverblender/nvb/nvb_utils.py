@@ -114,6 +114,11 @@ def findMaterial(diffuse=(1.0, 1.0, 1.0),
     return None
 
 
+def isWalkmehsObject(obj, classification):
+    """Check if this object belongs to a walkmesh."""
+    pass
+
+
 def getWalkmeshObjects(obj, classification, objList=[]):
     """Get a list of object names belonging to the walkmesh."""
     if classification == nvb_def.Classification.DOOR:

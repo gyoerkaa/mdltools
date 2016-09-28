@@ -1077,9 +1077,9 @@ class Emitter(Node):
                 else:
                     self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
 
-    def createTextEmitter(self, obj):
+    def createTextEmitter(self, obj, options):
         """TODO: Doc."""
-        txt = bpy.data.texts.new(obj.name)
+        txt = bpy.data.texts.new(options.mdlname + '.' + obj.name)
         txt.write(self.rawascii)
         obj.nvb.rawascii = txt.name
 
@@ -1088,10 +1088,10 @@ class Emitter(Node):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
-        mesh.vertices[0].co = (self.xsize/2,  self.ysize/2, 0.0)
-        mesh.vertices[1].co = (self.xsize/2, -self.ysize/2, 0.0)
-        mesh.vertices[2].co = (-self.xsize/2, -self.ysize/2, 0.0)
-        mesh.vertices[3].co = (-self.xsize/2,  self.ysize/2, 0.0)
+        mesh.vertices[0].co = (1.0,  1.0, 0.0)
+        mesh.vertices[1].co = (1.0, -1.0, 0.0)
+        mesh.vertices[2].co = (-1.0, -1.0, 0.0)
+        mesh.vertices[3].co = (-1.0,  1.0, 0.0)
         mesh.tessfaces.add(1)
         mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
 
@@ -1106,7 +1106,17 @@ class Emitter(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
-        self.createTextEmitter(obj)
+        self.createTextEmitter(obj, options)
+
+    def createObject(self, options):
+        """TODO: Doc."""
+        if options.minimapMode:
+            return Node.createObject(self, options)
+
+        mesh = self.createMesh(self.name, options)
+        obj = bpy.data.objects.new(self.name, mesh)
+        self.createObjectData(obj, options)
+        return obj
 
     @staticmethod
     def generateAsciiData(obj, asciiLines, exports, options):

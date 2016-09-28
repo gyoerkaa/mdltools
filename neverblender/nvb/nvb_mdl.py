@@ -113,7 +113,6 @@ class Mdl():
             try:
                 node = nodelookup[nodeType](nodeName)
             except KeyError:
-                print(asciiLines[0])
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse the rest and add to node list
             node.loadAscii(asciiLines, idx)
@@ -146,7 +145,6 @@ class Mdl():
                       'emitter':    nvb_node.Emitter,
                       'light':      nvb_node.Light,
                       'aabb':       nvb_node.Aabb}
-
         dlm = 'node '
         nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
         for idx, asciiNode in enumerate(nodeList):
@@ -197,7 +195,7 @@ class Mdl():
             raise nvb_def.MalformedMdlFile('Animations before geometry')
         if (geomStart < 0):
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
-        
+
         self.loadAsciiHeader(asciiBlock[:geomStart-1])
         # Import Geometry
         if options.importGeometry:
@@ -239,6 +237,8 @@ class Mdl():
                       'emitter':    nvb_node.Emitter,
                       'light':      nvb_node.Light,
                       'aabb':       nvb_node.Aabb}
+        if nodeType == nvb_def.Nodetype.WALKMESH:
+            pass
         try:
             node = nodelookup[nodeType]()
         except KeyError:
@@ -302,7 +302,7 @@ class Mdl():
         # Creation time
         Mdl.generateAsciiMeta(asciiLines)
 
-    def createObjectLinks(self, scene, options):
+    def createObjectLinks(self, options):
         """Handle parenting and linking the objects to a scene."""
         # We'll need this for objects with missing parents (or walkmeshes)
         rootNode = self.getRootNode()
@@ -337,10 +337,11 @@ class Mdl():
                     # Treat as rootdummy.
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
-                scene.objects.link(obj)
+                options.scene.objects.link(obj)
 
-    def createObjects(self, scene, options):
+    def createObjects(self, options):
         """TODO: DOC."""
+        options.scene.render.fps = nvb_def.anim_fps
         if self.nodes:
             for node in self.nodes:
                 # Creates a blender object for this node
@@ -354,7 +355,7 @@ class Mdl():
                 else:
                     print('INTERNAL ERROR')
 
-    def createAnimations(self, scene, options):
+    def createAnimations(self, options):
         """TODO: DOC."""
         rootDummy = nvb_utils.findRootDummy(bpy.context.object)
         # We will load the 'default' animation first, so it is at the front
@@ -366,14 +367,14 @@ class Mdl():
         for anim in nonDefaultAnims:
             anim.create(rootDummy, self.nodeNameResolver, options)
 
-    def create(self, scene, options):
+    def create(self, options):
         """TODO: DOC."""
         if options.importGeometry:
-            self.createObjects(scene, options)
-            self.createObjectLinks(scene, options)
+            self.createObjects(options)
+            self.createObjectLinks(options)
 
             if options.importAnim:
-                self.createAnimations(scene, options)
+                self.createAnimations(options)
         else:
             # Import animations only, there is no objectDB in this case
             pass

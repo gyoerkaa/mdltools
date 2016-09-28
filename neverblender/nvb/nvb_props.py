@@ -58,7 +58,7 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 name='End Marker',
                 description='End marker in the timeline',
                 default='')
-    rawAscii = bpy.props.StringProperty(
+    rawascii = bpy.props.StringProperty(
                 name='Emitter Data',
                 description='Incompatible Emitter data loaded as plain text',
                 default='')

@@ -190,10 +190,13 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
                 row = box.row()
-                row.prop(anim, 'rawAscii')
+                row.prop_search(anim, 'rawascii',
+                                bpy.data, 'texts',
+                                text='Data')
                 # col = split.column(align=True)
                 # col.prop(anim, 'marker', text = '')
-                # col.prop_search(anim, 'marker', bpy.context.scene, 'timeline_markers', icon = 'MARKER')
+                # col.prop_search(anim, 'marker', bpy.context.scene,
+                # 'timeline_markers', icon = 'MARKER')
                 box.separator()
 
                 # Event Helper. Display and add/remove events.

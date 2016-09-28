@@ -33,7 +33,9 @@ def loadMdl(operator, context,
     options.minimapMode = minimapMode
     options.minimapSkipFade = minimapSkipFade
 
-    scene = bpy.context.scene
+    (mdlPath, mdlFilename) = os.path.split(filepath)
+    options.mdlname = mdlFilename
+    options.scene = bpy.context.scene
 
     with open(os.fsencode(filepath), 'r') as mdlfile:
         print('Neverblender: Importing ' + filepath)
@@ -57,7 +59,7 @@ def loadMdl(operator, context,
                     mdl.loadAsciiWalkmesh(asciiWkm, options)
                     wkmFile.close()
 
-        mdl.create(scene, options)
+        mdl.create(options)
 
     return {'FINISHED'}
 

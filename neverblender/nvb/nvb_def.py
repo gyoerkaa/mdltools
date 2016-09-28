@@ -264,6 +264,8 @@ class Light():
 class ImportOptions():
     """TODO: DOC."""
 
+    mdlname = 'unnamed'
+    # Misc options
     importGeometry = True
     importWalkmesh = True
     importSmoothGroups = True

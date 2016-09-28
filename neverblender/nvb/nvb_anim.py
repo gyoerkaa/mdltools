@@ -2,7 +2,6 @@
 
 import bpy
 
-from . import nvb_def
 from . import nvb_utils
 from . import nvb_animnode
 
@@ -43,15 +42,14 @@ class Animation():
         for node in self.nodes:
             objName = nodeNameResolver.findObj(node.name,
                                                node.parent,
-                                               node.idx)
+                                               node.nodeidx)
             if objName and objName in bpy.data.objects:
-                node.create(bpy.data.objects[objName], newAnim)
+                node.create(bpy.data.objects[objName], newAnim, options)
 
     def loadAsciiAnimHeader(self, asciiBlock):
         """TODO: DOC."""
         asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
         for line in asciiLines:
-            print(line)
             try:
                 label = line[0].lower()
             except IndexError:
