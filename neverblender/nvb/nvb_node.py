@@ -42,7 +42,7 @@ class Node(object):
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
         self.createdObj = ''  # Name of the corresponding object in blender
-        self.idx = -1  # Order in mdlfile (needs to be restored for export)
+        self.nodeidx = -1  # Order in mdlfile (needs to be restored for export)
 
         self.name = name
         self.parent = ''
@@ -66,18 +66,18 @@ class Node(object):
 
     def getIdx(self):
         """TODO: DOC."""
-        return self.idx
+        return self.nodeidx
 
     def getName(self):
         """TODO: DOC."""
         return self.name
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
-        self.idx = idx
+        self.nodeidx = nodeidx
         for line in asciiLines:
             try:
                 label = line[0].lower()
@@ -118,7 +118,7 @@ class Node(object):
     def createObject(self, options):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
-        obj.nvb.imporder = self.idx
+        obj.nvb.imporder = self.nodeidx
         self.createdObj = obj.name
         self.createObjectData(obj, options)
         return obj
@@ -211,9 +211,9 @@ class Dummy(Node):
 
         self.emptytype = nvb_def.Emptytype.DUMMY
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, idx)
+        Node.loadAscii(self, asciiLines, nodeidx)
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -254,9 +254,9 @@ class Reference(Node):
         self.refmodel = nvb_def.null
         self.reattachable = 0
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, idx)
+        Node.loadAscii(self, asciiLines, nodeidx)
         l_isNumber = nvb_utils.isNumber
 
         for line in asciiLines:
@@ -335,9 +335,9 @@ class Trimesh(Node):
 
         return image
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, idx)
+        Node.loadAscii(self, asciiLines, nodeidx)
 
         l_int = int
         l_float = float
@@ -849,9 +849,9 @@ class Danglymesh(Trimesh):
         self.displacement = 1.0
         self.constraints = []
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiLines, idx)
+        Trimesh.loadAscii(self, asciiLines, nodeidx)
 
         l_int = int
         l_float = float
@@ -937,9 +937,9 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiLines, idx)
+        Trimesh.loadAscii(self, asciiLines, nodeidx)
         l_int = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiLines):
@@ -1033,17 +1033,17 @@ class Emitter(Node):
         self.ysize = 2
         self.rawascii = ''
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
+        self.nodeidx = nodeidx
         for line in asciiLines:
             try:
                 label = line[0].lower()
             except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
+                continue  # Probably empty line, skip it
 
             if not l_isNumber(label):
                 if (label == 'node'):
@@ -1161,12 +1161,12 @@ class Light(Node):
         self.flareradius = 1.0
         self.flareList = FlareList()
 
-    def loadAscii(self, asciiLines, idx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, idx)
+        Node.loadAscii(self, asciiLines, nodeidx)
 
         flareTextureNamesStart = 0
-        numFlares = 0
+        numVals = 0
 
         l_int = int
         l_float = float
@@ -1175,8 +1175,7 @@ class Light(Node):
             try:
                 label = line[0].lower()
             except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
+                continue  # Probably empty line, skip it
 
             if not l_isNumber(label):
                 if (label == 'radius'):
@@ -1212,27 +1211,35 @@ class Light(Node):
                     # many flares there are
                     # We 'll need to read them later. For now save the index
                     flareTextureNamesStart = idx+1
+                    print('flare texturename:')
+                    print(line)
                 elif (label == 'flaresizes'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
+                    print('flare size:')
+                    print(line)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
+                    print('flare pos:')
+                    print(line)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
+                    print('flare col:')
+                    print(line)
 
         # Load flare texture names:
-        for i in range(numFlares):
+        for i in range(numVals):
             texName = asciiLines[flareTextureNamesStart+i][0]
             self.flareList.textures.append(texName)
 
@@ -1245,7 +1252,7 @@ class Light(Node):
         lamp.color = self.color
         lamp.energy = self.multiplier
         lamp.distance = self.radius
-        # lamp.use_sphere  = True
+        lamp.use_sphere = True
 
         return lamp
 
@@ -1253,13 +1260,8 @@ class Light(Node):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
 
-        switch = {'ml1': nvb_def.Light.MAIN1,
-                  'ml2': nvb_def.Light.MAIN2,
-                  'sl1': nvb_def.Light.SOURCE1,
-                  'sl2': nvb_def.Light.SOURCE2}
-        # TODO: Check light names when exporting tiles
         obj.nvb.ambientonly = (self.ambientonly >= 1)
-        obj.nvb.lighttype = switch.get(self.name[-3:], 'NONE')
+        obj.nvb.lighttype = nvb_def.Light.getType(self.name)
         obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
         obj.nvb.fadinglight = (self.fadinglight >= 1)

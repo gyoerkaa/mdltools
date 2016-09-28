@@ -315,7 +315,7 @@ class Mdl():
         for node in self.nodes:
             objName = self.nodeNameResolver.findObj(node.name,
                                                     node.parent,
-                                                    node.idx)
+                                                    node.nodeidx)
             if objName:
                 obj = bpy.data.objects[objName]
                 if node.parent:
@@ -328,7 +328,7 @@ class Mdl():
                         objParentName = self.nodeNameResolver.findObj(
                                 node.parent,
                                 '?',
-                                node.idx)
+                                node.nodeidx)
                         if objParentName:
                             obj.parent = bpy.data.objects[objParentName]
 
@@ -349,7 +349,7 @@ class Mdl():
                 if obj:
                     self.nodeNameResolver.insertObj(node.name,
                                                     node.parent,
-                                                    node.idx,
+                                                    node.nodeidx,
                                                     obj.name)
                 else:
                     print('INTERNAL ERROR')

@@ -225,13 +225,13 @@ class Tilefade():
 class Classification():
     """TODO: DOC."""
 
-    UNKNOWN = 'UNKNOWN'
-    TILE = 'TILE'
-    CHARACTER = 'CHARACTER'
-    DOOR = 'DOOR'
-    EFFECT = 'EFFECT'
-    GUI = 'GUI'
-    ITEM = 'ITEM'
+    UNKNOWN = 'unknown'
+    TILE = 'tile'
+    CHARACTER = 'character'
+    DOOR = 'door'
+    EFFECT = 'effect'
+    GUI = 'gui'
+    ITEM = 'item'
 
     ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
 

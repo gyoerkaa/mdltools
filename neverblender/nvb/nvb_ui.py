@@ -268,7 +268,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
         # Lens flares
         row = layout.row()
-        row.enabled = (obj.nvb.lighttype == 'NONE')
+        row.enabled = (obj.nvb.lighttype == nvb_def.Light.DEFAULT)
         box = row.box()
         row = box.row()
         row.prop(obj.nvb, 'lensflares')
