@@ -54,7 +54,9 @@ class Node():
         self.animverts = []
         self.clip = [0.0, 0.0, 0.0, 0.0]
 
-        self.isEmpty = True
+        self.objData = False
+        self.matData = False
+        self.rawData = False
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -98,19 +100,19 @@ class Node():
                 self.position = (l_float(line[1]),
                                  l_float(line[2]),
                                  l_float(line[3]))
-                self.isEmpty = False
+                self.objData = True
             elif label == 'orientation':
                 self.orientation = (l_float(line[1]),
                                     l_float(line[2]),
                                     l_float(line[3]),
                                     l_float(line[4]))
-                self.isEmpty = False
+                self.objData = True
             elif label == 'scale':
                 self.scale = l_float(line[1])
-                self.isEmpty = False
+                self.objData = True
             elif label == 'alpha':
                 self.alpha = l_float(line[1])
-                self.isEmpty = False
+                self.matData = True
             # Animeshes
             elif label == 'sampleperiod':
                 self.sampleperiod = l_float(line[1])
@@ -130,27 +132,27 @@ class Node():
             elif label == 'animverts':
                 numVals = l_int(line[1])
                 nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
-                self.isEmpty = False
+                self.matData = True
             elif label == 'animtverts':
                 numVals = l_int(line[1])
                 nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
-                self.isEmpty = False
+                self.matData = True
             # Keyed animations
             elif label == 'positionkey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                              self.keys.position)
-                self.isEmpty = False
+                self.objData = True
             elif label == 'orientationkey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
                              self.keys.orientation)
-                self.isEmpty = False
+                self.objData = True
             elif label == 'scalekey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
                              self.keys.scale)
-                self.isEmpty = False
+                self.objData = True
             elif label == 'alphakey':
                 # If this is an emitter, alphakeys are incompatible. We'll
                 # handle them later as plain text
@@ -161,27 +163,27 @@ class Node():
                 else:
                     nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
                                  self.keys.alpha)
-                self.isEmpty = False
+                self.matData = True
             elif label == 'selfillumcolorkey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                              self.keys.selfillumcolor)
-                self.isEmpty = False
+                self.objData = True
             # Lights/lamps only
             elif label == 'colorkey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.keys.color)
-                self.isEmpty = False
+                self.objData = True
             elif label == 'radiuskey':
                 numKeys = self.findEnd(asciiLines[i+1:])
                 nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.keys.radius)
-                self.isEmpty = False
+                self.objData = True
             # Some unknown label.
             # Probably keys for emitters, incompatible, save as plain text
             elif not l_isNumber(line[0]):
                 numKeys = self.findEnd(asciiLines[i+1:])
                 self.keys.rawascii.extend(asciiLines[i:i+numKeys+1])
-                self.isEmpty = False
+                self.rawData = True
 
     @staticmethod
     def getCurve(action, dataPath, idx=0):
@@ -381,12 +383,12 @@ class Node():
 
     def create(self, obj, anim, options):
         """TODO:Doc."""
-        if self.isEmpty:
-            return
-        self.createDataObj(obj, anim)
-        if obj.active_material:
+        if self.objData:
+            self.createDataObj(obj, anim)
+        if self.matData and obj.active_material:
             self.createDataMat(obj.active_material, anim)
-        if nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER:
+        if self.rawData and \
+           (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmit(obj, anim, options)
 
     @staticmethod
