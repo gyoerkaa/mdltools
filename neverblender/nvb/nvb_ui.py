@@ -153,14 +153,16 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        return (context.object and context.object.type == 'EMPTY')
+        if not context.object:
+            return False
+        rd = nvb_utils.findObjRootDummy(context.object)
+        return rd is not None
 
     def draw(self, context):
         """TODO: DOC."""
-        obj = context.object
         layout = self.layout
-
-        if nvb_utils.isRootDummy(obj):
+        obj = nvb_utils.findObjRootDummy(context.object)
+        if obj:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             box = row.box()
@@ -168,7 +170,9 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             row.label(text='Animations')
 
             row = box.row()
-            row.template_list('NVB_UILIST_ANIMS', 'The_List', obj.nvb, 'animList', obj.nvb, 'animListIdx')
+            row.template_list('NVB_UILIST_ANIMS', 'The_List',
+                              obj.nvb, 'animList',
+                              obj.nvb, 'animListIdx')
             col = row.column(align=True)
             col.operator('nvb.anim_new', text='', icon='ZOOMIN')
             col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
@@ -229,6 +233,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
     but used by the aurora engine. This is only available for LAMP objects.
     It is located under the object panel in the properties window.
     """
+
     bl_idname = 'nvb.propertypanel.light'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
@@ -280,7 +285,9 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         sub.prop(obj.nvb, 'flareradius', text='Radius')
         row = box.row()
         row.active = obj.nvb.lensflares
-        row.template_list('NVB_UILIST_LENSFLARES', 'The_List', obj.nvb, 'flareList', obj.nvb, 'flareListIdx')
+        row.template_list('NVB_UILIST_LENSFLARES', 'The_List',
+                          obj.nvb, 'flareList',
+                          obj.nvb, 'flareListIdx')
         col = row.column(align=True)
         col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
         col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')

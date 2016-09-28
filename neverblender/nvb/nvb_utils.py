@@ -144,13 +144,21 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def findRootDummy(obj=None):
+def findObjRootDummy(obj):
     """TODO: DOC."""
-    # 1. Check the object and its parents
     while obj:
         if isRootDummy(obj):
             return obj
         obj = obj.parent
+    return None
+
+
+def findRootDummy(obj=None):
+    """TODO: DOC."""
+    # 1. Check the object and its parents
+    match = findObjRootDummy(obj)
+    if match:
+        return match
     # 2. Nothing was found, try checking the objects in the current scene
     if bpy.context.scene:
         matches = [m for m in bpy.context.scene.objects if isRootDummy(m)]
