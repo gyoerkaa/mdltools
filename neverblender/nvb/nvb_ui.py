@@ -177,8 +177,10 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.operator('nvb.anim_new', text='', icon='ZOOMIN')
             col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
             col.separator()
-            col.operator('nvb.anim_move', icon='TRIA_UP', text='').direction = 'UP'
-            col.operator('nvb.anim_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
+            col.operator('nvb.anim_move',
+                         icon='TRIA_UP', text='').direction = 'UP'
+            col.operator('nvb.anim_move',
+                         icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.operator('nvb.anim_adjusttimeline', icon='TIME', text='')
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
@@ -210,13 +212,16 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 row.label(text='Animation Events')
 
                 row = sub.row()
-                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List', anim, 'eventList', anim, 'eventListIdx')
+                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List',
+                                  anim, 'eventList', anim, 'eventListIdx')
                 col = row.column(align=True)
                 col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
                 col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')
                 col.separator()
-                col.operator('nvb.animevent_move', icon='TRIA_UP', text='').direction = 'UP'
-                col.operator('nvb.animevent_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
+                col.operator('nvb.animevent_move',
+                             icon='TRIA_UP', text='').direction = 'UP'
+                col.operator('nvb.animevent_move',
+                             icon='TRIA_DOWN', text='').direction = 'DOWN'
                 if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
                     animEvent = anim.eventList[anim.eventListIdx]
                     row = sub.row()
@@ -276,7 +281,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
 
         # Lens flares
         row = layout.row()
-        row.enabled = (obj.nvb.lighttype == nvb_def.Light.DEFAULT)
+        row.enabled = (obj.nvb.lighttype == nvb_def.Lighttype.DEFAULT)
         box = row.box()
         row = box.row()
         row.prop(obj.nvb, 'lensflares')
@@ -292,8 +297,10 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
         col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')
         col.separator()
-        col.operator('nvb.lightflare_move', icon='TRIA_UP', text='').direction = 'UP'
-        col.operator('nvb.lightflare_move', icon='TRIA_DOWN', text='').direction = 'DOWN'
+        col.operator('nvb.lightflare_move',
+                     icon='TRIA_UP', text='').direction = 'UP'
+        col.operator('nvb.lightflare_move',
+                     icon='TRIA_DOWN', text='').direction = 'DOWN'
         if obj.nvb.flareListIdx >= 0 and len(obj.nvb.flareList) > 0:
             item = obj.nvb.flareList[obj.nvb.flareListIdx]
             row = box.row()

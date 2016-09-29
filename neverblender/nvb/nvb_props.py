@@ -227,7 +227,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                         'Door: Open 2', 'desc', 2),
                        (nvb_def.Walkmeshtype.DWKCLOSED,
                         'Door: Closed', 'desc', 2),
-                       (nvb_def.Walkmeshtype.TILE,
+                       (nvb_def.Walkmeshtype.AABB,
                         'Tileset', 'Walkmesh for tilesets', 3)
                        ],
                 default=nvb_def.Walkmeshtype.PWK)
@@ -318,18 +318,18 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For lamps
     lighttype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Light.DEFAULT,
+                items=[(nvb_def.Lighttype.DEFAULT,
                         'Default', 'Simple light', 0),
-                       (nvb_def.Light.MAIN1,
+                       (nvb_def.Lighttype.MAIN1,
                         'Mainlight 1', 'For tiles (Editable in toolset)', 1),
-                       (nvb_def.Light.MAIN2,
+                       (nvb_def.Lighttype.MAIN2,
                         'Mainlight 2', 'For tiles (Editable in toolset)', 2),
-                       (nvb_def.Light.SOURCE1,
+                       (nvb_def.Lighttype.SOURCE1,
                         'Sourcelight 1', 'For tiles (Editable in toolset)', 3),
-                       (nvb_def.Light.SOURCE2,
+                       (nvb_def.Lighttype.SOURCE2,
                         'Sourcelight 2', 'For tiles (Editable in toolset)', 4)
                        ],
-                default=nvb_def.Light.DEFAULT)
+                default=nvb_def.Lighttype.DEFAULT)
     ambientonly = bpy.props.BoolProperty(
                 name='Ambient Only',
                 default=False)

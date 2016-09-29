@@ -220,7 +220,7 @@ class Dummy(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.emptytype = self.emptytype
-        obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
+        obj.nvb.dummytype = nvb_def.Dummytype.get(self.name)
 
 
 class Patch(Node):
@@ -1273,7 +1273,7 @@ class Light(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.ambientonly = (self.ambientonly >= 1)
-        obj.nvb.lighttype = nvb_def.Light.getType(self.name)
+        obj.nvb.lighttype = nvb_def.Lighttype.get(self.name)
         obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
         obj.nvb.fadinglight = (self.fadinglight >= 1)
@@ -1362,7 +1362,7 @@ class Aabb(Trimesh):
         Trimesh.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.WALKMESH
-        self.walkmeshtype = nvb_def.Walkmeshtype.TILE
+        self.walkmeshtype = nvb_def.Walkmeshtype.AABB
 
     @staticmethod
     def generateAsciiAABB(obj, asciiLines, options):

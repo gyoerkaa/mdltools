@@ -108,7 +108,6 @@ class Mdl():
                 nodeName = asciiLines[0][2].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
-
             # Create an object with that type and name
             try:
                 node = nodelookup[nodeType](nodeName)
@@ -120,7 +119,7 @@ class Mdl():
             node.parent = '!'  # Always parent to rootdummy
             if node.nodetype == nvb_def.Nodetype.TRIMESH:
                 node.meshtype = nvb_def.Meshtype.WALKMESH
-                node.walkmeshtype = nvb_def.Walkmeshtype.getType(node.name)
+                node.walkmeshtype = nvb_def.Walkmeshtype.get(node.name)
             self.nodes.append(node)
 
     def loadAsciiWalkmesh(self, asciiBlock, options):
@@ -162,7 +161,6 @@ class Mdl():
                 nodeName = asciiLines[0][2].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
-
             # Create an object with that type and name
             try:
                 node = nodelookup[nodeType](nodeName)

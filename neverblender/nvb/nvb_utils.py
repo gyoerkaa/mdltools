@@ -114,26 +114,45 @@ def findMaterial(diffuse=(1.0, 1.0, 1.0),
     return None
 
 
-def isWalkmehsObject(obj, classification):
+def belongsToWalkmesh(obj, classification):
     """Check if this object belongs to a walkmesh."""
-    pass
+    if not obj:
+        return False
+    if obj.type == 'EMPTY':
+        if classification == nvb_def.Classification.DOOR:
+            return ((obj.nvb.dummytype == nvb_def.Dummytype.OPEN1_01) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN1_02) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN2_01) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN2_02) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.CLOSED_01) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.CLOSED_02))
+        elif classification != nvb_def.Classification.TILE:
+            return ((obj.nvb.dummytype == nvb_def.Dummytype.USE1) or
+                    (obj.nvb.dummytype == nvb_def.Dummytype.USE2))
+        else:
+            return False
+    elif obj.type == 'MESH':
+        if classification == nvb_def.Classification.TILE:
+            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
+                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE))
+        elif classification == nvb_def.Classification.DOOR:
+            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
+                    ((obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN1) or
+                     (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN2) or
+                     (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKCLOSED)))
+        else:
+            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
+                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.PWK))
+    return False
 
 
-def getWalkmeshObjects(obj, classification, objList=[]):
-    """Get a list of object names belonging to the walkmesh."""
-    if classification == nvb_def.Classification.DOOR:
-        # Door
-        pass
-    elif classification == nvb_def.Classification.TILE:
-        # Tile
-        if (getNodeType(obj) == nvb_def.Nodetype.AABB):
-            objList.append(obj.name)
-    else:
-        # Try to find objects for placeables
-        pass
-
-    for child in obj.children:
-        getWalkmeshObjects(child, classification, objList)
+def belongsToMdl(obj, classification):
+    """TODO: Doc."""
+    if not obj:
+        return False
+    return ((obj.nvb.meshtype != nvb_def.Meshtype.WALKMESH) or
+            (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB) or
+            (not nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)))
 
 
 def isRootDummy(obj):
@@ -191,7 +210,11 @@ def getNodeType(obj):
     if objType == 'EMPTY':
         return obj.nvb.emptytype
     elif objType == 'MESH':
-        return obj.nvb.meshtype
+        if (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH and
+                obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE):
+            return nvb_def.Nodetype.AABB
+        else:
+            return obj.nvb.meshtype
     elif objType == 'LAMP':
         return nvb_def.Nodetype.LIGHT
 

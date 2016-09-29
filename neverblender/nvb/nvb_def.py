@@ -105,6 +105,9 @@ class Dummytype():
     CLOSED_01 = 'CL01'
     CLOSED_02 = 'CL02'
 
+    WALKMESH = {USE1, USE2,
+                OPEN1_01, OPEN1_02, OPEN2_01, OPEN2_01, CLOSED_01, CLOSED_02}
+
     suffix_list = [('dp_dwk_use01', USE1),
                    ('pwk_use01', USE1),
                    ('dp_dwk_use02', USE2),
@@ -149,12 +152,17 @@ class Dummytype():
                   CLOSED_02: 'closed_02'}
 
     @classmethod
-    def getType(cls, nodeName):
+    def get(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
                 return suffix[1]
         return cls.DEFAULT
+
+    @classmethod
+    def isWalkmesh(cls, dummyType):
+        """TODO: Doc."""
+        return dummyType in cls.WALKMESH
 
 
 class Meshtype():
@@ -192,7 +200,7 @@ class Nodetype(Emptytype, Meshtype):
 class Walkmeshtype():
     """TODO: Doc."""
 
-    TILE = 'tile'
+    AABB = 'aabb'
     PWK = 'pwk'
     DWKOPEN1 = 'dwko1'
     DWKOPEN2 = 'dwko2'
@@ -203,7 +211,7 @@ class Walkmeshtype():
                    ('wg_closed', DWKCLOSED)]
 
     @classmethod
-    def getType(cls, nodeName):
+    def get(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
@@ -236,7 +244,7 @@ class Classification():
     ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
 
 
-class Light():
+class Lighttype():
     """TODO: DOC."""
 
     DEFAULT = 'DEFAULT'
@@ -253,7 +261,7 @@ class Light():
                    ('???', SOURCE2)]
 
     @classmethod
-    def getType(cls, nodeName):
+    def get(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
