@@ -108,9 +108,9 @@ class Dummytype():
     WALKMESH = {USE1, USE2,
                 OPEN1_01, OPEN1_02, OPEN2_01, OPEN2_01, CLOSED_01, CLOSED_02}
 
-    suffix_list = [('dp_dwk_use01', USE1),
+    suffix_list = [('dwk_use01', USE1),
                    ('pwk_use01', USE1),
-                   ('dp_dwk_use02', USE2),
+                   ('dwk_use02', USE2),
                    ('pwk_use02', USE2),
                    ('hand',      HAND),
                    ('head',      HEAD),
