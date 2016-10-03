@@ -98,7 +98,7 @@ class Animation():
         childList.sort(key=lambda tup: tup[0])
 
         for (imporder, child) in childList:
-            Animation.generateAsciiGeometry(child, anim, asciiLines)
+            Animation.generateAsciiNodes(child, anim, asciiLines)
 
     @staticmethod
     def generateAscii(rootDummy, anim, asciiLines, options):
@@ -114,10 +114,13 @@ class Animation():
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('  length ' + str(round(animLength, 5)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
-        asciiLines.append('  animroot ' + anim.root)
+        if anim.root:
+            asciiLines.append('  animroot ' + anim.root)
+        else:
+            asciiLines.append('  animroot ' + rootDummy.name)
 
         for event in anim.eventList:
-            eventTime = nvb_utils.frame2nwtime(event.frame,
+            eventTime = nvb_utils.frame2nwtime(anim.frameStart-event.frame,
                                                animScene.render.fps)
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
                               event.name)

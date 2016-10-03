@@ -238,7 +238,7 @@ class Mdl():
         if nodeType == nvb_def.Nodetype.WALKMESH:
             pass
         try:
-            node = nodelookup[nodeType]()
+            node = nodelookup[nodeType]
         except KeyError:
             raise nvb_def.MalformedMdlFile('Invalid node type')
 
