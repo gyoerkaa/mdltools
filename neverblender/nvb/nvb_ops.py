@@ -8,10 +8,10 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_LIST_OT_Anim_AdjustTimeline(bpy.types.Operator):
+class NVB_LIST_OT_Anim_Show(bpy.types.Operator):
     """Set the Start and end frames of the timeline."""
 
-    bl_idname = 'nvb.anim_adjusttimeline'
+    bl_idname = 'nvb.anim_show'
     bl_label = 'Set start and end frame of the timeline to the animation'
 
     @classmethod
@@ -97,7 +97,8 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
 
     direction = bpy.props.EnumProperty(items=(
                                        ('UP', 'Up', ''),
-                                       ('DOWN', 'Down', '')))
+                                       ('DOWN', 'Down', ''),
+                                       ('END', 'End', '')))
 
     @classmethod
     def poll(self, context):
@@ -109,30 +110,37 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
         animList = context.object.nvb.animList
         animIdx = context.object.nvb.animListIdx
 
-        listLength = len(animList) - 1  # (index starts at 0)
+        maxIdx = len(animList) - 1
         newIdx = 0
         if self.direction == 'UP':
             newIdx = animIdx - 1
         elif self.direction == 'DOWN':
             newIdx = animIdx + 1
+        elif self.direction == 'END':
+            newIdx = maxIdx
 
-        newIdx = max(0, min(newIdx, listLength))
+        newIdx = max(0, min(newIdx, maxIdx))
         context.object.nvb.animListIdx = newIdx
 
     def execute(self, context):
         """TODO: DOC."""
         animList = context.object.nvb.animList
-        animIdx = context.object.nvb.animListIdx
+        currentAnimIdx = context.object.nvb.animListIdx
 
         if self.direction == 'DOWN':
-            neighbour = animIdx + 1
-            animList.move(animIdx, neighbour)
-            # TODO: Move whole animation, i.e. trade places
+            neighbourIdx = currentAnimIdx + 1
+            animList.move(currentAnimIdx, neighbourIdx)
+            # TODO: Move whole animation, i.e. keyframes
             self.move_index(context)
         elif self.direction == 'UP':
-            neighbour = animIdx - 1
-            animList.move(neighbour, animIdx)
-            # TODO: Move whole animation, i.e. trade places
+            neighbourIdx = currentAnimIdx - 1
+            animList.move(neighbourIdx, currentAnimIdx)
+            # TODO: Move whole animation, i.e. keyframes
+            self.move_index(context)
+        elif self.direction == 'END':
+            neighbourIdx = currentAnimIdx - 1
+            animList.move(neighbourIdx, currentAnimIdx)
+            # TODO: Move whole animation, i.e. keyframes
             self.move_index(context)
         else:
             return {'CANCELLED'}
