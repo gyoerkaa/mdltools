@@ -224,7 +224,7 @@ class Node():
             action = bpy.data.actions.new(name=obj.name)
             action.use_fake_user = True
             animData.action = action
-
+        kfOptions = {'FAST'}
         dp = 'rotation_euler'
         if (self.orientationkey):
             curveX = Node.getCurve(action, dp, 0)
@@ -237,9 +237,9 @@ class Node():
                 eul = nvb_utils.nwangle2euler(key[1:5])
                 currEul = nvb_utils.eulerFilter(eul, prevEul)
                 prevEul = currEul
-                curveX.keyframe_points.insert(frame, currEul.x)
-                curveY.keyframe_points.insert(frame, currEul.y)
-                curveZ.keyframe_points.insert(frame, currEul.z)
+                curveX.keyframe_points.insert(frame, currEul.x, kfOptions)
+                curveY.keyframe_points.insert(frame, currEul.y, kfOptions)
+                curveZ.keyframe_points.insert(frame, currEul.z, kfOptions)
         elif self.orientation is not None:
             curveX = Node.getCurve(action, dp, 0)
             curveY = Node.getCurve(action, dp, 1)
