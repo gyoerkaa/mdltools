@@ -147,6 +147,9 @@ class Node(object):
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: DOC."""
+        # Rootdummy's get no data at all
+        if obj.parent is None:
+            return
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
@@ -178,11 +181,6 @@ class Node(object):
                                 round(rot[3], 5))
         asciiLines.append(s)
         '''
-        col = obj.nvb.wirecolor
-        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
-                                                            round(col[1], 2),
-                                                            round(col[2], 2))
-        asciiLines.append(s)
 
         scale = round(nvb_utils.getAuroraScale(obj), 3)
         if (scale != 1.0):
@@ -765,19 +763,26 @@ class Trimesh(Node):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options)
 
-        color = obj.nvb.ambientcolor
-        asciiLines.append('  ambient ' +
-                          str(round(color[0], 2)) + ' ' +
-                          str(round(color[1], 2)) + ' ' +
-                          str(round(color[2], 2)))
+        col = obj.nvb.wirecolor
+        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
+                                                            round(col[1], 2),
+                                                            round(col[2], 2))
+        asciiLines.append(s)
+
+        col = obj.nvb.ambientcolor
+        s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
+                                                          round(col[1], 2),
+                                                          round(col[2], 2))
+        asciiLines.append(s)
+
         hasImgTexture = Trimesh.generateAsciiMaterial(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
-            color = obj.nvb.selfillumcolor
-            asciiLines.append('  selfillumcolor ' +
-                              str(round(color[0], 2)) + ' ' +
-                              str(round(color[1], 2)) + ' ' +
-                              str(round(color[2], 2)))
+            col = obj.nvb.selfillumcolor
+            s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
+                                                              round(col[1], 2),
+                                                              round(col[2], 2))
+            asciiLines.append(s)
 
             asciiLines.append('  render ' + str(int(obj.nvb.render)))
             asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))

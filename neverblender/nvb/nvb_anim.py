@@ -108,7 +108,7 @@ class Animation():
             return
 
         animScene = bpy.context.scene
-        animLength = nvb_utils.frame2nwtime(anim.frameStart-anim.frameEnd,
+        animLength = nvb_utils.frame2nwtime(anim.frameEnd-anim.frameStart,
                                             animScene.render.fps)
 
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)

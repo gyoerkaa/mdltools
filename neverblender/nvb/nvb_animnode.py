@@ -14,7 +14,6 @@ class Node():
 
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
-        self.nodetype = 'dummy'
         self.nodeidx = -1
 
         self.name = name
@@ -67,6 +66,7 @@ class Node():
         l_int = int
         l_isNumber = nvb_utils.isNumber
         self.nodeidx = nodeidx
+        nodetype = 'dummy'
         for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
@@ -74,7 +74,7 @@ class Node():
                 continue  # Probably empty line, skip it
             if not l_isNumber(label):
                 if label == 'node':
-                    self.nodeType = line[1].lower()
+                    nodeType = line[1].lower()
                     self.name = nvb_utils.getAuroraString(line[2])
                 elif label == 'endnode':
                     return
@@ -137,7 +137,7 @@ class Node():
                     # If this is an emitter, alphakeys are incompatible. We'll
                     # handle them later as plain text
                     numKeys = self.findEnd(asciiLines[i+1:])
-                    if self.nodeType == 'emitter':
+                    if nodeType == 'emitter':
                         nvb_parse.txt(asciiLines[i:i+numKeys+1],
                                       self.rawascii)
                     else:
@@ -259,9 +259,9 @@ class Node():
             curveZ = Node.getCurve(action, dp, 2)
             for key in self.positionkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                curveX.keyframe_points.insert(frame, key[1])
-                curveY.keyframe_points.insert(frame, key[2])
-                curveZ.keyframe_points.insert(frame, key[3])
+                curveX.keyframe_points.insert(frame, key[1], kfOptions)
+                curveY.keyframe_points.insert(frame, key[2], kfOptions)
+                curveZ.keyframe_points.insert(frame, key[3], kfOptions)
         elif (self.position is not None):
             curveX = Node.getCurve(action, dp, 0)
             curveY = Node.getCurve(action, dp, 1)
@@ -372,7 +372,8 @@ class Node():
                                          '.anim.' + anim.name)
                 anim.rawascii = txt.name
             # Convert nwn time to frames and write to text file
-            txt.write('  node ' + self.nodetype + ' ' + self.name)
+            objType = nvb_utils.getNodeType(obj)
+            txt.write('  node ' + objType + ' ' + self.name)
             l_isNumber = nvb_utils.isNumber
             frameStart = anim.frameStart
             for line in self.rawascii:
@@ -432,16 +433,16 @@ class Node():
     @staticmethod
     def generateAsciiKeysEmitter(obj, anim, asciiLines):
         """TODO: DOC."""
-        if (obj.nvb.rawascii not in bpy.data.texts):
-            return
         txtBlock = bpy.data.texts[anim.rawascii].as_string()
         nodeStart = txtBlock.find(obj.name)
-        if nodeStart >= 0:
-            nodeEnd = txtBlock[nodeStart:].find('endnode')
-        txtLines = txtBlock[nodeStart:nodeEnd].splitlines()
+        if nodeStart < 0:
+            return
+        nodeEnd = txtBlock.find('endnode', nodeStart)
+        if nodeEnd < 0:
+            return
+        txtLines = txtBlock[nodeStart+len(obj.name):nodeEnd-1].splitlines()
         l_isNumber = nvb_utils.isNumber
         animStart = anim.frameStart
-        print(obj.name + ' ' + anim.name)
         for line in [l.strip().split() for l in txtLines]:
             try:
                 label = line[0].lower()
@@ -451,7 +452,6 @@ class Node():
             if l_isNumber(label):
                 frame = float(label)
                 nwtime = round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                print(str(nwtime) + ' ' + ' '.join(line[1:]))
                 asciiLines.append('      ' + str(nwtime) + ' ' +
                                   ' '.join(line[1:]))
             else:
@@ -483,7 +483,7 @@ class Node():
         animStart = anim.frameStart
 
         kname = 'orientationkey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -495,7 +495,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'positionkey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -504,7 +504,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'scalekey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -512,7 +512,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'selfillumcolorkey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -521,7 +521,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'colorkey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -530,7 +530,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'radiuskey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
@@ -538,7 +538,7 @@ class Node():
                 asciiLines.append(s)
 
         kname = 'alphakey'
-        if kname in keyDict:
+        if len(keyDict[kname]) > 0:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
