@@ -129,7 +129,7 @@ class Node(object):
         if obj.parent:
             parent_mw = obj.parent.matrix_world
         else:
-            parent_mw = mathutils.matrix()
+            parent_mw = mathutils.Matrix()
 
         p_mw_scale = parent_mw.to_scale()
 
@@ -144,8 +144,8 @@ class Node(object):
         scaled[2][3] = scaled[2][3] * p_mw_scale[2]
         return scaled
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: DOC."""
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
@@ -196,7 +196,7 @@ class Node(object):
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        cls.generateAsciiData(cls, obj, asciiLines, options)
+        cls.generateAsciiData(obj, asciiLines, options)
         asciiLines.append('endnode')
 
     @classmethod
@@ -206,7 +206,7 @@ class Node(object):
 
         asciiLines.append('  parent ' + obj.parent.name)
 
-        cls.generateAsciiData(cls, obj, asciiLines, options)
+        cls.generateAsciiData(obj, asciiLines, options)
         asciiLines.append('endnode')
 
 
@@ -291,8 +291,8 @@ class Reference(Node):
         obj.nvb.refmodel = self.refmodel
         obj.nvb.reattachable = (self.reattachable >= 1)
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
@@ -760,8 +760,8 @@ class Trimesh(Node):
 
         bpy.data.meshes.remove(mesh)
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options)
 
@@ -772,7 +772,7 @@ class Trimesh(Node):
                           str(round(color[2], 2)))
         hasImgTexture = Trimesh.generateAsciiMaterial(obj, asciiLines)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
-        if not obj.nvb.iswalkmesh:
+        if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             color = obj.nvb.selfillumcolor
             asciiLines.append('  selfillumcolor ' +
                               str(round(color[0], 2)) + ' ' +
@@ -787,7 +787,7 @@ class Trimesh(Node):
             asciiLines.append('  transparencyhint ' +
                               str(obj.nvb.transparencyhint))
             # These two are for tiles only
-            if options.classification == nvb_def.classification.TILE:
+            if options.classification == nvb_def.Classification.TILE:
                 asciiLines.append('  rotatetexture ' +
                                   str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
@@ -924,8 +924,8 @@ class Danglymesh(Trimesh):
                 # Vertex is not part of this group
                 asciiLines.append('    0.0')
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         Trimesh.generateAsciiData(obj, asciiLines, options)
 
@@ -1022,8 +1022,8 @@ class Skinmesh(Trimesh):
                 line = 'ERROR: no weight'
             asciiLines.append(line)
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         Trimesh.generateAsciiData(obj, asciiLines, options)
 
@@ -1129,10 +1129,10 @@ class Emitter(Node):
         self.createObjectData(obj, options)
         return obj
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
-        Node.addDataToAscii(obj, asciiLines, options)
+        Node.generateAsciiData(obj, asciiLines, options)
 
         if obj.nvb.rawascii not in bpy.data.texts:
             print('Neverblender - Warning: No emitter data for ' + obj.name)
@@ -1331,8 +1331,8 @@ class Light(Node):
         asciiLines.append('  flareradius ' +
                           str(round(obj.nvb.flareradius, 1)))
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options)
 
@@ -1460,8 +1460,8 @@ class Aabb(Trimesh):
                                   ' ' +
                                   str(node[6]))
 
-    @staticmethod
-    def generateAsciiData(obj, asciiLines, options):
+    @classmethod
+    def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
         loc = obj.location
         asciiLines.append('  position ' +

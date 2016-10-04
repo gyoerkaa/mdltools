@@ -65,24 +65,25 @@ def loadMdl(operator, context,
 
 def saveMdl(operator, context,
             filepath='',
-            exports={'ANIMATION', 'WALKMESH'},
-            useSmoothGroups=True,
+            exportAnimations=True,
+            exportWalkmesh=True,
+            exportSmoothGroups=True,
             applyModifiers=True):
     """Called from blender ui."""
     options = nvb_def.ExportOptions()
-    options.exportAnim = 'ANIMATION' in exports
-    options.exportWalkmesh = 'WALKMESH' in exports
-    options.exportSmoothGroups = useSmoothGroups
+    options.exportAnim = exportAnimations
+    options.exportWalkmesh = exportWalkmesh
+    options.exportSmoothGroups = exportSmoothGroups
     options.applyModifiers = applyModifiers
 
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
     rootDummy = nvb_utils.findRootDummy(bpy.context.object)
-    options.mdlname = rootDummy.name
-    options.classification = rootDummy.classification
     if rootDummy:
         print('Neverblender: Exporting ' + rootDummy.name)
+        options.mdlname = rootDummy.name
+        options.classification = rootDummy.nvb.classification
         asciiLines = []
         nvb_mdl.Mdl.generateAscii(rootDummy, asciiLines, options)
         with open(os.fsencode(filepath), 'w') as f:
@@ -92,15 +93,19 @@ def saveMdl(operator, context,
             print('Neverblender: Exporting walkmesh.')
             asciiLines = []
             nvb_mdl.Mdl.generateAsciiWalkmesh(rootDummy, asciiLines, options)
+            if asciiLines:
+                wkmtype = '.pwk'
+                if rootDummy.nvb.classification == \
+                        nvb_def.Classification.DOOR:
+                    wkmtype = '.dwk'
+                elif rootDummy.nvb.classification == \
+                        nvb_def.Classification.TILE:
+                    wkmtype = '.wok'
 
-            wkmtype = '.pwk'
-            if rootDummy.nvb.classification == nvb_def.classification.DOOR:
-                wkmtype = '.dwk'
-            elif rootDummy.nvb.classification == nvb_def.classification.TILE:
-                wkmtype = '.wok'
-
-            wkmPath = os.path.splitext(filepath)[0] + wkmtype
-            with open(os.fsencode(wkmPath), 'w') as f:
-                f.write('\n'.join(asciiLines))
+                wkmPath = os.path.splitext(filepath)[0] + wkmtype
+                with open(os.fsencode(wkmPath), 'w') as f:
+                    f.write('\n'.join(asciiLines))
+    else:
+        return {'CANCELLED'}
 
     return {'FINISHED'}

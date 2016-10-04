@@ -377,9 +377,13 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     materialMode = bpy.props.EnumProperty(
             name='Materials',
-            items=(('NON', 'None', 'Don\'t create materials or import textures', 0),
-                   ('SIN', 'Single', 'Create only one material per texture, shared between objects', 1),
-                   ('MUL', 'Multiple', 'Create a seperate material for each object', 2)),
+            items=(('NON', 'None',
+                    'Don\'t create materials or import textures', 0),
+                   ('SIN', 'Single',
+                    'Create only one material per texture, \
+                     shared between objects', 1),
+                   ('MUL', 'Multiple',
+                    'Create a seperate material for each object', 2)),
             default='SIN')
 
     textureSearch = bpy.props.BoolProperty(
@@ -420,13 +424,15 @@ class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default='*.mdl',
             options={'HIDDEN'})
 
-    exports = bpy.props.EnumProperty(
-            name='Export',
-            options={'ENUM_FLAG'},
-            items=(('ANIMATION', 'Animations', 'Export animations'),
-                   ('WALKMESH', 'Walkmesh', 'Export a walkmesh'),
-                   ),
-            default={'ANIMATION', 'WALKMESH'})
+    exportAnimations = bpy.props.BoolProperty(
+            name='Export animations',
+            description='Export animations',
+            default=True)
+
+    exportWalkmesh = bpy.props.BoolProperty(
+            name='Export a walkmesh',
+            description='Export a walkmesh',
+            default=True)
 
     exportSmoothGroups = bpy.props.BoolProperty(
             name='Export Smooth groups',

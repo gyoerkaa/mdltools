@@ -130,7 +130,7 @@ def belongsToWalkmesh(obj, classification):
                      (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN2) or
                      (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKCLOSED)))
         else:
-            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
+            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
                     (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.PWK))
     return False
 

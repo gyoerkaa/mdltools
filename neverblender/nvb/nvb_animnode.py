@@ -434,24 +434,26 @@ class Node():
         """TODO: DOC."""
         if (obj.nvb.rawascii not in bpy.data.texts):
             return
-        txtBlock = bpy.data.texts[obj.nvb.rawascii].as_string()
+        txtBlock = bpy.data.texts[anim.rawascii].as_string()
         nodeStart = txtBlock.find(obj.name)
         if nodeStart >= 0:
             nodeEnd = txtBlock[nodeStart:].find('endnode')
         txtLines = txtBlock[nodeStart:nodeEnd].splitlines()
         l_isNumber = nvb_utils.isNumber
-        l_round = round
         animStart = anim.frameStart
-        for line in [l.strip.slpit() for l in txtLines]:
+        print(obj.name + ' ' + anim.name)
+        for line in [l.strip().split() for l in txtLines]:
             try:
                 label = line[0].lower()
             except IndexError:
                 continue
             # Lines starting with numbers are keys
             if l_isNumber(label):
-                frame = line[0]
-                nwtime = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                asciiLines.append('      ' + str(nwtime) + ' '.join(line[1:]))
+                frame = float(label)
+                nwtime = round(nvb_utils.frame2nwtime(frame - animStart), 5)
+                print(str(nwtime) + ' ' + ' '.join(line[1:]))
+                asciiLines.append('      ' + str(nwtime) + ' ' +
+                                  ' '.join(line[1:]))
             else:
                 asciiLines.append('    ' + ' '.join(line))
 
@@ -465,10 +467,6 @@ class Node():
                    'colorkey': collections.OrderedDict(),
                    'radiuskey': collections.OrderedDict(),
                    'alphakey': collections.OrderedDict()}
-
-        # Emitter Data (raw text data)
-        if nvb_utils.getNodeType(obj) == nvb_def.Meshtype.EMITTER:
-            Node.getKeysFromEmitter(obj, anim, asciiLines)
 
         # Object Data
         if obj.animation_data:
@@ -559,7 +557,7 @@ class Node():
         if obj.parent:
             asciiLines.append('    parent ' + obj.parent.name)
         else:
-            asciiLines.appent('    parent null')
+            asciiLines.append('    parent null')
         Node.generateAsciiKeysEmitter(obj, anim, asciiLines)
         Node.generateAsciiKeys(obj, anim, asciiLines)
         asciiLines.append('  endnode')

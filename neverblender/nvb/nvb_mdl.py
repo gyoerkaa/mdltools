@@ -202,7 +202,7 @@ class Mdl():
         blendfile = os.path.basename(bpy.data.filepath)
         mdlname = rootDummy.nvb.name
         mdlclass = rootDummy.nvb.classification
-        mdlsuper = rootDummy.nvb.animscale
+        mdlsuper = rootDummy.nvb.supermodel
         mdlanimscale = rootDummy.nvb.animscale
 
         asciiLines.append('filedependancy ' + blendfile)
@@ -221,7 +221,7 @@ class Mdl():
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
 
-            node.generateAscii(obj, asciiLines)
+            node.generateAscii(obj, asciiLines, options)
 
             childList = []
             for child in obj.children:
@@ -263,7 +263,7 @@ class Mdl():
         Mdl.generateAsciiGeometry(rootDummy, asciiLines, options)
         asciiLines.append('endmodelgeom ' + mdlName)
         # Animations
-        if options.exportAnims:
+        if options.exportAnim:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
             Mdl.generateAsciiAnimations(rootDummy, asciiLines, options)
@@ -283,7 +283,7 @@ class Mdl():
         childList.sort(key=lambda tup: tup[0])
 
         for (imporder, child) in childList:
-            Mdl.getWalkmeshObjects(obj, wmo, options)
+            Mdl.getWalkmeshObjects(child, wmo, options)
 
     @staticmethod
     def generateAsciiWalkmesh(rootDummy, asciiLines, options):

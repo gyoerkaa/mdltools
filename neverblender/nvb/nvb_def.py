@@ -154,15 +154,20 @@ class Dummytype():
     @classmethod
     def getSuffix(cls, obj, classification):
         """TODO: Doc."""
+        suffix = ''
         if obj.type == 'EMPTY' and obj.nvb.emptytype == Emptytype.DUMMY:
             if classification == Classification.DOOR:
-                return cls.suffix_dwk[obj.nvb.dummytype]
+                suffix = cls.suffix_dwk[obj.nvb.dummytype]
             elif classification == Classification.TILE:
-                return ''  # No changes for tiles
+                pass  # No changes for tiles
             else:
                 # Everything else counts as placeable
-                return cls.suffix_pwk[obj.nvb.dummytype]
-        return ''
+                suffix = cls.suffix_pwk[obj.nvb.dummytype]
+        # Maybe there already is a suffix?
+        if obj.name.endswith(suffix):
+            return ''
+        else:
+            return suffix
 
     @classmethod
     def get(cls, nodeName):
@@ -230,15 +235,20 @@ class Walkmeshtype():
     @classmethod
     def getSuffix(cls, obj, classification):
         """TODO: Doc."""
+        suffix = ''
         if obj.type == 'MESH' and obj.nvb.meshtype == Meshtype.WALKMESH:
             if classification == Classification.DOOR:
-                return cls.suffix_dwk[obj.nvb.meshtype]
+                suffix = cls.suffix_dwk[obj.nvb.meshtype]
             elif classification == Classification.TILE:
                 return ''  # No changes for tiles
             else:
                 # Everything else counts as placeable
-                return '_pwk'
-        return ''
+                suffix = '_pwk'
+        # Maybe there already is a suffix?
+        if obj.name.endswith(suffix):
+            return ''
+        else:
+            return suffix
 
     @classmethod
     def get(cls, nodeName):
