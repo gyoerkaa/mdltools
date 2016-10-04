@@ -446,7 +446,6 @@ class Trimesh(Node):
             material.diffuse_intensity = 1.0
             material.specular_color = self.specular
 
-            print(self.bitmap)
             if texName:
                 textureSlot = material.texture_slots.add()
                 # If a texture with the same name was already created treat
@@ -1233,32 +1232,24 @@ class Light(Node):
                     # many flares there are
                     # We 'll need to read them later. For now save the index
                     flareTextureNamesStart = idx+1
-                    print('flare texturename:')
-                    print(line)
                 elif (label == 'flaresizes'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
-                    print('flare size:')
-                    print(line)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
-                    print('flare pos:')
-                    print(line)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
-                    print('flare col:')
-                    print(line)
 
         # Load flare texture names:
         for i in range(numVals):
@@ -1318,7 +1309,6 @@ class Light(Node):
         """TODO: Doc."""
         if obj.nvb.lensflares:
             asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-            # print(str(len(obj.nvb.flareList)))
             if len(obj.nvb.flareList) > 0:
 
                 # TODO: Clean this up
