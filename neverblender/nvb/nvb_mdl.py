@@ -14,6 +14,18 @@ from . import nvb_utils
 class Mdl():
     """TODO: DOC."""
 
+    # Helper to create nodes of matching type
+    nodelookup = {'dummy':      nvb_node.Dummy,
+                  'patch':      nvb_node.Patch,
+                  'reference':  nvb_node.Reference,
+                  'trimesh':    nvb_node.Trimesh,
+                  'animmesh':   nvb_node.Animmesh,
+                  'danglymesh': nvb_node.Danglymesh,
+                  'skin':       nvb_node.Skinmesh,
+                  'emitter':    nvb_node.Emitter,
+                  'light':      nvb_node.Light,
+                  'aabb':       nvb_node.Aabb}
+
     def __init__(self):
         """TODO: DOC."""
         # Header Data
@@ -80,17 +92,6 @@ class Mdl():
 
     def loadAsciiWalkmeshGeometry(self, asciiBlock):
         """TODO: DOC."""
-        # Helper to create nodes of matching type
-        nodelookup = {'dummy':      nvb_node.Dummy,
-                      'patch':      nvb_node.Patch,
-                      'reference':  nvb_node.Reference,
-                      'trimesh':    nvb_node.Trimesh,
-                      'animmesh':   nvb_node.Animmesh,
-                      'danglymesh': nvb_node.Danglymesh,
-                      'skin':       nvb_node.Skinmesh,
-                      'emitter':    nvb_node.Emitter,
-                      'light':      nvb_node.Light,
-                      'aabb':       nvb_node.Aabb}
         dlm = 'node '
         nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
         for idx, asciiNode in enumerate(nodeList):
@@ -110,7 +111,7 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
             # Create an object with that type and name
             try:
-                node = nodelookup[nodeType](nodeName)
+                node = Mdl.nodelookup[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse the rest and add to node list
@@ -133,17 +134,6 @@ class Mdl():
 
     def loadAsciiGeometry(self, asciiBlock):
         """TODO: DOC."""
-        # Helper to create nodes of matching type
-        nodelookup = {'dummy':      nvb_node.Dummy,
-                      'patch':      nvb_node.Patch,
-                      'reference':  nvb_node.Reference,
-                      'trimesh':    nvb_node.Trimesh,
-                      'animmesh':   nvb_node.Animmesh,
-                      'danglymesh': nvb_node.Danglymesh,
-                      'skin':       nvb_node.Skinmesh,
-                      'emitter':    nvb_node.Emitter,
-                      'light':      nvb_node.Light,
-                      'aabb':       nvb_node.Aabb}
         dlm = 'node '
         nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
         for idx, asciiNode in enumerate(nodeList):
@@ -163,7 +153,7 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
             # Create an object with that type and name
             try:
-                node = nodelookup[nodeType](nodeName)
+                node = Mdl.nodelookup[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse the rest and add to node list
@@ -224,33 +214,22 @@ class Mdl():
     @staticmethod
     def generateAsciiGeometry(obj, asciiLines, options):
         """TODO: DOC."""
-        nodeType = nvb_utils.getNodeType(obj)
-        nodelookup = {'dummy':      nvb_node.Dummy,
-                      'patch':      nvb_node.Patch,
-                      'reference':  nvb_node.Reference,
-                      'trimesh':    nvb_node.Trimesh,
-                      'animmesh':   nvb_node.Animmesh,
-                      'danglymesh': nvb_node.Danglymesh,
-                      'skin':       nvb_node.Skinmesh,
-                      'emitter':    nvb_node.Emitter,
-                      'light':      nvb_node.Light,
-                      'aabb':       nvb_node.Aabb}
-        if nodeType == nvb_def.Nodetype.WALKMESH:
-            pass
-        try:
-            node = nodelookup[nodeType]
-        except KeyError:
-            raise nvb_def.MalformedMdlFile('Invalid node type')
+        if nvb_utils.belongsToMdl(obj, options.classification):
+            nodeType = nvb_utils.getNodeType(obj)
+            try:
+                node = Mdl.nodelookup[nodeType]
+            except KeyError:
+                raise nvb_def.MalformedMdlFile('Invalid node type')
 
-        node.generateAscii(obj, asciiLines)
+            node.generateAscii(obj, asciiLines)
 
-        childList = []
-        for child in obj.children:
-            childList.append((child.nvb.imporder, child))
-        childList.sort(key=lambda tup: tup[0])
+            childList = []
+            for child in obj.children:
+                childList.append((child.nvb.imporder, child))
+            childList.sort(key=lambda tup: tup[0])
 
-        for (imporder, child) in childList:
-            Mdl.generateAsciiGeometry(child, asciiLines, options)
+            for (imporder, child) in childList:
+                Mdl.generateAsciiGeometry(child, asciiLines, options)
 
     @staticmethod
     def generateAsciiAnimations(rootDummy, asciiLines, options):
@@ -293,12 +272,36 @@ class Mdl():
         asciiLines.append('')
 
     @staticmethod
+    def getWalkmeshObjects(obj, wmo, options):
+        """TODO: DOC."""
+        if nvb_utils.belongsToWalkmesh(obj, options.classification):
+            wmo.append(obj)
+
+        childList = []
+        for child in obj.children:
+            childList.append((child.nvb.imporder, child))
+        childList.sort(key=lambda tup: tup[0])
+
+        for (imporder, child) in childList:
+            Mdl.getWalkmeshObjects(obj, wmo, options)
+
+    @staticmethod
     def generateAsciiWalkmesh(rootDummy, asciiLines, options):
         """TODO: DOC."""
-        # mdlName = rootDummy.name
-
-        # Creation time
-        Mdl.generateAsciiMeta(asciiLines)
+        wmo = []
+        Mdl.getWalkmeshObjects(rootDummy, wmo, options)
+        if wmo:  # Only wirte something if there are any walkmesh objects
+            # Creation time
+            Mdl.generateAsciiMeta(asciiLines)
+            # Geometry
+            for obj in wmo:
+                nodeType = nvb_utils.getNodeType(obj)
+                try:
+                    node = Mdl.nodelookup[nodeType]
+                except KeyError:
+                    print("Neverblender - WARNING: Unable to get node type.")
+                else:
+                    node.generateAsciiWalkmesh(obj, asciiLines)
 
     def createObjectLinks(self, options):
         """Handle parenting and linking the objects to a scene."""

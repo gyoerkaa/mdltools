@@ -123,7 +123,8 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 items=[(nvb_def.Emptytype.DUMMY,
                         'Dummy', 'Simple dummy object', 0),
                        (nvb_def.Emptytype.REFERENCE,
-                        'Reference node', 'Used in spells. Default value "fx_ref"', 1),
+                        'Reference node', 'Used in spells. \
+                         Default value "fx_ref"', 1),
                        (nvb_def.Emptytype.PATCH,
                         'Patch node', 'Unknown purpose', 2)],
                 default=nvb_def.Emptytype.DUMMY)
@@ -165,21 +166,21 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Dummytype.GROUND,
                         'Ground', 'Ground node for vfx', 5),
                        (nvb_def.Dummytype.USE1,
-                        'Use 1', 'Node for "Use" animation', 6),
+                        'Use 1', '1st Node for placeable "Use"', 6),
                        (nvb_def.Dummytype.USE2,
-                        'Use 2', 'Node for "Use" animation', 7),
+                        'Use 2', '2nd Node for placeable "Use"', 7),
                        (nvb_def.Dummytype.OPEN1_01,
-                        'DWK: Open 1 1st', '1st node for "Use" animation', 8),
+                        'DWK: Open 1 1st', '1st node for door "Use"', 8),
                        (nvb_def.Dummytype.OPEN1_02,
-                        'DWK: Open 1 2nd', '2nd node for "Use" animation', 9),
+                        'DWK: Open 1 2nd', '2nd node for door "Use"', 9),
                        (nvb_def.Dummytype.OPEN2_01,
-                        'DWK: Open 2 1st', '1st node for "Use" animation', 10),
+                        'DWK: Open 2 1st', '1st node for door "Use"', 10),
                        (nvb_def.Dummytype.OPEN2_02,
-                        'DWK: Open 2 2nd', '2nd node for "Use" animation', 11),
+                        'DWK: Open 2 2nd', '2nd node for door "Use"', 11),
                        (nvb_def.Dummytype.CLOSED_01,
-                        'DWK: Closed 1st', '1st node for "Use" animation', 12),
+                        'DWK: Closed 1st', '1st node for door "Use"', 12),
                        (nvb_def.Dummytype.CLOSED_01,
-                        'DWK: Closed 2nd', '2nd node for "Use" animation', 13)
+                        'DWK: Closed 2nd', '2nd node for door "Use"', 13)
                        ],
                 default=nvb_def.Dummytype.DEFAULT)
     animscale = bpy.props.FloatProperty(

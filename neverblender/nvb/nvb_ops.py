@@ -17,11 +17,12 @@ class NVB_LIST_OT_Anim_Show(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        return len(context.object.nvb.animList) > 0
+        obj = nvb_utils.findObjRootDummy(context.object)
+        return len(obj.nvb.animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
+        obj = nvb_utils.findObjRootDummy(context.object)
         animList = obj.nvb.animList
         animIdx = obj.nvb.animListIdx
 
@@ -55,11 +56,12 @@ class NVB_LIST_OT_Anim_New(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        return context.object is not None
+        obj = nvb_utils.findObjRootDummy(context.object)
+        return obj is not None
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
+        obj = nvb_utils.findObjRootDummy(context.object)
         nvb_utils.createAnimListItem(obj)
 
         return {'FINISHED'}
@@ -74,11 +76,12 @@ class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        return len(context.object.nvb.animList) > 0
+        obj = nvb_utils.findObjRootDummy(context.object)
+        return len(obj.nvb.animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
+        obj = nvb_utils.findObjRootDummy(context.object)
         animList = obj.nvb.animList
         animIdx = obj.nvb.animListIdx
 
@@ -103,48 +106,30 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        return len(context.object.nvb.animList) > 0
-
-    def move_index(self, context):
-        """TODO: DOC."""
-        animList = context.object.nvb.animList
-        animIdx = context.object.nvb.animListIdx
-
-        maxIdx = len(animList) - 1
-        newIdx = 0
-        if self.direction == 'UP':
-            newIdx = animIdx - 1
-        elif self.direction == 'DOWN':
-            newIdx = animIdx + 1
-        elif self.direction == 'END':
-            newIdx = maxIdx
-
-        newIdx = max(0, min(newIdx, maxIdx))
-        context.object.nvb.animListIdx = newIdx
+        obj = nvb_utils.findObjRootDummy(context.object)
+        return len(obj.nvb.animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        animList = context.object.nvb.animList
-        currentAnimIdx = context.object.nvb.animListIdx
+        obj = nvb_utils.findObjRootDummy(context.object)
+        animList = obj.nvb.animList
 
+        currentIdx = obj.nvb.animListIdx
+        newIdx = 0
+        maxIdx = len(animList) - 1
         if self.direction == 'DOWN':
-            neighbourIdx = currentAnimIdx + 1
-            animList.move(currentAnimIdx, neighbourIdx)
-            # TODO: Move whole animation, i.e. keyframes
-            self.move_index(context)
+            newIdx = currentIdx + 1
         elif self.direction == 'UP':
-            neighbourIdx = currentAnimIdx - 1
-            animList.move(neighbourIdx, currentAnimIdx)
-            # TODO: Move whole animation, i.e. keyframes
-            self.move_index(context)
+            newIdx = currentIdx - 1
         elif self.direction == 'END':
-            neighbourIdx = currentAnimIdx - 1
-            animList.move(neighbourIdx, currentAnimIdx)
-            # TODO: Move whole animation, i.e. keyframes
-            self.move_index(context)
+            newIdx = maxIdx
         else:
             return {'CANCELLED'}
 
+        newIdx = max(0, min(newIdx, maxIdx))
+        animList.move(currentIdx, newIdx)
+        obj.nvb.animListIdx = newIdx
+        # TODO: Move whole animation, i.e. keyframes
         return {'FINISHED'}
 
 

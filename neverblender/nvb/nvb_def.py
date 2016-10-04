@@ -128,28 +128,41 @@ class Dummytype():
                    ('closed_02', CLOSED_02)]
 
     suffix_pwk = {DEFAULT:  '',
-                  HAND:     'hand',
-                  HEAD:     'head',
-                  HEAD_HIT: 'head_hit',
-                  IMPACT:   'impact',
-                  GROUND:   'ground',
-                  USE1:     'dwk_use01',
-                  USE2:     'dwk_use02'}
+                  HAND:     '_hand',
+                  HEAD:     '_head',
+                  HEAD_HIT: '_head_hit',
+                  IMPACT:   '_impact',
+                  GROUND:   '_ground',
+                  USE1:     '_pwk_use01',
+                  USE2:     '_pwk_use02'}
 
     suffix_dwk = {DEFAULT:   '',
-                  HAND:      'hand',
-                  HEAD:      'head',
-                  HEAD_HIT:  'hhit',
-                  IMPACT:    'impc',
-                  GROUND:    'grnd',
-                  USE1:      'pwk_use01',
-                  USE2:      'pwk_use02',
-                  OPEN1_01:  'open1_01',
-                  OPEN1_02:  'open1_02',
-                  OPEN2_01:  'open2_01',
-                  OPEN2_02:  'open2_02',
-                  CLOSED_01: 'closed_01',
-                  CLOSED_02: 'closed_02'}
+                  HAND:      '_hand',
+                  HEAD:      '_head',
+                  HEAD_HIT:  '_hhit',
+                  IMPACT:    '_impc',
+                  GROUND:    '_grnd',
+                  USE1:      '_dwk_use01',
+                  USE2:      '_dwk_use02',
+                  OPEN1_01:  '_dp_open1_01',
+                  OPEN1_02:  '_dp_open1_02',
+                  OPEN2_01:  '_dp_open2_01',
+                  OPEN2_02:  '_dp_open2_02',
+                  CLOSED_01: '_dp_closed_01',
+                  CLOSED_02: '_dp_closed_02'}
+
+    @classmethod
+    def getSuffix(cls, obj, classification):
+        """TODO: Doc."""
+        if obj.type == 'EMPTY' and obj.nvb.emptytype == Emptytype.DUMMY:
+            if classification == Classification.DOOR:
+                return cls.suffix_dwk[obj.nvb.dummytype]
+            elif classification == Classification.TILE:
+                return ''  # No changes for tiles
+            else:
+                # Everything else counts as placeable
+                return cls.suffix_pwk[obj.nvb.dummytype]
+        return ''
 
     @classmethod
     def get(cls, nodeName):
@@ -193,7 +206,7 @@ class Nodetype(Emptytype, Meshtype):
 
     LIGHT = 'light'
     AABB = 'aabb'
-
+              
     ALL = {LIGHT, AABB} | Emptytype.ALL | Meshtype.ALL
 
 
@@ -209,6 +222,23 @@ class Walkmeshtype():
     suffix_list = [('wg_open1', DWKOPEN1),
                    ('wg_open2', DWKOPEN2),
                    ('wg_closed', DWKCLOSED)]
+
+    suffix_dwk = [(DWKOPEN1, 'wg_open1'),
+                  (DWKOPEN2, 'wg_open2'),
+                  (DWKCLOSED, 'wg_closed')]
+
+    @classmethod
+    def getSuffix(cls, obj, classification):
+        """TODO: Doc."""
+        if obj.type == 'MESH' and obj.nvb.meshtype == Meshtype.WALKMESH:
+            if classification == Classification.DOOR:
+                return cls.suffix_dwk[obj.nvb.meshtype]
+            elif classification == Classification.TILE:
+                return ''  # No changes for tiles
+            else:
+                # Everything else counts as placeable
+                return '_pwk'
+        return ''
 
     @classmethod
     def get(cls, nodeName):
@@ -291,10 +321,11 @@ class ImportOptions():
 class ExportOptions():
     """TODO: DOC."""
 
-    exportAnim = True
-    exportWalkmesh = True
-    exportSmoothGroups = True
-
+    mdlname = 'unnamed'
     meshConvert = 'RENDER'
     applyModifiers = True
     classification = Classification.UNKNOWN
+    # Misc options
+    exportAnim = True
+    exportWalkmesh = True
+    exportSmoothGroups = True

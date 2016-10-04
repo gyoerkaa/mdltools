@@ -145,7 +145,7 @@ class Node(object):
         return scaled
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: DOC."""
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
@@ -189,14 +189,24 @@ class Node(object):
             asciiLines.append('  scale ' + str(scale))
 
     @classmethod
-    def generateAscii(cls, obj, asciiLines, exports, options):
+    def generateAscii(cls, obj, asciiLines, options):
         """TODO: Doc."""
         asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        cls.generateAsciiData(cls, obj, asciiLines, exports, options)
+        cls.generateAsciiData(cls, obj, asciiLines, options)
+        asciiLines.append('endnode')
+
+    @classmethod
+    def generateAsciiWalkmesh(cls, obj, asciiLines, options):
+        """TODO: Doc."""
+        asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
+
+        asciiLines.append('  parent ' + obj.parent.name)
+
+        cls.generateAsciiData(cls, obj, asciiLines, options)
         asciiLines.append('endnode')
 
 
@@ -282,9 +292,9 @@ class Reference(Node):
         obj.nvb.reattachable = (self.reattachable >= 1)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, exports, options)
+        Node.generateAsciiData(obj, asciiLines, options)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
@@ -579,7 +589,7 @@ class Trimesh(Node):
         hasImgTexture = False
         # Check if the object is only a shadow mesh
         if not obj.nvb.render and obj.nvb.shadow:
-            # Shadow mesh: Everything should be black
+            # Shadow mesh: Everything should be black, no texture, no uv
             asciiLines.append('  diffuse 0.0 0.0 0.0')
             asciiLines.append('  specular 0.0 0.0 0.0')
             asciiLines.append('  alpha 1.0')
@@ -752,9 +762,9 @@ class Trimesh(Node):
         bpy.data.meshes.remove(mesh)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, exports, options)
+        Node.generateAsciiData(obj, asciiLines, options)
 
         color = obj.nvb.ambientcolor
         asciiLines.append('  ambient ' +
@@ -901,7 +911,7 @@ class Danglymesh(Trimesh):
         self.createConstraints(obj)
 
     @staticmethod
-    def generateAsciiConstraints(obj, asciiLines, exports, options):
+    def generateAsciiConstraints(obj, asciiLines, options):
         """TODO: Doc."""
         vgroupName = obj.nvb.constraints
         vgroup = obj.vertex_groups[vgroupName]
@@ -916,9 +926,9 @@ class Danglymesh(Trimesh):
                 asciiLines.append('    0.0')
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, exports, options)
+        Trimesh.generateAsciiData(obj, asciiLines, options)
 
         asciiLines.append('  period ' + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
@@ -979,13 +989,13 @@ class Skinmesh(Trimesh):
         self.createSkinGroups(obj)
 
     @staticmethod
-    def generateAsciiWeights(obj, asciiLines, exports, options):
+    def generateAsciiWeights(obj, asciiLines, options):
         """TODO: Doc."""
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
         skingroups = []
-        for objName in exports:
+        for objName in bpy.data.objects:
             if objName in obj.vertex_groups:
                 skingroups.append(obj.vertex_groups[objName])
 
@@ -1014,11 +1024,11 @@ class Skinmesh(Trimesh):
             asciiLines.append(line)
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, exports, options)
+        Trimesh.generateAsciiData(obj, asciiLines, options)
 
-        Skinmesh.generateAsciiWeights(obj, asciiLines, exports, options)
+        Skinmesh.generateAsciiWeights(obj, asciiLines, options)
 
 
 class Emitter(Node):
@@ -1121,9 +1131,9 @@ class Emitter(Node):
         return obj
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Node.addDataToAscii(obj, asciiLines, exports, options)
+        Node.addDataToAscii(obj, asciiLines, options)
 
         if obj.nvb.rawascii not in bpy.data.texts:
             print('Neverblender - Warning: No emitter data for ' + obj.name)
@@ -1332,9 +1342,9 @@ class Light(Node):
                           str(round(obj.nvb.flareradius, 1)))
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, exports, options)
+        Node.generateAsciiData(obj, asciiLines, options)
 
         lamp = obj.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
@@ -1461,7 +1471,7 @@ class Aabb(Trimesh):
                                   str(node[6]))
 
     @staticmethod
-    def generateAsciiData(obj, asciiLines, exports, options):
+    def generateAsciiData(obj, asciiLines, options):
         """TODO: Doc."""
         loc = obj.location
         asciiLines.append('  position ' +

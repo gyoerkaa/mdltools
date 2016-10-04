@@ -182,10 +182,9 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.operator('nvb.anim_move',
                          icon='TRIA_UP', text='').direction = 'UP'
             col.operator('nvb.anim_move',
-                         icon='LOOP_FORWARDS', text='').direction = 'END'                         
+                         icon='LOOP_FORWARDS', text='').direction = 'END'
             col.operator('nvb.anim_move',
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
-
             col.separator()
             col.operator('nvb.anim_show',
                          icon='RENDER_ANIMATION', text='')

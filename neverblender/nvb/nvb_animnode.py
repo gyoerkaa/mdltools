@@ -44,13 +44,12 @@ class Node():
         self.animverts = []
         self.clip = [0.0, 0.0, 0.0, 0.0]
 
-        self.objData = False
-        self.matData = False
-        self.rawData = False
+        self.objdata = False
+        self.matdata = False
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
-        return not self.isEmpty
+        return self.objdata or self.matdata or self.rawascii
 
     def findEnd(self, asciiBlock):
         """Find the end of a key list.
@@ -73,97 +72,97 @@ class Node():
                 label = line[0].lower()
             except IndexError:
                 continue  # Probably empty line, skip it
-            if label == 'node':
-                self.nodeType = line[1].lower()
-                self.name = nvb_utils.getAuroraString(line[2])
-            elif label == 'endnode':
-                return
-            elif label == 'parent':
-                self.parentName = nvb_utils.getAuroraString(line[1])
-            # Animations using a single value as key
-            elif label == 'position':
-                self.position = (l_float(line[1]),
-                                 l_float(line[2]),
-                                 l_float(line[3]))
-                self.objData = True
-            elif label == 'orientation':
-                self.orientation = (l_float(line[1]),
-                                    l_float(line[2]),
-                                    l_float(line[3]),
-                                    l_float(line[4]))
-                self.objData = True
-            elif label == 'scale':
-                self.scale = l_float(line[1])
-                self.objData = True
-            elif label == 'alpha':
-                self.alpha = l_float(line[1])
-                self.matData = True
-            # Animeshes
-            elif label == 'sampleperiod':
-                self.sampleperiod = l_float(line[1])
-            elif label == 'clipu':
-                self.clip[0] = l_float(line[1])
-            elif label == 'clipv':
-                self.clip[1] = l_float(line[1])
-            elif label == 'clipw':
-                self.clip[2] = l_float(line[1])
-            elif label == 'cliph':
-                self.clip[3] = l_float(line[1])
-            elif label == 'animverts':
-                numVals = l_int(line[1])
-                nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
-                self.matData = True
-            elif label == 'animtverts':
-                numVals = l_int(line[1])
-                nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
-                self.matData = True
-            # Keyed animations
-            elif label == 'positionkey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
-                             self.positionkey)
-                self.objData = True
-            elif label == 'orientationkey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
-                             self.orientationkey)
-                self.objData = True
-            elif label == 'scalekey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
-                             self.scalekey)
-                self.objData = True
-            elif label == 'alphakey':
-                # If this is an emitter, alphakeys are incompatible. We'll
-                # handle them later as plain text
-                numKeys = self.findEnd(asciiLines[i+1:])
-                if self.nodeType == 'emitter':
-                    nvb_parse.txt(asciiLines[i:i+numKeys+1],
-                                  self.rawascii)
-                else:
+            if not l_isNumber(label):
+                if label == 'node':
+                    self.nodeType = line[1].lower()
+                    self.name = nvb_utils.getAuroraString(line[2])
+                elif label == 'endnode':
+                    return
+                elif label == 'parent':
+                    self.parentName = nvb_utils.getAuroraString(line[1])
+                # Animations using a single value as key
+                elif label == 'position':
+                    self.position = (l_float(line[1]),
+                                     l_float(line[2]),
+                                     l_float(line[3]))
+                    self.objdata = True
+                elif label == 'orientation':
+                    self.orientation = (l_float(line[1]),
+                                        l_float(line[2]),
+                                        l_float(line[3]),
+                                        l_float(line[4]))
+                    self.objdata = True
+                elif label == 'scale':
+                    self.scale = l_float(line[1])
+                    self.objdata = True
+                elif label == 'alpha':
+                    self.alpha = l_float(line[1])
+                    self.matdata = True
+                # Animeshes
+                elif label == 'sampleperiod':
+                    self.sampleperiod = l_float(line[1])
+                elif label == 'clipu':
+                    self.clip[0] = l_float(line[1])
+                elif label == 'clipv':
+                    self.clip[1] = l_float(line[1])
+                elif label == 'clipw':
+                    self.clip[2] = l_float(line[1])
+                elif label == 'cliph':
+                    self.clip[3] = l_float(line[1])
+                elif label == 'animverts':
+                    numVals = l_int(line[1])
+                    nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
+                    self.matdata = True
+                elif label == 'animtverts':
+                    numVals = l_int(line[1])
+                    nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
+                    self.matdata = True
+                # Keyed animations
+                elif label == 'positionkey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
+                                 self.positionkey)
+                    self.objdata = True
+                elif label == 'orientationkey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
+                                 self.orientationkey)
+                    self.objdata = True
+                elif label == 'scalekey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
                     nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
-                                 self.alphakey)
-                self.matData = True
-            elif label == 'selfillumcolorkey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
-                             self.selfillumcolorkey)
-                self.objData = True
-            # Lights/lamps only
-            elif label == 'colorkey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.colorkey)
-                self.objData = True
-            elif label == 'radiuskey':
-                numKeys = self.findEnd(asciiLines[i+1:])
-                nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.radiuskey)
-                self.objData = True
-            # Some unknown label.
-            # Probably keys for emitters, incompatible, save as plain text
-            elif (label[0] != '#') and (not l_isNumber(label)):
-                numKeys = self.findEnd(asciiLines[i+1:])
-                self.rawascii.extend(asciiLines[i:i+numKeys+1])
-                self.rawData = True
+                                 self.scalekey)
+                    self.objdata = True
+                elif label == 'alphakey':
+                    # If this is an emitter, alphakeys are incompatible. We'll
+                    # handle them later as plain text
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    if self.nodeType == 'emitter':
+                        nvb_parse.txt(asciiLines[i:i+numKeys+1],
+                                      self.rawascii)
+                    else:
+                        nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
+                                     self.alphakey)
+                    self.matdata = True
+                elif label == 'selfillumcolorkey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
+                                 self.selfillumcolorkey)
+                    self.objdata = True
+                # Lights/lamps only
+                elif label == 'colorkey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.colorkey)
+                    self.objdata = True
+                elif label == 'radiuskey':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.radiuskey)
+                    self.objdata = True
+                # Some unknown label.
+                # Probably keys for emitters, incompatible, save as plain text
+                elif label[0] != '#':
+                    numKeys = self.findEnd(asciiLines[i+1:])
+                    self.rawascii.extend(asciiLines[i:i+numKeys+1])
 
     @staticmethod
     def getCurve(action, dataPath, idx=0):
@@ -388,11 +387,11 @@ class Node():
 
     def create(self, obj, anim, options):
         """TODO:Doc."""
-        if self.objData:
+        if self.objdata:
             self.createDataObject(obj, anim)
-        if self.matData and obj.active_material:
+        if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
-        if self.rawData and \
+        if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmitter(obj, anim, options)
 
@@ -418,14 +417,16 @@ class Node():
                 else:
                     continue  # Can't export this one, skip it
 
-            for kfp in fcurve.keyframe_points:
-                frame = int(round(kfp.co[0]))
+            kfp = [p for p in fcurve.fcurve.keyframe_points
+                   if anim.frameStart <= int(round(p.co[0])) <= anim.frameEnd]
+            for p in kfp:
+                frame = int(round(p.co[0]))
                 keys = keyDict[nwname]
                 if frame in keys:
                     values = keys[frame]
                 else:
                     values = [0.0, 0.0, 0.0, 0.0]
-                values[axis] = values[axis] + kfp.co[1]
+                values[axis] = values[axis] + p.co[1]
                 keys[frame] = values
 
     @staticmethod
@@ -449,7 +450,7 @@ class Node():
             # Lines starting with numbers are keys
             if l_isNumber(label):
                 frame = line[0]
-                nwtime = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                nwtime = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 asciiLines.append('      ' + str(nwtime) + ' '.join(line[1:]))
             else:
                 asciiLines.append('    ' + ' '.join(line))
@@ -481,13 +482,13 @@ class Node():
                 Node.getKeysFromAction(action, anim, keyDict)
 
         l_round = round  # For speed
-        animStart = anim.start
+        animStart = anim.frameStart
 
         kname = 'orientationkey'
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
                 formatString = '      {: 6.5f} {: 6.5f} \
@@ -499,7 +500,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatString = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
                 s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
@@ -508,7 +509,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
@@ -516,7 +517,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
                 s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
@@ -525,7 +526,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
                 s = formatString.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
@@ -534,7 +535,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
@@ -542,7 +543,7 @@ class Node():
         if kname in keyDict:
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(animStart - frame), 5)
+                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
                 asciiLines.append(s)
 

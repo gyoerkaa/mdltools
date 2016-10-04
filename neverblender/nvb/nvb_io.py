@@ -80,6 +80,7 @@ def saveMdl(operator, context,
         bpy.ops.object.mode_set(mode='OBJECT')
 
     rootDummy = nvb_utils.findRootDummy(bpy.context.object)
+    options.mdlname = rootDummy.name
     options.classification = rootDummy.classification
     if rootDummy:
         print('Neverblender: Exporting ' + rootDummy.name)

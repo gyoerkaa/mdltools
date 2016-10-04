@@ -119,18 +119,7 @@ def belongsToWalkmesh(obj, classification):
     if not obj:
         return False
     if obj.type == 'EMPTY':
-        if classification == nvb_def.Classification.DOOR:
-            return ((obj.nvb.dummytype == nvb_def.Dummytype.OPEN1_01) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN1_02) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN2_01) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.OPEN2_02) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.CLOSED_01) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.CLOSED_02))
-        elif classification != nvb_def.Classification.TILE:
-            return ((obj.nvb.dummytype == nvb_def.Dummytype.USE1) or
-                    (obj.nvb.dummytype == nvb_def.Dummytype.USE2))
-        else:
-            return False
+        return nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)
     elif obj.type == 'MESH':
         if classification == nvb_def.Classification.TILE:
             return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
