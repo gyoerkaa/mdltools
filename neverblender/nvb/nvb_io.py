@@ -34,7 +34,7 @@ def loadMdl(operator, context,
     options.minimapSkipFade = minimapSkipFade
 
     (mdlPath, mdlFilename) = os.path.split(filepath)
-    options.mdlname = mdlFilename
+    options.mdlname = os.path.splitext(mdlFilename)[0]
     options.scene = bpy.context.scene
 
     with open(os.fsencode(filepath), 'r') as mdlfile:
@@ -45,9 +45,8 @@ def loadMdl(operator, context,
 
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if importWalkmesh:
-            (mdlPath, mdlFilename) = os.path.split(filepath)
             for wkmtype in ['pwk', 'dwk']:
-                wkmFilename = os.path.splitext(mdlFilename)[0] + '.' + wkmtype
+                wkmFilename = options.mdlname + '.' + wkmtype
                 wkmPath = os.fsencode(os.path.join(mdlPath, wkmFilename))
                 try:
                     wkmFile = open(wkmPath, 'r')
