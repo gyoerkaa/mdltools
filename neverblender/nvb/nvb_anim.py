@@ -92,13 +92,12 @@ class Animation():
         """TODO: Doc."""
         nvb_animnode.Node.generateAscii(obj, anim, asciiLines)
 
-        childList = []
-        for child in obj.children:
-            childList.append((child.nvb.imporder, child))
-        childList.sort(key=lambda tup: tup[0])
-
-        for (imporder, child) in childList:
-            Animation.generateAsciiNodes(child, anim, asciiLines)
+        # Sort children to restore original order before import
+        # (important for supermodels/animations to work)
+        children = [c for c in obj.children]
+        children.sort(key=lambda c: c.nvb.imporder)
+        for c in children:
+            Animation.generateAsciiNodes(c, anim, asciiLines)
 
     @staticmethod
     def generateAscii(rootDummy, anim, asciiLines, options):

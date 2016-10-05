@@ -15,16 +15,16 @@ class Mdl():
     """TODO: DOC."""
 
     # Helper to create nodes of matching type
-    nodelookup = {'dummy':      nvb_node.Dummy,
-                  'patch':      nvb_node.Patch,
-                  'reference':  nvb_node.Reference,
-                  'trimesh':    nvb_node.Trimesh,
-                  'animmesh':   nvb_node.Animmesh,
-                  'danglymesh': nvb_node.Danglymesh,
-                  'skin':       nvb_node.Skinmesh,
-                  'emitter':    nvb_node.Emitter,
-                  'light':      nvb_node.Light,
-                  'aabb':       nvb_node.Aabb}
+    nodelookup = {nvb_def.Nodetype.DUMMY:      nvb_node.Dummy,
+                  nvb_def.Nodetype.PATCH:      nvb_node.Patch,
+                  nvb_def.Nodetype.REFERENCE:  nvb_node.Reference,
+                  nvb_def.Nodetype.TRIMESH:    nvb_node.Trimesh,
+                  nvb_def.Nodetype.ANIMMESH:   nvb_node.Animmesh,
+                  nvb_def.Nodetype.DANGLYMESH: nvb_node.Danglymesh,
+                  nvb_def.Nodetype.SKIN:       nvb_node.Skinmesh,
+                  nvb_def.Nodetype.EMITTER:    nvb_node.Emitter,
+                  nvb_def.Nodetype.LIGHT:      nvb_node.Light,
+                  nvb_def.Nodetype.AABB:       nvb_node.Aabb}
 
     def __init__(self):
         """TODO: DOC."""
@@ -200,8 +200,10 @@ class Mdl():
     def generateAsciiHeader(rootDummy, asciiLines, options):
         """TODO: DOC."""
         blendfile = os.path.basename(bpy.data.filepath)
-        mdlname = rootDummy.nvb.name
-        mdlclass = rootDummy.nvb.classification
+        if not blendfile:
+            blendfile = 'unknown'
+        mdlname = rootDummy.name
+        mdlclass = rootDummy.nvb.classification.upper()
         mdlsuper = rootDummy.nvb.supermodel
         mdlanimscale = rootDummy.nvb.animscale
 
@@ -222,14 +224,12 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Invalid node type')
 
             node.generateAscii(obj, asciiLines, options)
-
-            childList = []
-            for child in obj.children:
-                childList.append((child.nvb.imporder, child))
-            childList.sort(key=lambda tup: tup[0])
-
-            for (imporder, child) in childList:
-                Mdl.generateAsciiGeometry(child, asciiLines, options)
+            # Sort children to restore original order before import
+            # (important for supermodels/animations to work)
+            children = [c for c in obj.children]
+            children.sort(key=lambda c: c.nvb.imporder)
+            for c in children:
+                Mdl.generateAsciiGeometry(c, asciiLines, options)
 
     @staticmethod
     def generateAsciiAnimations(rootDummy, asciiLines, options):
@@ -292,7 +292,7 @@ class Mdl():
         Mdl.getWalkmeshObjects(rootDummy, wmo, options)
         if wmo:  # Only wirte something if there are any walkmesh objects
             # Creation time
-            Mdl.generateAsciiMeta(asciiLines)
+            Mdl.generateAsciiMeta(rootDummy, asciiLines, options)
             # Geometry
             for obj in wmo:
                 nodeType = nvb_utils.getNodeType(obj)
@@ -301,7 +301,7 @@ class Mdl():
                 except KeyError:
                     print("Neverblender - WARNING: Unable to get node type.")
                 else:
-                    node.generateAsciiWalkmesh(obj, asciiLines)
+                    node.generateAsciiWalkmesh(obj, asciiLines, options)
 
     def createObjectLinks(self, options):
         """Handle parenting and linking the objects to a scene."""

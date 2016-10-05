@@ -106,19 +106,6 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
             col.prop(obj.nvb, 'supermodel', text='')
             col.prop(obj.nvb, 'animscale', text='')
             layout.separator()
-
-            # Minimap Helper.
-            row = layout.row()
-            box = row.box()
-            box.label(text='Minimap Helper')
-            row = box.row()
-            row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
-            row = box.row()
-            row.prop(obj.nvb, 'minimapsize', text='Minimap size')
-            row = box.row()
-            row.operator('nvb.render_minimap',
-                         text='Render Minimap',
-                         icon='NONE')
         else:
             if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
                 row = layout.row()
@@ -136,105 +123,6 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
                 row.prop(obj.nvb, 'wirecolor')
                 row = box.row()
                 row.prop(obj.nvb, 'dummytype')
-
-
-class NVB_PANEL_ANIMLIST(bpy.types.Panel):
-    """Property panel for animationslist.
-
-    Property panel for additional properties needed for the mdl file
-    format. This is only available for EMPTY objects.
-    It is located under the object data panel in the properties window
-    """
-
-    bl_idname = 'nvb.propertypanel.anim'
-    bl_label = 'Aurora Animation Properties'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'object'
-
-    @classmethod
-    def poll(cls, context):
-        """TODO: DOC."""
-        if not context.object:
-            return False
-        rd = nvb_utils.findObjRootDummy(context.object)
-        return rd is not None
-
-    def draw(self, context):
-        """TODO: DOC."""
-        layout = self.layout
-        obj = nvb_utils.findObjRootDummy(context.object)
-        if obj:
-            # Anim Helper. Display and add/remove events.
-            row = layout.row()
-            box = row.box()
-            row = box.row()
-            row.label(text='Animations')
-
-            row = box.row()
-            row.template_list('NVB_UILIST_ANIMS', 'The_List',
-                              obj.nvb, 'animList',
-                              obj.nvb, 'animListIdx')
-            col = row.column(align=True)
-            col.operator('nvb.anim_new', text='', icon='ZOOMIN')
-            col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
-            col.separator()
-            col.operator('nvb.anim_move',
-                         icon='TRIA_UP', text='').direction = 'UP'
-            col.operator('nvb.anim_move',
-                         icon='LOOP_FORWARDS', text='').direction = 'END'
-            col.operator('nvb.anim_move',
-                         icon='TRIA_DOWN', text='').direction = 'DOWN'
-            col.separator()
-            col.operator('nvb.anim_show',
-                         icon='RENDER_ANIMATION', text='')
-            if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
-                anim = obj.nvb.animList[obj.nvb.animListIdx]
-                row = box.row()
-                row.prop(anim, 'name')
-                row = box.row()
-                row.prop_search(anim, 'root', bpy.data, 'objects')
-                row = box.row()
-                row.prop(anim, 'ttime')
-                row = box.row()
-                split = row.split()
-                col = split.column(align=True)
-                col.prop(anim, 'frameStart')
-                col.prop(anim, 'frameEnd')
-                row = box.row()
-                row.prop_search(anim, 'rawascii',
-                                bpy.data, 'texts',
-                                text='Data')
-                # col = split.column(align=True)
-                # col.prop(anim, 'marker', text = '')
-                # col.prop_search(anim, 'marker', bpy.context.scene,
-                # 'timeline_markers', icon = 'MARKER')
-                box.separator()
-
-                # Event Helper. Display and add/remove events.
-                row = box.row()
-                sub = box.box()
-                row = sub.row()
-                row.label(text='Animation Events')
-
-                row = sub.row()
-                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List',
-                                  anim, 'eventList', anim, 'eventListIdx')
-                col = row.column(align=True)
-                col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
-                col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')
-                col.separator()
-                col.operator('nvb.animevent_move',
-                             icon='TRIA_UP', text='').direction = 'UP'
-                col.operator('nvb.animevent_move',
-                             icon='TRIA_DOWN', text='').direction = 'DOWN'
-                if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
-                    animEvent = anim.eventList[anim.eventListIdx]
-                    row = sub.row()
-                    row.prop(animEvent, 'name')
-                    row.prop(animEvent, 'frame')
-
-                box.separator()
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):
@@ -368,8 +256,9 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             row = box.row()
             row.prop(obj.nvb, 'walkmeshtype', text='Walkmeshtype')
-            box.separator()
-            if (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE):
+
+            if (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB):
+                box.separator()
                 row = box.row()
                 row.operator('nvb.load_wok_mats',
                              text='Load walkmesh materials', icon='NONE')
@@ -437,3 +326,141 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row.prop_search(obj.nvb, 'skingroup_obj',
                                 context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
+
+
+class NVB_PANEL_ANIMLIST(bpy.types.Panel):
+    """Property panel for animationslist.
+
+    Property panel for additional properties needed for the mdl file
+    format. This is only available for EMPTY objects.
+    It is located under the object data panel in the properties window
+    """
+
+    bl_idname = 'nvb.propertypanel.anim'
+    bl_label = 'Aurora Animation Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        if not context.object:
+            return False
+        rd = nvb_utils.findObjRootDummy(context.object)
+        return rd is not None
+
+    def draw(self, context):
+        """TODO: DOC."""
+        layout = self.layout
+        obj = nvb_utils.findObjRootDummy(context.object)
+        if obj:
+            # Anim Helper. Display and add/remove events.
+            row = layout.row()
+            box = row.box()
+            row = box.row()
+            row.label(text='Animations')
+
+            row = box.row()
+            row.template_list('NVB_UILIST_ANIMS', 'The_List',
+                              obj.nvb, 'animList',
+                              obj.nvb, 'animListIdx')
+            col = row.column(align=True)
+            col.operator('nvb.anim_new', text='', icon='ZOOMIN')
+            col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
+            col.separator()
+            col.operator('nvb.anim_move',
+                         icon='TRIA_UP', text='').direction = 'UP'
+            col.operator('nvb.anim_move',
+                         icon='LOOP_FORWARDS', text='').direction = 'END'
+            col.operator('nvb.anim_move',
+                         icon='TRIA_DOWN', text='').direction = 'DOWN'
+            col.separator()
+            col.operator('nvb.anim_show',
+                         icon='RENDER_ANIMATION', text='')
+            if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
+                anim = obj.nvb.animList[obj.nvb.animListIdx]
+                row = box.row()
+                row.prop(anim, 'name')
+                row = box.row()
+                row.prop_search(anim, 'root', bpy.data, 'objects')
+                row = box.row()
+                row.prop(anim, 'ttime')
+                row = box.row()
+                split = row.split()
+                col = split.column(align=True)
+                col.prop(anim, 'frameStart')
+                col.prop(anim, 'frameEnd')
+                row = box.row()
+                row.prop_search(anim, 'rawascii',
+                                bpy.data, 'texts',
+                                text='Data')
+                # col = split.column(align=True)
+                # col.prop(anim, 'marker', text = '')
+                # col.prop_search(anim, 'marker', bpy.context.scene,
+                # 'timeline_markers', icon = 'MARKER')
+                box.separator()
+
+                # Event Helper. Display and add/remove events.
+                row = box.row()
+                sub = box.box()
+                row = sub.row()
+                row.label(text='Animation Events')
+
+                row = sub.row()
+                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List',
+                                  anim, 'eventList', anim, 'eventListIdx')
+                col = row.column(align=True)
+                col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
+                col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')
+                col.separator()
+                col.operator('nvb.animevent_move',
+                             icon='TRIA_UP', text='').direction = 'UP'
+                col.operator('nvb.animevent_move',
+                             icon='TRIA_DOWN', text='').direction = 'DOWN'
+                if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
+                    animEvent = anim.eventList[anim.eventListIdx]
+                    row = sub.row()
+                    row.prop(animEvent, 'name')
+                    row.prop(animEvent, 'frame')
+
+                box.separator()
+
+
+class NVB_PANEL_UTILS(bpy.types.Panel):
+    """Property panel for minimap render.
+
+    Property panel with utilities to render minimaps
+    """
+
+    bl_idname = 'nvb.propertypanel.utils'
+    bl_label = 'Aurora Utilities'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        if not context.object:
+            return False
+        rd = nvb_utils.findObjRootDummy(context.object)
+        return rd is not None
+
+    def draw(self, context):
+        """TODO: DOC."""
+        layout = self.layout
+        obj = nvb_utils.findObjRootDummy(context.object)
+        if obj:
+            # Minimap Helper.
+            row = layout.row()
+            box = row.box()
+            box.label(text='Minimap Helper')
+            row = box.row()
+            row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
+            row = box.row()
+            row.prop(obj.nvb, 'minimapsize', text='Minimap size')
+            row = box.row()
+            row.operator('nvb.render_minimap',
+                         text='Render Minimap',
+                         icon='NONE')

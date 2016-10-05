@@ -228,9 +228,9 @@ class Walkmeshtype():
                    ('wg_open2', DWKOPEN2),
                    ('wg_closed', DWKCLOSED)]
 
-    suffix_dwk = [(DWKOPEN1, 'wg_open1'),
-                  (DWKOPEN2, 'wg_open2'),
-                  (DWKCLOSED, 'wg_closed')]
+    suffix_dwk = [(DWKOPEN1, '_wg_open1'),
+                  (DWKOPEN2, '_wg_open2'),
+                  (DWKCLOSED, '_wg_closed')]
 
     @classmethod
     def getSuffix(cls, obj, classification):

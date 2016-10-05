@@ -2,19 +2,27 @@
 
 import bpy
 from . import nvb_def
+from . import nvb_utils
 
 
 def nvb_update_shadow_prop(self, context):
     """Set the lamps shadow to match the aurora shadow property."""
-    select_object = context.object
-    if (select_object) and (select_object.type == 'LAMP'):
+    obj = context.object
+    if obj and (obj.type == 'LAMP'):
         try:
-            if (select_object.nvb.shadow):
-                select_object.data.shadow_method = 'RAY_SHADOW'
+            if (obj.nvb.shadow):
+                obj.data.shadow_method = 'RAY_SHADOW'
             else:
-                select_object.data.shadow_method = 'NOSHADOW'
+                obj.data.shadow_method = 'NOSHADOW'
         except:
             pass
+
+
+def nvb_update_prop_animframe(self, context):
+    """TODO: Doc."""
+    rd = nvb_utils.findObjRootDummy(context.object)
+    if rd:
+        anim = rd.nvb.animList[rd.nvb.animListIdx]
 
 
 class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
@@ -66,7 +74,8 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 name='Start',
                 description='Animation Start',
                 default=0,
-                min=0)
+                min=0,
+                update=nvb_update_prop_animframe)
     frameEnd = bpy.props.IntProperty(
                 name='End',
                 description='Animation End',

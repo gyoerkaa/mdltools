@@ -96,7 +96,7 @@ def findMaterial(diffuse=(1.0, 1.0, 1.0),
         if not imageName:
             # No texture
             eq = not mat.active_texture
-            eq = eq and (mat.alpha_factor == alpha)
+            eq = eq and (mat.alpha == alpha)
         else:
             # Has to have a texture
             if mat.active_texture:
@@ -122,10 +122,10 @@ def belongsToWalkmesh(obj, classification):
         return nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)
     elif obj.type == 'MESH':
         if classification == nvb_def.Classification.TILE:
-            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
-                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE))
+            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
+                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB))
         elif classification == nvb_def.Classification.DOOR:
-            return ((obj.nvb.meshtype == nvb_def.Walkmeshtype.WALKMESH) and
+            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
                     ((obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN1) or
                      (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN2) or
                      (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKCLOSED)))
@@ -150,6 +150,35 @@ def isRootDummy(obj):
         return False
     return (obj.parent is None) and \
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
+
+
+def generateWalkmeshParent(rootDummy):
+    """TODO: DOC."""
+    suffix = ''
+    if rootDummy.nvb.classification is nvb_def.Classification.DOOR:
+        suffix = '_dwk'
+    elif rootDummy.nvb.classification is nvb_def.Classification.TILE:
+        suffix = '_wok'
+    else:
+        suffix = '_pwk'
+    return rootDummy.name + suffix
+
+
+def generateWalkmeshName(obj, rootDummy):
+    """TODO: DOC."""
+    classifcation = rootDummy.nvb.classification
+    suffix = ''
+    if obj.type == 'EMTPY':
+        suffix = nvb_def.Dummytype.getSuffix(obj, classifcation)
+    elif obj.type == 'MESH':
+        suffix = nvb_def.Walkmeshtype.getSuffix(obj, classifcation)
+    else:
+        return obj.name
+    # This node already has a valid suffix/name
+    if not suffix or obj.name.endswith(suffix):
+        return obj.name
+    # Generate a valid name ourselves
+    return rootDummy.name + suffix
 
 
 def findObjRootDummy(obj):
@@ -199,9 +228,11 @@ def getNodeType(obj):
     if objType == 'EMPTY':
         return obj.nvb.emptytype
     elif objType == 'MESH':
-        if (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH and
-                obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.TILE):
-            return nvb_def.Nodetype.AABB
+        if obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH:
+            if obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB:
+                return nvb_def.Walkmeshtype.AABB
+            else:
+                return nvb_def.Meshtype.TRIMESH
         else:
             return obj.nvb.meshtype
     elif objType == 'LAMP':
@@ -332,19 +363,6 @@ def setMaterialAuroraAlpha(mat, alpha):
         mat.alpha = alpha
 
 
-def setObjectAuroraAlpha(obj, alpha):
-    """Set the alpha value of material or texture.
-
-    This will set
-        1. texture_slot.alpha_factor when there is a texture
-        2. material.alpha there is no texture, but a material
-        3. Do nothing, when there is no material
-    """
-    mat = obj.active_material
-    if mat:
-        setMaterialAuroraAlpha(mat, alpha)
-
-
 def getAuroraAlpha(obj):
     """Get the alpha value of material or texture.
 
@@ -364,6 +382,40 @@ def getAuroraAlpha(obj):
             return mat.alpha
     else:
         return 1.0
+
+
+def moveAnimationKeys(rootDummy, anim, newAnimRange):
+    """TODO: Doc."""
+    def getActionList(obj, actionList):
+        # Object Data
+        if obj.animation_data:
+            action = obj.animation_data.action
+            if action:
+                actionList.append(action)
+        # Material/ texture data (= alpha keys)
+        if obj.active_material and obj.active_material.animation_data:
+            action = obj.active_material.animation_data.action
+            if action:
+                actionList.append(action)
+
+        for child in obj.children:
+            getActionList(child, actionList)
+
+    animRanges = []
+    animRanges = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
+
+    actionList = []
+    getActionList(rootDummy, actionList)
+    # offset = newStartFrame
+    for action in actionList:
+        for fcurve in action.fcurves:
+            # Get the keyframe points of the animation
+            kfp = [p for p in fcurve.keyframe_points
+                   if anim.frameStart <= p.co[0] <= anim.frameEnd]
+            # Get the keyframe points which have to be moved to make rootDummy
+            pass
+            for p in kfp:
+                p.co[0] += newStartFrame
 
 
 def setupMinimapRender(mdlroot,

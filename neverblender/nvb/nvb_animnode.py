@@ -74,7 +74,7 @@ class Node():
                 continue  # Probably empty line, skip it
             if not l_isNumber(label):
                 if label == 'node':
-                    nodeType = line[1].lower()
+                    nodetype = line[1].lower()
                     self.name = nvb_utils.getAuroraString(line[2])
                 elif label == 'endnode':
                     return
@@ -137,7 +137,7 @@ class Node():
                     # If this is an emitter, alphakeys are incompatible. We'll
                     # handle them later as plain text
                     numKeys = self.findEnd(asciiLines[i+1:])
-                    if nodeType == 'emitter':
+                    if nodetype == 'emitter':
                         nvb_parse.txt(asciiLines[i:i+numKeys+1],
                                       self.rawascii)
                     else:
@@ -418,8 +418,8 @@ class Node():
                 else:
                     continue  # Can't export this one, skip it
 
-            kfp = [p for p in fcurve.fcurve.keyframe_points
-                   if anim.frameStart <= int(round(p.co[0])) <= anim.frameEnd]
+            kfp = [p for p in fcurve.keyframe_points
+                   if anim.frameStart <= p.co[0] <= anim.frameEnd]
             for p in kfp:
                 frame = int(round(p.co[0]))
                 keys = keyDict[nwname]
@@ -433,6 +433,8 @@ class Node():
     @staticmethod
     def generateAsciiKeysEmitter(obj, anim, asciiLines):
         """TODO: DOC."""
+        if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
+            return
         txtBlock = bpy.data.texts[anim.rawascii].as_string()
         nodeStart = txtBlock.find(obj.name)
         if nodeStart < 0:

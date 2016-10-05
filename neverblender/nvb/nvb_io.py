@@ -38,11 +38,11 @@ def loadMdl(operator, context,
     options.scene = bpy.context.scene
 
     with open(os.fsencode(filepath), 'r') as mdlfile:
-        print('Neverblender: Importing ' + filepath)
+        print('Neverblender: Loading ' + options.mdlname + ' ...')
         mdl = nvb_mdl.Mdl()
         asciiMdl = mdlfile.read()
         mdl.loadAscii(asciiMdl, options)
-
+        print('Neverblender: ... done')
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if importWalkmesh:
             for wkmtype in ['pwk', 'dwk']:
@@ -51,14 +51,16 @@ def loadMdl(operator, context,
                 try:
                     wkmFile = open(wkmPath, 'r')
                 except IOError:
-                    print("Neverblender: No " + wkmtype + " walkmesh found")
+                    pass  # There is no such file
                 else:
-                    print('Neverblender: Importing ' + wkmFilename)
+                    print('Neverblender: Loading ' + wkmFilename)
                     asciiWkm = wkmFile.read()
                     mdl.loadAsciiWalkmesh(asciiWkm, options)
                     wkmFile.close()
-
+                    print('Neverblender: ... done')
+        print('Neverblender: Creating objects ...')
         mdl.create(options)
+        print('Neverblender: ... done')
 
     return {'FINISHED'}
 
@@ -81,30 +83,35 @@ def saveMdl(operator, context,
 
     rootDummy = nvb_utils.findRootDummy(bpy.context.object)
     if rootDummy:
-        print('Neverblender: Exporting ' + rootDummy.name)
+        print('Neverblender: Exporting ' + rootDummy.name + ' ...')
         options.mdlname = rootDummy.name
         options.classification = rootDummy.nvb.classification
         asciiLines = []
         nvb_mdl.Mdl.generateAscii(rootDummy, asciiLines, options)
         with open(os.fsencode(filepath), 'w') as f:
             f.write('\n'.join(asciiLines))
-
+        print('Neverblender: ... done')
         if options.exportWalkmesh:
-            print('Neverblender: Exporting walkmesh.')
+            print('Neverblender: Exporting walkmesh ...')
+            # Get walkmesh type
+            wkmtype = '.pwk'
+            if rootDummy.nvb.classification == \
+                    nvb_def.Classification.DOOR:
+                wkmtype = '.dwk'
+            elif rootDummy.nvb.classification == \
+                    nvb_def.Classification.TILE:
+                wkmtype = '.wok'
+            print('Neverblender: ... detected type: ' + wkmtype + ' ...')
+            # Only write to file if there is actually any data
             asciiLines = []
             nvb_mdl.Mdl.generateAsciiWalkmesh(rootDummy, asciiLines, options)
             if asciiLines:
-                wkmtype = '.pwk'
-                if rootDummy.nvb.classification == \
-                        nvb_def.Classification.DOOR:
-                    wkmtype = '.dwk'
-                elif rootDummy.nvb.classification == \
-                        nvb_def.Classification.TILE:
-                    wkmtype = '.wok'
-
                 wkmPath = os.path.splitext(filepath)[0] + wkmtype
                 with open(os.fsencode(wkmPath), 'w') as f:
                     f.write('\n'.join(asciiLines))
+                print('Neverblender: ... done')
+            else:
+                print('Neverblender: ... no nodes found')
     else:
         return {'CANCELLED'}
 

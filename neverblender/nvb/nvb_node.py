@@ -159,7 +159,7 @@ class Node(object):
         asciiLines.append(s)
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
-        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f}'
+        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
         s = formatString.format(round(rot[0], 5),
                                 round(rot[1], 5),
                                 round(rot[2], 5),
@@ -200,10 +200,15 @@ class Node(object):
     @classmethod
     def generateAsciiWalkmesh(cls, obj, asciiLines, options):
         """TODO: Doc."""
-        asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
+        rootDummy = nvb_utils.findRootDummy(obj)
+        nodeName = obj.name
+        parentName = nvb_def.null
+        if rootDummy:
+            nodeName = nvb_utils.generateWalkmeshName(obj, rootDummy)
+            parentName = nvb_utils.generateWalkmeshParent(rootDummy)
 
-        asciiLines.append('  parent ' + obj.parent.name)
-
+        asciiLines.append('node ' + cls.nodetype + ' ' + nodeName)
+        asciiLines.append('  parent ' + parentName)
         cls.generateAsciiData(obj, asciiLines, options)
         asciiLines.append('endnode')
 
@@ -1131,6 +1136,7 @@ class Emitter(Node):
 
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
+        obj.nvb.imporder = self.nodeidx
         self.createObjectData(obj, options)
         return obj
 
@@ -1306,6 +1312,7 @@ class Light(Node):
             return Node.createObject(self, options)
         lamp = self.createLamp(self.name)
         obj = bpy.data.objects.new(self.name, lamp)
+        obj.nvb.imporder = self.nodeidx
         self.createObjectData(obj, options)
         return obj
 
@@ -1532,5 +1539,6 @@ class Aabb(Trimesh):
             return
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
+        obj.nvb.imporder = self.nodeidx
         self.createObjectData(obj, options)
         return obj
