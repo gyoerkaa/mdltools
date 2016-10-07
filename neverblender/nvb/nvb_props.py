@@ -2,7 +2,6 @@
 
 import bpy
 from . import nvb_def
-from . import nvb_utils
 
 
 def nvb_update_shadow_prop(self, context):
@@ -16,13 +15,6 @@ def nvb_update_shadow_prop(self, context):
                 obj.data.shadow_method = 'NOSHADOW'
         except:
             pass
-
-
-def nvb_update_prop_animframe(self, context):
-    """TODO: Doc."""
-    rd = nvb_utils.findObjRootDummy(context.object)
-    if rd:
-        anim = rd.nvb.animList[rd.nvb.animListIdx]
 
 
 class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
@@ -74,8 +66,7 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 name='Start',
                 description='Animation Start',
                 default=0,
-                min=0,
-                update=nvb_update_prop_animframe)
+                min=0)
     frameEnd = bpy.props.IntProperty(
                 name='End',
                 description='Animation End',

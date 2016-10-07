@@ -210,7 +210,7 @@ def findRootDummy(obj=None):
 
 
 def createAnimListItem(obj):
-    """TODO: Doc."""
+    """Append a new animation at the and of the animation list."""
     newAnim = obj.nvb.animList.add()
     newAnim.root = obj.name
     lastAnimEnd = nvb_def.anim_globstart
@@ -384,25 +384,27 @@ def getAuroraAlpha(obj):
         return 1.0
 
 
+def getActionList(obj, actionList):
+    """TODO: Doc."""
+    # Object Data
+    if obj.animation_data:
+        action = obj.animation_data.action
+        if action:
+            actionList.append(action)
+    # Material/ texture data (= alpha keys)
+    if obj.active_material and obj.active_material.animation_data:
+        action = obj.active_material.animation_data.action
+        if action:
+            actionList.append(action)
+
+    for child in obj.children:
+        getActionList(child, actionList)
+
+
 def moveAnimationKeys(rootDummy, anim, newAnimRange):
     """TODO: Doc."""
-    def getActionList(obj, actionList):
-        # Object Data
-        if obj.animation_data:
-            action = obj.animation_data.action
-            if action:
-                actionList.append(action)
-        # Material/ texture data (= alpha keys)
-        if obj.active_material and obj.active_material.animation_data:
-            action = obj.active_material.animation_data.action
-            if action:
-                actionList.append(action)
-
-        for child in obj.children:
-            getActionList(child, actionList)
-
-    animRanges = []
-    animRanges = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
+    # animRanges = []
+    # animRanges = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
 
     actionList = []
     getActionList(rootDummy, actionList)
@@ -413,9 +415,8 @@ def moveAnimationKeys(rootDummy, anim, newAnimRange):
             kfp = [p for p in fcurve.keyframe_points
                    if anim.frameStart <= p.co[0] <= anim.frameEnd]
             # Get the keyframe points which have to be moved to make rootDummy
-            pass
             for p in kfp:
-                p.co[0] += newStartFrame
+                pass  # p.co[0] += newStartFrame
 
 
 def setupMinimapRender(mdlroot,

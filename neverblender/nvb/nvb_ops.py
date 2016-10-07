@@ -8,7 +8,90 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_LIST_OT_Anim_Show(bpy.types.Operator):
+class NVB_OP_Anim_Clone(bpy.types.Operator):
+    """Clone an animation and append it to the animation list."""
+
+    bl_idname = 'nvb.anim_clone'
+    bl_label = 'Clone an animation and append it to the animation list.'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
+
+    def execute(self, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        # Adds a new animation to the end of the list
+        clone = nvb_utils.createAnimListItem(rootDummy)
+        # Copy keyframes
+        actionList = []
+        nvb_utils.getActionList(rootDummy, actionList)
+        cloneStart = clone.frameStart
+        kfOptions = {'FAST'}  # insertion options
+        for action in actionList:
+            for fcurve in action.fcurves:
+                # Get the keyframe points of the selected animation
+                kfp = [p for p in fcurve.keyframe_points
+                       if anim.frameStart <= p.co[0] <= anim.frameEnd]
+                for p in kfp:
+                    frame = p.co[0] + cloneStart - anim.frameStart
+                    fcurve.keyframe_points.insert(frame, p.co[1], kfOptions)
+        # Copy data
+        clone.frameEnd = cloneStart + (anim.frameEnd-anim.frameStart)
+        clone.ttime = anim.ttime
+        clone.root = anim.root
+        clone.name = anim.name + '.copy'
+        # Copy events
+        for event in anim.eventList:
+            clonedEvent = clone.eventList.add()
+            clonedEvent.frame = event.frame + cloneStart - anim.frameStart
+            clonedEvent.name = event.name
+
+        return {'FINISHED'}
+
+
+class NVB_OP_Anim_Resize(bpy.types.Operator):
+    """Open a dialog to resize (pad) or scale a single animation."""
+
+    bl_idname = 'nvb.anim_resize'
+    bl_label = 'Resize or scale a single animation without affecting others.'
+
+    currentStart = bpy.props.IntProperty('animStart', min=0)
+    currentEnd = bpy.props.IntProperty('animEnd', min=0)
+
+    padFront = bpy.props.IntProperty('padFront', min=0)
+    padBack = bpy.props.IntProperty('padBack', min=0)
+
+    scale = bpy.props.FloatProperts('scale', min=0.0)
+
+    @classmethod
+    def poll(cls, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
+
+    def execute(self, context):
+        """TODO:DOC."""
+        return {'FINISHED'}
+
+    def draw(self, context):
+        """TODO:DOC."""
+        pass
+
+    def invoke(self, context, event):
+        """TODO:DOC."""
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+class NVB_OP_Anim_Show(bpy.types.Operator):
     """Set the Start and end frames of the timeline."""
 
     bl_idname = 'nvb.anim_show'
@@ -17,8 +100,10 @@ class NVB_LIST_OT_Anim_Show(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        return len(obj.nvb.animList) > 0
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
@@ -47,7 +132,7 @@ class NVB_LIST_OT_Anim_Show(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_Anim_New(bpy.types.Operator):
+class NVB_OP_Anim_New(bpy.types.Operator):
     """Add a new animation to the animation list."""
 
     bl_idname = 'nvb.anim_new'
@@ -56,18 +141,18 @@ class NVB_LIST_OT_Anim_New(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        return obj is not None
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        return (rootDummy is not None)
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        nvb_utils.createAnimListItem(obj)
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        nvb_utils.createAnimListItem(rootDummy)
 
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
+class NVB_OP_Anim_Delete(bpy.types.Operator):
     """Delete the selected animation from the animation list."""
 
     bl_idname = 'nvb.anim_delete'
@@ -76,8 +161,10 @@ class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        return len(obj.nvb.animList) > 0
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
@@ -92,7 +179,7 @@ class NVB_LIST_OT_Anim_Delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
+class NVB_OP_Anim_Move(bpy.types.Operator):
     """Move an item in the animation list."""
 
     bl_idname = 'nvb.anim_move'
@@ -133,7 +220,7 @@ class NVB_LIST_OT_Anim_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
+class NVB_OP_LightFlare_New(bpy.types.Operator):
     """Add a new item to the flare list."""
 
     bl_idname = 'nvb.lightflare_new'
@@ -147,7 +234,7 @@ class NVB_LIST_OT_LightFlare_New(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_LightFlare_Delete(bpy.types.Operator):
+class NVB_OP_LightFlare_Delete(bpy.types.Operator):
     """Delete the selected item from the flare list."""
 
     bl_idname = 'nvb.lightflare_delete'
@@ -170,7 +257,7 @@ class NVB_LIST_OT_LightFlare_Delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
+class NVB_OP_LightFlare_Move(bpy.types.Operator):
     """Move an item in the flare list."""
 
     bl_idname = 'nvb.lightflare_move'
@@ -184,41 +271,28 @@ class NVB_LIST_OT_LightFlare_Move(bpy.types.Operator):
         """TODO: DOC."""
         return len(context.object.nvb.flareList) > 0
 
-    def move_index(self, context):
-        """TODO: DOC."""
-        flareList = context.object.nvb.flareList
-        flareIdx = context.object.nvb.flareListIdx
-
-        listLength = len(flareList) - 1  # (index starts at 0)
-        newIdx = 0
-        if self.direction == 'UP':
-            newIdx = flareIdx - 1
-        elif self.direction == 'DOWN':
-            newIdx = flareIdx + 1
-
-        newIdx = max(0, min(newIdx, listLength))
-        context.object.nvb.flareListIdx = newIdx
-
     def execute(self, context):
         """TODO: DOC."""
-        flareList = context.object.nvb.flareList
-        flareIdx = context.object.nvb.flareListIdx
+        obj = context.object
+        flareList = obj.nvb.flareList
 
+        currentIdx = obj.nvb.flareListIdx
+        newIdx = 0
+        maxIdx = len(flareList) - 1
         if self.direction == 'DOWN':
-            neighbour = flareIdx + 1
-            flareList.move(flareIdx, neighbour)
-            self.move_index(context)
+            newIdx = currentIdx + 1
         elif self.direction == 'UP':
-            neighbour = flareIdx - 1
-            flareList.move(neighbour, flareIdx)
-            self.move_index(context)
+            newIdx = currentIdx - 1
         else:
             return {'CANCELLED'}
 
+        newIdx = max(0, min(newIdx, maxIdx))
+        flareList.move(currentIdx, newIdx)
+        obj.nvb.flareListIdx = newIdx
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
+class NVB_OP_AnimEvent_New(bpy.types.Operator):
     """Add a new item to the event list."""
 
     bl_idname = 'nvb.animevent_new'
@@ -244,7 +318,7 @@ class NVB_LIST_OT_AnimEvent_New(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
+class NVB_OP_AnimEvent_Delete(bpy.types.Operator):
     """Delete the selected item from the event list."""
 
     bl_idname = 'nvb.animevent_delete'
@@ -253,19 +327,19 @@ class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        obj = context.object
-        animList = obj.nvb.animList
-        if len(animList) > 0:
-            anim = animList[obj.nvb.animListIdx]
-            eventList = anim.eventList
-            return len(eventList) > 0
-
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            animList = rootDummy.nvb.animList
+            if len(animList) > 0:
+                anim = animList[rootDummy.nvb.animListIdx]
+                eventList = anim.eventList
+                return len(eventList) > 0
         return False
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
-        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         eventList = anim.eventList
         eventIdx = anim.eventListIdx
 
@@ -276,7 +350,7 @@ class NVB_LIST_OT_AnimEvent_Delete(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
+class NVB_OP_AnimEvent_Move(bpy.types.Operator):
     """Move an item in the event list."""
 
     bl_idname = 'nvb.animevent_move'
@@ -288,54 +362,38 @@ class NVB_LIST_OT_AnimEvent_Move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        obj = context.object
-        animList = obj.nvb.animList
-        if len(animList) > 0:
-            anim = animList[obj.nvb.animListIdx]
-            eventList = anim.eventList
-            return len(eventList) > 0
-
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            animList = rootDummy.nvb.animList
+            if len(animList) > 0:
+                anim = animList[rootDummy.nvb.animListIdx]
+                eventList = anim.eventList
+                return len(eventList) > 0
         return False
-
-    def move_index(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        anim = obj.nvb.animList[obj.nvb.animListIdx]
-        eventList = anim.eventList
-        eventIdx = anim.eventListIdx
-
-        listLength = len(eventList) - 1  # (index starts at 0)
-        newIdx = 0
-        if self.direction == 'UP':
-            newIdx = eventIdx - 1
-        elif self.direction == 'DOWN':
-            newIdx = eventIdx + 1
-
-        newIdx = max(0, min(newIdx, listLength))
-        anim.eventListIdx = newIdx
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
-        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         eventList = anim.eventList
-        eventIdx = anim.eventListIdx
 
+        currentIdx = anim.eventListIdx
+        newIdx = 0
+        maxIdx = len(eventList) - 1
         if self.direction == 'DOWN':
-            neighbour = eventIdx + 1
-            eventList.move(eventIdx, neighbour)
-            self.move_index(context)
+            newIdx = currentIdx + 1
         elif self.direction == 'UP':
-            neighbour = eventIdx - 1
-            eventList.move(neighbour, eventIdx)
-            self.move_index(context)
+            newIdx = currentIdx - 1
         else:
-            return{'CANCELLED'}
+            return {'CANCELLED'}
 
-        return{'FINISHED'}
+        newIdx = max(0, min(newIdx, maxIdx))
+        eventList.move(currentIdx, newIdx)
+        anim.eventListIdx = newIdx
+        return {'FINISHED'}
 
 
-class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import Aurora Engine model (.mdl)."""
 
     bl_idname = 'nvb.mdlimport'
@@ -413,7 +471,7 @@ class MdlImport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return nvb_io.loadMdl(self, context, **keywords)
 
 
-class MdlExport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     """Export Aurora Engine model (.mdl)."""
 
     bl_idname = 'nvb.mdlexport'

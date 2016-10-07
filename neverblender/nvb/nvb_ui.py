@@ -36,10 +36,8 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
             # layout.label(item.name, icon = custom_icon)
             layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
             if item.mute:
-                # muteIcon = 'RESTRICT_RENDER_ON'
                 muteIcon = 'RESTRICT_VIEW_ON'
             else:
-                # muteIcon = 'RESTRICT_RENDER_OFF'
                 muteIcon = 'RESTRICT_VIEW_OFF'
             layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
         elif self.layout_type in {'GRID'}:
@@ -364,20 +362,25 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             row = box.row()
             row.template_list('NVB_UILIST_ANIMS', 'The_List',
                               obj.nvb, 'animList',
-                              obj.nvb, 'animListIdx')
+                              obj.nvb, 'animListIdx',
+                              rows=8)
             col = row.column(align=True)
-            col.operator('nvb.anim_new', text='', icon='ZOOMIN')
-            col.operator('nvb.anim_delete', text='', icon='ZOOMOUT')
+            col.operator('nvb.anim_new', icon='ZOOMIN', text='')
+            col.operator('nvb.anim_delete', icon='ZOOMOUT', text='')
             col.separator()
             col.operator('nvb.anim_move',
                          icon='TRIA_UP', text='').direction = 'UP'
             col.operator('nvb.anim_move',
-                         icon='LOOP_FORWARDS', text='').direction = 'END'
+                         icon='TRIA_RIGHT', text='').direction = 'END'
             col.operator('nvb.anim_move',
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.separator()
             col.operator('nvb.anim_show',
                          icon='RENDER_ANIMATION', text='')
+            col.operator('nvb.anim_resize',
+                         icon='ALIGN', text='')
+            col.operator('nvb.anim_clone',
+                         icon='NODETREE', text='')
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
                 row = box.row()
