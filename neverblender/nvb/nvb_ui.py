@@ -326,6 +326,23 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
 
 
+class NVB_MENU_ANIMLIST_SPECIALS(bpy.types.Menu):
+    """Animation List Specials."""
+
+    bl_idname = 'nvb.menu.animspecials'
+    bl_label = "Animation List Specials"
+
+    def draw(self, context):
+        """TODO: Doc."""
+        layout = self.layout
+        layout.operator('nvb.anim_resize',
+                        icon='ALIGN')
+        layout.operator('nvb.anim_scale',
+                        icon='SORTSIZE')
+        layout.operator('nvb.anim_clone',
+                        icon='NODETREE')
+
+
 class NVB_PANEL_ANIMLIST(bpy.types.Panel):
     """Property panel for animationslist.
 
@@ -335,7 +352,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
     """
 
     bl_idname = 'nvb.propertypanel.anim'
-    bl_label = 'Aurora Animation Properties'
+    bl_label = 'Aurora Animations'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'object'
@@ -355,15 +372,10 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
         if obj:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
-            box = row.box()
-            row = box.row()
-            row.label(text='Animations')
-
-            row = box.row()
             row.template_list('NVB_UILIST_ANIMS', 'The_List',
                               obj.nvb, 'animList',
                               obj.nvb, 'animListIdx',
-                              rows=8)
+                              rows=7)
             col = row.column(align=True)
             col.operator('nvb.anim_new', icon='ZOOMIN', text='')
             col.operator('nvb.anim_delete', icon='ZOOMOUT', text='')
@@ -377,24 +389,22 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.separator()
             col.operator('nvb.anim_show',
                          icon='RENDER_ANIMATION', text='')
-            col.operator('nvb.anim_resize',
-                         icon='ALIGN', text='')
-            col.operator('nvb.anim_clone',
-                         icon='NODETREE', text='')
+            col.menu('nvb.menu.animspecials',
+                     icon='DOWNARROW_HLT', text="")
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
-                row = box.row()
+                row = layout.row()
                 row.prop(anim, 'name')
-                row = box.row()
+                row = layout.row()
                 row.prop_search(anim, 'root', bpy.data, 'objects')
-                row = box.row()
+                row = layout.row()
                 row.prop(anim, 'ttime')
-                row = box.row()
+                row = layout.row()
                 split = row.split()
                 col = split.column(align=True)
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
-                row = box.row()
+                row = layout.row()
                 row.prop_search(anim, 'rawascii',
                                 bpy.data, 'texts',
                                 text='Data')
@@ -402,11 +412,11 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 # col.prop(anim, 'marker', text = '')
                 # col.prop_search(anim, 'marker', bpy.context.scene,
                 # 'timeline_markers', icon = 'MARKER')
-                box.separator()
+                layout.separator()
 
                 # Event Helper. Display and add/remove events.
-                row = box.row()
-                sub = box.box()
+                row = layout.row()
+                sub = layout.box()
                 row = sub.row()
                 row.label(text='Animation Events')
 
@@ -427,7 +437,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                     row.prop(animEvent, 'name')
                     row.prop(animEvent, 'frame')
 
-                box.separator()
+                layout.separator()
 
 
 class NVB_PANEL_UTILS(bpy.types.Panel):

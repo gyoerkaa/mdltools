@@ -9,10 +9,10 @@ from . import nvb_io
 
 
 class NVB_OP_Anim_Clone(bpy.types.Operator):
-    """Clone an animation and append it to the animation list."""
+    """Clone animation and add it to the animation list."""
 
     bl_idname = 'nvb.anim_clone'
-    bl_label = 'Clone an animation and append it to the animation list.'
+    bl_label = 'Clone animation.'
 
     @classmethod
     def poll(cls, context):
@@ -55,19 +55,16 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Resize(bpy.types.Operator):
-    """Open a dialog to resize (pad) or scale a single animation."""
+class NVB_OP_Anim_Scale(bpy.types.Operator):
+    """Open a dialog to scale a single animation."""
 
-    bl_idname = 'nvb.anim_resize'
-    bl_label = 'Resize or scale a single animation without affecting others.'
+    bl_idname = 'nvb.anim_scale'
+    bl_label = 'Scale animation.'
 
-    currentStart = bpy.props.IntProperty('animStart', min=0)
-    currentEnd = bpy.props.IntProperty('animEnd', min=0)
-
-    padFront = bpy.props.IntProperty('padFront', min=0)
-    padBack = bpy.props.IntProperty('padBack', min=0)
-
-    scale = bpy.props.FloatProperts('scale', min=0.0)
+    scaleFactor = bpy.props.FloatProperty(name='scale',
+                                          description='Scale the animation.',
+                                          min=0.0,
+                                          default=1.0)
 
     @classmethod
     def poll(cls, context):
@@ -77,13 +74,154 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def execute(self, context):
+    def scaleAnim(self, rootDummy):
         """TODO:DOC."""
-        return {'FINISHED'}
+        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        oldSize = ta.frameEnd - ta.frameStart + 1
+        newSize = self.scaleFactor * oldSize
+        # Check resulting length (has to be >= 1)
+        if newSize < 1:
+            return False
+        if self.scaleFactor > 1.001:
+            padding = newSize - oldSize
+            # Adjust keyframes
+            actionList = []
+            nvb_utils.getActionList(rootDummy, actionList)
+            for action in actionList:
+                for fcurve in action.fcurves:
+                    # First: Make enough room to accomodate the scaling
+                    # (move all keyframes after this animation back)
+                    for p in fcurve.keyframe_points:
+                        if (p.co[0] > ta.frameEnd):
+                            p.co[0] += padding
+                    # Now scale the animation
+                    for p in fcurve.keyframe_points:
+                        if (ta.frameStart <= p.co[0] <= ta.frameEnd):
+                            p.co[0] *= self.scalingFactor
+            # Adjust the bounds of animations coming after the
+            # target (scaled) animation
+            for a in reversed(rootDummy.nvb.animList):
+                if a.frameStart > ta.frameEnd:
+                    a.frameStart += padding
+                    a.frameEnd += padding
+                    for e in a.eventList:
+                        e.frame += padding
+            # Adjust the target (scaled) animation itself
+            ta.frameEnd += ta.frameEnd
+            for e in ta.eventList:
+                e.frame += self.scalingFactor
+        elif self.scaleFactor < 0.999:
+            # Check if there is enough space for the keyframes
+            pass
+            padding = oldSize - newSize
+        return True
 
     def draw(self, context):
         """TODO:DOC."""
-        pass
+        layout = self.layout
+
+        row = layout.row()
+        row.label('Scaling: ')
+        row = layout.row()
+        row.prop(self, 'scaleFactor', text='Factor')
+
+        layout.separator()
+
+    def invoke(self, context, event):
+        """TODO:DOC."""
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+class NVB_OP_Anim_Resize(bpy.types.Operator):
+    """Open a dialog to resize (pad) a single animation."""
+
+    bl_idname = 'nvb.anim_resize'
+    bl_label = 'Resize animation.'
+
+    padFront = bpy.props.IntProperty(
+                    name='padFront',
+                    description='Insert Frames before the first keyframe.')
+    padBack = bpy.props.IntProperty(
+                    name='padBack',
+                    description='Insert Frames after the last keyframe.')
+
+    @classmethod
+    def poll(cls, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
+
+    def padAnim(self, rootDummy):
+        """TODO:DOC."""
+        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        # Check resulting number of frames (has to be at least 1)
+        if ((self.padFront + self.padBack) +
+                (anim.frameEnd - anim.frameStart) < 0):
+            return False
+        # Get a list of all relevant actions
+        actionList = []
+        nvb_utils.getActionList(rootDummy, actionList)
+        # Front Padding
+        if self.padFront != 0:
+            if self.padFront < 0:
+                # This means the animation will get shorter and we
+                # might have to delete keyframes at the front
+                for action in actionList:
+                    for fcurve in action.fcurves:
+                        for p in fcurve.keyframe_points:
+                            if (anim.frameStart <= p.co[0] <
+                                    (anim.frameStart - self.padFront)):
+                                # Delete keyframe
+                                fcurve.keyframe_points.delete(p)
+            # Move keyframes
+            for action in actionList:
+                for fcurve in action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if p.co[0] >= anim.frameStart:
+                            p.co[0] += self.padFront
+        # Back Padding
+        if self.padBack != 0:
+            if self.padBack < 0:
+                # This means the animation will get shorter and we'll
+                # might have to delete keyframes at the back
+                for action in actionList:
+                    for fcurve in action.fcurves:
+                        # Delete keyframes at the front
+                        for p in reversed(fcurve.keyframe_points):
+                            if ((anim.frameEnd + self.padBack) < p.co[0] <=
+                                    anim.frameEnd):
+                                # Delete keyframe
+                                fcurve.keyframe_points.delete(p)
+            # Move all keyframes forward
+            for action in actionList:
+                for fcurve in action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if p.co[0] > anim.frameEnd:
+                            p.co[0] += self.padBack
+
+    def execute(self, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if self.padAnim(rootDummy) and self.scaleAnim(rootDummy):
+            return {'FINISHED'}
+        return {'CANCELLED'}
+
+    def draw(self, context):
+        """TODO:DOC."""
+        layout = self.layout
+
+        row = layout.row()
+        row.label('Padding: ')
+        row = layout.row()
+        split = row.split()
+        col = split.column(align=True)
+        col.prop(self, 'padFront', text='Front')
+        col.prop(self, 'padBack', text='Back')
+
+        layout.separator()
 
     def invoke(self, context, event):
         """TODO:DOC."""
@@ -193,8 +331,10 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        return len(obj.nvb.animList) > 0
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
