@@ -211,7 +211,7 @@ class Nodetype(Emptytype, Meshtype):
 
     LIGHT = 'light'
     AABB = 'aabb'
-              
+
     ALL = {LIGHT, AABB} | Emptytype.ALL | Meshtype.ALL
 
 

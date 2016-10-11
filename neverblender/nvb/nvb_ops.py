@@ -99,7 +99,6 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     # Now scale the animation
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.co[0] *= self.scalingFactor
                             p.co[0] = (p.co[0] - ta.frameStart) * \
                                 self.scalingFactor + ta.frameStart
         elif self.scaleFactor < 1.0:
@@ -170,10 +169,10 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
     def execute(self, context):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
-        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Check resulting number of frames (has to be at least 1)
         if ((self.padFront + self.padBack) +
-                (anim.frameEnd - anim.frameStart) < 0):
+                (ta.frameEnd - ta.frameStart)) < 0:
             return {'CANCELLED'}
         # Get a list of all relevant actions
         actionList = []
@@ -186,15 +185,15 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
                 for action in actionList:
                     for fcurve in action.fcurves:
                         for p in fcurve.keyframe_points:
-                            if (anim.frameStart <= p.co[0] <
-                                    (anim.frameStart - self.padFront)):
+                            if (ta.frameStart <= p.co[0] <
+                                    (ta.frameStart - self.padFront)):
                                 # Delete keyframe
                                 fcurve.keyframe_points.delete(p)
-            # Move keyframes
+            # Move keyframes to the front
             for action in actionList:
                 for fcurve in action.fcurves:
                     for p in fcurve.keyframe_points:
-                        if p.co[0] >= anim.frameStart:
+                        if p.co[0] >= ta.frameStart:
                             p.co[0] += self.padFront
         # Back Padding
         if self.padBack != 0:
@@ -205,16 +204,28 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
                     for fcurve in action.fcurves:
                         # Delete keyframes at the back
                         for p in reversed(fcurve.keyframe_points):
-                            if ((anim.frameEnd + self.padBack) < p.co[0] <=
-                                    anim.frameEnd):
-                                # Delete keyframe
+                            if ((ta.frameEnd + self.padBack) < p.co[0] <=
+                                    ta.frameEnd):
                                 fcurve.keyframe_points.delete(p)
             # Move all keyframes forward
             for action in actionList:
                 for fcurve in action.fcurves:
                     for p in fcurve.keyframe_points:
-                        if p.co[0] > anim.frameEnd:
+                        if p.co[0] > ta.frameEnd:
                             p.co[0] += self.padBack
+        # Adjust the bounds of animations coming after the
+        # target animation
+        totalPadding = self.padBack + self.padFront
+        for a in reversed(rootDummy.nvb.animList):
+            if a.frameStart > ta.frameEnd:
+                a.frameStart = a.frameStart + totalPadding
+                a.frameEnd = a.frameEnd + totalPadding
+                for e in a.eventList:
+                    e.frame = e.frame + totalPadding
+        # Adjust the target animation itself
+        ta.frameEnd = ta.frameEnd + self.padBack
+        for e in ta.eventList:
+            e.frame = ta.frameEnd + self.padFront
         return {'FINISHED'}
 
     def draw(self, context):
@@ -341,29 +352,115 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         """Prevent execution if animation list is empty."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
+            return (len(rootDummy.nvb.animList) > 1)
         return False
+
+    def swap(rootDummy, currentIdx, newIdx):
+        """TODO: DOC."""
+        # Get the target animation (to be moved)
+        ta = rootDummy.nvb.animList[currentIdx]
+        taStartFrame = ta.frameStart
+        taEndFrame = ta.frameEnd
+        # Get the animation currently sitting at that position.
+        ma = rootDummy.nvb.animList[newIdx]
+        maStartFrame = ma.frameStart
+        maEndFrame = ma.frameEnd
+        # Get a free frame at the end of all animations:
+        latestFrame = ta.frameStart
+        for a in rootDummy.animList:
+            if a.frameEnd > latestFrame:
+                latestFrame = a.frameEnd + nvb_def.anim_offset
+                break
+        # Get a list of all relevant actions
+        actionList = []
+        nvb_utils.getActionList(rootDummy, actionList)
+        # Move the keys of the current animation at the new idx out of the way
+        # (to the end of all animations)
+        for action in actionList:
+            for fcurve in action.fcurves:
+                for p in fcurve.keyframe_points:
+                    if (maStartFrame <= p.co[0] <= maEndFrame):
+                        # Move keyframe
+                        p.co[0] = latestFrame + (p.co[0] - maStartFrame)
+        # Adjust animation in list
+        for e in ma.eventList:
+            e.frame = latestFrame + (e.frame - maStartFrame)
+        ta.frameStart = latestFrame
+        ta.frameEnd = latestFrame + (maStartFrame - maEndFrame)
+        # Move the key of the target animation to the new idx
+        for action in actionList:
+            for fcurve in action.fcurves:
+                for p in fcurve.keyframe_points:
+                    if (taStartFrame <= p.co[0] <= taEndFrame):
+                        # Move keyframe
+                        p.co[0] = maStartFrame + (p.co[0] - taStartFrame)
+        # Adjust animation in list
+        for e in ta.eventList:
+            e.frame = maStartFrame + (e.frame - taStartFrame)
+        ta.frameStart = maStartFrame
+        ta.frameEnd = maEndFrame
+        # Move the other animation to the position of the moved one
+        for action in actionList:
+            for fcurve in action.fcurves:
+                for p in fcurve.keyframe_points:
+                    if (latestFrame <= p.co[0]):
+                        # Move keyframe
+                        p.co[0] = taStartFrame + (p.co[0] - latestFrame)
+        # Adjust animation in list
+        for e in ma.eventList:
+            e.frame = taStartFrame + (e.frame - latestFrame)
+        ma.frameStart = taStartFrame
+        ma.frameEnd = taEndFrame
+
+    def moveBack(rootDummy, animIdx):
+        """TODO: DOC."""
+        # Get the target animation (to be moved)
+        ta = rootDummy.nvb.animList[animIdx]
+        oldStartFrame = ta.frameStart
+        newStartFrame = oldStartFrame
+        # Get a free frame at the end of all animations:
+        for a in rootDummy.animList:
+            if a.frameEnd > newStartFrame:
+                newStartFrame = a.frameEnd + nvb_def.anim_offset
+                break
+        # Get a list of all relevant actions
+        actionList = []
+        nvb_utils.getActionList(rootDummy, actionList)
+        for action in actionList:
+            for fcurve in action.fcurves:
+                for p in fcurve.keyframe_points:
+                    if (ta.frameStart <= p.co[0] <= ta.frameEnd):
+                        # Move keyframe
+                        p.co[0] = newStartFrame + (p.co[0] - oldStartFrame)
+        # Adjust animation in the list
+        for e in ta.eventList:
+            e.frame = newStartFrame + (e.frame - oldStartFrame)
+        ta.frameEnd = newStartFrame + (ta.frameEnd - oldStartFrame)
+        ta.frameStart = newStartFrame
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        animList = obj.nvb.animList
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        animList = rootDummy.nvb.animList
 
-        currentIdx = obj.nvb.animListIdx
+        currentIdx = rootDummy.nvb.animListIdx
         newIdx = 0
         maxIdx = len(animList) - 1
         if self.direction == 'DOWN':
             newIdx = currentIdx + 1
+            self.swap(rootDummy, currentIdx, newIdx)
         elif self.direction == 'UP':
             newIdx = currentIdx - 1
+            self.swap(rootDummy, currentIdx, newIdx)
         elif self.direction == 'END':
             newIdx = maxIdx
+            self.moveBack(rootDummy, currentIdx)
         else:
             return {'CANCELLED'}
 
         newIdx = max(0, min(newIdx, maxIdx))
         animList.move(currentIdx, newIdx)
-        obj.nvb.animListIdx = newIdx
+        rootDummy.nvb.animListIdx = newIdx
         # TODO: Move whole animation, i.e. keyframes
         return {'FINISHED'}
 
