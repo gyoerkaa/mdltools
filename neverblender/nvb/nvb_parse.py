@@ -1,23 +1,5 @@
 """TODO: DOC."""
 
-from . import nvb_utils
-
-
-def weights(self, asciiBlock):
-    """TODO: DOC."""
-    lfloat = float
-    lchunker = nvb_utils.chunker
-    for line in asciiBlock:
-        # A line looks like this
-        # [group_name, vertex_weight, group_name, vertex_weight]
-        # We create a list looking like this:
-        # [[group_name, vertex_weight], [group_name, vertex_weight]]
-        memberships = []
-        for chunk in lchunker(line, 2):
-            memberships.append([chunk[0], lfloat(chunk[1])])
-
-        self.weights.append(memberships)
-
 
 def faces(asciiFaces, faceList):
     """TODO: DOC."""

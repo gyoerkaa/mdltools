@@ -958,6 +958,20 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
+    def loadAsciiWeights(self, asciiLines):
+        """TODO: Doc."""
+        lfloat = float
+        lchunker = nvb_utils.chunker
+        for line in asciiLines:
+            # A line looks like this
+            # [group_name, vertex_weight, group_name, vertex_weight]
+            # We create a list looking like this:
+            # [[group_name, vertex_weight], [group_name, vertex_weight]]
+            memberships = []
+            for chunk in lchunker(line, 2):
+                memberships.append([chunk[0], lfloat(chunk[1])])
+            self.weights.append(memberships)
+
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
         Trimesh.loadAscii(self, asciiLines, nodeidx)
@@ -973,8 +987,7 @@ class Skinmesh(Trimesh):
             if not l_isNumber(label):
                 if (label == 'weights'):
                     numVals = l_int(line[1])
-                    nvb_parse.weights(asciiLines[idx+1:idx+numVals+1],
-                                      self.weights)
+                    self.loadAsciiWeights(asciiLines[idx+1:idx+numVals+1])
                     break  # Only one relevant value, abort loop when found
 
     def createSkinGroups(self, obj):
