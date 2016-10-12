@@ -1017,7 +1017,7 @@ class Skinmesh(Trimesh):
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
         skingroups = []
-        for objName in bpy.data.objects:
+        for objName in bpy.data.objects.keys():
             if objName in obj.vertex_groups:
                 skingroups.append(obj.vertex_groups[objName])
 
