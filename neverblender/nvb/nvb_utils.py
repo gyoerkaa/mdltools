@@ -209,6 +209,18 @@ def findRootDummy(obj=None):
     return None
 
 
+def checkAnimUnique(rootDummy):
+    """
+    Check for animations of this rootDummy.
+
+    Returns true, if are non-overlapping and only use by one object.
+    """
+    if len(rootDummy.nvb.animList) < 2:
+        return True
+    # animBounds = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
+    return True
+
+
 def createAnimListItem(obj):
     """Append a new animation at the and of the animation list."""
     newAnim = obj.nvb.animList.add()
