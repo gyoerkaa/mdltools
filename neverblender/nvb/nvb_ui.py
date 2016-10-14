@@ -335,8 +335,10 @@ class NVB_MENU_ANIMLIST_SPECIALS(bpy.types.Menu):
     def draw(self, context):
         """TODO: Doc."""
         layout = self.layout
-        layout.operator('nvb.anim_resize',
-                        icon='ALIGN')
+        layout.operator('nvb.anim_pad',
+                        icon='FULLSCREEN_ENTER')
+        layout.operator('nvb.anim_crop',
+                        icon='FULLSCREEN_EXIT')
         layout.operator('nvb.anim_scale',
                         icon='SORTSIZE')
         layout.operator('nvb.anim_clone',

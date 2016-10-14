@@ -101,7 +101,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     # Now scale the animation
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.co[0] = (p.co[0] - ta.frameStart) * \
+                            p.co[0] = \
+                                (p.co[0] - ta.frameStart) * \
                                 self.scalingFactor + ta.frameStart
                             p.handle_left.x += \
                                 (p.handle_left.x - ta.frameStart) * \
@@ -115,7 +116,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     # Scale the animation down first
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.co[0] = (p.co[0] - ta.frameStart) * \
+                            p.co[0] = \
+                                (p.co[0] - ta.frameStart) * \
                                 self.scalingFactor + ta.frameStart
                             p.handle_left.x += \
                                 (p.handle_left.x - ta.frameStart) * \
@@ -161,17 +163,19 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class NVB_OP_Anim_Resize(bpy.types.Operator):
+class NVB_OP_Anim_Crop(bpy.types.Operator):
     """Open a dialog to resize (pad) a single animation."""
 
-    bl_idname = 'nvb.anim_resize'
-    bl_label = 'Resize animation.'
+    bl_idname = 'nvb.anim_crop'
+    bl_label = 'Crop animation.'
 
-    padFront = bpy.props.IntProperty(
-                    name='padFront',
+    cropFront = bpy.props.IntProperty(
+                    name='cropFront',
+                    min=0,
                     description='Insert Frames before the first keyframe.')
-    padBack = bpy.props.IntProperty(
-                    name='padBack',
+    cropBack = bpy.props.IntProperty(
+                    name='cropBack',
+                    min=0,
                     description='Insert Frames after the last keyframe.')
 
     @classmethod
@@ -186,51 +190,119 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        # Check resulting number of frames (has to be at least 1)
-        if ((self.padFront + self.padBack) +
-                (ta.frameEnd - ta.frameStart)) < 0:
+        # Prevent cropping to 0 frames
+        if (self.cropFront + self.cropBack) >= (ta.frameEnd - ta.frameStart):
             return {'CANCELLED'}
         # Get a list of all relevant actions
         actionList = []
         nvb_utils.getActionList(rootDummy, actionList)
-        # Front Padding
-        if self.padFront != 0:
-            if self.padFront < 0:
-                # This means the animation will get shorter and we
-                # have to delete keyframes at the front
-                for action in actionList:
-                    for fcurve in action.fcurves:
-                        for p in fcurve.keyframe_points:
-                            if (ta.frameStart <= p.co[0] <
-                                    (ta.frameStart - self.padFront)):
-                                # Delete keyframe
-                                fcurve.keyframe_points.delete(p)
-            # Move keyframes to the front
-            for action in actionList:
-                for fcurve in action.fcurves:
-                    for p in fcurve.keyframe_points:
-                        if p.co[0] >= ta.frameStart:
-                            p.co[0] += self.padFront
-        # Back Padding
-        if self.padBack != 0:
-            if self.padBack < 0:
-                # This means the animation will get shorter and we'll
-                # have to delete keyframes at the back
-                for action in actionList:
-                    for fcurve in action.fcurves:
-                        # Delete keyframes at the back
-                        for p in reversed(fcurve.keyframe_points):
-                            if ((ta.frameEnd + self.padBack) < p.co[0] <=
-                                    ta.frameEnd):
-                                fcurve.keyframe_points.delete(p)
-            # Move all keyframes forward
-            for action in actionList:
-                for fcurve in action.fcurves:
-                    for p in fcurve.keyframe_points:
+        # Adjust or delete keyframes
+        cf = self.cropFront
+        cb = self.cropBack
+        fs = ta.frameStart
+        fe = ta.frameEnd
+        for action in actionList:
+            for fcurve in action.fcurves:
+                # Delete keyframes first
+                for p in fcurve.keyframe_points:
+                    if (fs <= p.co[0] < (fs + cf)) or \
+                       ((fe - cb) < p.co[0] <= fe):
+                        fcurve.keyframe_points.delete(p)
+                # Move other keyframes to te front
+                for p in fcurve.keyframe_points:
+                    if p.co[0] >= fs:
+                        p.co[0] -= cf
+                        p.handle_left.x -= cf
+                        p.handle_right.x -= cf
+                        if p.co[0] >= fe:
+                            p.co[0] -= cb
+                            p.handle_left.x -= cb
+                            p.handle_right.x -= cb
+        # Update the animations in the list
+        tc = cf + cb
+        for a in rootDummy.nvb.animList:
+            if a.frameStart > fs:
+                a.frameStart -= tc
+                a.frameEnd -= tc
+                for e in a.eventList:
+                    e.frame -= tc
+        # Adjust the target animation itself
+        for e in ta.eventList:
+            if (fs <= p.co[0] < (fs + cf)) or \
+               ((fe - cb) < p.co[0] <= fe):
+               pass  # TODO: find out how to delete event from here
+            else:
+                e.frame = ta.frameEnd + self.padFront
+        ta.frameEnd -= tc
+
+        return {'FINISHED'}
+
+    def draw(self, context):
+        """TODO:DOC."""
+        layout = self.layout
+
+        row = layout.row()
+        row.label('Crop: ')
+        row = layout.row()
+        split = row.split()
+        col = split.column(align=True)
+        col.prop(self, 'cropFront', text='Front')
+        col.prop(self, 'cropBack', text='Back')
+
+        layout.separator()
+
+    def invoke(self, context, event):
+        """TODO:DOC."""
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
+
+class NVB_OP_Anim_Pad(bpy.types.Operator):
+    """Open a dialog to resize (pad) a single animation."""
+
+    bl_idname = 'nvb.anim_pad'
+    bl_label = 'Pad animation.'
+
+    padFront = bpy.props.IntProperty(
+                    name='padFront',
+                    min=0,
+                    description='Insert Frames before the first keyframe.')
+    padBack = bpy.props.IntProperty(
+                    name='padBack',
+                    min=0,
+                    description='Insert Frames after the last keyframe.')
+
+    @classmethod
+    def poll(cls, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if rootDummy is not None:
+            return (len(rootDummy.nvb.animList) > 0)
+        return False
+
+    def execute(self, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        # Cancel if padding is 0
+        if (self.padFront + self.padBack) <= 0:
+            return {'CANCELLED'}
+        # Get a list of all relevant actions
+        actionList = []
+        nvb_utils.getActionList(rootDummy, actionList)
+        # Move keyframes
+        for action in actionList:
+            for fcurve in action.fcurves:
+                for p in reversed(fcurve.keyframe_points):
+                    if p.co[0] >= ta.frameStart:
+                        p.co[0] += self.padFront
+                        p.handle_left.x += self.padFront
+                        p.handle_right.x += self.padFront
                         if p.co[0] > ta.frameEnd:
                             p.co[0] += self.padBack
-        # Adjust the bounds of animations coming after the
-        # target animation
+                            p.handle_left.x += self.padBack
+                            p.handle_right.x += self.padBack
+        # Update the animations in the list
         totalPadding = self.padBack + self.padFront
         for a in reversed(rootDummy.nvb.animList):
             if a.frameStart > ta.frameEnd:
@@ -239,7 +311,7 @@ class NVB_OP_Anim_Resize(bpy.types.Operator):
                 for e in a.eventList:
                     e.frame = e.frame + totalPadding
         # Adjust the target animation itself
-        ta.frameEnd = ta.frameEnd + self.padBack
+        ta.frameEnd = ta.frameEnd + totalPadding
         for e in ta.eventList:
             e.frame = ta.frameEnd + self.padFront
         return {'FINISHED'}
