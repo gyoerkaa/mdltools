@@ -84,6 +84,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         newSize = self.scaleFactor * oldSize
         # Check resulting length (has to be >= 1) and size difference
         if (newSize < 1) or (math.fabs(oldSize - newSize) < 0.001):
+            self.report({'INFO'}, 'Failure: Resulting size < 1.')
             return {'CANCELLED'}
         padding = newSize - oldSize
         # Adjust keyframes
@@ -101,14 +102,14 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     # Now scale the animation
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.co[0] = \
-                                (p.co[0] - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
                             p.handle_left.x += \
                                 (p.handle_left.x - ta.frameStart) * \
                                 self.scaleFactor + ta.frameStart
                             p.handle_right.x += \
                                 (p.handle_right.x - ta.frameStart) * \
+                                self.scaleFactor + ta.frameStart
+                            p.co[0] = \
+                                (p.co[0] - ta.frameStart) * \
                                 self.scaleFactor + ta.frameStart
         elif self.scaleFactor < 1.0:
             for action in actionList:
@@ -192,6 +193,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Prevent cropping to 0 frames
         if (self.cropFront + self.cropBack) >= (ta.frameEnd - ta.frameStart):
+            self.report({'INFO'}, 'Failure: Resulting size < 1.')
             return {'CANCELLED'}
         # Get a list of all relevant actions
         actionList = []
@@ -770,6 +772,34 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
         eventList.move(currentIdx, newIdx)
         anim.eventListIdx = newIdx
         return {'FINISHED'}
+
+
+class NVB_OP_DummyGenerateName(bpy.types.Operator):
+    """Move an item in the event list."""
+
+    bl_idname = 'nvb.dummy_generatename'
+    bl_label = 'Move an item in the event  list'
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if a Empty is selected."""
+        return (context.object and context.object.type == 'EMPTY')
+
+    def execute(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        rootDummy = nvb_utils.findObjRootDummy(obj)
+        suffix = nvb_def.Dummytype.getSuffix(obj, rootDummy.nvb.classification)
+        if suffix:
+            newName = obj.name + suffix
+            if newName in bpy.data.objects:
+                self.report({'INFO'}, 'Failure: Name already Exists.')
+                return {'CANCELLED'}
+            else:
+                obj.name = newName
+                return {'FINISHED'}
+        self.report({'INFO'}, 'Failure: No suffix found.')
+        return {'CANCELLED'}
 
 
 class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):

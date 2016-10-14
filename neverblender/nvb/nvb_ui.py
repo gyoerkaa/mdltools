@@ -119,8 +119,10 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
                 row = box.row()
                 row.prop(obj.nvb, 'wirecolor')
-                row = box.row()
+                row = box.row(align=True)
                 row.prop(obj.nvb, 'dummytype')
+                row.operator('nvb.dummy_generatename',
+                             icon='SORTALPHA', text='')
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):
@@ -408,7 +410,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 row = layout.row()
                 row.prop_search(anim, 'rawascii',
                                 bpy.data, 'texts',
-                                text='Data')
+                                text='Emitter Data')
                 # col = split.column(align=True)
                 # col.prop(anim, 'marker', text = '')
                 # col.prop_search(anim, 'marker', bpy.context.scene,
