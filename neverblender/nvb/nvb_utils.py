@@ -209,6 +209,24 @@ def findRootDummy(obj=None):
     return None
 
 
+def deleteKeyFrames(rootDummy, startFrame, endFrame):
+    """Delete keyframes from this model."""
+    # Get a List of all children
+    objList = [rootDummy]
+    for o in objList:
+        for c in o.children:
+            objList.append(c)
+    for obj in objList:
+        framesToDelete = []
+        if obj.animation_data and obj.animation_data.action:
+            for fcurve in obj.animation_data.action.fcurves:
+                for p in fcurve.keyframe_points:
+                    if (startFrame <= p.co[0] <= endFrame):
+                        framesToDelete.append((fcurve.data_path, p.co[0]))
+        for dp, f in framesToDelete:
+            obj.keyframe_delete(dp, frame=f)
+
+
 def checkAnimUnique(rootDummy):
     """
     Check for animations of this rootDummy.

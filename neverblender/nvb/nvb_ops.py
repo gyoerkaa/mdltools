@@ -103,13 +103,13 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
                             p.co[0] = \
                                 (p.co[0] - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
                             p.handle_left.x += \
                                 (p.handle_left.x - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
                             p.handle_right.x += \
                                 (p.handle_right.x - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
         elif self.scaleFactor < 1.0:
             for action in actionList:
                 for fcurve in action.fcurves:
@@ -118,13 +118,13 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
                             p.co[0] = \
                                 (p.co[0] - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
                             p.handle_left.x += \
                                 (p.handle_left.x - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
                             p.handle_right.x += \
                                 (p.handle_right.x - ta.frameStart) * \
-                                self.scalingFactor + ta.frameStart
+                                self.scaleFactor + ta.frameStart
                     # Move keyframes forwared to close gaps
                     for p in fcurve.keyframe_points:
                         if (p.co[0] > ta.frameEnd):
@@ -143,7 +143,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         ta.frameEnd += padding
         for e in ta.eventList:
             e.frame = (e.frame - ta.frameStart) * \
-                self.scalingFactor + ta.frameStart
+                self.scaleFactor + ta.frameStart
         return {'FINISHED'}
 
     def draw(self, context):
@@ -416,24 +416,29 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
         """TODO: DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         animList = rootDummy.nvb.animList
-        animIdx = rootDummy.nvb.animListIdx
-
-        ta = animList[animIdx]
-        # Get a list of all relevant actions
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
-        # Delete keyframes
-        for action in actionList:
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                        # Delete keyframe
-                        fcurve.keyframe_points.remove(p)
-
-        animList.remove(animIdx)
-        if animIdx > 0:
-            animIdx = animIdx - 1
-
+        animListIdx = rootDummy.nvb.animListIdx
+        anim = animList[animListIdx]
+        # Remove keyframes
+        objList = [rootDummy]
+        for o in objList:
+            for c in o.children:
+                objList.append(c)
+        for obj in objList:
+            # Find out which ones to delete
+            framesToDelete = []
+            if obj.animation_data and obj.animation_data.action:
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if (anim.frameStart <= p.co[0] <= anim.frameEnd):
+                            framesToDelete.append((fcurve.data_path, p.co[0]))
+            # Delete them by accessing them from the object.
+            # (Can't do it directly)
+            for dp, f in framesToDelete:
+                obj.keyframe_delete(dp, frame=f)
+        # Remove animation from List
+        animList.remove(animListIdx)
+        if animListIdx > 0:
+            rootDummy.nvb.animListIdx = animListIdx - 1
         return {'FINISHED'}
 
 
@@ -454,41 +459,46 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
-        # Get the target animation (to be moved)
-        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        oldStart = ta.frameStart
-        oldEnd = ta.frameEnd
-        newStart = oldStart
+        animList = rootDummy.nvb.animList
+        currentAnimIdx = rootDummy.nvb.animListIdx
+        anim = animList[currentAnimIdx]
         # Get the end of the timeline
+        newStart = 0
         for a in rootDummy.nvb.animList:
             if a.frameEnd > newStart:
-                newStartFrame = a.frameEnd
-        newStartFrame = newStartFrame + nvb_def.anim_offset
-        # Get a list of all relevant actions
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
-        # Move keyframes (=delete and re-insert)
+                newStart = a.frameEnd
+        newStart = newStart + nvb_def.anim_offset
+        # Move keyframes
         kfOptions = {'FAST'}  # insertion options
-        for action in actionList:
-            for fcurve in action.fcurves:
-                kfp = []
-                # Delete old keyframes and save their coordinates
-                for p in fcurve.keyframe_points:
-                    if (oldStart <= p.co[0] <= oldEnd):
-                        kfp.append((p.co[0], p.co[1]))
-                        fcurve.keyframe_points.remove(p)
-                # Copy the keyframe to the end of the timeline
-                for p in kfp:
-                    frame = newStart + (p[0] - oldStart)
-                    fcurve.keyframe_points.insert(frame, p[1], kfOptions)
+        objList = [rootDummy]
+        for o in objList:
+            for c in o.children:
+                objList.append(c)
+        for obj in objList:
+            # Find out which ones to delete
+            framesToDelete = []
+            if obj.animation_data and obj.animation_data.action:
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if (anim.frameStart <= p.co[0] <= anim.frameEnd):
+                            framesToDelete.append((fcurve.data_path, p.co[0]))
+                            newFrame = p.co[0] + newStart - anim.frameStart
+                            fcurve.keyframe_points.insert(newFrame, p.co[1],
+                                                          kfOptions)
+            # Delete the frames by accessing them from the object.
+            # (Can't do it directly)
+            for dp, f in framesToDelete:
+                obj.keyframe_delete(dp, frame=f)
 
         # Adjust animations in the list
-        for e in ta.eventList:
-            e.frame = newStart + (e.frame - oldStart)
-        ta.frameEnd = newStart + (ta.frameEnd - oldStart)
-        ta.frameStart = newStart
+        for e in anim.eventList:
+            e.frame = newStart + (e.frame - anim.frameStart)
+        anim.frameEnd = newStart + (anim.frameEnd - anim.frameStart)
+        anim.frameStart = newStart
         # Set index
-        # rootDummy.nvb.animListIdx = len(rootDummy.nvb.animList) - 1
+        newAnimIdx = len(animList) - 1
+        animList.move(currentAnimIdx, newAnimIdx)
+        rootDummy.nvb.animListIdx = newAnimIdx
         return {'FINISHED'}
 
 
