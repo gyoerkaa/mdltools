@@ -384,8 +384,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.separator()
             col.operator('nvb.anim_move',
                          icon='TRIA_UP', text='').direction = 'UP'
-            col.operator('nvb.anim_move',
-                         icon='TRIA_RIGHT', text='').direction = 'END'
+            col.operator('nvb.anim_moveback', icon='TRIA_RIGHT', text='')
             col.operator('nvb.anim_move',
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.separator()
