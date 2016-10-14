@@ -449,10 +449,10 @@ def moveAnimationKeys(rootDummy, anim, newAnimRange):
                 pass  # p.co[0] += newStartFrame
 
 
-def setupMinimapRender(mdlroot,
+def setupMinimapRender(rootDummy,
                        scene,
                        lamp_color=(1.0, 1.0, 1.0),
-                       alpha_mode='SKY'):
+                       alpha_mode='TRANSPARENT'):
     """TODO: DOC."""
     # Create the lamp if not already present in scene
     lampName = 'MinimapLamp'
@@ -475,8 +475,8 @@ def setupMinimapRender(mdlroot,
     minimapLamp.data.use_specular = False
     minimapLamp.data.color = lamp_color
     minimapLamp.data.falloff_type = 'CONSTANT'
-    minimapLamp.data.distance = (mdlroot.nvb.minimapzoffset+20.0)*2.0
-    minimapLamp.location.z = mdlroot.nvb.minimapzoffset+20.0
+    minimapLamp.data.distance = (rootDummy.nvb.minimapzoffset+20.0)*2.0
+    minimapLamp.location.z = rootDummy.nvb.minimapzoffset+20.0
 
     # Create the cam if not already present in scene
     if camName in scene.objects:
@@ -495,7 +495,7 @@ def setupMinimapRender(mdlroot,
     # Adjust cam properties
     minimapCam.data.type = 'ORTHO'
     minimapCam.data.ortho_scale = 10.0
-    minimapCam.location.z = mdlroot.nvb.minimapzoffset+20.0
+    minimapCam.location.z = rootDummy.nvb.minimapzoffset+20.0
 
     scene.camera = minimapCam
     # Adjust render settings
@@ -505,8 +505,8 @@ def setupMinimapRender(mdlroot,
     scene.render.antialiasing_samples = '16'
     scene.render.use_shadows = False
     scene.render.use_envmaps = False
-    scene.render.resolution_x = mdlroot.nvb.minimapsize
-    scene.render.resolution_y = mdlroot.nvb.minimapsize
+    scene.render.resolution_x = rootDummy.nvb.minimapsize
+    scene.render.resolution_y = rootDummy.nvb.minimapsize
     scene.render.resolution_percentage = 100
     scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'

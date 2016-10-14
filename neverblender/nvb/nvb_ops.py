@@ -102,31 +102,29 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     # Now scale the animation
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.handle_left.x += \
-                                (p.handle_left.x - ta.frameStart) * \
+                            oldFrame = p.co[0]
+                            newFrame = (oldFrame - ta.frameStart) * \
                                 self.scaleFactor + ta.frameStart
-                            p.handle_right.x += \
-                                (p.handle_right.x - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
-                            p.co[0] = \
-                                (p.co[0] - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
+                            p.co[0] = newFrame
+                            p.handle_left.x = newFrame - \
+                                (oldFrame - p.handle_left.x)
+                            p.handle_right.x = newFrame + \
+                                (p.handle_right.x - oldFrame)
         elif self.scaleFactor < 1.0:
             for action in actionList:
                 for fcurve in action.fcurves:
                     # Scale the animation down first
                     for p in fcurve.keyframe_points:
                         if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            p.co[0] = \
-                                (p.co[0] - ta.frameStart) * \
+                            oldFrame = p.co[0]
+                            newFrame = (oldFrame - ta.frameStart) * \
                                 self.scaleFactor + ta.frameStart
-                            p.handle_left.x += \
-                                (p.handle_left.x - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
-                            p.handle_right.x += \
-                                (p.handle_right.x - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
-                    # Move keyframes forwared to close gaps
+                            p.co[0] = newFrame
+                            p.handle_left.x = newFrame - \
+                                (oldFrame - p.handle_left.x)
+                            p.handle_right.x = newFrame + \
+                                (p.handle_right.x - oldFrame)
+                    # Move keyframes forward to close gaps
                     for p in fcurve.keyframe_points:
                         if (p.co[0] > ta.frameEnd):
                             p.co[0] += padding
@@ -966,24 +964,23 @@ class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
     bl_idname = "nvb.render_minimap"
     bl_label = "Render Minimap"
 
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        return (context.object is not None)
+
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
-        obj = context.object
-        scene = bpy.context.scene
-        if obj and (obj.type == 'EMPTY'):
-            if (obj.nvb.dummytype == nvb_def.Dummytype.MDLROOT):
-                nvb_utils.setupMinimapRender(obj, scene)
-                bpy.ops.render.render(use_viewport=True)
-                # bpy.ops.render.view_show()
-
-                self.report({'INFO'}, 'Ready to render')
-            else:
-                self.report({'INFO'}, 'A MDLROOT must be selected')
-                return {'CANCELLED'}
-        else:
-            self.report({'INFO'}, 'An Empty must be selected')
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not rootDummy:
             return {'CANCELLED'}
+        scene = bpy.context.scene
 
+        nvb_utils.setupMinimapRender(rootDummy, scene)
+        bpy.ops.render.render(use_viewport=True)
+        # bpy.ops.render.view_show()
+
+        self.report({'INFO'}, 'Ready to render')
         return {'FINISHED'}
 
 
