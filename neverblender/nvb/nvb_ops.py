@@ -188,10 +188,58 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
     def execute(self, context):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
+        animList = rootDummy.nvb.animList
+        currentAnimIdx = rootDummy.nvb.animListIdx
+        anim = animList[currentAnimIdx]
+        # Cache some values
+        cf = self.cropFront
+        cb = self.cropBack
+        animStart = anim.frameStart
+        animEnd = anim.frameEnd
+        oldLength = anim.frameEnd - anim.frameStart + 1
+        totalCrop = cf + cb
+        # Resulting length has to be at lest 1 frame
+        if totalCrop > oldLength:
+            self.report({'INFO'}, 'Failure: Resulting length < 1.')
+            return {'CANCELLED'}
+        # Get a list of affected objects
+        objList = [rootDummy]
+        for o in objList:
+            for c in o.children:
+                objList.append(c)
+        # Delete keyframes first
+        for obj in objList:
+            framesToDelete = []
+            if obj.animation_data and obj.animation_data.action:
+                # Find out which ones to delete
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if (animStart <= p.co[0] < animStart + cf) or \
+                           (animEnd - cb < p.co[0] <= animEnd):
+                            framesToDelete.append((fcurve.data_path, p.co[0]))
+                # Delete the frames by accessing them from the object.
+                # (Can't do it directly)
+                for dp, f in framesToDelete:
+                    obj.keyframe_delete(dp, frame=f)
+                # Move the keyframes to the front to remove gaps
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if (p.co[0] >= animStart):
+                            p.co[0] -= self.cropFront
+                            p.handle_left.x -= self.cropFront
+                            p.handle_right.x -= self.cropFront
+                            if (p.co[0] >= animEnd):
+                                p.co[0] -= self.cropBack
+                                p.handle_left.x -= self.cropBack
+                                p.handle_right.x -= self.cropBack
+
+    def execute2(self, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Prevent cropping to 0 frames
         if (self.cropFront + self.cropBack) >= (ta.frameEnd - ta.frameStart):
-            self.report({'INFO'}, 'Failure: Resulting size < 1.')
+            self.report({'INFO'}, 'Failure: Resulting length < 1.')
             return {'CANCELLED'}
         # Get a list of all relevant actions
         actionList = []
@@ -311,7 +359,7 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
                 a.frameEnd = a.frameEnd + totalPadding
                 for e in a.eventList:
                     e.frame = e.frame + totalPadding
-        # Adjust the target animation itself
+        # Update the target animation itself
         ta.frameEnd = ta.frameEnd + totalPadding
         for e in ta.eventList:
             e.frame = ta.frameEnd + self.padFront
@@ -418,23 +466,24 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
         animList = rootDummy.nvb.animList
         animListIdx = rootDummy.nvb.animListIdx
         anim = animList[animListIdx]
-        # Remove keyframes
+        # Get a list of affected objects
         objList = [rootDummy]
         for o in objList:
             for c in o.children:
                 objList.append(c)
+        # Remove keyframes
         for obj in objList:
-            # Find out which ones to delete
             framesToDelete = []
             if obj.animation_data and obj.animation_data.action:
+                # Find out which ones to delete
                 for fcurve in obj.animation_data.action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (anim.frameStart <= p.co[0] <= anim.frameEnd):
                             framesToDelete.append((fcurve.data_path, p.co[0]))
-            # Delete them by accessing them from the object.
-            # (Can't do it directly)
-            for dp, f in framesToDelete:
-                obj.keyframe_delete(dp, frame=f)
+                # Delete them by accessing them from the object.
+                # (Can't do it directly)
+                for dp, f in framesToDelete:
+                    obj.keyframe_delete(dp, frame=f)
         # Remove animation from List
         animList.remove(animListIdx)
         if animListIdx > 0:
@@ -468,16 +517,17 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
             if a.frameEnd > newStart:
                 newStart = a.frameEnd
         newStart = newStart + nvb_def.anim_offset
-        # Move keyframes
-        kfOptions = {'FAST'}  # insertion options
+        # Get a list of affected objects
         objList = [rootDummy]
         for o in objList:
             for c in o.children:
                 objList.append(c)
+        # Move keyframes
+        kfOptions = {'FAST'}  # insertion options
         for obj in objList:
-            # Find out which ones to delete
             framesToDelete = []
             if obj.animation_data and obj.animation_data.action:
+                # Find out which ones to delete
                 for fcurve in obj.animation_data.action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (anim.frameStart <= p.co[0] <= anim.frameEnd):
@@ -485,10 +535,10 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
                             newFrame = p.co[0] + newStart - anim.frameStart
                             fcurve.keyframe_points.insert(newFrame, p.co[1],
                                                           kfOptions)
-            # Delete the frames by accessing them from the object.
-            # (Can't do it directly)
-            for dp, f in framesToDelete:
-                obj.keyframe_delete(dp, frame=f)
+                # Delete the frames by accessing them from the object.
+                # (Can't do it directly)
+                for dp, f in framesToDelete:
+                    obj.keyframe_delete(dp, frame=f)
 
         # Adjust animations in the list
         for e in anim.eventList:
@@ -810,22 +860,18 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(default='*.mdl',
                                            options={'HIDDEN'})
-
     importGeometry = bpy.props.BoolProperty(
             name='Import Geometry',
             description='Disable if only animations are needed',
             default=True)
-
     importWalkmesh = bpy.props.BoolProperty(
             name='Import Walkmesh',
             description='Attempt to load placeable and door walkmeshes',
             default=True)
-
     importSmoothGroups = bpy.props.BoolProperty(
             name='Import smooth groups',
             description='Import smooth groups as sharp edges',
             default=True)
-
     importAnim = bpy.props.EnumProperty(
             name='Animations',
             items=(('NON', 'None', 'Don\'t import animations', 0),
@@ -833,13 +879,11 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             # ('ADV', 'Advanced', 'Single action for each animation
             # and object', 2)),
             default='STD')
-
     importSupermodel = bpy.props.BoolProperty(
             name='Import supermodel',
             description='Import animations from supermodel',
             default=False,
             options={'HIDDEN'})
-
     materialMode = bpy.props.EnumProperty(
             name='Materials',
             items=(('NON', 'None',
@@ -850,20 +894,17 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                    ('MUL', 'Multiple',
                     'Create a seperate material for each object', 2)),
             default='SIN')
-
     textureSearch = bpy.props.BoolProperty(
             name='Image search',
             description='Search for images in subdirectories'
                         '(Warning, may be slow)',
             default=False)
-
-    # Hidden option, only used for batch minimap creation
+    # Hidden options, only used for batch minimap creation
     minimapMode = bpy.props.BoolProperty(
             name='Minimap Mode',
             description='Ignore lights and fading objects',
             default=False,
             options={'HIDDEN'})
-
     minimapSkipFade = bpy.props.BoolProperty(
             name='Minimap Mode: Import Fading Objects',
             description='Ignore fading objects',
@@ -888,23 +929,19 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     filter_glob = bpy.props.StringProperty(
             default='*.mdl',
             options={'HIDDEN'})
-
     exportAnimations = bpy.props.BoolProperty(
             name='Export animations',
             description='Export animations',
             default=True)
-
     exportWalkmesh = bpy.props.BoolProperty(
             name='Export a walkmesh',
             description='Export a walkmesh',
             default=True)
-
     exportSmoothGroups = bpy.props.BoolProperty(
             name='Export Smooth groups',
             description='Generate smooth groups from sharp edges'
                         '(When disabled every face belongs to the same group)',
             default=True)
-
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting',

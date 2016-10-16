@@ -1553,5 +1553,6 @@ class Aabb(Trimesh):
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.nvb.imporder = self.nodeidx
+        obj.hide_render = True
         self.createObjectData(obj, options)
         return obj
