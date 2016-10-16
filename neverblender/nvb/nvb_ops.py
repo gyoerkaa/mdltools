@@ -225,64 +225,29 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
                 for fcurve in obj.animation_data.action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (p.co[0] >= animStart):
-                            p.co[0] -= self.cropFront
-                            p.handle_left.x -= self.cropFront
-                            p.handle_right.x -= self.cropFront
+                            p.co[0] -= cf
+                            p.handle_left.x -= cf
+                            p.handle_right.x -= cf
                             if (p.co[0] >= animEnd):
-                                p.co[0] -= self.cropBack
-                                p.handle_left.x -= self.cropBack
-                                p.handle_right.x -= self.cropBack
-
-    def execute2(self, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
-        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        # Prevent cropping to 0 frames
-        if (self.cropFront + self.cropBack) >= (ta.frameEnd - ta.frameStart):
-            self.report({'INFO'}, 'Failure: Resulting length < 1.')
-            return {'CANCELLED'}
-        # Get a list of all relevant actions
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
-        # Adjust or delete keyframes
-        cf = self.cropFront
-        cb = self.cropBack
-        fs = ta.frameStart
-        fe = ta.frameEnd
-        for action in actionList:
-            for fcurve in action.fcurves:
-                # Delete keyframes first
-                for p in fcurve.keyframe_points:
-                    if (fs <= p.co[0] < (fs + cf)) or \
-                       ((fe - cb) < p.co[0] <= fe):
-                        fcurve.keyframe_points.remove(p)
-                # Move other keyframes to te front
-                for p in fcurve.keyframe_points:
-                    if p.co[0] >= fs:
-                        p.co[0] -= cf
-                        p.handle_left.x -= cf
-                        p.handle_right.x -= cf
-                        if p.co[0] >= fe:
-                            p.co[0] -= cb
-                            p.handle_left.x -= cb
-                            p.handle_right.x -= cb
+                                p.co[0] -= cb
+                                p.handle_left.x -= cb
+                                p.handle_right.x -= cb
         # Update the animations in the list
-        tc = cf + cb
         for a in rootDummy.nvb.animList:
-            if a.frameStart > fs:
-                a.frameStart -= tc
-                a.frameEnd -= tc
+            if a.frameStart > animStart:
+                a.frameStart -= totalCrop
+                a.frameEnd -= totalCrop
                 for e in a.eventList:
-                    e.frame -= tc
+                    e.frame -= totalCrop
         # Adjust the target animation itself
-        for idx, e in enumerate(ta.eventList):
-            if (fs <= p.co[0] < (fs + cf)) or \
-               ((fe - cb) < p.co[0] <= fe):
-                ta.eventList.remove(idx)
-                ta.eventListIdx = 0
+        for idx, e in enumerate(anim.eventList):
+            if (animStart <= e.frame < animStart + cf) or \
+               (animEnd - cb < e.frame <= animEnd):
+                anim.eventList.remove(idx)
+                anim.eventListIdx = 0
             else:
-                e.frame -= tc
-        ta.frameEnd -= tc
+                e.frame -= totalCrop
+        anim.frameEnd -= totalCrop
 
         return {'FINISHED'}
 
