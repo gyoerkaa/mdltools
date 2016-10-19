@@ -534,62 +534,38 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 1)
         return False
 
-    def swap(self, rootDummy, currentIdx, newIdx):
+    def swap(self, rootDummy, fromIdx, toIdx):
         """TODO: DOC."""
         # Get the target animation (to be moved)
-        ta = rootDummy.nvb.animList[currentIdx]
-        taStartFrame = ta.frameStart
-        taEndFrame = ta.frameEnd
+        fromAnim = rootDummy.nvb.animList[fromIdx]
+        fromStart = fromAnim.frameStart
+        fromEnd = fromAnim.frameEnd
         # Get the animation currently sitting at that position.
-        ma = rootDummy.nvb.animList[newIdx]
-        maStartFrame = ma.frameStart
-        maEndFrame = ma.frameEnd
-        # Get a free frame at the end of all animations:
-        latestFrame = ta.frameStart
-        for a in rootDummy.nvb.animList:
-            if a.frameEnd > latestFrame:
-                latestFrame = a.frameEnd
-        latestFrame = latestFrame + nvb_def.anim_offset
-        # Get a list of all relevant actions
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
-        # Move the keys of the current animation at the new idx out of the way
-        # (to the end of all animations)
-        for action in actionList:
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (maStartFrame <= p.co[0] <= maEndFrame):
-                        # Move keyframe
-                        p.co[0] = latestFrame + (p.co[0] - maStartFrame)
-        # Adjust animation in list
-        for e in ma.eventList:
-            e.frame = latestFrame + (e.frame - maStartFrame)
-        ta.frameStart = latestFrame
-        ta.frameEnd = latestFrame + (maStartFrame - maEndFrame)
-        # Move the key of the target animation to the new idx
-        for action in actionList:
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (taStartFrame <= p.co[0] <= taEndFrame):
-                        # Move keyframe
-                        p.co[0] = maStartFrame + (p.co[0] - taStartFrame)
-        # Adjust animation in list
-        for e in ta.eventList:
-            e.frame = maStartFrame + (e.frame - taStartFrame)
-        ta.frameStart = maStartFrame
-        ta.frameEnd = maEndFrame
-        # Move the other animation to the position of the moved one
-        for action in actionList:
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (latestFrame <= p.co[0]):
-                        # Move keyframe
-                        p.co[0] = taStartFrame + (p.co[0] - latestFrame)
-        # Adjust animation in list
-        for e in ma.eventList:
-            e.frame = taStartFrame + (e.frame - latestFrame)
-        ma.frameStart = taStartFrame
-        ma.frameEnd = taEndFrame
+        toAnim = rootDummy.nvb.animList[toIdx]
+        toStart = toAnim.frameStart
+        toEnd = toAnim.frameEnd
+        # Get a list of affected objects
+        objList = [rootDummy]
+        for o in objList:
+            for c in o.children:
+                objList.append(c)
+        # Remove keyframes
+        for obj in objList:
+            framesToDelete = []
+            fromAnimKfp = []
+            toAnimKfp = []
+            if obj.animation_data and obj.animation_data.action:
+                # Find out which ones to delete
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
+                        if (fromStart <= p.co[0] <= fromEnd):
+                            framesToDelete.append((fcurve.data_path, p.co[0]))
+                # Delete them by accessing them from the object.
+                # (Can't do it directly)
+                for dp, f in framesToDelete:
+                    obj.keyframe_delete(dp, frame=f)
+                for fcurve in obj.animation_data.action.fcurves:
+                    for p in fcurve.keyframe_points:
 
     def execute(self, context):
         """TODO: DOC."""
