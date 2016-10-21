@@ -540,7 +540,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         fromAnim = rootDummy.nvb.animList[fromIdx]
         fromStart = fromAnim.frameStart
         fromEnd = fromAnim.frameEnd
-        # Get the animation currently sitting at that position.
+        # Get the animation currently sitting at that position
         toAnim = rootDummy.nvb.animList[toIdx]
         toStart = toAnim.frameStart
         toEnd = toAnim.frameEnd
@@ -559,13 +559,23 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
                 for fcurve in obj.animation_data.action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (fromStart <= p.co[0] <= fromEnd):
+                            fromAnimKfp.append((fcurve.data_path,
+                                                fcurve.array_index,
+                                                p.co[0], p.co[1]))
+                            framesToDelete.append((fcurve.data_path, p.co[0]))
+                        elif (toStart <= p.co[0] <= toEnd):
+                            toAnimKfp.append((fcurve.data_path,
+                                              fcurve.array_index,
+                                              p.co[0], p.co[1]))
                             framesToDelete.append((fcurve.data_path, p.co[0]))
                 # Delete them by accessing them from the object.
                 # (Can't do it directly)
                 for dp, f in framesToDelete:
                     obj.keyframe_delete(dp, frame=f)
-                for fcurve in obj.animation_data.action.fcurves:
-                    for p in fcurve.keyframe_points:
+                for (dp, ai, x, y) in fromAnimKfp:
+                    obj.keyframe_insert(dp, frame=f)
+                for (dp, ai, x, y) in toAnimKfp:
+                    pass
 
     def execute(self, context):
         """TODO: DOC."""
