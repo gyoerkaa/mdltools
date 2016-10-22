@@ -560,20 +560,27 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             if obj.animation_data and obj.animation_data.action:
                 # Find out which ones to delete
                 action = obj.animation_data.action
+                print('Get ')
                 for fcurve in action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (fromStart <= p.co[0] <= fromEnd):
+                            print('  from ')
                             key = fcurve.data_path + str(fcurve.array_index)
                             if key in fromAnimKfp:
+                                print('    insert ' + key)
                                 fromAnimKfp[key].append((p.co[0], p.co[1]))
                             else:
+                                print('    create ' + key)
                                 fromAnimKfp[key] = [(p.co[0], p.co[1])]
                             framesToDelete.append((fcurve.data_path, p.co[0]))
                         elif (toStart <= p.co[0] <= toEnd):
+                            print('  to ')
                             key = fcurve.data_path + str(fcurve.array_index)
                             if key in toAnimKfp:
+                                print('    insert ' + key)
                                 toAnimKfp[key].append((p.co[0], p.co[1]))
                             else:
+                                print('    create ' + key)
                                 toAnimKfp[key] = [(p.co[0], p.co[1])]
                             framesToDelete.append((fcurve.data_path, p.co[0]))
                 # Delete them by accessing them from the object.
@@ -581,16 +588,21 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
                 for dp, f in framesToDelete:
                     obj.keyframe_delete(dp, frame=f)
                 # Restore keyframes, but swap places
+                print('Create ')
                 for fcurve in action.fcurves:
                     key = fcurve.data_path + str(fcurve.array_index)
                     if key in fromAnimKfp:
+                        print('  Create ' + key)
                         for p in fromAnimKfp[key]:
-                            frame = toNewStart + (p[0] - fromStart)
+                            frame = fromNewStart + (p[0] - fromStart)
+                            print('  frame ' + str(frame))
                             fcurve.keyframe_points.insert(frame, p[1],
                                                           kfOptions)
                     if key in toAnimKfp:
+                        print('  Create ' + key)
                         for p in toAnimKfp[key]:
-                            frame = fromNewStart + (p[0] - toStart)
+                            frame = toNewStart + (p[0] - toStart)
+                            print('  frame ' + str(frame))
                             fcurve.keyframe_points.insert(frame, p[1],
                                                           kfOptions)
         # Adjust list entries
