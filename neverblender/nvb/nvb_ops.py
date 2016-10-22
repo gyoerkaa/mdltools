@@ -146,6 +146,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         for e in ta.eventList:
             e.frame = (e.frame - ta.frameStart) * \
                 self.scaleFactor + ta.frameStart
+        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -355,10 +356,10 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class NVB_OP_Anim_Show(bpy.types.Operator):
+class NVB_OP_Anim_Focus(bpy.types.Operator):
     """Set the Start and end frames of the timeline."""
 
-    bl_idname = 'nvb.anim_show'
+    bl_idname = 'nvb.anim_focus'
     bl_label = 'Set start and end frame of the timeline to the animation'
 
     @classmethod
@@ -371,28 +372,10 @@ class NVB_OP_Anim_Show(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = nvb_utils.findObjRootDummy(context.object)
-        animList = obj.nvb.animList
-        animIdx = obj.nvb.animListIdx
-
-        anim = animList[animIdx]
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
         scene = context.scene
-        if (scene.frame_start == anim.frameStart) and \
-           (scene.frame_end == anim.frameEnd):
-            # Set timeline to all current animation
-            scene.frame_start = 1
-            lastFrame = 1
-            for anim in animList:
-                if lastFrame < anim.frameEnd:
-                    lastFrame = anim.frameEnd
-            scene.frame_end = lastFrame
-        else:
-            # Set timeline to the current animation
-            scene.frame_start = anim.frameStart
-            scene.frame_end = anim.frameEnd
 
-        scene.frame_current = scene.frame_start
-
+        nvb_utils.toggleAnimFocus(scene, rootDummy)
         return {'FINISHED'}
 
 
@@ -519,6 +502,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
         newAnimIdx = len(animList) - 1
         animList.move(currentAnimIdx, newAnimIdx)
         rootDummy.nvb.animListIdx = newAnimIdx
+        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
 
@@ -549,6 +533,19 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         toAnim = rootDummy.nvb.animList[toIdx]
         toStart = toAnim.frameStart
         toEnd = toAnim.frameEnd
+        # New animation bounds
+        if fromStart > toEnd:
+            fromNewStart = toStart
+            fromNewEnd = fromNewStart + (fromEnd - fromStart)
+            toNewStart = fromNewEnd + (fromStart - toEnd)
+            toNewEnd = toNewStart + (toEnd - toStart)
+        elif toStart > fromEnd:
+            toNewStart = fromStart
+            toNewEnd = toNewStart + (toEnd - toStart)
+            fromNewStart = toNewEnd + (toStart - fromEnd)
+            fromNewEnd = fromNewStart + (fromEnd - fromStart)
+        else:
+            return
         # Get a list of affected objects
         objList = [rootDummy]
         for o in objList:
@@ -588,23 +585,23 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
                     key = fcurve.data_path + str(fcurve.array_index)
                     if key in fromAnimKfp:
                         for p in fromAnimKfp[key]:
-                            frame = toStart + (p[0] - fromStart)
+                            frame = toNewStart + (p[0] - fromStart)
                             fcurve.keyframe_points.insert(frame, p[1],
                                                           kfOptions)
                     if key in toAnimKfp:
                         for p in toAnimKfp[key]:
-                            frame = fromStart + (p[0] - toStart)
+                            frame = fromNewStart + (p[0] - toStart)
                             fcurve.keyframe_points.insert(frame, p[1],
                                                           kfOptions)
         # Adjust list entries
-        fromAnim.frameStart = toStart
-        fromAnim.frameEnd = toEnd
+        fromAnim.frameStart = fromNewStart
+        fromAnim.frameEnd = fromNewEnd
         for e in fromAnim.eventList:
-            e.frame = toStart + (e.frame - fromStart)
-        toAnim.frameStart = fromStart
-        toAnim.frameEnd = fromEnd
+            e.frame = fromNewStart + (e.frame - fromStart)
+        toAnim.frameStart = toNewStart
+        toAnim.frameEnd = toNewEnd
         for e in toAnim.eventList:
-            e.frame = fromStart + (e.frame - toStart)
+            e.frame = toNewStart + (e.frame - toStart)
 
     def execute(self, context):
         """TODO: DOC."""
@@ -628,6 +625,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             return {'CANCELLED'}
         animList.move(currentIdx, newIdx)
         rootDummy.nvb.animListIdx = newIdx
+        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
 

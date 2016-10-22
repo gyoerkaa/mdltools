@@ -390,7 +390,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.operator('nvb.anim_move',
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.separator()
-            col.operator('nvb.anim_show',
+            col.operator('nvb.anim_focus',
                          icon='RENDER_ANIMATION', text='')
             col.menu('nvb.menu.animspecials',
                      icon='DOWNARROW_HLT', text="")

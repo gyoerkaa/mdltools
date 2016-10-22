@@ -209,6 +209,28 @@ def findRootDummy(obj=None):
     return None
 
 
+def toggleAnimFocus(scene, rootDummy):
+    """Set the Start and end frames of the timeline."""
+    animList = rootDummy.nvb.animList
+    animIdx = rootDummy.nvb.animListIdx
+
+    anim = animList[animIdx]
+    if (scene.frame_start == anim.frameStart) and \
+       (scene.frame_end == anim.frameEnd):
+        # Set timeline to all current animation
+        scene.frame_start = 1
+        lastFrame = 1
+        for anim in animList:
+            if lastFrame < anim.frameEnd:
+                lastFrame = anim.frameEnd
+        scene.frame_end = lastFrame
+    else:
+        # Set timeline to the current animation
+        scene.frame_start = anim.frameStart
+        scene.frame_end = anim.frameEnd
+    scene.frame_current = scene.frame_start
+
+
 def checkAnimUnique(rootDummy):
     """
     Check for animations of this rootDummy.
