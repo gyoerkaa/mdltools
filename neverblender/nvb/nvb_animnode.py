@@ -486,24 +486,43 @@ class Node():
 
         kname = 'orientationkey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
+            if len(keyDict[kname]) == 1:
+                formatStr = '    orientation \
+                            {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
+                key = keyDict[kname][0]
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
-                formatString = '      {: 6.5f} {: 6.5f} \
-                    {: 6.5f} {: 6.5f} {: 6.5f}'
-                s = formatString.format(time, val[0], val[1], val[2], val[3])
+                s = formatStr.format(val[0], val[1], val[2], val[3])
                 asciiLines.append(s)
+            else:
+                asciiLines.append('    orientationkey ' +
+                                  str(len(keyDict[kname])))
+                for frame, key in keyDict[kname].items():
+                    time = l_round(nvb_utils.frame2nwtime(frame - animStart),
+                                   5)
+                    eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+                    val = nvb_utils.euler2nwangle(eul)
+                    formatStr = '      {: 6.5f} \
+                                {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
+                    s = formatStr.format(time, val[0], val[1], val[2], val[3])
+                    asciiLines.append(s)
 
         kname = 'positionkey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                formatString = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
-                s = formatString.format(time, key[0], key[1], key[2])
+            if len(keyDict[kname]) == 1:
+                formatStr = '    position {: 6.5f} {: 6.5f} {: 6.5f}'
+                key = keyDict[kname][0]
+                s = formatStr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
+            else:
+                asciiLines.append('    positionkey ' +
+                                  str(len(keyDict[kname])))
+                for frame, key in keyDict[kname].items():
+                    time = l_round(nvb_utils.frame2nwtime(frame - animStart),
+                                   5)
+                    formatStr = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
+                    s = formatStr.format(time, key[0], key[1], key[2])
+                    asciiLines.append(s)
 
         kname = 'scalekey'
         if len(keyDict[kname]) > 0:
@@ -518,8 +537,8 @@ class Node():
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(time, key[0], key[1], key[2])
+                formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatStr.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
         kname = 'colorkey'
@@ -527,8 +546,8 @@ class Node():
             asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
             for frame, key in keyDict[kname].items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                formatString = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(time, key[0], key[1], key[2])
+                formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatStr.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
         kname = 'radiuskey'
