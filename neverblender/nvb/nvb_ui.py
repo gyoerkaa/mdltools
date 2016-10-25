@@ -378,9 +378,8 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
         if obj:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
-            row.template_list('NVB_UILIST_ANIMS', 'The_List',
-                              obj.nvb, 'animList',
-                              obj.nvb, 'animListIdx',
+            row.template_list('NVB_UILIST_ANIMS', 'TheAnimList',
+                              obj.nvb, 'animList', obj.nvb, 'animListIdx',
                               rows=7)
             col = row.column(align=True)
             col.operator('nvb.anim_new', icon='ZOOMIN', text='')
@@ -425,7 +424,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 row.label(text='Animation Events')
 
                 row = sub.row()
-                row.template_list('NVB_UILIST_ANIMEVENTS', 'The_List',
+                row.template_list('NVB_UILIST_ANIMEVENTS', 'TheEventList',
                                   anim, 'eventList', anim, 'eventListIdx')
                 col = row.column(align=True)
                 col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
