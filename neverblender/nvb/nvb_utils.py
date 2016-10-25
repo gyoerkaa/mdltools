@@ -149,6 +149,7 @@ def isRootDummy(obj):
     if not obj:
         return False
     return (obj.parent is None) and \
+           (obj.type == 'EMPTY') and \
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
