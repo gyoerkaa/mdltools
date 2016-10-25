@@ -61,32 +61,32 @@ class Mdl():
                 try:
                     self.name = line[1]
                 except IndexError:
-                    print("Neverblender - WARNING: Unable to read model name.")
+                    print("Neverblender: WARNING - Unable to read model name.")
             elif (label == 'setsupermodel'):
                 try:
                     # line should be
                     # ['setsupermodel', modelname, supermodelname]
                     self.supermodel = line[2]
                 except IndexError:
-                    print("Neverblender - WARNING: Unable to read supermodel. \
+                    print("Neverblender: WARNING - Unable to read supermodel. \
                            Using default value " + self.supermodel)
             elif (label == 'classification'):
                 try:
                     self.classification = line[1].lower()
                 except IndexError:
-                    print("Neverblender - WARNING: Unable to read \
+                    print("Neverblender: WARNING - Unable to read \
                            classification. \
                            Using Default value " + self.classification)
 
                 if self.classification not in nvb_def.Classification.ALL:
-                    print("Neverblender - WARNING: Invalid classification \
+                    print("Neverblender: WARNING - Invalid classification \
                            '" + self.classification + "'")
                     self.classification = nvb_def.Classification.UNKNOWN
             elif (label == 'setanimationscale'):
                 try:
                     self.animscale = line[1]
                 except IndexError:
-                    print("Neverblender - WARNING: Unable to read \
+                    print("Neverblender: WARNING - Unable to read \
                            animationscale. \
                            Using default value " + self.animscale)
 
@@ -299,7 +299,7 @@ class Mdl():
                 try:
                     node = Mdl.nodelookup[nodeType]
                 except KeyError:
-                    print("Neverblender - WARNING: Unable to get node type.")
+                    print("Neverblender: WARNING - Unable to get node type.")
                 else:
                     node.generateAsciiWalkmesh(obj, asciiLines, options)
 

@@ -337,6 +337,8 @@ class NVB_MENU_ANIMLIST_SPECIALS(bpy.types.Menu):
     def draw(self, context):
         """TODO: Doc."""
         layout = self.layout
+        layout.operator('nvb.anim_moveback',
+                        icon='LOOP_FORWARDS')
         layout.operator('nvb.anim_pad',
                         icon='FULLSCREEN_ENTER')
         layout.operator('nvb.anim_crop',
@@ -386,7 +388,6 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
             col.separator()
             col.operator('nvb.anim_move',
                          icon='TRIA_UP', text='').direction = 'UP'
-            col.operator('nvb.anim_moveback', icon='TRIA_RIGHT', text='')
             col.operator('nvb.anim_move',
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.separator()

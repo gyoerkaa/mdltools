@@ -28,31 +28,35 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        animStart = anim.frameStart
         # Adds a new animation to the end of the list
         clone = nvb_utils.createAnimListItem(rootDummy)
-        # Copy keyframes
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
         cloneStart = clone.frameStart
+        # Get a list of affected objects
+        objList = []
+        nvb_utils.getAllChildren(rootDummy, objList)
+        # Copy keyframes
         kfOptions = {'FAST'}  # insertion options
-        for action in actionList:
-            for fcurve in action.fcurves:
-                # Get the keyframe points of the selected animation
-                kfp = [p for p in fcurve.keyframe_points
-                       if anim.frameStart <= p.co[0] <= anim.frameEnd]
-                for p in kfp:
-                    frame = p.co[0] + cloneStart - anim.frameStart
-                    fcurve.keyframe_points.insert(frame, p.co[1], kfOptions)
-                fcurve.update()
+        for obj in objList:
+            if obj.animation_data and obj.animation_data.action:
+                for fcurve in obj.animation_data.action.fcurves:
+                    # Get the keyframe points of the selected animation
+                    kfp = [p for p in fcurve.keyframe_points
+                           if animStart <= p.co[0] <= anim.frameEnd]
+                    for p in kfp:
+                        frame = cloneStart + (p.co[0] - animStart)
+                        fcurve.keyframe_points.insert(frame, p.co[1],
+                                                      kfOptions)
+                    fcurve.update()
         # Copy data
-        clone.frameEnd = cloneStart + (anim.frameEnd-anim.frameStart)
+        clone.frameEnd = cloneStart + (anim.frameEnd - animStart)
         clone.ttime = anim.ttime
         clone.root = anim.root
         clone.name = anim.name + '.copy'
         # Copy events
         for e in anim.eventList:
             clonedEvent = clone.eventList.add()
-            clonedEvent.frame = cloneStart + (e.frame - anim.frameStart)
+            clonedEvent.frame = cloneStart + (e.frame - animStart)
             clonedEvent.name = e.name
 
         return {'FINISHED'}
@@ -66,7 +70,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
 
     scaleFactor = bpy.props.FloatProperty(name='scale',
                                           description='Scale the animation.',
-                                          min=0.5,
+                                          min=0.1,
                                           default=1.0)
 
     @classmethod
@@ -80,12 +84,18 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
     def execute(self, context):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not nvb_utils.checkAnimBounds(rootDummy):
+            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            return {'CANCELLED'}
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         oldSize = ta.frameEnd - ta.frameStart + 1
         newSize = self.scaleFactor * oldSize
-        # Check resulting length (has to be >= 1) and size difference
-        if (newSize < 1) or (math.fabs(oldSize - newSize) < 0.001):
+        # Check resulting length (has to be >= 1)
+        if (newSize < 1):
             self.report({'INFO'}, 'Failure: Resulting size < 1.')
+            return {'CANCELLED'}
+        if (math.fabs(oldSize - newSize) < 1):
+            self.report({'INFO'}, 'Failure: Same size.')
             return {'CANCELLED'}
         padding = newSize - oldSize
         # Adjust keyframes
@@ -167,7 +177,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Crop(bpy.types.Operator):
-    """Open a dialog to resize (pad) a single animation."""
+    """Open a dialog to crop a single animation."""
 
     bl_idname = 'nvb.anim_crop'
     bl_label = 'Crop animation.'
@@ -192,6 +202,9 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
     def execute(self, context):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not nvb_utils.checkAnimBounds(rootDummy):
+            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            return {'CANCELLED'}
         animList = rootDummy.nvb.animList
         currentAnimIdx = rootDummy.nvb.animListIdx
         anim = animList[currentAnimIdx]
@@ -207,10 +220,8 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             self.report({'INFO'}, 'Failure: Resulting length < 1.')
             return {'CANCELLED'}
         # Get a list of affected objects
-        objList = [rootDummy]
-        for o in objList:
-            for c in o.children:
-                objList.append(c)
+        objList = []
+        nvb_utils.getAllChildren(rootDummy, objList)
         # Delete keyframes first
         for obj in objList:
             framesToDelete = []
@@ -253,7 +264,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             else:
                 e.frame -= totalCrop
         anim.frameEnd -= totalCrop
-
+        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -277,7 +288,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Pad(bpy.types.Operator):
-    """Open a dialog to resize (pad) a single animation."""
+    """Open a dialog to pad a single animation."""
 
     bl_idname = 'nvb.anim_pad'
     bl_label = 'Pad animation.'
@@ -302,9 +313,13 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
     def execute(self, context):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not nvb_utils.checkAnimBounds(rootDummy):
+            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            return {'CANCELLED'}
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Cancel if padding is 0
         if (self.padFront + self.padBack) <= 0:
+            self.report({'INFO'}, 'Failure: No changes.')
             return {'CANCELLED'}
         # Get a list of all relevant actions
         actionList = []
@@ -313,27 +328,28 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         for action in actionList:
             for fcurve in action.fcurves:
                 for p in reversed(fcurve.keyframe_points):
+                    if p.co[0] > ta.frameEnd:
+                        p.co[0] += self.padBack
+                        p.handle_left.x += self.padBack
+                        p.handle_right.x += self.padBack
                     if p.co[0] >= ta.frameStart:
                         p.co[0] += self.padFront
                         p.handle_left.x += self.padFront
                         p.handle_right.x += self.padFront
-                        if p.co[0] > ta.frameEnd:
-                            p.co[0] += self.padBack
-                            p.handle_left.x += self.padBack
-                            p.handle_right.x += self.padBack
                 fcurve.update()
         # Update the animations in the list
         totalPadding = self.padBack + self.padFront
-        for a in reversed(rootDummy.nvb.animList):
+        for a in rootDummy.nvb.animList:
             if a.frameStart > ta.frameEnd:
-                a.frameStart = a.frameStart + totalPadding
-                a.frameEnd = a.frameEnd + totalPadding
+                a.frameStart += totalPadding
+                a.frameEnd += totalPadding
                 for e in a.eventList:
-                    e.frame = e.frame + totalPadding
+                    e.frame += totalPadding
         # Update the target animation itself
-        ta.frameEnd = ta.frameEnd + totalPadding
+        ta.frameEnd += totalPadding
         for e in ta.eventList:
-            e.frame = ta.frameEnd + self.padFront
+            e.frame += self.padFront
+        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -445,10 +461,10 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Moveback(bpy.types.Operator):
-    """Move an item to the end of the animation list."""
+    """Move an animation and its keyframes to the end of the animation list."""
 
     bl_idname = 'nvb.anim_moveback'
-    bl_label = 'Move an animation to the end of the list'
+    bl_label = 'Move an animation and its keyframes to the end.'
 
     @classmethod
     def poll(self, context):
@@ -461,6 +477,9 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not nvb_utils.checkAnimBounds(rootDummy):
+            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            return {'CANCELLED'}
         animList = rootDummy.nvb.animList
         currentAnimIdx = rootDummy.nvb.animListIdx
         anim = animList[currentAnimIdx]
@@ -507,10 +526,10 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Move(bpy.types.Operator):
-    """Move an item in the animation list."""
+    """Move an item in the animation list, without affecting keyframes."""
 
     bl_idname = 'nvb.anim_move'
-    bl_label = 'Move an animation in the list'
+    bl_label = 'Move an animation in the list, without affecting keyframes'
 
     direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
                                               ('DOWN', 'Down', '')))
@@ -613,10 +632,10 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         maxIdx = len(animList) - 1
         if self.direction == 'DOWN':
             newIdx = currentIdx + 1
-            self.swap(rootDummy, currentIdx, newIdx)
+            # self.swap(rootDummy, currentIdx, newIdx)
         elif self.direction == 'UP':
             newIdx = currentIdx - 1
-            self.swap(rootDummy, currentIdx, newIdx)
+            # self.swap(rootDummy, currentIdx, newIdx)
         else:
             return {'CANCELLED'}
 
@@ -625,7 +644,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             return {'CANCELLED'}
         animList.move(currentIdx, newIdx)
         rootDummy.nvb.animListIdx = newIdx
-        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
+        # nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
 

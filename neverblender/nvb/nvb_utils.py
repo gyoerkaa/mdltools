@@ -231,7 +231,15 @@ def toggleAnimFocus(scene, rootDummy):
     scene.frame_current = scene.frame_start
 
 
-def checkAnimUnique(rootDummy):
+def getAllChildren(obj, objList):
+    """TODO: DOC."""
+    if obj:
+        objList.append(obj)
+        for c in obj.children:
+            getAllChildren(c, objList)
+
+
+def checkAnimBounds(rootDummy):
     """
     Check for animations of this rootDummy.
 
@@ -239,7 +247,13 @@ def checkAnimUnique(rootDummy):
     """
     if len(rootDummy.nvb.animList) < 2:
         return True
-    # animBounds = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
+    # TODO: Interval tree
+    animBounds = [(a.frameStart, a.frameEnd, idx) for idx, a in
+                  enumerate(rootDummy.nvb.animList)]
+    for a1 in animBounds:
+        for a2 in animBounds:
+            if (a1[0] <= a2[1]) and (a2[0] <= a1[1]) and (a1[2] != a2[2]):
+                return False
     return True
 
 
