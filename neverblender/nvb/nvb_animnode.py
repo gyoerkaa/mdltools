@@ -99,6 +99,12 @@ class Node():
                     self.alpha = l_float(line[1])
                     self.matdata = True
                 # Animeshes
+                elif label == 'verts':
+                    pass  # Not needed (?)
+                elif label == 'tverts':
+                    pass  # Not needed (?)
+                elif label == 'faces':
+                    pass  # Not needed (?)
                 elif label == 'sampleperiod':
                     self.sampleperiod = l_float(line[1])
                 elif label == 'clipu':
@@ -160,7 +166,7 @@ class Node():
                     self.objdata = True
                 # Some unknown label.
                 # Probably keys for emitters, incompatible, save as plain text
-                elif label[0] != '#':
+            elif (nodetype == 'emitter') and (label[0] != '#'):
                     numKeys = self.findEnd(asciiLines[i+1:])
                     self.rawascii.extend(asciiLines[i:i+numKeys+1])
 
