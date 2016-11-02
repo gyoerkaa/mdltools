@@ -53,7 +53,7 @@ def materialExists(diffuse = (1.0, 1.0, 1.0),
         if isNull(imageName):
             # No texture
             eq = not material.active_texture
-            eq = eq and (material.alpha_factor == alpha)
+            eq = eq and (material.alpha == alpha)
         else:
             # Has to have a texture
             if material.active_texture:
