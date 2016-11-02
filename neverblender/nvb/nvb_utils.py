@@ -48,23 +48,25 @@ def materialExists(diffuse = (1.0, 1.0, 1.0),
                 isclose(a[1], b[1], rel_tol) and
                 isclose(a[2], b[2], rel_tol) )
 
-    for material in bpy.data.materials:
+    for mat in bpy.data.materials:
         eq = False
-        if isNull(imageName):
+        if not imageName:
             # No texture
-            eq = not material.active_texture
-            eq = eq and (material.alpha == alpha)
+            eq = not mat.active_texture
+            eq = eq and (mat.alpha == alpha)
         else:
             # Has to have a texture
-            if material.active_texture:
-                if material.active_texture.image:
-                    eq = (material.active_texture.image.name == imageName)
-                eq = eq and (material.texture_slots[material.active_texture_index].alpha_factor == alpha)
+            if mat.active_texture:
+                if mat.active_texture.type == 'IMAGE':
+                    if mat.active_texture.image.name:
+                        eq = (mat.active_texture.image.name == imageName)
+                active_texslot = mat.texture_slots[mat.active_texture_index]
+                eq = eq and (active_texslot.alpha_factor == alpha)
 
-        eq = eq and isclose_3f(material.diffuse_color, diffuse)
-        eq = eq and isclose_3f(material.specular_color, specular)
+        eq = eq and isclose_3f(mat.diffuse_color, diffuse)
+        eq = eq and isclose_3f(mat.specular_color, specular)
         if eq:
-            return material
+            return mat
 
     return None
 
