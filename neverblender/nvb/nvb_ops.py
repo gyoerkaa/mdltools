@@ -822,10 +822,10 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
 
 
 class NVB_OP_DummyGenerateName(bpy.types.Operator):
-    """Move an item in the event list."""
+    """Generate an appropriate name for the dummy."""
 
     bl_idname = 'nvb.dummy_generatename'
-    bl_label = 'Move an item in the event  list'
+    bl_label = 'Generate an appropriate name for the dummy'
 
     @classmethod
     def poll(self, context):
@@ -838,12 +838,12 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
         rootDummy = nvb_utils.findObjRootDummy(obj)
         suffix = nvb_def.Dummytype.getSuffix(obj, rootDummy.nvb.classification)
         if suffix:
-            newName = obj.name + suffix
+            newName = rootDummy.name + suffix
             if newName in bpy.data.objects:
                 self.report({'INFO'}, 'Failure: Name already Exists.')
                 return {'CANCELLED'}
             else:
-                obj.name = newName
+                rootDummy.name = newName
                 return {'FINISHED'}
         self.report({'INFO'}, 'Failure: No suffix found.')
         return {'CANCELLED'}
