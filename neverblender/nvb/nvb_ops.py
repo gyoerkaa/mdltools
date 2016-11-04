@@ -842,6 +842,9 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
             if newName in bpy.data.objects:
                 self.report({'INFO'}, 'Failure: Name already Exists.')
                 return {'CANCELLED'}
+            elif obj.name.endswith(suffix):
+                self.report({'INFO'}, 'Failure: Suffix already Exists.')
+                return {'CANCELLED'}
             else:
                 rootDummy.name = newName
                 return {'FINISHED'}
