@@ -223,13 +223,13 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 items=[(nvb_def.Walkmeshtype.PWK,
                         'Placeable', 'Placeable walkmesh', 0),
                        (nvb_def.Walkmeshtype.DWKOPEN1,
-                        'Door: Open 1', 'desc', 1),
+                        'Door: Open 1', 'Door walkmesh for open state 1', 1),
                        (nvb_def.Walkmeshtype.DWKOPEN2,
-                        'Door: Open 2', 'desc', 2),
+                        'Door: Open 2', 'Door walkmesh for open state 2', 2),
                        (nvb_def.Walkmeshtype.DWKCLOSED,
-                        'Door: Closed', 'desc', 2),
+                        'Door: Closed', 'Door walkmesh for closed state', 3),
                        (nvb_def.Walkmeshtype.AABB,
-                        'Tileset', 'Walkmesh for tilesets', 3)
+                        'Tileset', 'Walkmesh for tilesets', 4)
                        ],
                 default=nvb_def.Walkmeshtype.PWK)
     smoothgroup = bpy.props.EnumProperty(
@@ -279,7 +279,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default=False)
     transparencyhint = bpy.props.IntProperty(
                 name='Transparency Hint',
-                description='Order of tranparency evaluation',
+                description='Order of transparency evaluation',
                 default=0,
                 min=0, max=32)
     selfillumcolor = bpy.props.FloatVectorProperty(
