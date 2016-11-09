@@ -129,7 +129,8 @@ class Mdl():
         if options.importWalkmesh:
             if (geomStart < 0):
                 # Something is wrong
-                raise nvb_def.MalformedMdlFile('Unable to find geometry')
+                print("Neverblender: WARNING: Unable to find walkmesh data")
+                return
             self.loadAsciiWalkmeshGeometry(asciiBlock[geomStart:])
 
     def loadAsciiGeometry(self, asciiBlock):

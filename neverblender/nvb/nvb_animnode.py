@@ -110,7 +110,7 @@ class Node():
                 elif label == 'faces':
                     pass  # Not needed (?)
                 elif label == 'sampleperiod':
-                    self.sampleperiod.append(l_float(line[1]))
+                    self.sampleperiod = l_float(line[1])
                 elif label == 'clipu':
                     self.clipu = l_float(line[1])
                 elif label == 'clipv':
