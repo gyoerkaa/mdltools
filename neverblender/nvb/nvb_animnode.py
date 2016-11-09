@@ -38,13 +38,17 @@ class Node():
         self.rawascii = []
 
         # Animesh
-        self.sampleperiod = None
+        self.sampleperiod = 0.0
         self.animtverts = []
         self.animverts = []
-        self.clip = [0.0, 0.0, 0.0, 0.0]
+        self.clipu = 0.0
+        self.clipv = 0.0
+        self.clipw = 0.0
+        self.cliph = 0.0
 
         self.objdata = False
         self.matdata = False
+        self.uvdata = False
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -106,23 +110,22 @@ class Node():
                 elif label == 'faces':
                     pass  # Not needed (?)
                 elif label == 'sampleperiod':
-                    self.sampleperiod = l_float(line[1])
+                    self.sampleperiod.append(l_float(line[1]))
                 elif label == 'clipu':
-                    self.clip[0] = l_float(line[1])
+                    self.clipu = l_float(line[1])
                 elif label == 'clipv':
-                    self.clip[1] = l_float(line[1])
+                    self.clipv = l_float(line[1])
                 elif label == 'clipw':
-                    self.clip[2] = l_float(line[1])
+                    self.clipw = l_float(line[1])
                 elif label == 'cliph':
-                    self.clip[3] = l_float(line[1])
+                    self.cliph = l_float(line[1])
                 elif label == 'animverts':
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
-                    self.matdata = True
                 elif label == 'animtverts':
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
-                    self.matdata = True
+                    self.uvdata = True
                 # Keyed animations
                 elif label == 'positionkey':
                     numKeys = self.findEnd(asciiLines[i+1:])
@@ -392,12 +395,48 @@ class Node():
                     txt.write('\n    ' + ' '.join(line))
             txt.write('\n  endnode')
 
+    def createDataUV(self, obj, uvlayer, anim, options):
+        """TODO:Doc."""
+        # Sanity checks
+        if not obj.data:
+            return
+        numUVs = len(uvlayer.data)
+        if (len(self.animtverts) % numUVs) != 0:
+            return
+        # Get animation data, create if needed.
+        animData = obj.data.animation_data
+        if not animData:
+            animData = obj.data.animation_data_create()
+        # Get action, create if needed.
+        action = animData.action
+        if not action:
+            action = bpy.data.actions.new(name=obj.name)
+            action.use_fake_user = True
+            animData.action = action
+        # Insert keyframes
+        frameStart = anim.frameStart
+        kfOptions = {'FAST'}
+        dp_prefix = 'uv_layers["' + uvlayer.name + '"].data['
+        for idx, animtvert in enumerate(self.animtverts):
+            dp = dp_prefix + str(idx) + '].uv'
+            setIdx = idx // numUVs
+            frame = frameStart + \
+                (setIdx * nvb_utils.nwtime2frame(self.sampleperiod))
+            curveU = Node.getCurve(action, dp, 0)
+            curveV = Node.getCurve(action, dp, 1)
+            curveU.keyframe_points.insert(frame, animtvert[0], kfOptions)
+            curveV.keyframe_points.insert(frame, animtvert[1], kfOptions)
+        pass
+
     def create(self, obj, anim, options):
         """TODO:Doc."""
         if self.objdata:
             self.createDataObject(obj, anim)
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
+        if self.uvdata and obj.data and obj.data.uv_layers.active:
+            pass
+            # self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmitter(obj, anim, options)
