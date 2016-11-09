@@ -894,15 +894,15 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             items=(('NON', 'None',
                     'Don\'t create materials or import textures', 0),
                    ('SIN', 'Single',
-                    'Create only one material per texture, \
-                     shared between objects', 1),
+                    'Create only one material per texture \
+                     (shared between objects)', 1),
                    ('MUL', 'Multiple',
-                    'Create a seperate material for each object', 2)),
+                    'Always create a seperate material for each object', 2)),
             default='SIN')
     textureSearch = bpy.props.BoolProperty(
             name='Image search',
             description='Search for images in subdirectories'
-                        '(Warning, may be slow)',
+                        ' (Warning, may be slow)',
             default=False)
     # Hidden options, only used for batch minimap creation
     minimapMode = bpy.props.BoolProperty(
