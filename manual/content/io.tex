@@ -1,5 +1,7 @@
 \section{Import \& Export}
 
+\subsection{Import}
+
 \begin{figure}
   \centering
   \includegraphics[trim=0 0 0 0, clip, width=\textwidth]{import01}
@@ -8,10 +10,21 @@
 \end{figure}
 
 \begin{description}
-    \item[Import Geometry] Either import the geometry, animations or both. Note that the animations may not work, if the animated objects are not present. However you may add the animations to other objects manually.
+    \item[Import Geometry] Import the geometry from the mdl file
     \item[Import Walkmesh] Attempts to import a walkmesh. If the imported model is a placeable, the script will look for a {\textit{*.pwk}} file in the same folder. If the model is a door, it will look for a {\textit{*.dwk}} file. If the model is a tile, it will read the walkmesh directly from the {\textit{*.mdl}} file.
-    \item[Import Smooth Groups] Import shading groups for faces. Shading groups are not supported by Blender, i.e. it will have no effect on the displayed model in blender. An imported shading group is converted to a vertex group, containing all vertices of the faces belonging the shading group.
-    \item[Import Animations] Enable this to search for textures in subdirectories. (This may be slow)
-    \item[Materials] When this is enabled, the import script will create only one texture for every image found in the model file. When disabled, every node will get it's own texture, even if it's image has already been loaded to a different texture previously.
-    \item[Image Search] When this is enabled, the import script will create only one texture for every image found in the model file. When disabled, every node will get it's own texture, even if it's image has already been loaded to a different texture previously.
+    \item[Import Smooth Groups] Import smooth groups as sharp edges.
+    \item[Import Animations] Import animation from the mdl file. Animations are added to the imported geometry. If no geometry has benn imported, the script will try to add animations the already existing objects in blender.
+    \item[Materials] None = No materials or textures will be imported. Single = The script will attempt to merge similar materials to reduce clutter. Multiple = Each object will get it's own material, even if this results in multiple identical materials.
+    \item[Image Search] Search for textures in subdirectories. This might take a significant amount of time depending on the number of files.
+\end{description}
+
+
+\subsection{Export}
+
+\subsubsection*{Export Options}
+\begin{description}
+    \item[Export Animations] ported regardless of this setting.
+    \item[Export Walkmesh] Attempts to export a walkmesh. The type of exported walkmeshes depend on the objects present. If no objects for walkmeshes are found, the model itself will still be exported as {\textit{*.mdl }} file.
+    \item[Export Smooth Groups] Convert sharp edges to smooth groups.
+    \item[Apply Modifiers] Apply Modifiers before exporting.
 \end{description}
