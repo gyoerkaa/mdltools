@@ -36,7 +36,8 @@ nosetests.xml
 .pydevproject
 
 # Latex
-.aux
-.log
-.out
-.toc
+*.aux
+*.log
+*.out
+*.toc
+*.pdf
