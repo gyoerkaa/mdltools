@@ -194,7 +194,7 @@ class Mdl():
             else:
                 self.loadAsciiGeometry(asciiBlock[geomStart:])
         # Import Animations
-        if options.importAnim and (animStart > 0):
+        if options.importAnimations and (animStart > 0):
             self.loadAsciiAnimations(asciiBlock[animStart:])
 
     @staticmethod
@@ -375,7 +375,7 @@ class Mdl():
             self.createObjects(options)
             self.createObjectLinks(options)
 
-            if options.importAnim:
+            if options.importAnimations:
                 self.createAnimations(options)
         else:
             # Import animations only, there is no objectDB in this case

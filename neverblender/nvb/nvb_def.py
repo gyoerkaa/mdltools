@@ -317,7 +317,7 @@ class ImportOptions():
     importGeometry = True
     importWalkmesh = True
     importSmoothGroups = True
-    importAnim = 'STD'
+    importAnimations = True
     importSupermodel = False
     # Options for textures and materials
     materialMode = 'SIN'

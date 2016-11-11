@@ -13,7 +13,7 @@ def loadMdl(operator, context,
             importGeometry=True,
             importWalkmesh=True,
             importSmoothGroups=True,
-            importAnim='STD',
+            importAnimations=True,
             importSupermodel=False,
             materialMode='SIN',
             textureSearch=False,
@@ -23,7 +23,7 @@ def loadMdl(operator, context,
     options = nvb_def.ImportOptions()
     options.importGeometry = importGeometry
     options.importSmoothGroups = importSmoothGroups
-    options.importAnim = importAnim
+    options.importAnimations = importAnimations
     options.importSupermodel = importSupermodel
 
     options.materialMode = materialMode

@@ -877,13 +877,10 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             name='Import smooth groups',
             description='Import smooth groups as sharp edges',
             default=True)
-    importAnim = bpy.props.EnumProperty(
-            name='Animations',
-            items=(('NON', 'None', 'Don\'t import animations', 0),
-                   ('STD', 'Standard', 'Import animations', 1)),
-            # ('ADV', 'Advanced', 'Single action for each animation
-            # and object', 2)),
-            default='STD')
+    importAnimations = bpy.props.BoolProperty(
+            name='Import Animations',
+            description='Import animations',
+            default=True)
     importSupermodel = bpy.props.BoolProperty(
             name='Import supermodel',
             description='Import animations from supermodel',
