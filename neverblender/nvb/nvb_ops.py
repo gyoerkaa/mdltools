@@ -874,7 +874,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description='Attempt to load placeable and door walkmeshes',
             default=True)
     importSmoothGroups = bpy.props.BoolProperty(
-            name='Import smooth groups',
+            name='Import Smooth Groups',
             description='Import smooth groups as sharp edges',
             default=True)
     importAnimations = bpy.props.BoolProperty(
@@ -882,7 +882,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description='Import animations',
             default=True)
     importSupermodel = bpy.props.BoolProperty(
-            name='Import supermodel',
+            name='Import Supermodel',
             description='Import animations from supermodel',
             default=False,
             options={'HIDDEN'})
@@ -897,7 +897,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                     'Always create a seperate material for each object', 2)),
             default='SIN')
     textureSearch = bpy.props.BoolProperty(
-            name='Image search',
+            name='Image Search',
             description='Search for images in subdirectories'
                         ' (Warning, may be slow)',
             default=False)
@@ -932,11 +932,11 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default='*.mdl',
             options={'HIDDEN'})
     exportAnimations = bpy.props.BoolProperty(
-            name='Export animations',
+            name='Export Animations',
             description='Export animations',
             default=True)
     exportWalkmesh = bpy.props.BoolProperty(
-            name='Export a walkmesh',
+            name='Export Walkmesh',
             description='Export a walkmesh',
             default=True)
     exportSmoothGroups = bpy.props.BoolProperty(
