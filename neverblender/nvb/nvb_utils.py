@@ -170,9 +170,9 @@ def generateWalkmeshName(obj, rootDummy):
     classifcation = rootDummy.nvb.classification
     suffix = ''
     if obj.type == 'EMTPY':
-        suffix = nvb_def.Dummytype.getSuffix(obj, classifcation)
+        suffix = nvb_def.Dummytype.generateSuffix(obj, classifcation)
     elif obj.type == 'MESH':
-        suffix = nvb_def.Walkmeshtype.getSuffix(obj, classifcation)
+        suffix = nvb_def.Walkmeshtype.generateSuffix(obj, classifcation)
     else:
         return obj.name
     # This node already has a valid suffix/name

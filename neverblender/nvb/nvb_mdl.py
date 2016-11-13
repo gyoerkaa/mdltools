@@ -120,7 +120,7 @@ class Mdl():
             node.parent = '!'  # Always parent to rootdummy
             if node.nodetype == nvb_def.Nodetype.TRIMESH:
                 node.meshtype = nvb_def.Meshtype.WALKMESH
-                node.walkmeshtype = nvb_def.Walkmeshtype.get(node.name)
+                node.walkmeshtype = nvb_def.Walkmeshtype.getType(node.name)
             self.nodes.append(node)
 
     def loadAsciiWalkmesh(self, asciiBlock, options):

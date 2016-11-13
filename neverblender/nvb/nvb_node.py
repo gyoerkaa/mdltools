@@ -233,7 +233,7 @@ class Dummy(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.emptytype = self.emptytype
-        obj.nvb.dummytype = nvb_def.Dummytype.get(self.name)
+        obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
 
 
 class Patch(Node):

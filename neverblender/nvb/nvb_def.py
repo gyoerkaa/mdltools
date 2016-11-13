@@ -108,7 +108,7 @@ class Dummytype():
     WALKMESH = {USE1, USE2,
                 OPEN1_01, OPEN1_02, OPEN2_01, OPEN2_01, CLOSED_01, CLOSED_02}
 
-    suffix_list = [('dwk_use01', USE1),
+    suffix2type = [('dwk_use01', USE1),
                    ('pwk_use01', USE1),
                    ('dwk_use02', USE2),
                    ('pwk_use02', USE2),
@@ -127,43 +127,37 @@ class Dummytype():
                    ('closed_01', CLOSED_01),
                    ('closed_02', CLOSED_02)]
 
-    suffix_pwk = {DEFAULT:  '',
-                  HAND:     '_hand',
-                  HEAD:     '_head',
-                  HEAD_HIT: '_head_hit',
-                  IMPACT:   '_impact',
-                  GROUND:   '_ground',
-                  USE1:     '_pwk_use01',
-                  USE2:     '_pwk_use02',
-                  OPEN1_01:  '_dp_open1_01',
-                  OPEN1_02:  '_dp_open1_02',
-                  OPEN2_01:  '_dp_open2_01',
-                  OPEN2_02:  '_dp_open2_02',
-                  CLOSED_01: '_dp_closed_01',
-                  CLOSED_02: '_dp_closed_02'}
+    pwktype2suffix = {DEFAULT:  '',
+                      HAND:     '_hand',
+                      HEAD:     '_head',
+                      HEAD_HIT: '_head_hit',
+                      IMPACT:   '_impact',
+                      GROUND:   '_ground',
+                      USE1:     '_pwk_use01',
+                      USE2:     '_pwk_use02'}
 
-    suffix_dwk = {DEFAULT:   '',
-                  HAND:      '_hand',
-                  HEAD:      '_head',
-                  HEAD_HIT:  '_hhit',
-                  IMPACT:    '_impc',
-                  GROUND:    '_grnd',
-                  USE1:      '_dwk_use01',
-                  USE2:      '_dwk_use02',
-                  OPEN1_01:  '_dp_open1_01',
-                  OPEN1_02:  '_dp_open1_02',
-                  OPEN2_01:  '_dp_open2_01',
-                  OPEN2_02:  '_dp_open2_02',
-                  CLOSED_01: '_dp_closed_01',
-                  CLOSED_02: '_dp_closed_02'}
+    dwktype2suffix = {DEFAULT:   '',
+                      HAND:      '_hand',
+                      HEAD:      '_head',
+                      HEAD_HIT:  '_hhit',
+                      IMPACT:    '_impc',
+                      GROUND:    '_grnd',
+                      USE1:      '_dwk_use01',
+                      USE2:      '_dwk_use02',
+                      OPEN1_01:  '_dp_open1_01',
+                      OPEN1_02:  '_dp_open1_02',
+                      OPEN2_01:  '_dp_open2_01',
+                      OPEN2_02:  '_dp_open2_02',
+                      CLOSED_01: '_dp_closed_01',
+                      CLOSED_02: '_dp_closed_02'}
 
     @classmethod
-    def getSuffix(cls, obj, classification):
+    def generateSuffix(cls, obj, classification):
         """TODO: Doc."""
         suffix = ''
         if obj.type == 'EMPTY' and obj.nvb.emptytype == Emptytype.DUMMY:
             if classification == Classification.DOOR:
-                if obj.nvb.dummytype in cls.suffix_dwk:
+                if obj.nvb.dummytype in cls.dwktype2suffix:
                     suffix = cls.suffix_dwk[obj.nvb.dummytype]
                 else:
                     return ''
@@ -171,7 +165,7 @@ class Dummytype():
                 pass  # No changes for tiles
             else:
                 # Everything else counts as placeable
-                if obj.nvb.dummytype in cls.suffix_pwk:
+                if obj.nvb.dummytype in cls.pwktype2suffix:
                     suffix = cls.suffix_pwk[obj.nvb.dummytype]
                 else:
                     return ''
@@ -180,6 +174,23 @@ class Dummytype():
             return ''
         else:
             return suffix
+
+    @classmethod
+    def getSuffix(cls, obj):
+        """TODO: Doc."""
+        objName = obj.name
+        for suffix in cls.suffix2type:
+            if objName.endswith(suffix[0]):
+                return suffix[1]
+        return ''
+
+    @classmethod
+    def getType(cls, nodeName):
+        """TODO: Doc."""
+        for suffix in cls.suffix2type:
+            if nodeName.endswith(suffix[0]):
+                return suffix[1]
+        return cls.DEFAULT
 
     @classmethod
     def get(cls, nodeName):
@@ -245,7 +256,7 @@ class Walkmeshtype():
                   (DWKCLOSED, '_wg_closed')]
 
     @classmethod
-    def getSuffix(cls, obj, classification):
+    def generateSuffix(cls, obj, classification):
         """TODO: Doc."""
         suffix = ''
         if obj.type == 'MESH' and obj.nvb.meshtype == Meshtype.WALKMESH:
@@ -263,7 +274,7 @@ class Walkmeshtype():
             return suffix
 
     @classmethod
-    def get(cls, nodeName):
+    def getType(cls, nodeName):
         """TODO: Doc."""
         for suffix in cls.suffix_list:
             if nodeName.endswith(suffix[0]):
