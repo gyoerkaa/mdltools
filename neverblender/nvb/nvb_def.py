@@ -134,7 +134,13 @@ class Dummytype():
                   IMPACT:   '_impact',
                   GROUND:   '_ground',
                   USE1:     '_pwk_use01',
-                  USE2:     '_pwk_use02'}
+                  USE2:     '_pwk_use02',
+                  OPEN1_01:  '_dp_open1_01',
+                  OPEN1_02:  '_dp_open1_02',
+                  OPEN2_01:  '_dp_open2_01',
+                  OPEN2_02:  '_dp_open2_02',
+                  CLOSED_01: '_dp_closed_01',
+                  CLOSED_02: '_dp_closed_02'}
 
     suffix_dwk = {DEFAULT:   '',
                   HAND:      '_hand',
@@ -157,12 +163,18 @@ class Dummytype():
         suffix = ''
         if obj.type == 'EMPTY' and obj.nvb.emptytype == Emptytype.DUMMY:
             if classification == Classification.DOOR:
-                suffix = cls.suffix_dwk[obj.nvb.dummytype]
+                if obj.nvb.dummytype in cls.suffix_dwk:
+                    suffix = cls.suffix_dwk[obj.nvb.dummytype]
+                else:
+                    return ''
             elif classification == Classification.TILE:
                 pass  # No changes for tiles
             else:
                 # Everything else counts as placeable
-                suffix = cls.suffix_pwk[obj.nvb.dummytype]
+                if obj.nvb.dummytype in cls.suffix_pwk:
+                    suffix = cls.suffix_pwk[obj.nvb.dummytype]
+                else:
+                    return ''
         # Maybe there already is a suffix?
         if obj.name.endswith(suffix):
             return ''

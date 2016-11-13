@@ -839,13 +839,15 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
         if not rootDummy:
             self.report({'INFO'}, 'Failure: No rootdummy.')
             return {'CANCELLED'}
-        suffix = nvb_def.Dummytype.getSuffix(obj, rootDummy.nvb.classification)
-        if suffix:
-            newName = rootDummy.name + suffix
+        # currentSuffix = nvb_def.Dummytype.get(obj.name)
+        newSuffix = nvb_def.Dummytype.getSuffix(obj,
+                                                rootDummy.nvb.classification)
+        if newSuffix:
+            newName = rootDummy.name + newSuffix
             if newName in bpy.data.objects:
                 self.report({'INFO'}, 'Failure: Name already exists.')
                 return {'CANCELLED'}
-            elif obj.name.endswith(suffix):
+            elif obj.name.endswith(newSuffix):
                 self.report({'INFO'}, 'Failure: Suffix already exists.')
                 return {'CANCELLED'}
             else:
