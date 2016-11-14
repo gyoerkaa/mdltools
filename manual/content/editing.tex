@@ -11,25 +11,27 @@ example indicate locations for spells effects.
 \subsubsection{Dummy}
 
 \begin{description}
-    \item[Ground]
-    \item[Impact]
-    \item[Head Hit]
-    \item[Head]
-    \item[Hand]
+    \item[Ground] TODO
+    \item[Impact] TODO
+    \item[Head Hit] TODO
+    \item[Head] TODO
+    \item[Hand] TODO
     \item[Use 1] TODO
     \item[Use 2] TODO
     \item[None] TODO
 \end{description}
 At the very least placeables should have an Impact, Use 1 and Use 2 dummys.
+While they are not strictly required, they will make sure that spells
+work correctly and make them usable by characters.
 
 \subsubsection{Rootdummy}
 All objects belonging to a mdl have to be parented to a single Empty, which
 has no parent itself. This Empty must have the same name as the mdl file
-(minus the fil extension).
+(minus the file extension).
 
 It holds additional information about the model.
 \begin{description}
-    \item[Classification]
+    \item[Classification] TODO
     \item[Supermodel] References another mdl file. All Animations will be added to this mdl.
     \item[Animationscale] Unknown
 \end{description}
@@ -39,7 +41,7 @@ It is also used to store the beginning and end frames of specific animations
 \subsubsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
 reference other mdl files. Reference nodes can be found in some spells and
-most of the time reference "fx_ref".
+most of the time references fx\_ref.
 
 \subsubsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some spells, but
@@ -76,7 +78,15 @@ attributes.
 \subsubsection{Skinmeshes}
 
 \subsubsection{Walkmeshes}
-
+\begin{description}
+    \item[Tileset] Walkmesh for tiles. Use Materials to denote surface type of
+                   tile (stone, grass, ...). This will also affect footstep
+                   sound and grass growth.
+    \item[Door: Closed] The walkmesh for the closed state of the door
+    \item[Door: Open 1] The Walkmesh for the first open state of the door
+    \item[Door: Open 2] The Walkmesh for the second open state of the door
+    \item[Placeable]
+\end{description}
 \subsection{Emitters}
 
 \subsection{Lamps}
