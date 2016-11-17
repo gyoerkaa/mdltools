@@ -11,14 +11,14 @@ example indicate locations for spells effects.
 \subsubsection{Dummy}
 
 \begin{description}
-    \item[Ground] TODO
-    \item[Impact] TODO
-    \item[Head Hit] TODO
-    \item[Head] TODO
-    \item[Hand] TODO
-    \item[Use 1] TODO
-    \item[Use 2] TODO
-    \item[None] TODO
+    \item[Ground] Indicates the ground level for spells/ visual effects
+    \item[Impact] Impact target for most spells/ visual effects.
+    \item[Head Hit] Spells/ Visual effects
+    \item[Head] Spells/ Visual effects
+    \item[Hand] Point of origin for (some) spells. If the placeable is using a spell/ visual effect this will be the point of origin most of the time.
+    \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
+    \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
+    \item[None] Simple dummy without any special purpose.
 \end{description}
 At the very least placeables should have an Impact, Use 1 and Use 2 dummys.
 While they are not strictly required, they will make sure that spells
@@ -32,7 +32,7 @@ has no parent itself. This Empty must have the same name as the mdl file
 It holds additional information about the model.
 \begin{description}
     \item[Classification] TODO
-    \item[Supermodel] References another mdl file. All Animations will be added to this mdl.
+    \item[Supermodel] References another mdl file. All animations will be available in this mdl.
     \item[Animationscale] Unknown
 \end{description}
 It is also used to store the beginning and end frames of specific animations
@@ -53,24 +53,26 @@ attributes.
 \subsubsection{Trimeshes}
 
 \begin{description}
-    \item[Wirecolor]
-    \item[Self-illumination color]
-    \item[Ambient Color]
+    \item[Wirecolor] Unused in-game
+    \item[Self-illumination color] The object glows without actually casting any light.
+    \item[Ambient Color] OpenGl material property.
     \item[Shininess]
-    \item[Tilefade]
-    \item[Render]
-    \item[Shadow]
+    \item[Tilefade] Only used it tile-models. Controls the fading of the Tile.
+    \item[Render] Controls wether this objects should be rendered in-game. It can still cast a shadow without being rendered.
+    \item[Shadow] Controls wether this objects should cast a shadow in-game.
     \item[Beaming]
     \item[Inherit Color]
-    \item[Rotate Texture]
-    \item[Transparency Hint]
-    \item[Smoothgroup]
+    \item[Rotate Texture] Used in tile-models.
+    \item[Transparency Hint] Used to give the engine an indicator in which order transparency should be calculated. Only relevant if the texutre has transparency.
+    \item[Smoothgroup] OpelnGl smoothing.
 \end{description}
 
 \subsubsection{Danglymeshes}
 Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
 Wind, character movement and Spells. A danglymesh has a set of weights which
 determine how far a vertex can be displaced from its original position.
+
+In addition to the properties of a trimesh it has the following properties:
 \begin{description}
     \item[Dangle group] The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
     \item[Period]
