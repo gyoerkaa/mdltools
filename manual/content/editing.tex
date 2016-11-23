@@ -5,7 +5,7 @@ converted to meshes before attempting to export them.
 
 \subsection{Empties}
 Empties appear in mdl files as Dummies. Like in blender they are used to group
-objects together. In addition there are special types of Dummies which for
+objects. In addition there are special types of Dummies which for
 example indicate locations for spells effects.
 
 \subsubsection{Dummy}
@@ -25,11 +25,14 @@ While they are not strictly required, they will make sure that spells
 work correctly and make them usable by characters.
 
 \subsubsection{Rootdummy}
-All objects belonging to a mdl have to be parented to a single Empty, which
-has no parent itself. This Empty must have the same name as the mdl file
-(minus the file extension).
+This is a Dummy without a parent. An Empty with the type Dummy and without
+a parent will autmatically be considered a Rootummy and the Aurora Property
+panel will change accordingly.
 
-It holds additional information about the model.
+All objects belonging to a mdl must be parented to a Rootdummy. It must have
+the same name as the mdl file (minus the file extension).
+
+Rootdummys hold additional information about the model.
 \begin{description}
     \item[Classification] TODO
     \item[Supermodel] References another mdl file. All animations will be available in this mdl.
