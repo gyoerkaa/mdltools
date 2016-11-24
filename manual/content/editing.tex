@@ -9,7 +9,10 @@ objects. In addition there are special types of Dummies which for
 example indicate locations for spells effects.
 
 \subsubsection{Dummy}
-
+Simple Dummy with a parent are either used to group objects or indicate a
+special location to the engine. If a Dummy doesn't have a parent it is
+considered to be a Rootdummy instead of a simple Dummy and the available
+options will change.
 \begin{description}
     \item[Ground] Indicates the ground level for spells/ visual effects
     \item[Impact] Impact target for most spells/ visual effects.
@@ -72,7 +75,7 @@ attributes.
 
 \subsubsection{Danglymeshes}
 Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
-Wind, character movement and Spells. A danglymesh has a set of weights which
+wind, character movement and spells. A danglymesh has a set of weights which
 determine how far a vertex can be displaced from its original position.
 
 In addition to the properties of a trimesh it has the following properties:
@@ -86,9 +89,12 @@ In addition to the properties of a trimesh it has the following properties:
 \subsubsection{Skinmeshes}
 
 \subsubsection{Animeshes}
-Animmeshes are Trimeshes with animated UV textures.
+Animmeshes are Trimeshes with animated UV textures. At the moment Animeshes
+will be imported as Trimeshes and thus lose their animations.
 
 \subsubsection{Walkmeshes}
+Walkmeshes indicate where a character can walk. The type depends on the type
+of mdl you want to create.
 \begin{description}
     \item[Tileset] Walkmesh for tiles. Use Materials to denote surface type of
                    tile (stone, grass, ...). This will also affect footstep
@@ -100,5 +106,6 @@ Animmeshes are Trimeshes with animated UV textures.
 \end{description}
 
 \subsection{Emitters}
+Support for Emitters is rudimentary at best.
 
 \subsection{Lamps}
