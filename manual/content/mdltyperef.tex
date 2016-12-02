@@ -1,0 +1,37 @@
+\section{Mdl types}
+
+\subsection{Creatures}
+
+\subsection{Doors}
+\begin{description}
+    \item[closed] Closed state of the door.
+    \item[open1] First open state of the door. Doors in NWN can open/swing to both sides, depending from which side a player is opening it. Open 1 and Open 2 can be the same.
+    \item[opening1] Transition from closed to open1
+    \item[closing1] Transition from open1 to closed.
+    \item[open2] Second open state of the door. Doors in NWN can open/swing to both sides, depending from which side a player is opening it. Open 1 and Open 2 can be the same.
+    \item[opening2] Transition from closed to open2.
+    \item[closing2] Transition from open2 to closed.
+    \item[trans] Unknown
+    \item[die] Animation when the placeable is destroyed. Most placeables omit this alltogether or sink into the ground.
+    \item[dead] Dead state. Most placeables omit this alltogether or have a single positionkey below ground level.
+\end{description}
+
+\subsection{Effects}
+
+\subsection{Placeables}
+\begin{description}
+    \item[default] Default state. It is recommended to add this if there are other animations present. If this is omitted and other animations are present a placeable can't be set to static in the toolset (else the game will crash)
+    \item[on]
+    \item[on2off] Transition from on to off state.
+    \item[off]
+    \item[off2on] Transition from off to on state.
+    \item[close] Closed state.
+    \item[close2open] Transition from closed to open state.
+    \item[open] Open state.
+    \item[open2close] Transition from open to closed state.
+    \item[damage] Animation when the placeable is damaged. Most placeables omit this animation or willshake for 0.1 seconds.
+    \item[die] Animation when the placeable is destroyed. Most placeables omit this alltogether or sink into the ground.
+    \item[dead] Dead state. Most placeables omit this alltogether or have a single positionkey below ground level.
+\end{description}
+
+\subsection{Tiles}

@@ -28,13 +28,14 @@ While they are not strictly required, they will make sure that spells
 work correctly and make them usable by characters.
 
 \subsubsection{Rootdummy}
-This is a Dummy without a parent. An Empty with the type Dummy and without
-a parent will autmatically be considered a Rootummy and the Aurora Property
-panel will change accordingly.
+Each mdl requires at least one Empty: The Rootdummy. It is used to group all
+objects belonging to a mdl. All objects which are to be exported have to be
+be a descendant of the Rootdummy.
+All children of a Rootdummy are considered to be part of the same mdl. The
+Rootdummy must have the same name as the mdl file (minus the files extension).
 
-All children of a Rootdummy are consodered to be part of the same mdl. The
-Rootdummy must have the same name as the mdl file
-(minus the files extension).
+An Empty with the type Dummy and without a parent will autmatically be
+considered a Rootummy and the Aurora Property panel will change accordingly.
 
 Rootdummys hold additional information about the model.
 \begin{description}
