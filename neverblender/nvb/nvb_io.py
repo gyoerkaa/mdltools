@@ -16,7 +16,7 @@ def findRootDummy():
     # 2. Search 'Empty' objects in the current scene
     # 4. Search all objects
 
-    obj = bpy.context.object
+    obj = None
     # Selected object
     if nvb_utils.isRootDummy(obj, nvb_def.Dummytype.MDLROOT):
         return obj
@@ -92,7 +92,7 @@ def loadMdl(operator,
 
 def saveMdl(operator,
             context,
-            mdlFilepath='',
+            filepath='',
             exports={'ANIMATION', 'WALKMESH'},
             exportSmoothGroups=True,
             applyModifiers=True,
@@ -112,22 +112,49 @@ def saveMdl(operator,
         mdl = nvb_mdl.Mdl()
         asciiLines = []
         mdl.generateAscii(asciiLines, mdlRoot)
-        with open(os.fsencode(mdlFilepath), 'w') as f:
+        with open(os.fsencode(filepath), 'w') as f:
             f.write('\n'.join(asciiLines))
 
         if 'WALKMESH' in exports:
-            print('Neverblender: Exporting walkmesh.')
-            asciiLines = []
-            nvb_mdl.generateAsciiWalkmesh(asciiLines, mdlRoot)
+            if mdl.classification == nvb_def.Classification.TILE:
+                wkm     = nvb_mdl.Wok()
+                wkmRoot = mdlRoot
+                wkmType = 'wok'
+            else:
+                wkmRoot = None
 
-            wkmFileExt = '.pwk'
-            if mdlRoot.nvb.classification == nvb_def.classification.DOOR:
-                wkmFileExt = '.dwk'
-            elif mdlRoot.nvb.classification == nvb_def.classification.TILE:
-                wkmFileExt = '.wok'
+                # We need to look for a walkmesh rootdummy
+                wkmRootName = mdl.name + '_pwk'
+                if (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('pwk')
+                wkmRootName = mdl.name + '_PWK'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('pwk')
 
-            wkmFilepath = os.path.splitext(mdlFilepath)[0] + wkmFileExt
-            with open(os.fsencode(wkmFilepath), 'w') as f:
-                f.write('\n'.join(asciiLines))
+                wkmRootName = mdl.name + '_dwk'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('dwk')
+                wkmRootName = mdl.name + '_DWK'
+                if (not wkmRoot) and (wkmRootName in bpy.data.objects):
+                    wkmRoot = bpy.data.objects[wkmRootName]
+                    wkm     = nvb_mdl.Xwk('dwk')
+
+            if wkmRoot:
+                asciiLines = []
+                wkm.generateAscii(asciiLines, wkmRoot)
+
+                wkmFileExt = '.pwk'
+                if mdlRoot.nvb.classification == nvb_def.classification.DOOR:
+                    wkmFileExt = '.dwk'
+                elif mdlRoot.nvb.classification == nvb_def.classification.TILE:
+                    wkmFileExt = '.wok'
+
+                (wkmPath, wkmFilename) = os.path.split(filepath)
+                wkmFilepath = os.path.splitext(filepath)[0] + wkmFileExt
+                with open(os.fsencode(wkmFilepath), 'w') as f:
+                    f.write('\n'.join(asciiLines))
 
     return {'FINISHED'}
