@@ -1211,6 +1211,7 @@ class Light(Node):
         Node.loadAscii(self, asciiLines, nodeidx)
 
         flareTextureNamesStart = 0
+        numFlares = 0
         numVals = 0
 
         l_int = int
@@ -1252,7 +1253,7 @@ class Light(Node):
                 elif (label == 'flareradius'):
                     self.flareradius = l_float(line[1])
                 elif (label == 'texturenames'):
-                    # List of name follows, but we don't necessarily know how
+                    # List of names follows, but we don't necessarily know how
                     # many flares there are
                     # We 'll need to read them later. For now save the index
                     flareTextureNamesStart = idx+1
@@ -1262,18 +1263,21 @@ class Light(Node):
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
+                    numFlares = min(numVals, numFlares)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
+                    numFlares = min(numVals, numFlares)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
+                    numFlares = min(numVals, numFlares)
 
         # Load flare texture names:
         for i in range(numVals):
