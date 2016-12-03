@@ -70,7 +70,8 @@ def generateTree(aabb_tree, face_list, rlevel=0):
         change_axis = True
         for face in face_list:
             face_centroid = face[2]
-            change_axis = change_axis and (face_centroid[split_axis] == bb_avgcentroid[split_axis])
+            change_axis = change_axis and \
+                (face_centroid[split_axis] == bb_avgcentroid[split_axis])
 
         if (change_axis):
             split_axis += 1
@@ -91,7 +92,8 @@ def generateTree(aabb_tree, face_list, rlevel=0):
             for face in face_list:
                 face_centroid = face[2]
 
-                leftside = (face_centroid[split_axis] < bb_avgcentroid[split_axis])
+                leftside = \
+                    (face_centroid[split_axis] < bb_avgcentroid[split_axis])
                 if leftside:
                     face_list_left.append(face)
                 else:
