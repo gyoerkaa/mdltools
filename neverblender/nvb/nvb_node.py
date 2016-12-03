@@ -1263,24 +1263,24 @@ class Light(Node):
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.sizes)
-                    numFlares = min(numVals, numFlares)
                 elif (label == 'flarepositions'):
                     # List of floats
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.positions)
-                    numFlares = min(numVals, numFlares)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
                     numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
                                     if not l_isNumber(v[0])), -1)
                     nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
                                  self.flareList.colorshifts)
-                    numFlares = min(numVals, numFlares)
 
         # Load flare texture names:
-        for i in range(numVals):
+        numFlares = min(len(self.flareList.sizes),
+                        min(len(self.flareList.colorshifts),
+                            len(self.flareList.positions)))
+        for i in range(numFlares):
             texName = asciiLines[flareTextureNamesStart+i][0]
             self.flareList.textures.append(texName)
 
