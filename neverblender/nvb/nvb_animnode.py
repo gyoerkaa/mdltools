@@ -1,3 +1,5 @@
+"""TODO: DOC."""
+
 import mathutils
 import collections
 import bpy
@@ -8,54 +10,57 @@ from . import nvb_parse
 
 
 class Keys():
+    """TODO: DOC."""
+
     def __init__(self):
-        self.position       = []
-        self.orientation    = []
-        self.scale          = []
+        """TODO: DOC."""
+        self.position = []
+        self.orientation = []
+        self.scale = []
         self.selfillumcolor = []
-        self.alpha          = []
+        self.alpha = []
         # Lights/lamps
-        self.color  = []
+        self.color = []
         self.radius = []
         # Emitters ... incompatible. Import as text
         self.rawascii = ''
 
     def hasAlpha(self):
+        """TODO: DOC."""
         return len(self.alpha) > 0
 
 
 class Node():
-    def __init__(self, name = 'UNNAMED'):
-        self.name       = name
-        self.nodetype   = 'dummy'
+    """TODO: DOC."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
+        self.name = name
+        self.nodetype = 'dummy'
         self.parentName = nvb_def.null
 
         # Non-keyed
-        self.position    = None
+        self.position = None
         self.orientation = None
-        self.scale       = None
-        self.alpha       = None
+        self.scale = None
+        self.alpha = None
         # Keyed
         self.keys = Keys()
         # Animesh
         self.sampleperiod = None
         self.animtverts = []
-        self.animverts  = []
+        self.animverts = []
         self.clip = [0.0, 0.0, 0.0, 0.0]
 
         self.isEmpty = True
 
-
     def __bool__(self):
-        '''
-        Return false if the node is empty, i.e. it has no anims attached
-        '''
+        """Return false if the node is empty, i.e. it has no anims attached."""
         return not self.isEmpty
 
-
     def requiresUniqueData(self):
-        return (self.keys.hasAlpha() or self.alpha != None)
-
+        """TODO: DOC."""
+        return (self.keys.hasAlpha() or self.alpha is not None)
 
     def parseKeysIncompat(self, asciiBlock):
         '''
@@ -66,7 +71,6 @@ class Node():
             self.keys.rawascii = self.keys.rawascii + '\n' + ' '.join(line)
         self.isEmpty = False
 
-
     def findEnd(self, asciiBlock):
         '''
         We don't know when a list of keys of keys will end. We'll have to
@@ -75,10 +79,10 @@ class Node():
         l_isNumber = nvb_utils.isNumber
         return next((i for i, v in enumerate(asciiBlock) if not l_isNumber(v[0])), -1)
 
-
     def loadAscii(self, asciiBlock):
-        l_float    = float
-        l_int      = int
+        """TODO: DOC."""
+        l_float = float
+        l_int = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiBlock):
             try:
@@ -86,7 +90,7 @@ class Node():
             except IndexError:
                 # Probably empty line or whatever, skip it
                 continue
-            if   label == 'node':
+            if label == 'node':
                 self.nodeType = line[1].lower()
                 self.name = nvb_utils.getName(line[2])
             elif label == 'endnode':
@@ -102,14 +106,14 @@ class Node():
                 # position: 1 key, positionkey: >= 1 key (probably)
                 self.position = (l_float(line[1]),
                                  l_float(line[2]),
-                                 l_float(line[3]) )
+                                 l_float(line[3]))
                 self.isEmpty = False
             elif label == 'orientation':
                 # orientation: 1 key, orientationkey: >= 1 key (probably)
                 self.orientation = (l_float(line[1]),
                                     l_float(line[2]),
                                     l_float(line[3]),
-                                    l_float(line[4]) )
+                                    l_float(line[4]))
                 self.isEmpty = False
             elif label == 'scale':
                 # scale: 1 key, scalekey: >= 1 key (probably)
@@ -182,20 +186,21 @@ class Node():
                 self.isEmpty = False
 
             # Some unknown text.
-            # Probably keys for emitters = incompatible with blender. Import as text.
+            # Probably keys for emitters = incompatible with blender.
+            # Import as text.
             elif not l_isNumber(line[0]):
                 numKeys = self.findEnd(asciiBlock[idx+1:])
                 nvb_parse.txt(asciiBlock[idx:idx+numKeys+1], self.keys.rawascii)
                 self.isEmpty = False
 
-
-    def addAnimToMaterial(self, targetMaterial, animName = ''):
+    def addAnimToMaterial(self, targetMaterial, animName=''):
+        """TODO: DOC."""
         if not self.requiresUniqueData():
             return
 
-        #actionName           = animName + '.' + targetMaterial.name
-        actionName           = targetMaterial.name
-        action               = bpy.data.actions.new(name=actionName)
+        # actionName = animName + '.' + targetMaterial.name
+        actionName = targetMaterial.name
+        action = bpy.data.actions.new(name=actionName)
         action.use_fake_user = True
 
         # If there is a texture, use texture alpha for animations
@@ -203,7 +208,7 @@ class Node():
             # Material has a texture
             # data_path = material.texture_slots[x].alpha_factor
             tslotIdx = targetMaterial.active_texture_index
-            curve    = action.fcurves.new(data_path='texture_slots[' + str(tslotIdx) + '].alpha_factor')
+            curve = action.fcurves.new(data_path='texture_slots[' + str(tslotIdx) + '].alpha_factor')
         else:
             # No texture.
             # data_path = material.alpha
@@ -212,7 +217,7 @@ class Node():
         if self.keys.alpha:
             for key in self.keys.alpha:
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]), key[1])
-        elif self.alpha != None:
+        elif self.alpha is not None:
             curve.keyframe_points.insert(0, self.alpha)
 
         targetMaterial.animation_data_create()
@@ -223,9 +228,9 @@ class Node():
         '''
         Add the animations in this node to target object
         '''
-        #actionName           = animName + '.' + targetObject.name
-        actionName           = targetObject.name
-        action               = bpy.data.actions.new(name=actionName)
+        # actionName = animName + '.' + targetObject.name
+        actionName = targetObject.name
+        action = bpy.data.actions.new(name=actionName)
         action.use_fake_user = True
 
         if (self.keys.orientation):
@@ -236,13 +241,13 @@ class Node():
             prevEul = None
             for key in self.keys.orientation:
                 frame = nvb_utils.nwtime2frame(key[0])
-                eul   = nvb_utils.nwangle2euler(key[1:5])
+                eul = nvb_utils.nwangle2euler(key[1:5])
                 currEul = nvb_utils.eulerFilter(eul, prevEul)
                 prevEul = currEul
                 curveX.keyframe_points.insert(frame, currEul.x)
                 curveY.keyframe_points.insert(frame, currEul.y)
                 curveZ.keyframe_points.insert(frame, currEul.z)
-        elif self.orientation != None:
+        elif self.orientation is not None:
             curveX = action.fcurves.new(data_path='rotation_euler', index=0)
             curveY = action.fcurves.new(data_path='rotation_euler', index=1)
             curveZ = action.fcurves.new(data_path='rotation_euler', index=2)
@@ -261,7 +266,7 @@ class Node():
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[2])
                 curveZ.keyframe_points.insert(frame, key[3])
-        elif (self.position != None):
+        elif (self.position is not None):
             curveX = action.fcurves.new(data_path='location', index=0)
             curveY = action.fcurves.new(data_path='location', index=1)
             curveZ = action.fcurves.new(data_path='location', index=2)
@@ -279,7 +284,7 @@ class Node():
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[1])
                 curveZ.keyframe_points.insert(frame, key[1])
-        elif (self.scale != None):
+        elif (self.scale is not None):
             curveX = action.fcurves.new(data_path='scale', index=0)
             curveY = action.fcurves.new(data_path='scale', index=1)
             curveZ = action.fcurves.new(data_path='scale', index=2)
