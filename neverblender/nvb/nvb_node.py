@@ -1,3 +1,4 @@
+"""TODO: DOC."""
 import mathutils
 import bpy
 import bpy_extras.image_utils
@@ -10,55 +11,62 @@ from . import nvb_utils
 from . import nvb_aabb
 from . import nvb_parse
 
+
 class FaceList():
+    """TODO: DOC."""
+
     def __init__(self):
-        self.faces = [] # int 3-tuple, vertex indices
-        self.shdgr = [] # int, shading group for this face
-        self.uvIdx = [] # int 3-tuple, texture/uv vertex indices
-        self.matId = [] # int, material index
+        """TODO: DOC."""
+        self.faces = []  # int 3-tuple, vertex indices
+        self.shdgr = []  # int, shading group for this face
+        self.uvIdx = []  # int 3-tuple, texture/uv vertex indices
+        self.matId = []  # int, material index
 
 
 class FlareList():
+    """TODO: DOC."""
+
     def __init__(self):
-        self.textures    = []
-        self.sizes       = []
-        self.positions   = []
+        """TODO: DOC."""
+        self.textures = []
+        self.sizes = []
+        self.positions = []
         self.colorshifts = []
 
 
 class RootDummy():
-    """
-    Basic node from which every other is derived
-    """
-    def __init__(self, name = 'UNNAMED'):
+    """Basic node from which every other is derived."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         self.nodetype = 'undefined'
 
-        self.name        = name
-        self.parentName  = nvb_def.null
-        self.position    = (0.0, 0.0, 0.0)
+        self.name = name
+        self.parentName = nvb_def.null
+        self.position = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
-        self.scale       = 1.0
-        self.wirecolor   = (0.0, 0.0, 0.0)
+        self.scale = 1.0
+        self.wirecolor = (0.0, 0.0, 0.0)
 
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
-        self.objref  = ''
-
+        self.objref = ''
 
     def __eq__(self, other):
-        if isinstance(other, Base):
+        """TODO: DOC."""
+        if isinstance(other, self):
             return self.name == other.name
 
-
     def __ne__(self, other):
+        """TODO: DOC."""
         return not self.__eq__(self, other)
 
-
     def __str__(self):
+        """TODO: DOC."""
         return 'node ' + self.nodetype + ' ' + self.name
 
-
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -70,62 +78,62 @@ class RootDummy():
                 continue
             else:
                 if not l_isNumber(label):
-                    if   (label == 'node'):
+                    if (label == 'node'):
                         self.name = nvb_utils.getName(line[2])
-                    elif (label  == 'endnode'):
+                    elif (label == 'endnode'):
                         return
                     elif (label == 'parent'):
                         self.parentName = nvb_utils.getName(line[1])
                     elif (label == 'position'):
                         self.position = (l_float(line[1]),
                                          l_float(line[2]),
-                                         l_float(line[3]) )
+                                         l_float(line[3]))
                     elif (label == 'orientation'):
                         self.orientation = (l_float(line[1]),
                                             l_float(line[2]),
                                             l_float(line[3]),
-                                            l_float(line[4]) )
+                                            l_float(line[4]))
                     elif (label == 'scale'):
                         self.scale = l_float(line[1])
                     elif (label == 'wirecolor'):
                         self.wirecolor = (l_float(line[1]),
                                           l_float(line[2]),
-                                          l_float(line[3]) )
+                                          l_float(line[3]))
 
 
 class GeometryNode():
-    """
-    Basic node from which every other is derived
-    """
-    def __init__(self, name = 'UNNAMED'):
+    """TODO: DOC."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         self.nodetype = 'undefined'
 
-        self.name        = name
-        self.parentName  = nvb_def.null
-        self.position    = (0.0, 0.0, 0.0)
+        self.name = name
+        self.parentName = nvb_def.null
+        self.position = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
-        self.scale       = 1.0
-        self.wirecolor   = (0.0, 0.0, 0.0)
+        self.scale = 1.0
+        self.wirecolor = (0.0, 0.0, 0.0)
 
         # Name of the corresponding object in blender
         # (used to resolve naming conflicts)
-        self.objref   = ''
-
+        self.objref = ''
 
     def __eq__(self, other):
-        if isinstance(other, Base):
+        """TODO: DOC."""
+        if isinstance(other, self):
             return self.name == other.name
 
-
     def __ne__(self, other):
+        """TODO: DOC."""
         return not self.__eq__(self, other)
 
-
     def __str__(self):
+        """TODO: DOC."""
         return 'node ' + self.nodetype + ' ' + self.name
 
-
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -137,57 +145,56 @@ class GeometryNode():
                 continue
 
             if not l_isNumber(label):
-                if   (label == 'node'):
+                if (label == 'node'):
                     self.name = nvb_utils.getName(line[2])
-                elif (label  == 'endnode'):
+                elif (label == 'endnode'):
                     return
                 elif (label == 'parent'):
                     self.parentName = nvb_utils.getName(line[1])
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),
-                                     l_float(line[3]) )
+                                     l_float(line[3]))
                 elif (label == 'orientation'):
                     self.orientation = (l_float(line[1]),
                                         l_float(line[2]),
                                         l_float(line[3]),
-                                        l_float(line[4]) )
+                                        l_float(line[4]))
                 elif (label == 'scale'):
                     self.scale = l_float(line[1])
                 elif (label == 'wirecolor'):
                     self.wirecolor = (l_float(line[1]),
                                       l_float(line[2]),
-                                      l_float(line[3]) )
-
+                                      l_float(line[3]))
 
     def setObjectData(self, obj):
-        self.objref = obj.name # used to resolve naming conflicts
+        """TODO: DOC."""
+        self.objref = obj.name  # used to resolve naming conflicts
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
-        obj.scale         = (self.scale, self.scale, self.scale)
-        obj.location      = self.position
+        obj.scale = (self.scale, self.scale, self.scale)
+        obj.location = self.position
         obj.nvb.wirecolor = self.wirecolor
 
-
     def addToScene(self, scene):
+        """TODO: DOC."""
         obj = bpy.data.objects.new(self.name, None)
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj
 
-
     def getAdjustedMatrix(self, obj):
-
+        """TODO: DOC."""
         if obj.parent:
             parent_mw = obj.parent.matrix_world
         else:
-            parent_mw = matutils.matrix()
+            parent_mw = mathutils.matrix()
 
         p_mw_scale = parent_mw.to_scale()
 
-        #scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
-        #                            [0,p_mw_scale[1],0,0],
-        #                            [0,0,p_mw_scale[2],0],
-        #                            [0,0,0            ,1]])
+        # scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
+        #                             [0,p_mw_scale[1],0,0],
+        #                             [0,0,p_mw_scale[2],0],
+        #                             [0,0,0            ,1]])
 
         scaled = obj.matrix_local.copy()
         scaled[0][3] = scaled[0][3] * p_mw_scale[0]
@@ -195,8 +202,11 @@ class GeometryNode():
         scaled[2][3] = scaled[2][3] * p_mw_scale[2]
         return scaled
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -220,36 +230,43 @@ class GeometryNode():
         asciiLines.append(s)
         '''
         color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
-                                           str(round(color[1], 2)) + ' ' +
-                                           str(round(color[2], 2)) )
+        asciiLines.append('  wirecolor ' +
+                          str(round(color[0], 2)) + ' ' +
+                          str(round(color[1], 2)) + ' ' +
+                          str(round(color[2], 2)))
         scale = round(nvb_utils.getAuroraScale(obj), 3)
         if (scale != 1.0):
             asciiLines.append('  scale ' + str(scale))
 
-
-    def toAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    def toAscii(self, obj, asciiLines,
+                exportObjects=[],
+                classification=nvb_def.Classification.UNKNOWN,
+                simple=False):
+        """TODO: DOC."""
         asciiLines.append('node ' + self.nodetype + ' ' + obj.name)
-        self.addDataToAscii(obj, asciiLines, exportObjects, classification, simple)
+        self.addDataToAscii(obj, asciiLines,
+                            exportObjects,
+                            classification,
+                            simple)
         asciiLines.append('endnode')
 
 
 class Dummy(GeometryNode):
-    '''
+    """TODO: DOC."""
 
-    '''
-    def __init__(self, name = 'UNNAMED'):
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         GeometryNode.__init__(self, name)
-        self.nodetype  = 'dummy'
+        self.nodetype = 'dummy'
 
         self.dummytype = nvb_def.Dummytype.NONE
 
-
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         GeometryNode.loadAscii(self, asciiNode)
 
-
     def setObjectData(self, obj):
+        """TODO: DOC."""
         GeometryNode.setObjectData(self, obj)
 
         obj.nvb.dummytype = self.dummytype
@@ -261,20 +278,22 @@ class Dummy(GeometryNode):
                 obj.nvb.dummysubtype = element[1]
                 break
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-
 
         dummytype = obj.nvb.dummytype
         if dummytype == nvb_def.Dummytype.MDLROOT:
             # Only parent for rootdummys
             return
 
-        #scale = round(nvb_utils.getAuroraScale(obj), 3)
+        # scale = round(nvb_utils.getAuroraScale(obj), 3)
         # Scaling fix
         asciiLines.append('  scale 1.0')
         '''
@@ -302,9 +321,10 @@ class Dummy(GeometryNode):
         '''
 
         color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
-                                           str(round(color[1], 2)) + ' ' +
-                                           str(round(color[2], 2)) )
+        asciiLines.append('  wirecolor ' +
+                          str(round(color[0], 2)) + ' ' +
+                          str(round(color[1], 2)) + ' ' +
+                          str(round(color[2], 2)))
 
         # TODO: Handle types and subtypes, i.e. Check and modify name
         subtype = obj.nvb.dummysubtype
@@ -312,38 +332,37 @@ class Dummy(GeometryNode):
             pass
 
 
-
 class Patch(GeometryNode):
-    '''
-    Same as a plain Dummy.
-    '''
-    def __init__(self, name = 'UNNAMED'):
+    """Same as a plain Dummy."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         GeometryNode.__init__(self, name)
         self.nodetype = 'patch'
 
         self.dummytype = nvb_def.Dummytype.PATCH
 
-
     def setObjectData(self, obj):
+        """TODO: Doc."""
         GeometryNode.setObjectData(self, obj)
 
         obj.nvb.dummytype = self.dummytype
 
 
 class Reference(GeometryNode):
-    '''
-    Contains a reference to another mdl
-    '''
-    def __init__(self, name = 'UNNAMED'):
+    """Contains a reference to another mdl."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         GeometryNode.__init__(self, name)
         self.nodetype = 'reference'
 
         self.dummytype = nvb_def.Dummytype.REFERENCE
-        self.refmodel     = nvb_def.null
+        self.refmodel = nvb_def.null
         self.reattachable = 0
 
-
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         GeometryNode.loadAscii(self, asciiNode)
         l_isNumber = nvb_utils.isNumber
 
@@ -354,61 +373,67 @@ class Reference(GeometryNode):
                 # Probably empty line or whatever, skip it
                 continue
             if not l_isNumber(label):
-                if   (label == 'refmodel'):
-                    #self.refmodel = line[1].lower()
+                if (label == 'refmodel'):
+                    # self.refmodel = line[1].lower()
                     self.refmodel = line[1]
                 elif (label == 'reattachable'):
                     self.reattachable = int(line[1])
 
-
     def setObjectData(self, obj):
+        """TODO: Doc."""
         GeometryNode.setObjectData(self, obj)
-        obj.nvb.dummytype    = self.dummytype
-        obj.nvb.refmodel     = self.refmodel
+        obj.nvb.dummytype = self.dummytype
+        obj.nvb.refmodel = self.refmodel
         obj.nvb.reattachable = (self.reattachable == 1)
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: Doc."""
+        GeometryNode.addDataToAscii(self, obj, asciiLines,
+                                    exportObjects,
+                                    classification)
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
 
 class Trimesh(GeometryNode):
-    """
-    Basic node from which every other is derived
-    """
-    def __init__(self, name = 'UNNAMED'):
+    """TODO: Doc."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: Doc."""
         GeometryNode.__init__(self, name)
         self.nodetype = 'trimesh'
 
-        self.meshtype         = nvb_def.Meshtype.TRIMESH
-        self.center           = (0.0, 0.0, 0.0) # Unused ?
-        self.tilefade         = 0
-        self.render           = 1
-        self.shadow           = 1
-        self.beaming          = 0
-        self.inheritcolor     = 0  # Unused ?
-        self.alpha            = 1.0
+        self.meshtype = nvb_def.Meshtype.TRIMESH
+        self.center = (0.0, 0.0, 0.0)  # Unused ?
+        self.tilefade = 0
+        self.render = 1
+        self.shadow = 1
+        self.beaming = 0
+        self.inheritcolor = 0  # Unused ?
+        self.alpha = 1.0
         self.transparencyhint = 0
-        self.selfillumcolor   = (0.0, 0.0, 0.0)
-        self.ambient          = (0.0, 0.0, 0.0)
-        self.diffuse          = (0.0, 0.0, 0.0)
-        self.specular         = (0.0, 0.0, 0.0)
-        self.shininess        = 0
-        self.bitmap           = nvb_def.null
-        self.rotatetexture    = 0
-        self.verts            = [] # list of vertices
-        self.facelist         = FaceList()
-        self.tverts           = [] # list of texture vertices
-
+        self.selfillumcolor = (0.0, 0.0, 0.0)
+        self.ambient = (0.0, 0.0, 0.0)
+        self.diffuse = (0.0, 0.0, 0.0)
+        self.specular = (0.0, 0.0, 0.0)
+        self.shininess = 0
+        self.bitmap = nvb_def.null
+        self.rotatetexture = 0
+        self.verts = []  # list of vertices
+        self.facelist = FaceList()
+        self.tverts = []  # list of texture vertices
 
     def createImage(self, imgName, imgPath):
-        image = bpy_extras.image_utils.load_image(imgName + '.tga',
-                                                  imgPath,
-                                                  recursive=nvb_glob.textureSearch,
-                                                  place_holder=False,
-                                                  ncase_cmp=True)
+        """TODO: DOC."""
+        image = bpy_extras.image_utils.load_image(
+            imgName + '.tga',
+            imgPath,
+            recursive=nvb_glob.textureSearch,
+            place_holder=False,
+            ncase_cmp=True)
         if (image is None):
             print('Neverblender - WARNING: Could not load image ' + imgName)
             print(imgPath)
@@ -418,11 +443,11 @@ class Trimesh(GeometryNode):
 
         return image
 
-
     def loadAscii(self, asciiNode):
+        """TODO: Doc."""
         GeometryNode.loadAscii(self, asciiNode)
 
-        l_int   = int
+        l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
@@ -433,7 +458,7 @@ class Trimesh(GeometryNode):
                 continue
 
             if not l_isNumber(label):
-                if   (label == 'tilefade'):
+                if (label == 'tilefade'):
                     self.tilefade = l_int(line[1])
                 elif (label == 'render'):
                     self.render = l_int(line[1])
@@ -444,35 +469,35 @@ class Trimesh(GeometryNode):
                 elif (label == 'inheritcolor '):
                     self.inheritcolor = l_int(line[1])
                 elif (label == 'rotatetexture'):
-                     self.rotatetexture = l_int(line[1])
+                    self.rotatetexture = l_int(line[1])
                 elif (label == 'alpha'):
                     self.alpha = l_float(line[1])
                 elif (label == 'transparencyhint'):
-                     self.transparencyhint = l_int(line[1])
-                elif (label == 'selfillumcolor'): # Self illumination color
+                    self.transparencyhint = l_int(line[1])
+                elif (label == 'selfillumcolor'):  # Self illumination color
                     self.selfillumcolor = (l_float(line[1]),
                                            l_float(line[2]),
-                                           l_float(line[3]) )
+                                           l_float(line[3]))
                 elif (label == 'ambient'):
                     self.ambient = (l_float(line[1]),
                                     l_float(line[2]),
-                                    l_float(line[3]) )
+                                    l_float(line[3]))
                 elif (label == 'diffuse'):
                     self.diffuse = (l_float(line[1]),
                                     l_float(line[2]),
-                                    l_float(line[3]) )
+                                    l_float(line[3]))
                 elif (label == 'specular'):
                     self.specular = (l_float(line[1]),
                                      l_float(line[2]),
-                                     l_float(line[3]) )
+                                     l_float(line[3]))
                 elif (label == 'shininess'):
                     self.shininess = l_int(l_float(line[1]))
                 elif (label == 'center'):
                     # Unused ? Becuase we don't do anything with this
                     try:
-                        self.center = ( l_float(line[1]),
-                                        l_float(line[2]),
-                                        l_float(line[3]) )
+                        self.center = (l_float(line[1]),
+                                       l_float(line[2]),
+                                       l_float(line[3]))
                     except:
                         # Probably an 'undefined' string which cannot be
                         # converted to float
@@ -491,19 +516,23 @@ class Trimesh(GeometryNode):
                     nvb_parse.f2(asciiNode[idx+1:idx+numVals+1], self.tverts)
                     #self.tverts = [(float(l[0]), float(l[1])) for l in asciiNode[idx+1:idx+numVals+1]]
 
-
     def parseFaceList(self, asciiFaces):
+        """TODO: Doc."""
         l_int = int
         for line in asciiFaces:
-            self.facelist.faces.append( (l_int(line[0]), l_int(line[1]), l_int(line[2])) )
+            self.facelist.faces.append((l_int(line[0]),
+                                        l_int(line[1]),
+                                        l_int(line[2])))
             self.facelist.shdgr.append(l_int(line[3]))
-            self.facelist.uvIdx.append( (l_int(line[4]), l_int(line[5]), l_int(line[6])) )
+            self.facelist.uvIdx.append((l_int(line[4]),
+                                        l_int(line[5]),
+                                        l_int(line[6])))
             self.facelist.matId.append(l_int(line[7]))
 
-
     def createMaterial(self, name):
+        """TODO: Doc."""
         material = None
-        texName  = self.bitmap.lower()
+        texName = self.bitmap.lower()
         if nvb_glob.materialMode == 'SIN':
             # Avoid duplicate materials, search for similar ones.
             material = nvb_utils.materialExists(self.diffuse,
@@ -513,9 +542,9 @@ class Trimesh(GeometryNode):
 
         if not material:
             material = bpy.data.materials.new(name)
-            material.diffuse_color     = self.diffuse
+            material.diffuse_color = self.diffuse
             material.diffuse_intensity = 1.0
-            material.specular_color    = self.specular
+            material.specular_color = self.specular
 
             if not nvb_utils.isNull(self.bitmap):
                 textureSlot = material.texture_slots.add()
@@ -524,8 +553,9 @@ class Trimesh(GeometryNode):
                 if (texName in bpy.data.textures):
                     textureSlot.texture = bpy.data.textures[texName]
                 else:
-                    textureSlot.texture = bpy.data.textures.new(texName, type='IMAGE')
-                textureSlot.texture_coords        = 'UV'
+                    textureSlot.texture = bpy.data.textures.new(texName,
+                                                                type='IMAGE')
+                textureSlot.texture_coords = 'UV'
                 textureSlot.use_map_color_diffuse = True
 
                 # Load the image for the texture, but check if it was
@@ -543,8 +573,8 @@ class Trimesh(GeometryNode):
 
         return material
 
-
     def createMesh(self, name):
+        """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
@@ -587,7 +617,8 @@ class Trimesh(GeometryNode):
 
                     # Apply texture to uv face
                     if material.texture_slots[0]:
-                        tessfaceUV.image = material.texture_slots[0].texture.image
+                        tessfaceUV.image = \
+                            material.texture_slots[0].texture.image
 
         # Import smooth groups as sharp edges
         if nvb_glob.importSmoothGroups:
@@ -609,11 +640,11 @@ class Trimesh(GeometryNode):
         mesh.update()
         return mesh
 
-
     def setObjectData(self, obj):
+        """TODO: Doc."""
         GeometryNode.setObjectData(self, obj)
 
-        obj.nvb.meshtype         = self.meshtype
+        obj.nvb.meshtype = self.meshtype
         if self.tilefade == 1:
             obj.nvb.tilefade = nvb_def.Tilefade.FADE
         elif self.tilefade == 2:
@@ -622,31 +653,33 @@ class Trimesh(GeometryNode):
             obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
         else:
             obj.nvb.tilefade = nvb_def.Tilefade.NONE
-        obj.nvb.render           = (self.render >= 1)
-        obj.nvb.shadow           = (self.shadow >= 1)
-        obj.nvb.beaming          = (self.beaming >= 1)
-        obj.nvb.inheritcolor     = (self.inheritcolor >= 1)
-        obj.nvb.rotatetexture    = (self.rotatetexture >= 1)
+        obj.nvb.render = (self.render >= 1)
+        obj.nvb.shadow = (self.shadow >= 1)
+        obj.nvb.beaming = (self.beaming >= 1)
+        obj.nvb.inheritcolor = (self.inheritcolor >= 1)
+        obj.nvb.rotatetexture = (self.rotatetexture >= 1)
         obj.nvb.transparencyhint = self.transparencyhint
-        obj.nvb.selfillumcolor   = self.selfillumcolor
-        obj.nvb.ambientcolor     = self.ambient
-        obj.nvb.shininess        = self.shininess
-
+        obj.nvb.selfillumcolor = self.selfillumcolor
+        obj.nvb.ambientcolor = self.ambient
+        obj.nvb.shininess = self.shininess
 
     def addToScene(self, scene):
+        """TODO: Doc."""
         if nvb_glob.minimapMode:
             if (self.tilefade and nvb_glob.minimapSkipFade) or not self.render:
-                # Fading objects or shadow meshes won't be imported in minimap mode
-                # We may need them for the tree stucture, so import it as an empty
+                # Fading objects or shadow meshes won't be imported in
+                # minimap mode
+                # We may need them for the tree stucture, so import it as
+                # an empty
                 return Dummy.addToScene(self, scene)
         mesh = self.createMesh(self.name)
-        obj  = bpy.data.objects.new(self.name, mesh)
+        obj = bpy.data.objects.new(self.name, mesh)
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj
 
-
     def addMaterialDataToAscii(self, obj, asciiLines):
+        """TODO: Doc."""
         # Check if this object has a material assigned to it
         material = obj.active_material
         if material:
@@ -678,25 +711,25 @@ class Trimesh(GeometryNode):
             asciiLines.append('  alpha 1.0')
             asciiLines.append('  bitmap ' + nvb_def.null)
 
-
     def addUVToList(self, uv, uvList):
-        '''
-        Helper function to keep UVs unique
-        '''
+        """Helper function to keep UVs unique."""
         if uv in uvList:
             return uvList.index(uv)
         else:
             uvList.append(uv)
             return (len(uvList)-1)
 
-
-    def addMeshDataToAscii(self, obj, asciiLines, simple = False):
-        mesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+    def addMeshDataToAscii(self, obj, asciiLines, simple=False):
+        """TODO: Doc."""
+        mesh = obj.to_mesh(nvb_glob.scene,
+                           nvb_glob.applyModifiers,
+                           nvb_glob.meshConvert)
         for p in mesh.polygons:
             p.use_smooth = True
 
         # Scaling fix
-        # TODO: Find out how exactly blender handles scaling, which matrices to use etc
+        # TODO: Find out how exactly blender handles scaling, which matrices
+        # to use etc
         scale = obj.matrix_world.to_scale()
         scale_matrix = mathutils.Matrix([[scale[0],0,0,0],
                                          [0,scale[1],0,0],
@@ -930,21 +963,20 @@ class Danglymesh(Trimesh):
 
 
 class Skinmesh(Trimesh):
-    """
-    Skinmeshes are Trimeshes where every vertex
-    has a weight.
-    """
-    def __init__(self, name = 'UNNAMED'):
+    """Skinmeshes are Trimeshes where every vertex has a weight."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         Trimesh.__init__(self, name)
         self.nodetype = 'skin'
 
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         Trimesh.loadAscii(self, asciiNode)
-        l_int      = int
+        l_int = int
         l_isNumber = nvb_utils.isNumber
         for idx, line in enumerate(asciiNode):
             try:
@@ -957,10 +989,10 @@ class Skinmesh(Trimesh):
                 if (label == 'weights'):
                     numVals = l_int(line[1])
                     self.getWeightsFromAscii(asciiNode[idx+1:idx+numVals+1])
-                    break # Only one value here, abort loop when read
-
+                    break  # Only one value here, abort loop when read
 
     def getWeightsFromAscii(self, asciiBlock):
+        """TODO: DOC."""
         lfloat = float
         lchunker = nvb_utils.chunker
         for line in asciiBlock:
@@ -970,30 +1002,32 @@ class Skinmesh(Trimesh):
             # [[group_name, vertex_weight], [group_name, vertex_weight]]
             memberships = []
             for chunk in lchunker(line, 2):
-                memberships.append( [chunk[0], lfloat(chunk[1])] )
+                memberships.append([chunk[0], lfloat(chunk[1])])
 
             self.weights.append(memberships)
 
-
     def addSkinGroupsToObject(self, obj):
+        """TODO: DOC."""
         skinGroupDict = {}
         for vertIdx, vertMemberships in enumerate(self.weights):
             for membership in vertMemberships:
                 if membership[0] in skinGroupDict:
-                    skinGroupDict[membership[0]].add([vertIdx], membership[1], 'REPLACE')
+                    skinGroupDict[membership[0]].add([vertIdx],
+                                                     membership[1],
+                                                     'REPLACE')
                 else:
                     vgroup = obj.vertex_groups.new(membership[0])
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
-
     def setObjectData(self, obj):
+        """TODO: DOC."""
         Trimesh.setObjectData(self, obj)
 
         self.addSkinGroupsToObject(obj)
 
-
     def addWeightsToAscii(self, obj, asciiLines, exportObjects):
+        """TODO: DOC."""
         # Get a list of skingroups for this object:
         # A vertex group is a skingroup if there is an object in the mdl
         # with the same name as the group
@@ -1014,7 +1048,7 @@ class Skinmesh(Trimesh):
             vertexWeights.append(weights)
 
         numVerts = len(obj.data.vertices)
-        asciiLines.append('  weights ' + str( numVerts))
+        asciiLines.append('  weights ' + str(numVerts))
         for weights in vertexWeights:
             line = '  '
             if weights:
@@ -1022,29 +1056,38 @@ class Skinmesh(Trimesh):
                     line += '  ' + w[0] + ' ' + str(round(w[1], 3))
             else:
                 # No weights for this vertex ... this is a problem
-                print('Neverblender - WARNING: Missing vertex weight in ' + obj.name)
+                print('Neverblender - WARNING: Missing vertex weight in ' +
+                      obj.name)
                 line = 'ERROR: no weight'
             asciiLines.append(line)
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        Trimesh.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
+        Trimesh.addDataToAscii(self, obj, asciiLines,
+                               exportObjects,
+                               classification)
 
         self.addWeightsToAscii(obj, asciiLines, exportObjects)
 
 
 class Emitter(GeometryNode):
-    def __init__(self, name = 'UNNAMED'):
+    """TODO: DOC."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         GeometryNode.__init__(self, name)
         self.nodetype = 'emitter'
 
         self.meshtype = nvb_def.Meshtype.EMITTER
-        self.xsize    = 2
-        self.ysize    = 2
+        self.xsize = 2
+        self.ysize = 2
         self.rawascii = ''
 
-
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         l_float = float
         l_isNumber = nvb_utils.isNumber
 
@@ -1056,10 +1099,10 @@ class Emitter(GeometryNode):
                 continue
 
             if not l_isNumber(label):
-                if   (label == 'node'):
+                if (label == 'node'):
                     self.name = nvb_utils.getName(line[2])
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
-                elif (label  == 'endnode'):
+                elif (label == 'endnode'):
                     self.rawascii = self.rawascii + '\n' + ' '.join(line)
                     return
                 elif (label == 'parent'):
@@ -1068,13 +1111,13 @@ class Emitter(GeometryNode):
                 elif (label == 'position'):
                     self.position = (l_float(line[1]),
                                      l_float(line[2]),
-                                     l_float(line[3]) )
+                                     l_float(line[3]))
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 elif (label == 'orientation'):
                     self.orientation = (l_float(line[1]),
                                         l_float(line[2]),
                                         l_float(line[3]),
-                                        l_float(line[4]) )
+                                        l_float(line[4]))
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 elif (label == 'scale'):
                     self.scale = l_float(line[1])
@@ -1082,18 +1125,18 @@ class Emitter(GeometryNode):
                 elif (label == 'wirecolor'):
                     self.wirecolor = (l_float(line[1]),
                                       l_float(line[2]),
-                                      l_float(line[3]) )
+                                      l_float(line[3]))
                     self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
                 else:
                     self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
 
-
     def createMesh(self, objName):
+        """TODO: DOC."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
-        mesh.vertices[0].co = ( self.xsize/2,  self.ysize/2, 0.0)
-        mesh.vertices[1].co = ( self.xsize/2, -self.ysize/2, 0.0)
+        mesh.vertices[0].co = (self.xsize/2,  self.ysize/2, 0.0)
+        mesh.vertices[1].co = (self.xsize/2, -self.ysize/2, 0.0)
         mesh.vertices[2].co = (-self.xsize/2, -self.ysize/2, 0.0)
         mesh.vertices[3].co = (-self.xsize/2,  self.ysize/2, 0.0)
         mesh.tessfaces.add(1)
@@ -1105,41 +1148,47 @@ class Emitter(GeometryNode):
 
         return mesh
 
-
     def addRawAscii(self, obj):
+        """TODO: DOC."""
         txt = bpy.data.texts.new(obj.name)
         txt.write(self.rawascii)
         obj.nvb.rawascii = txt.name
 
-
     def setObjectData(self, obj):
+        """TODO: DOC."""
         GeometryNode.setObjectData(self, obj)
 
         obj.nvb.meshtype = self.meshtype
         self.addRawAscii(obj)
 
-
     def addToScene(self, scene):
+        """TODO: DOC."""
         if nvb_glob.minimapMode:
             # We don't need emitters in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return GeometryNode.addToScene(self, scene)
 
         mesh = self.createMesh(self.name)
-        obj  = bpy.data.objects.new(self.name, mesh)
+        obj = bpy.data.objects.new(self.name, mesh)
 
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification, simple)
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
+        GeometryNode.addDataToAscii(self, obj, asciiLines,
+                                    exportObjects,
+                                    classification,
+                                    simple)
 
         if obj.nvb.rawascii not in bpy.data.texts:
             print('Neverblender - WARNING: No emitter data for ' + obj.name)
             return
-        txt      = bpy.data.texts[obj.nvb.rawascii]
+        txt = bpy.data.texts[obj.nvb.rawascii]
         txtLines = [l.split() for l in txt.as_string().split('\n')]
         for line in txtLines:
             try:
@@ -1147,9 +1196,10 @@ class Emitter(GeometryNode):
             except IndexError:
                 # Probably empty line or whatever, skip it
                 continue
-            if  (label == 'node') or (label  == 'endnode') or \
-                (label == 'parent') or (label == 'position') or \
-                (label == 'orientation') or (label == 'scale') or (label == 'wirecolor'):
+            if (label == 'node') or (label == 'endnode') or \
+               (label == 'parent') or (label == 'position') or \
+               (label == 'orientation') or (label == 'scale') or \
+               (label == 'wirecolor'):
                 # We don't need any of this as we'll take it directly from
                 # the object
                 pass
@@ -1160,31 +1210,35 @@ class Emitter(GeometryNode):
 
 
 class Light(GeometryNode):
-    def __init__(self, name = 'UNNAMED'):
+    """TODO: DOC."""
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         GeometryNode.__init__(self, name)
         self.nodetype = 'light'
 
-        self.shadow        = 1
-        self.radius        = 5.0
-        self.multiplier    = 1
+        self.shadow = 1
+        self.radius = 5.0
+        self.multiplier = 1
         self.lightpriority = 5
-        self.color         = (0.0, 0.0, 0.0)
-        self.ambientonly   = 1
-        self.ndynamictype  = 1
-        self.isdynamic     = 1
+        self.color = (0.0, 0.0, 0.0)
+        self.ambientonly = 1
+        self.ndynamictype = 1
+        self.isdynamic = 1
         self.affectdynamic = 1
         self.negativelight = 0
-        self.fadinglight   = 1
-        self.lensflares    = 0
-        self.flareradius   = 1.0
-        self.flareList     = FlareList()
-
+        self.fadinglight = 1
+        self.lensflares = 0
+        self.flareradius = 1.0
+        self.flareList = FlareList()
 
     def loadAscii(self, asciiNode):
+        """TODO: DOC."""
         GeometryNode.loadAscii(self, asciiNode)
 
         flareTextureNamesStart = 0
-        numFlares              = 0
+        numFlares = 0
+        numVals = 0
 
         l_int = int
         l_float = float
@@ -1204,11 +1258,11 @@ class Light(GeometryNode):
                 elif (label == 'multiplier'):
                     self.multiplier = l_float(line[1])
                 elif (label == 'color'):
-                    self.color = ( l_float(line[1]),
-                                   l_float(line[2]),
-                                   l_float(line[3]) )
-                elif (label== 'ambientonly'):
-                     self.ambientonly = l_int(line[1])
+                    self.color = (l_float(line[1]),
+                                  l_float(line[2]),
+                                  l_float(line[3]))
+                elif (label == 'ambientonly'):
+                    self.ambientonly = l_int(line[1])
                 elif (label == 'ndynamictype'):
                     self.ndynamictype = l_int(line[1])
                 elif (label == 'isdynamic'):
@@ -1226,58 +1280,65 @@ class Light(GeometryNode):
                 elif (label == 'flareradius'):
                     self.flareradius = l_float(line[1])
                 elif (label == 'texturenames'):
-                    # List of name follows, but we don't necessarily know how
+                    # List of names follows, but we don't necessarily know how
                     # many flares there are
                     # We 'll need to read them later. For now save the index
                     flareTextureNamesStart = idx+1
                 elif (label == 'flaresizes'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.sizes)
-                    #self.flareList.sizes = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.sizes)
                 elif (label == 'flarepositions'):
                     # List of floats
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1], self.flareList.positions)
-                    #self.flareList.positions = [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                    nvb_parse.f1(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.positions)
                 elif (label == 'flarecolorshifts'):
                     # List of float 3-tuples
-                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:]) if not l_isNumber(v[0])), -1)
-                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1], self.flareList.colorshifts)
-                    #self.flareList.colorshifts = [(float(l[0]), float(l[1]), float(l[2])) for l in asciiNode[idx+1:idx+numVals+1]]
+                    numVals = next((i for i, v in enumerate(asciiNode[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                    nvb_parse.f3(asciiNode[idx+1:idx+numVals+1],
+                                 self.flareList.colorshifts)
 
         # Load flare texture names:
+        numFlares = min(len(self.flareList.sizes),
+                        min(len(self.flareList.colorshifts),
+                            len(self.flareList.positions)))
         for i in range(numFlares):
             texName = asciiNode[flareTextureNamesStart+i][0]
             self.flareList.textures.append(texName)
 
-
     def createLamp(self, name):
+        """TODO: DOC."""
         lamp = bpy.data.lamps.new(name, 'POINT')
 
-        # TODO: Check for negative color values and do something (works fine in blender though)
-        lamp.color       = self.color
-        lamp.energy      = self.multiplier
-        lamp.distance    = self.radius
-        #lamp.use_sphere  = True
+        # TODO: Check for negative color values and do something
+        # (works fine in blender though)
+        lamp.color = self.color
+        lamp.energy = self.multiplier
+        lamp.distance = self.radius
+        # lamp.use_sphere  = True
 
         return lamp
 
-
     def setObjectData(self, obj):
+        """TODO: DOC."""
         GeometryNode.setObjectData(self, obj)
 
-        switch = {'ml1': 'MAINLIGHT1', \
-                  'ml2': 'MAINLIGHT2', \
-                  'sl1': 'SOURCELIGHT1', \
+        switch = {'ml1': 'MAINLIGHT1',
+                  'ml2': 'MAINLIGHT2',
+                  'sl1': 'SOURCELIGHT1',
                   'sl2': 'SOURCELIGHT2'}
-        #TODO: Check light names when exporting tiles
-        obj.nvb.ambientonly   = (self.ambientonly >= 1)
-        obj.nvb.lighttype     = switch.get(self.name[-3:], 'NONE')
-        obj.nvb.shadow        = (self.shadow >= 1)
+        # TODO: Check light names when exporting tiles
+        obj.nvb.ambientonly = (self.ambientonly >= 1)
+        obj.nvb.lighttype = switch.get(self.name[-3:], 'NONE')
+        obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
-        obj.nvb.fadinglight   = (self.fadinglight >= 1)
-        obj.nvb.isdynamic     = (self.ndynamictype >= 1) or (self.isdynamic >= 1)
+        obj.nvb.fadinglight = (self.fadinglight >= 1)
+        obj.nvb.isdynamic = (self.ndynamictype >= 1) or (self.isdynamic >= 1)
         obj.nvb.affectdynamic = (self.affectdynamic >= 1)
 
         if (self.flareradius > 0) or (self.lensflares >= 1):
@@ -1285,36 +1346,36 @@ class Light(GeometryNode):
             numFlares = len(self.flareList.textures)
             for i in range(numFlares):
                 newItem = obj.nvb.flareList.add()
-                newItem.texture    = self.flareList.textures[i]
+                newItem.texture = self.flareList.textures[i]
                 newItem.colorshift = self.flareList.colorshifts[i]
-                newItem.size       = self.flareList.sizes[i]
-                newItem.position   = self.flareList.positions[i]
+                newItem.size = self.flareList.sizes[i]
+                newItem.position = self.flareList.positions[i]
 
         obj.nvb.flareradius = self.flareradius
 
-
     def addToScene(self, scene):
+        """TODO: DOC."""
         if nvb_glob.minimapMode:
             # We don't need lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return GeometryNode.addToScene(self, scene)
         lamp = self.createLamp(self.name)
-        obj  = bpy.data.objects.new(self.name, lamp)
+        obj = bpy.data.objects.new(self.name, lamp)
         self.setObjectData(obj)
         scene.objects.link(obj)
         return obj
 
-
     def addFlaresToAscii(self, obj, asciiLines):
+        """TODO: DOC."""
         if obj.nvb.lensflares:
             asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-            #print(str(len(obj.nvb.flareList)))
+            # print(str(len(obj.nvb.flareList)))
             if len(obj.nvb.flareList) > 0:
 
                 # TODO: Clean this up
                 asciiLines.append('  texturenames zd')
                 for flare in obj.nvb.flareList:
-                     asciiLines.append('    ' + flare.texture)
+                    asciiLines.append('    ' + flare.texture)
                 asciiLines.append('  flarepositions zd')
                 for flare in obj.nvb.flareList:
                     asciiLines.append('    ' + str(round(flare.position, 5)))
@@ -1323,21 +1384,30 @@ class Light(GeometryNode):
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
                 for flare in obj.nvb.flareList:
-                    asciiLines.append('    ' +  str(round(flare.colorshift[0], 2)) + ' ' +
-                                                str(round(flare.colorshift[1], 2)) + ' ' +
-                                                str(round(flare.colorshift[2], 2)) )
-        asciiLines.append('  flareradius ' + str(round(obj.nvb.flareradius, 1)))
+                    asciiLines.append(
+                        '    ' +
+                        str(round(flare.colorshift[0], 2)) + ' ' +
+                        str(round(flare.colorshift[1], 2)) + ' ' +
+                        str(round(flare.colorshift[2], 2)))
+        asciiLines.append('  flareradius ' +
+                          str(round(obj.nvb.flareradius, 1)))
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
-        GeometryNode.addDataToAscii(self, obj, asciiLines, exportObjects, classification)
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
+        GeometryNode.addDataToAscii(self, obj, asciiLines,
+                                    exportObjects,
+                                    classification)
 
         lamp = obj.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
-        asciiLines.append('  color ' +  str(round(lamp.color[0], 2)) + ' ' +
-                                        str(round(lamp.color[1], 2)) + ' ' +
-                                        str(round(lamp.color[2], 2)) )
+        asciiLines.append('  color ' +
+                          str(round(lamp.color[0], 2)) + ' ' +
+                          str(round(lamp.color[1], 2)) + ' ' +
+                          str(round(lamp.color[2], 2)))
         asciiLines.append('  ambientonly ' + str(int(obj.nvb.ambientonly)))
         asciiLines.append('  nDynamicType ' + str(int(obj.nvb.isdynamic)))
         asciiLines.append('  affectDynamic ' + str(int(obj.nvb.affectdynamic)))
@@ -1347,23 +1417,29 @@ class Light(GeometryNode):
         self.addFlaresToAscii(obj, asciiLines)
 
 
-
 class Aabb(Trimesh):
+    """TODO: DOC."""
+
     '''
     No need to import Aaabb's. Aabb nodes in mdl files will be
     treated as trimeshes
     '''
-    def __init__(self, name = 'UNNAMED'):
+
+    def __init__(self, name='UNNAMED'):
+        """TODO: DOC."""
         Trimesh.__init__(self, name)
         self.nodetype = 'aabb'
 
         self.meshtype = nvb_def.Meshtype.AABB
 
     def addAABBToAscii(self, obj, asciiLines):
-        walkmesh = obj.to_mesh(nvb_glob.scene, nvb_glob.applyModifiers, nvb_glob.meshConvert)
+        """TODO: DOC."""
+        walkmesh = obj.to_mesh(nvb_glob.scene,
+                               nvb_glob.applyModifiers,
+                               nvb_glob.meshConvert)
 
         faceList = []
-        faceIdx  = 0
+        faceIdx = 0
         for tessface in walkmesh.tessfaces:
             if (len(tessface.vertices) == 3):
                 # Tri
@@ -1414,7 +1490,7 @@ class Aabb(Trimesh):
                               ' ' +
                               str(l_round(node[5], 5)) +
                               ' ' +
-                              str(node[6]) )
+                              str(node[6]))
             for node in aabbTree:
                 asciiLines.append('    ' +
                                   str(l_round(node[0], 5)) +
@@ -1429,27 +1505,33 @@ class Aabb(Trimesh):
                                   ' ' +
                                   str(l_round(node[5], 5)) +
                                   ' ' +
-                                  str(node[6]) )
+                                  str(node[6]))
 
-
-    def addDataToAscii(self, obj, asciiLines, exportObjects = [], classification = nvb_def.Classification.UNKNOWN, simple = False):
+    def addDataToAscii(self, obj, asciiLines,
+                       exportObjects=[],
+                       classification=nvb_def.Classification.UNKNOWN,
+                       simple=False):
+        """TODO: DOC."""
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
         loc = obj.location
-        asciiLines.append('  position ' + str(round(loc[0], 5)) + ' ' +
-                                          str(round(loc[1], 5)) + ' ' +
-                                          str(round(loc[2], 5)) )
+        asciiLines.append('  position ' +
+                          str(round(loc[0], 5)) + ' ' +
+                          str(round(loc[1], 5)) + ' ' +
+                          str(round(loc[2], 5)))
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        asciiLines.append('  orientation ' + str(round(rot[0], 5)) + ' ' +
-                                             str(round(rot[1], 5)) + ' ' +
-                                             str(round(rot[2], 5)) + ' ' +
-                                             str(round(rot[3], 5)) )
+        asciiLines.append('  orientation ' +
+                          str(round(rot[0], 5)) + ' ' +
+                          str(round(rot[1], 5)) + ' ' +
+                          str(round(rot[2], 5)) + ' ' +
+                          str(round(rot[3], 5)))
         color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' + str(round(color[0], 2)) + ' ' +
-                                           str(round(color[1], 2)) + ' ' +
-                                           str(round(color[2], 2))  )
+        asciiLines.append('  wirecolor ' +
+                          str(round(color[0], 2)) + ' ' +
+                          str(round(color[1], 2)) + ' ' +
+                          str(round(color[2], 2)))
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
@@ -1458,14 +1540,15 @@ class Aabb(Trimesh):
         Trimesh.addMeshDataToAscii(self, obj, asciiLines, simple)
         self.addAABBToAscii(obj, asciiLines)
 
-
     def createMesh(self, name):
+        """TODO: DOC."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(name)
         mesh.vertices.add(len(self.verts))
         mesh.vertices.foreach_set('co', unpack_list(self.verts))
         mesh.tessfaces.add(len(self.facelist.faces))
-        mesh.tessfaces.foreach_set('vertices_raw', unpack_face_list(self.facelist.faces))
+        mesh.tessfaces.foreach_set('vertices_raw',
+                                   unpack_face_list(self.facelist.faces))
 
         # Create materials
         for wokMat in nvb_def.wok_materials:
@@ -1476,9 +1559,9 @@ class Aabb(Trimesh):
                 material = bpy.data.materials[matName]
             else:
                 material = bpy.data.materials.new(matName)
-                material.diffuse_color      = wokMat[1]
-                material.diffuse_intensity  = 1.0
-                material.specular_color     = (0.0,0.0,0.0)
+                material.diffuse_color = wokMat[1]
+                material.diffuse_intensity = 1.0
+                material.specular_color = (0.0, 0.0, 0.0)
                 material.specular_intensity = wokMat[2]
             mesh.materials.append(material)
 
@@ -1489,8 +1572,8 @@ class Aabb(Trimesh):
         mesh.update()
         return mesh
 
-
     def addToScene(self, scene):
+        """TODO: DOC."""
         if nvb_glob.minimapMode:
             # No walkmeshes in minimap mode and we don't need an empty as
             # replacement either as AABB nodes never have children

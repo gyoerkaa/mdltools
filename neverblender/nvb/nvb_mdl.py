@@ -1,3 +1,4 @@
+"""TODO: DOC."""
 import os
 import collections
 import enum
@@ -77,8 +78,7 @@ class Mdl():
         if newNode:
             key = newNode.parentName + newNode.name
             if key in self.nodeDict:
-                # TODO: Should probably raise an exception
-                pass
+                print('Neverblender - WARNING: Node name conflict.')
             else:
                 self.nodeDict[key] = newNode
 
@@ -86,8 +86,7 @@ class Mdl():
         """TODO: DOC."""
         if anim:
             if anim.name in self.animDict:
-                # TODO: Should probably raise an exception
-                pass
+                print('Neverblender - WARNING: Animation name conflict.')
             else:
                 self.animDict[anim.name] = anim
 
@@ -102,7 +101,8 @@ class Mdl():
             # If the first node has a parent or isn't a dummy we don't
             # even try to import the mdl
             (nodeKey, node) = next(it)
-            if (type(node) == nvb_node.Dummy) and (nvb_utils.isNull(node.parentName)):
+            if (type(node) == nvb_node.Dummy) and \
+               (nvb_utils.isNull(node.parentName)):
                 obj = node.addToScene(scene)
                 obj.nvb.dummytype = nvb_def.Dummytype.MDLROOT
                 obj.nvb.supermodel = self.supermodel
@@ -112,7 +112,8 @@ class Mdl():
                 obj.nvb.imporder = objIdx
                 objIdx += 1
             else:
-                raise nvb_def.MalformedMdlFile('First node has to be a dummy without a parent.')
+                raise nvb_def.MalformedMdlFile('First node has to be a dummy \
+                                                without a parent.')
 
             for (nodeKey, node) in it:
                 obj = node.addToScene(scene)
@@ -120,7 +121,8 @@ class Mdl():
                 objIdx += 1
                 if (nvb_utils.isNull(node.parentName)):
                     # Node without parent and not the mdl root.
-                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent.')
+                    raise nvb_def.MalformedMdlFile(
+                        node.name + ' has no parent.')
                 else:
                     # Check if such an object exists
                     if node.parentName in bpy.data.objects:
@@ -129,7 +131,8 @@ class Mdl():
                             obj.parent.matrix_world.inverted()
                     else:
                         # Node with invalid parent.
-                        raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
+                        raise nvb_def.MalformedMdlFile(
+                            node.name + ' has no parent ' + node.parentName)
 
         # Attempt to import animations
         # Search for the rootDummy if not already present
@@ -176,22 +179,30 @@ class Mdl():
                         # ['setsupermodel', modelname, supermodelname]
                         self.supermodel = line[2]
                     except IndexError:
-                        print("Neverblender - WARNING: Unable to read supermodel. Default value " + self.supermodel)
+                        print("Neverblender - WARNING: \
+                              Unable to read supermodel. Default " +
+                              self.supermodel)
 
                 elif (label == 'classification'):
                     try:
                         self.classification = line[1].upper()
                     except IndexError:
-                        print("Neverblender - WARNING: Unable to read classification. Default value " + self.classification)
+                        print("Neverblender - WARNING: \
+                              Unable to read classification. Default " +
+                              self.classification)
 
                     if self.classification not in nvb_def.Classification.ALL:
-                        print("Neverblender - WARNING: Invalid classification '" + self.classification + "'")
+                        print("Neverblender - WARNING: \
+                              Invalid classification '" +
+                              self.classification + "'")
                         self.classification = nvb_def.Classification.UNKNOWN
                 elif (label == 'setanimationscale'):
                     try:
                         self.animscale = line[1]
                     except IndexError:
-                        print("Neverblender - WARNING: Unable to read animationscale. Default value " + self.animscale)
+                        print("Neverblender - WARNING: \
+                              Unable to read animationscale. Default value " +
+                              self.animscale)
 
             elif (cs == State.GEOMETRY):
                 if (label == 'node'):
@@ -212,20 +223,23 @@ class Mdl():
                     blockStart = -1
                     cs = State.GEOMETRY
                 elif (label == 'node'):
-                    raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
+                    raise nvb_def.MalformedMdlFile(
+                        'Unexpected "endnode" at line' + str(idx))
 
             elif (cs == State.ANIMATION):
                 if (label == 'newanim'):
                     if (blockStart < 0):
                         blockStart = idx
                     else:
-                        raise nvb_def.MalformedMdlFile('Unexpected "newanim" at line' + str(idx))
+                        raise nvb_def.MalformedMdlFile(
+                            'Unexpected "newanim" at line' + str(idx))
                 if (label == 'doneanim'):
                     if (blockStart > 0):
                         self.loadAsciiAnimation(asciiLines[blockStart:idx+1])
                         blockStart = -1
                     else:
-                        raise nvb_def.MalformedMdlFile('Unexpected "doneanim" at line' + str(idx))
+                        raise nvb_def.MalformedMdlFile(
+                            'Unexpected "doneanim" at line' + str(idx))
 
     def geometryToAscii(self, bObject, asciiLines, simple=False):
         """TODO: DOC."""
@@ -287,7 +301,8 @@ class Mdl():
         blendFileName = os.path.basename(bpy.data.filepath)
         if not blendFileName:
             blendFileName = 'unknown'
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
+        asciiLines.append('# Exported from blender at ' +
+                          currentTime.strftime('%A, %Y-%m-%d'))
         asciiLines.append('filedependancy ' + blendFileName)
         asciiLines.append('newmodel ' + self.name)
         asciiLines.append('setsupermodel ' + self.name + ' ' + self.supermodel)
@@ -338,7 +353,8 @@ class Xwk(Mdl):
                     blockStart = -1
                 else:
                     # "endnode" before "node"
-                    raise nvb_def.MalformedMdlFile('Unexpected "endnode" at line' + str(idx))
+                    raise nvb_def.MalformedMdlFile(
+                        'Unexpected "endnode" at line' + str(idx))
 
     def generateAscii(self, asciiLines, rootDummy,
                       exports={'ANIMATION', 'WALKMESH'}):
@@ -347,7 +363,8 @@ class Xwk(Mdl):
 
         # Header
         currentTime = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
+        asciiLines.append('# Exported from blender at ' +
+                          currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry
         for child in rootDummy.children:
             self.geometryToAscii(child, asciiLines, True)
@@ -363,7 +380,8 @@ class Xwk(Mdl):
             for (nodeKey, node) in self.nodeDict.items():
                 if (nvb_utils.isNull(node.parentName)):
                     # Node without
-                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent.')
+                    raise nvb_def.MalformedMdlFile(
+                        node.name + ' has no parent.')
                 else:
                     if node.parentName not in nameList:
                         nameList.append(node.parentName)
@@ -378,21 +396,24 @@ class Xwk(Mdl):
             else:
                 node.dummytype = nvb_def.Dummytype.PWKROOT
             node.name = self.name
-            rootdummy = node.addToScene(scene)
+            # rootdummy = node.addToScene(scene)
 
             for (nodeKey, node) in self.nodeDict.items():
                 obj = node.addToScene(scene)
                 # Check if such an object exists
                 if node.parentName in bpy.data.objects:
                     obj.parent = bpy.data.objects[node.parentName]
-                    obj.matrix_parent_inverse = obj.parent.matrix_world.inverted()
+                    obj.matrix_parent_inverse = \
+                        obj.parent.matrix_world.inverted()
                 else:
                     # Node with invalid parent.
-                    raise nvb_def.MalformedMdlFile(node.name + ' has no parent ' + node.parentName)
+                    raise nvb_def.MalformedMdlFile(
+                        node.name + ' has no parent ' + node.parentName)
 
 
 class Wok(Xwk):
     """TODO: DOC."""
+
     def __init__(self, name='UNNAMED', wkmType='wok'):
         """TODO: DOC."""
         self.nodeDict = collections.OrderedDict()
@@ -418,7 +439,8 @@ class Wok(Xwk):
 
         # Header
         currentTime = datetime.now()
-        asciiLines.append('# Exported from blender at ' + currentTime.strftime('%A, %Y-%m-%d'))
+        asciiLines.append('# Exported from blender at ' +
+                          currentTime.strftime('%A, %Y-%m-%d'))
         # Geometry = AABB
         self.geometryToAscii(rootDummy, asciiLines, True)
 

@@ -116,40 +116,38 @@ def saveMdl(operator,
             f.write('\n'.join(asciiLines))
 
         if 'WALKMESH' in exports:
+            wkmRoot = None
             if mdl.classification == nvb_def.Classification.TILE:
-                wkm     = nvb_mdl.Wok()
                 wkmRoot = mdlRoot
-                wkmType = 'wok'
+                wkm = nvb_mdl.Wok()
             else:
-                wkmRoot = None
-
                 # We need to look for a walkmesh rootdummy
                 wkmRootName = mdl.name + '_pwk'
                 if (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('pwk')
+                    wkm = nvb_mdl.Xwk('pwk')
                 wkmRootName = mdl.name + '_PWK'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('pwk')
+                    wkm = nvb_mdl.Xwk('pwk')
 
                 wkmRootName = mdl.name + '_dwk'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('dwk')
+                    wkm = nvb_mdl.Xwk('dwk')
                 wkmRootName = mdl.name + '_DWK'
                 if (not wkmRoot) and (wkmRootName in bpy.data.objects):
                     wkmRoot = bpy.data.objects[wkmRootName]
-                    wkm     = nvb_mdl.Xwk('dwk')
+                    wkm = nvb_mdl.Xwk('dwk')
 
             if wkmRoot:
                 asciiLines = []
                 wkm.generateAscii(asciiLines, wkmRoot)
 
                 wkmFileExt = '.pwk'
-                if mdlRoot.nvb.classification == nvb_def.classification.DOOR:
+                if mdlRoot.nvb.classification == nvb_def.Classification.DOOR:
                     wkmFileExt = '.dwk'
-                elif mdlRoot.nvb.classification == nvb_def.classification.TILE:
+                elif mdlRoot.nvb.classification == nvb_def.Classification.TILE:
                     wkmFileExt = '.wok'
 
                 (wkmPath, wkmFilename) = os.path.split(filepath)

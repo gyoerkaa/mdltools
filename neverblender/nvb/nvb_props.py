@@ -145,7 +145,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                                     (nvb_def.Tilefade.FADE, 'Fade', 'Tilefade enabled', 1), \
                                                     (nvb_def.Tilefade.BASE, 'Base', '???', 2), \
                                                     (nvb_def.Tilefade.NEIGHBOUR, 'Neighbour', 'Tilefade if Neighbouring Tile fades', 3)],
-                                        default = nvb_def.Tilefade.NONE)    
+                                        default = nvb_def.Tilefade.NONE)
     render           = bpy.props.BoolProperty(name = 'Render', description = 'Whether to render this object in the scene', default = True)
     beaming          = bpy.props.BoolProperty(name = 'beaming', description = 'Object casts beams (?)', default = False)
     inheritcolor     = bpy.props.BoolProperty(name = 'Inheritcolor', description = 'Unused (?)', default = False)
