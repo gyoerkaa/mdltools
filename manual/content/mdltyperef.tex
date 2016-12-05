@@ -49,4 +49,18 @@ TODO
 \end{description}
 
 \subsection{Tiles}
-TODO
+
+\subsubsection*{Tile Walkmesh (AABB)}
+The walkmesh must be parented to the the {\textit{Rootdummy}} object.
+No overlapping faces are allowed. To specify the surface type, it is necessary
+to add the walkmesh materials to the object. You can add all walkmesh
+materials by clicking on the {\textit{Load walkmesh materials}} Button in the
+Aurora mesh properties panel. \\ \\
+
+The walkmesh materials are then added as materials slots and accessible
+through the materials tab in the object properties. \\ \\
+
+The export script will create an aabb tree from the walkmesh during export
+and save it the {\textit{*.mdl}} file. It will also create a
+matching {\textit{*.wok}} file.
+
