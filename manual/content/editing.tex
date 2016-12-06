@@ -9,32 +9,33 @@ objects. In addition there are special types of Dummies which for
 example indicate locations for spells effects.
 
 \subsubsection{Dummy}
-Simple Empties/Dummies with a parent are either used to group objects or 
-indicate a special location for the engine. If a Dummy doesn't have a 
-parent it is considered to be a Rootdummy instead of a simple Dummy 
+Simple Empties/Dummies with a parent are either used to group objects or
+indicate a special location for the engine. If a Dummy doesn't have a
+parent it is considered to be a {\textit{Rootdummy}} instead of a simple Dummy
 and the available options will change.
 
 \begin{description}
-	\item[None] Simple dummy without any special purpose.
+    \item[None] Simple dummy without any special purpose.
     \item[Ground] Indicates the ground level for spells/ visual effects
     \item[Impact] Impact target for most spells/ visual effects.
     \item[Head Hit] Spells/ Visual effects
     \item[Head] Head location for Spells/ Visual effects
     \item[Hand] Point of origin for (some) spells. If the placeable is using a spell/ visual effect this will be the point of origin most of the time.
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
-    \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.  
+    \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
 
 
 \subsubsection{Rootdummy}
-Each mdl requires at least one Empty: The Rootdummy. All children of a 
-Rootdummy are considered to be part of the same mdl. All objects 
-which are to be exported have to be a descendant of the Rootdummy. 
+Each mdl requires at least one Empty: The {\textit{Rootdummy}}. All children
+of a {\textit{Rootdummy}} are considered to be part of the same mdl. All
+objects which are to be exported have to be a descendant of
+the {\textit{Rootdummy}}.
 
 An Empty with the type Dummy and without a parent will autmatically be
-considered a Rootummy. The Rootdummy must have the same name as the 
-mdl file (minus the files extension). Rootdummys hold additional 
-information about the model and the Aurora Property panel will 
+considered a Rootummy. The {\textit{Rootdummy}} must have the same name as the
+mdl file (minus the files extension). Rootdummys hold additional
+information about the model and the Aurora Property panel will
 change accordingly.
 
 \begin{description}
