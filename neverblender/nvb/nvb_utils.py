@@ -139,9 +139,13 @@ def belongsToMdl(obj, classification):
     """TODO: Doc."""
     if not obj:
         return False
-    return ((obj.nvb.meshtype != nvb_def.Meshtype.WALKMESH) or
-            (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB) or
-            (not nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)))
+    if obj.type == 'EMPTY':
+        return not nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)
+    elif obj.type == 'MESH':
+        return ((obj.nvb.meshtype != nvb_def.Meshtype.WALKMESH) or
+                ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
+                 (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB)))
+    return False
 
 
 def isRootDummy(obj):

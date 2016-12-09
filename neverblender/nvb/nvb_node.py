@@ -206,7 +206,6 @@ class Node(object):
         if rootDummy:
             nodeName = nvb_utils.generateWalkmeshName(obj, rootDummy)
             parentName = nvb_utils.generateWalkmeshParent(rootDummy)
-        print(nodeName)
         asciiLines.append('node ' + cls.nodetype + ' ' + nodeName)
         asciiLines.append('  parent ' + parentName)
         cls.generateAsciiData(obj, asciiLines, options)
