@@ -157,29 +157,30 @@ def generateWalkmeshParent(rootDummy):
     """TODO: DOC."""
     suffix = ''
     if rootDummy.nvb.classification is nvb_def.Classification.DOOR:
-        suffix = '_dwk'
+        suffix = 'dwk'
     elif rootDummy.nvb.classification is nvb_def.Classification.TILE:
-        suffix = '_wok'
+        suffix = 'wok'
     else:
-        suffix = '_pwk'
-    return rootDummy.name + suffix
+        suffix = 'pwk'
+    return rootDummy.name + '_' + suffix
 
 
 def generateWalkmeshName(obj, rootDummy):
     """TODO: DOC."""
     classifcation = rootDummy.nvb.classification
     suffix = ''
+    currentName = obj.name
     if obj.type == 'EMTPY':
         suffix = nvb_def.Dummytype.generateSuffix(obj, classifcation)
     elif obj.type == 'MESH':
         suffix = nvb_def.Walkmeshtype.generateSuffix(obj, classifcation)
     else:
-        return obj.name
+        return currentName
     # This node already has a valid suffix/name
-    if not suffix or obj.name.endswith(suffix):
-        return obj.name
+    if not suffix or currentName.endswith(suffix):
+        return currentName
     # Generate a valid name ourselves
-    return rootDummy.name + suffix
+    return rootDummy.name + '_' + suffix
 
 
 def findObjRootDummy(obj):

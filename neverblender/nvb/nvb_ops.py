@@ -848,7 +848,7 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
             # Remove old suffix first
             if currentSuffix:
                 baseName = obj.name[:-1*len(currentSuffix)]
-            newName = baseName + newSuffix
+            newName = baseName + '_' + newSuffix
             if newName in bpy.data.objects:
                 self.report({'INFO'}, 'Failure: Name already exists.')
                 return {'CANCELLED'}

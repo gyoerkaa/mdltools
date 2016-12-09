@@ -30,6 +30,8 @@ bl_info = {
 
 if 'bpy' in locals():
     import importlib
+    importlib.reload(nvb_def)
+    importlib.reload(nvb_utils)
     importlib.reload(nvb_io)
     importlib.reload(nvb_mdl)
     importlib.reload(nvb_node)
@@ -40,6 +42,8 @@ if 'bpy' in locals():
     importlib.reload(nvb_ops)
     importlib.reload(nvb_ui)
 else:
+    from .nvb import nvb_def
+    from .nvb import nvb_utils
     from .nvb import nvb_io
     from .nvb import nvb_mdl
     from .nvb import nvb_node

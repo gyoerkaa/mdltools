@@ -128,28 +128,28 @@ class Dummytype():
                    ('closed_02', CLOSED_02)]
 
     pwktype2suffix = {DEFAULT:  '',
-                      HAND:     '_hand',
-                      HEAD:     '_head',
-                      HEAD_HIT: '_head_hit',
-                      IMPACT:   '_impact',
-                      GROUND:   '_ground',
-                      USE1:     '_pwk_use01',
-                      USE2:     '_pwk_use02'}
+                      HAND:     'hand',
+                      HEAD:     'head',
+                      HEAD_HIT: 'head_hit',
+                      IMPACT:   'impact',
+                      GROUND:   'ground',
+                      USE1:     'pwk_use01',
+                      USE2:     'pwk_use02'}
 
     dwktype2suffix = {DEFAULT:   '',
-                      HAND:      '_hand',
-                      HEAD:      '_head',
-                      HEAD_HIT:  '_hhit',
-                      IMPACT:    '_impc',
-                      GROUND:    '_grnd',
-                      USE1:      '_dwk_use01',
-                      USE2:      '_dwk_use02',
-                      OPEN1_01:  '_dp_open1_01',
-                      OPEN1_02:  '_dp_open1_02',
-                      OPEN2_01:  '_dp_open2_01',
-                      OPEN2_02:  '_dp_open2_02',
-                      CLOSED_01: '_dp_closed_01',
-                      CLOSED_02: '_dp_closed_02'}
+                      HAND:      'hand',
+                      HEAD:      'head',
+                      HEAD_HIT:  'hhit',
+                      IMPACT:    'impc',
+                      GROUND:    'grnd',
+                      USE1:      'dwk_use01',
+                      USE2:      'dwk_use02',
+                      OPEN1_01:  'dp_open1_01',
+                      OPEN1_02:  'dp_open1_02',
+                      OPEN2_01:  'dp_open2_01',
+                      OPEN2_02:  'dp_open2_02',
+                      CLOSED_01: 'dp_closed_01',
+                      CLOSED_02: 'dp_closed_02'}
 
     @classmethod
     def generateSuffix(cls, obj, classification):
@@ -158,7 +158,7 @@ class Dummytype():
         if obj.type == 'EMPTY' and obj.nvb.emptytype == Emptytype.DUMMY:
             if classification == Classification.DOOR:
                 if obj.nvb.dummytype in cls.dwktype2suffix:
-                    suffix = cls.suffix_dwk[obj.nvb.dummytype]
+                    suffix = cls.dwktype2suffix[obj.nvb.dummytype]
                 else:
                     return ''
             elif classification == Classification.TILE:
@@ -166,11 +166,11 @@ class Dummytype():
             else:
                 # Everything else counts as placeable
                 if obj.nvb.dummytype in cls.pwktype2suffix:
-                    suffix = cls.suffix_pwk[obj.nvb.dummytype]
+                    suffix = cls.pwktype2suffix[obj.nvb.dummytype]
                 else:
                     return ''
         # Maybe there already is a suffix?
-        if obj.name.endswith(suffix):
+        if not suffix or obj.name.endswith(suffix):
             return ''
         else:
             return suffix
@@ -194,8 +194,9 @@ class Dummytype():
 
     @classmethod
     def get(cls, nodeName):
-        """TODO: Doc."""
-        for suffix in cls.suffix_list:
+        """Deprecated, use getType instead."""
+        print('Neverblender: Deprecated function')
+        for suffix in cls.suffix2type:
             if nodeName.endswith(suffix[0]):
                 return suffix[1]
         return cls.DEFAULT
@@ -251,9 +252,9 @@ class Walkmeshtype():
                    ('wg_open2', DWKOPEN2),
                    ('wg_closed', DWKCLOSED)]
 
-    suffix_dwk = [(DWKOPEN1, '_wg_open1'),
-                  (DWKOPEN2, '_wg_open2'),
-                  (DWKCLOSED, '_wg_closed')]
+    suffix_dwk = [(DWKOPEN1, 'wg_open1'),
+                  (DWKOPEN2, 'wg_open2'),
+                  (DWKCLOSED, 'wg_closed')]
 
     @classmethod
     def generateSuffix(cls, obj, classification):
@@ -266,7 +267,7 @@ class Walkmeshtype():
                 return ''  # No changes for tiles
             else:
                 # Everything else counts as placeable
-                suffix = '_pwk'
+                suffix = 'pwk'
         # Maybe there already is a suffix?
         if obj.name.endswith(suffix):
             return ''
