@@ -839,7 +839,7 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
         if not rootDummy:
             self.report({'INFO'}, 'Failure: No rootdummy.')
             return {'CANCELLED'}
-        currentSuffix = nvb_def.Dummytype.getSuffix(obj.name)
+        currentSuffix = nvb_def.Dummytype.getSuffix(obj)
         newSuffix = nvb_def.Dummytype.generateSuffix(
                         obj,
                         rootDummy.nvb.classification)
