@@ -348,7 +348,6 @@ class Mdl():
             for node in self.nodes:
                 # Creates a blender object for this node
                 obj = node.createObject(options)
-                print(obj.name)
                 # Save the imported objects for animation import
                 if obj:
                     self.nodeNameResolver.insertObj(node.name,

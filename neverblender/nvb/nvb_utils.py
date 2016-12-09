@@ -180,8 +180,8 @@ def generateWalkmeshName(obj, rootDummy):
         suffix = nvb_def.Walkmeshtype.generateSuffix(obj, classifcation)
     else:
         return currentName
-    # This node already has a valid suffix/name
-    if not suffix or currentName.endswith(suffix):
+    # No suffix or this node already has a valid suffix/name
+    if (not suffix) or (suffix and currentName.endswith(suffix)):
         return currentName
     # Generate a valid name ourselves
     return rootDummy.name + '_' + suffix

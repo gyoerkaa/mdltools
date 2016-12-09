@@ -159,21 +159,14 @@ class Dummytype():
             if classification == Classification.DOOR:
                 if obj.nvb.dummytype in cls.dwktype2suffix:
                     suffix = cls.dwktype2suffix[obj.nvb.dummytype]
-                else:
-                    return ''
             elif classification == Classification.TILE:
-                pass  # No changes for tiles
+                # No changes for tiles
+                pass
             else:
                 # Everything else counts as placeable
                 if obj.nvb.dummytype in cls.pwktype2suffix:
                     suffix = cls.pwktype2suffix[obj.nvb.dummytype]
-                else:
-                    return ''
-        # Maybe there already is a suffix?
-        if not suffix or obj.name.endswith(suffix):
-            return ''
-        else:
-            return suffix
+        return suffix
 
     @classmethod
     def getSuffix(cls, obj):
@@ -268,9 +261,6 @@ class Walkmeshtype():
             else:
                 # Everything else counts as placeable
                 suffix = 'pwk'
-        # Maybe there already is a suffix?
-        if obj.name.endswith(suffix):
-            return ''
         else:
             return suffix
 
