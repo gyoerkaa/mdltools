@@ -14,17 +14,29 @@ indicate a special location for the engine. If a Dummy doesn't have a
 parent it is considered to be a {\textit{Rootdummy}} instead of a simple Dummy
 and the available options will change.
 
+The following types of Dummies are available:
 \begin{description}
     \item[None] Simple dummy without any special purpose.
     \item[Ground] Indicates the ground level for spells/ visual effects
     \item[Impact] Impact target for most spells/ visual effects.
-    \item[Head Hit] Spells/ Visual effects
-    \item[Head] Head location for Spells/ Visual effects
+    \item[Head Hit] Spells/ visual effects
+    \item[Head] Head location for Spells/ visual effects
     \item[Hand] Point of origin for (some) spells. If the placeable is using a spell/ visual effect this will be the point of origin most of the time.
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
+They are not mandatory. If a particular Dummy is missing from the mdl, the
+engine will use (0,0,0) as the default location for that Dummy.
 
+Selecting the dummytype is not enough to make them work, they need to have
+the correct name or to be precise the correct suffix.
+The export script will try to generate a valid name depending on
+the Dummys type, but it is recommended to do it manually to avoid naming
+conflicts.
+
+You can use the button next to the Dummytype selector to generate a
+working name. It will take the dummy's name and append the needed suffix for
+the selected Dummytype.
 
 \subsubsection{Rootdummy}
 Each mdl requires at least one Empty: The {\textit{Rootdummy}}. All children
@@ -61,19 +73,62 @@ attributes.
 
 \subsubsection{Trimeshes}
 
+\subsubsubsection*{Wirecolor}
+This is unused in-game. You can safely ignore it. This probably defines the
+colour for the object's wireframe in 3dsmax.
+
+\subsubsubsection*{Self-illumination color}
+Makes the mesh seem to glow. It does not act as a light source however.
+This will not be visible in blender's viewports or renderers.
+
+\subsubsubsection*{Ambient Color}
+OpenGl material property. The Aurora Engine uses per object ambient light,
+which you can define here. Blenders ambient light is defined on a per scene
+basis. Therefore this property not be visible in blender's viewports or
+renderers.
+
+\subsubsubsection*{Shininess}
+Makes the mesh seem to glow. The mesh does not act as a light source however.
+This will not be visible in blender's viewports or renderers.
+
+\subsubsubsection*{Tilefade}
+Only available for tiles. Controls wether this mesh will turn invisible to
+clear the view.
 \begin{description}
-    \item[Wirecolor] Unused in-game
-    \item[Self-illumination color] The object glows without actually casting any light.
-    \item[Ambient Color] OpenGl material property.
-    \item[Shininess]
-    \item[Tilefade] Only used it tile-models. Controls the fading of the Tile.
-    \item[Render] Controls wether this objects should be rendered in-game. It can still cast a shadow without being rendered.
-    \item[Shadow] Controls wether this objects should cast a shadow in-game.
-    \item[Beaming]
-    \item[Inherit Color]
-    \item[Rotate Texture] Used in tile-models.
-    \item[Transparency Hint] Used to give the engine an indicator in which order transparency should be calculated. Only relevant if the texutre has transparency.
-    \item[Smoothgroup] OpelnGl smoothing.
+    \item[None] This mesh will always be visible.
+    \item[Fade] The object will fade.
+    \item[Base] Unknown
+    \item[Neighbour] The object will fade along with meshes in neighbouring tiles.
+\end{description}
+
+\subsubsubsection*{Render}
+Controls wether this objects should be rendered in-game. Meshes can still
+cast a shadow without being rendered.
+
+\subsubsubsection*{Shadow}
+Controls wether this objects should cast a shadow.
+
+\subsubsubsection*{Beaming}
+Probably unused.
+
+\subsubsubsection*{Inherit Color}
+Probably unused.
+
+\subsubsubsection*{Rotatetexture}
+Only available for tiles. Auto-Rotates textures so the uvs are rotated
+the same way to avoids seams between tiles.
+
+\subsubsubsection*{Transparencyhint}
+Helps the engine to prioritize transparent meshes, similar to a z-buffer. If
+you have multiple meshes with transparent textures and have issues like
+flickering try changing this value.
+
+\subsubsubsection*{Smoothgroup}
+Controls how or wether at all to create smoothgroups or shading groups.
+\begin{description}
+    \item[Separate] Each face will have its own smoothgroup. This results in no smoothing at all.
+    \item[Single] All faces belong to a single smoothgroup. Meshes will be smoothed.
+    \item[Auto] Auto generates smoothgroups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
 
 \subsubsection{Danglymeshes}
@@ -81,7 +136,8 @@ Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
 wind, character movement and spells. A danglymesh has a set of weights which
 determine how far a vertex can be displaced from its original position.
 
-In addition to the properties of a trimesh it has the following properties:
+A Danglymesh has all properties of a trimesh in addition to the following
+properties:
 \begin{description}
     \item[Dangle group] The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
     \item[Period]
@@ -90,14 +146,24 @@ In addition to the properties of a trimesh it has the following properties:
 \end{description}
 
 \subsubsection{Skinmeshes}
+\todo{Skinmesh description}
+A Skinmesh has all properties of a trimesh in addition to the following
+properties:
+\todo{List properties}
 
 \subsubsection{Animeshes}
 Animmeshes are Trimeshes with animated UV textures. At the moment Animeshes
 will be imported as Trimeshes and thus lose their animations.
 
+An Animesh has all properties of a trimesh in addition to the following
+properties:
+\todo{List properties}
+
 \subsubsection{Walkmeshes}
 Walkmeshes indicate where a character can walk. The type depends on the type
 of mdl you want to create.
+
+You will need to select the appropriate type of the walkmesh.
 \begin{description}
     \item[Tileset] Walkmesh for tiles. Use Materials to denote surface type of
                    tile (stone, grass, ...). This will also affect footstep
