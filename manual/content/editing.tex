@@ -180,12 +180,21 @@ different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
 \subsection{Lamps}
+Blender lamp poperties will be for exporting a light.
+Exported properties are:
+\begin{list}
+    \item Color
+    \item Distance
+\end{list}
 
+\subsubsection*{Light type}
+There are some special light types, all of which are used to give builders
+the ability to select light color in the Toolset.
 \begin{description}
     \item[Mainlight 1] For Tiles only. Color can be changed in the Toolset.
     \item[Mainlight 2] For Tiles only. Color can be changed in the Toolset.
-    \item[Sourcelight 1] For Tiles only. Color can be changed in the Toolset.
-    \item[Sourcelight 2] For Tiles only. Color can be changed in the Toolset.
+    \item[Sourcelight 1] For Tiles only. This is acually a burning flame. Color can be changed in the Toolset.
+    \item[Sourcelight 2] For Tiles only. This is acually a burning flame. Color can be changed in the Toolset.
     \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
 \end{description}
 
@@ -194,6 +203,7 @@ This is unused in-game. You can safely ignore it. This probably defines the
 colour for the object's wireframe in 3dsmax.
 
 \subsubsection*{Priority}
+Unknown. Might control when the light source casts a shadow.
 
 \subsubsection*{Ambient Only}
 This controls if the light is only an ambient light source or
