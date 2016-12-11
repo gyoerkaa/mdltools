@@ -180,3 +180,48 @@ different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
 \subsection{Lamps}
+
+\begin{description}
+    \item[Mainlight 1] For Tiles only. Color can be changed in the Toolset.
+    \item[Mainlight 2] For Tiles only. Color can be changed in the Toolset.
+    \item[Sourcelight 1] For Tiles only. Color can be changed in the Toolset.
+    \item[Sourcelight 2] For Tiles only. Color can be changed in the Toolset.
+    \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
+\end{description}
+
+\subsubsection*{Wirecolor}
+This is unused in-game. You can safely ignore it. This probably defines the
+colour for the object's wireframe in 3dsmax.
+
+\subsubsection*{Priority}
+
+\subsubsection*{Ambient Only}
+This controls if the light is only an ambient light source or
+if it is directional as well.
+
+\subsubsection*{Fading}
+Unknown. Might activate some kind of distance fall off for the light.
+
+\subsubsection*{Shadows}
+Determines if this light is capable of casting shadows.
+
+\subsubsection*{Is Dynamic}
+Unknown.
+
+\subsubsection*{Affect Dynamic}
+This controls whether this light affects dynamic objects, i.e. characters.
+Disabling this will prevent this light from casting shadows with dynamic
+objects, but it will improve performance.
+
+This is basically a less strict version of the \textit{Shadows} setting.
+
+\subsubsection*{Lensflares}
+Add a series of lensflares for this light.
+
+Lensflares are unavailable for Mainlights or Sourcelights.
+\begin{description}
+    \item[Texture] Texture for this flare
+    \item[Colorshift] Unknown.
+    \item[Size] Size of the flares. This will scale the texture.
+    \item[Position] Distance from the lights origin.
+\end{description}
