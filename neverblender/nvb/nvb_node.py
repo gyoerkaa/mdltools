@@ -321,8 +321,8 @@ class Trimesh(Node):
         self.alpha = 1.0
         self.transparencyhint = 0
         self.selfillumcolor = (0.0, 0.0, 0.0)
-        self.ambient = (0.0, 0.0, 0.0)
-        self.diffuse = (0.0, 0.0, 0.0)
+        self.ambient = (1.0, 1.0, 1.0)
+        self.diffuse = (1.0, 1.0, 1.0)
         self.specular = (0.0, 0.0, 0.0)
         self.shininess = 0
         self.bitmap = ''
@@ -384,7 +384,8 @@ class Trimesh(Node):
                     self.alpha = l_float(line[1])
                 elif (label == 'transparencyhint'):
                     self.transparencyhint = l_int(line[1])
-                elif (label == 'selfillumcolor'):
+                elif ((label == 'selfillumcolor') or
+                      (label == 'setfillumcolor')):
                     self.selfillumcolor = (l_float(line[1]),
                                            l_float(line[2]),
                                            l_float(line[3]))
