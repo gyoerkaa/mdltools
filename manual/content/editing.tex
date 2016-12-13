@@ -88,8 +88,7 @@ basis. Therefore this property not be visible in blender's viewports or
 renderers.
 
 \subsubsubsection*{Shininess}
-Makes the mesh seem to glow. The mesh does not act as a light source however.
-This will not be visible in blender's viewports or renderers.
+A matching .txi file for the texture and a .env file are necessary
 
 \subsubsubsection*{Tilefade}
 Only available for tiles. Controls wether this mesh will turn invisible to
@@ -165,13 +164,13 @@ of mdl you want to create.
 
 You will need to select the appropriate type of the walkmesh.
 \begin{description}
-    \item[Tileset] Walkmesh for tiles. Use Materials to denote surface type of
-                   tile (stone, grass, ...). This will also affect footstep
-                   sound and grass growth.
-    \item[Door: Closed] The walkmesh for the closed state of the door
-    \item[Door: Open 1] The Walkmesh for the first open state of the door
-    \item[Door: Open 2] The Walkmesh for the second open state of the door
-    \item[Placeable]
+    \item[Tileset] Walkmesh for tiles. Assign Materials to each face to set the
+                   surface type of tile (stone, grass, unwalkable, ...).
+                   This will also affect footstep sounds and grass growth.
+    \item[Door: Closed] The walkmesh for the closed state of the door. Blocks movement.
+    \item[Door: Open 1] The Walkmesh for the first open state of the door. Blocks movement.
+    \item[Door: Open 2] The Walkmesh for the second open state of the door. Blocks movement.
+    \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
 
 \subsection{Emitters}
@@ -180,7 +179,7 @@ different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
 \subsection{Lamps}
-Blender lamp poperties will be for exporting a light.
+Blender lamp poperties will be used for exporting a light.
 Exported properties are:
 \begin{list}
     \item Color
@@ -200,7 +199,7 @@ the ability to select light color in the Toolset.
 
 \subsubsection*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
-colour for the object's wireframe in 3dsmax.
+color for the object's wireframe in 3dsmax.
 
 \subsubsection*{Priority}
 Unknown. Might control when the light source casts a shadow.
@@ -221,7 +220,7 @@ Unknown.
 \subsubsection*{Affect Dynamic}
 This controls whether this light affects dynamic objects, i.e. characters.
 Disabling this will prevent this light from casting shadows with dynamic
-objects, but it will improve performance.
+objects, but it will in turn improve performance.
 
 This is basically a less strict version of the \textit{Shadows} setting.
 
