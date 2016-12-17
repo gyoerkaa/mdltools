@@ -14,6 +14,13 @@ indicate a special location for the engine. If a Dummy doesn't have a
 parent it is considered to be a {\textit{Rootdummy}} instead of a simple Dummy
 and the available options will change.
 
+\begin{figure}
+  \centering
+  \includegraphics[trim=0 0 0 0, clip, width=\textwidth]{panel_dummy}
+  \caption[panel dummy]{Dummy Property Panel}
+  \label{fig:panel_dummy}
+\end{figure}
+
 The following types of Dummies are available:
 \begin{description}
     \item[None] Simple dummy without any special purpose.
@@ -73,24 +80,24 @@ attributes.
 
 \subsubsection{Trimeshes}
 
-\subsubsubsection*{Wirecolor}
+\paragraph*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
 colour for the object's wireframe in 3dsmax.
 
-\subsubsubsection*{Self-illumination color}
+\paragraph*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
 This will not be visible in blender's viewports or renderers.
 
-\subsubsubsection*{Ambient Color}
+\paragraph*{Ambient Color}
 OpenGl material property. The Aurora Engine uses per object ambient light,
 which you can define here. Blenders ambient light is defined on a per scene
 basis. Therefore this property not be visible in blender's viewports or
 renderers.
 
-\subsubsubsection*{Shininess}
+\paragraph*{Shininess}
 A matching .txi file for the texture and a .env file are necessary
 
-\subsubsubsection*{Tilefade}
+\paragraph*{Tilefade}
 Only available for tiles. Controls wether this mesh will turn invisible to
 clear the view.
 \begin{description}
@@ -100,29 +107,29 @@ clear the view.
     \item[Neighbour] The object will fade along with meshes in neighbouring tiles.
 \end{description}
 
-\subsubsubsection*{Render}
+\paragraph*{Render}
 Controls wether this objects should be rendered in-game. Meshes can still
 cast a shadow without being rendered.
 
-\subsubsubsection*{Shadow}
+\paragraph*{Shadow}
 Controls wether this objects should cast a shadow.
 
-\subsubsubsection*{Beaming}
+\paragraph*{Beaming}
 Probably unused.
 
-\subsubsubsection*{Inherit Color}
+\paragraph*{Inherit Color}
 Probably unused.
 
-\subsubsubsection*{Rotatetexture}
+\paragraph*{Rotatetexture}
 Only available for tiles. Auto-Rotates textures so the uvs are rotated
 the same way to avoids seams between tiles.
 
-\subsubsubsection*{Transparencyhint}
+\paragraph*{Transparencyhint}
 Helps the engine to prioritize transparent meshes, similar to a z-buffer. If
 you have multiple meshes with transparent textures and have issues like
 flickering try changing this value.
 
-\subsubsubsection*{Smoothgroup}
+\paragraph*{Smoothgroup}
 Controls how or wether at all to create smoothgroups or shading groups.
 \begin{description}
     \item[Separate] Each face will have its own smoothgroup. This results in no smoothing at all.
@@ -181,10 +188,10 @@ text. While all data will be retained, editing is difficult.
 \subsection{Lamps}
 Blender lamp poperties will be used for exporting a light.
 Exported properties are:
-\begin{list}
+\begin{itemize}
     \item Color
     \item Distance
-\end{list}
+\end{itemize}
 
 \subsubsection*{Light type}
 There are some special light types, all of which are used to give builders
