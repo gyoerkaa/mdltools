@@ -2,6 +2,11 @@
 
 \subsection{Import}
 
+\begin{description}[leftmargin=8em,style=nextline]
+  \item[Something] Text.
+  \item[Ought else] More text.
+\end{description}
+
 \begin{description}
     \item[Import Geometry] Import the geometry from the mdl file.
     \item[Import Walkmesh] Attempts to import a walkmesh. If the imported model is a placeable, the script will look for a {\textit{*.pwk}} file in the same folder. If the model is a door, it will look for a {\textit{*.dwk}} file. If the model is a tile, it will read the walkmesh directly from the {\textit{*.mdl}} file.
@@ -14,7 +19,6 @@
 
 \subsection{Export}
 
-\subsubsection*{Export Options}
 \begin{description}
     \item[Export Animations] ported regardless of this setting.
     \item[Export Walkmesh] Attempts to export a walkmesh. The type of exported walkmeshes depends on the objects classification.
