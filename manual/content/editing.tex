@@ -22,49 +22,50 @@ and the available options will change.
 \end{figure}
 
 The following types of Dummies are available:
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[None] Simple dummy without any special purpose.
     \item[Ground] Indicates the ground level for spells/ visual effects
     \item[Impact] Impact target for most spells/ visual effects.
     \item[Head Hit] Spells/ visual effects
     \item[Head] Head location for Spells/ visual effects
-    \item[Hand] Point of origin for (some) spells. If the placeable is using a spell/ visual effect this will be the point of origin most of the time.
+    \item[Hand] Point of origin for (some) spells. If a spell/ visual is origintating from this mdl, this will be the point of origin most of the time.
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
-They are not mandatory. If a particular Dummy is missing from the mdl, the
-engine will use (0,0,0) as the default location for that Dummy.
+Neither of the special Dummys are mandatory. If a particular Dummy is
+missing from the mdl, the engine will use (0,0,0) as the default location
+for that Dummy. \\
 
 Selecting the dummytype is not enough to make them work, they need to have
 the correct name or to be precise the correct suffix.
 The export script will try to generate a valid name depending on
 the Dummys type, but it is recommended to do it manually to avoid naming
-conflicts.
+conflicts. \\
 
 You can use the button next to the Dummytype selector to generate a
 working name. It will take the dummy's name and append the needed suffix for
-the selected Dummytype.
+the selected Dummytype. \\
 
 \subsubsection{Rootdummy}
 Each mdl requires at least one Empty: The {\textit{Rootdummy}}. All children
 of a {\textit{Rootdummy}} are considered to be part of the same mdl. All
 objects which are to be exported have to be a descendant of
-the {\textit{Rootdummy}}.
+the {\textit{Rootdummy}}. \\
 
-An Empty with the type Dummy and without a parent will autmatically be
+An Empty with the type Dummy and without a parent will automatically be
 considered a Rootummy. The {\textit{Rootdummy}} must have the same name as the
-mdl file (minus the files extension). Rootdummys hold additional
+mdl file (minus the file extension). Rootdummys hold additional
 information about the model and the Aurora Property panel will
 change accordingly.
 
+They have the following properties:
 \begin{description}
     \item[Classification] TODO
     \item[Supermodel] References another mdl file. All animations will be available in this mdl.
     \item[Animationscale] Unknown
 \end{description}
-It is also used to store the beginning and end frames of specific animations
-(walk, run, sit,\ldots). It is not necessary to select the Rootdummy to access these
-values, selecting a child of the Rootdummy will do.
+It is not necessary to select the Rootdummy to access
+these values, selecting any child of the Rootdummy will do.
 
 \subsubsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
@@ -79,6 +80,8 @@ attributes.
 \subsection{Meshes}
 
 \subsubsection{Trimeshes}
+The default type of of mesh consisting of triangles. It is not necessary to
+to convert the faces to triangles, the export script will handle that.
 
 \paragraph*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
@@ -115,10 +118,10 @@ cast a shadow without being rendered.
 Controls wether this objects should cast a shadow.
 
 \paragraph*{Beaming}
-Probably unused.
+Unknown. Probably unused.
 
 \paragraph*{Inherit Color}
-Probably unused.
+Unknown. Probably unused.
 
 \paragraph*{Rotatetexture}
 Only available for tiles. Auto-Rotates textures so the uvs are rotated
