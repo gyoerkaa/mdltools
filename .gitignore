@@ -45,3 +45,4 @@ nosetests.xml
 # Binaries
 *.pdf
 *.zip
+*.7z
