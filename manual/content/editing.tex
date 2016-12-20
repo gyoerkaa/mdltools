@@ -1,22 +1,22 @@
-\section{Editing}
+\chapter{Editing}
 There are three types of objects which can be exported as mdl: Empties,
 Meshes and Lamps. Other objects like curves and surfaces will have to be
 converted to meshes before attempting to export them.
 
-\subsection{Empties}
+\section{Empties}
 Empties appear in mdl files as Dummies. Like in blender they are used to group
 objects. In addition there are special types of Dummies which for
 example indicate locations for spells effects.
 
-\subsubsection{Dummy}
+\subsection{Dummy}
 Simple Empties/Dummies with a parent are either used to group objects or
 indicate a special location for the engine. If a Dummy doesn't have a
 parent it is considered to be a {\textit{Rootdummy}} instead of a simple Dummy
-and the available options will change.
+and the available options will change. \\
 
 \begin{figure}
   \centering
-  \includegraphics[trim=0 0 0 0, clip, width=\textwidth]{panel_dummy}
+  \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_dummy}
   \caption[panel dummy]{Dummy Property Panel}
   \label{fig:panel_dummy}
 \end{figure}
@@ -46,7 +46,7 @@ You can use the button next to the Dummytype selector to generate a
 working name. It will take the dummy's name and append the needed suffix for
 the selected Dummytype. \\
 
-\subsubsection{Rootdummy}
+\subsection{Rootdummy}
 Each mdl requires at least one Empty: The {\textit{Rootdummy}}. All children
 of a {\textit{Rootdummy}} are considered to be part of the same mdl. All
 objects which are to be exported have to be a descendant of
@@ -67,40 +67,40 @@ They have the following properties:
 It is not necessary to select the Rootdummy to access
 these values, selecting any child of the Rootdummy will do.
 
-\subsubsection{Reference Node}
+\subsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
 reference other mdl files. Reference nodes can be found in some spells and
 most of the time references fx\_ref.
 
-\subsubsection{Patch Node}
+\subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some spells, but
 they seem to behave excatly like normal dummy nodes, i.e they have the same
 attributes.
 
-\subsection{Meshes}
+\section{Meshes}
 
-\subsubsection{Trimeshes}
+\subsection{Trimeshes}
 The default type of of mesh consisting of triangles. It is not necessary to
 to convert the faces to triangles, the export script will handle that.
 
-\paragraph*{Wirecolor}
+\subsubsection*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
 colour for the object's wireframe in 3dsmax.
 
-\paragraph*{Self-Illumination Color}
+\subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
 This will not be visible in blender's viewports or renderers.
 
-\paragraph*{Ambient Color}
+\subsubsection*{Ambient Color}
 OpenGl material property. The Aurora Engine uses per object ambient light,
 which you can define here. Blenders ambient light is defined on a per scene
 basis. Therefore this property not be visible in blender's viewports or
 renderers.
 
-\paragraph*{Shininess}
+\subsubsection*{Shininess}
 A matching .txi file for the texture and a .env file are necessary
 
-\paragraph*{Tilefade}
+\subsubsection*{Tilefade}
 Only available for tiles. Controls wether this mesh will turn invisible to
 clear the view.
 \begin{description}
@@ -110,29 +110,29 @@ clear the view.
     \item[Neighbour] The object will fade along with meshes in neighbouring tiles.
 \end{description}
 
-\paragraph*{Render}
+\subsubsection*{Render}
 Controls wether this objects should be rendered in-game. Meshes can still
 cast a shadow without being rendered.
 
-\paragraph*{Shadow}
+\subsubsection*{Shadow}
 Controls wether this objects should cast a shadow.
 
-\paragraph*{Beaming}
+\subsubsection*{Beaming}
 Unknown. Probably unused.
 
-\paragraph*{Inherit Color}
+\subsubsection*{Inherit Color}
 Unknown. Probably unused.
 
-\paragraph*{Rotatetexture}
+\subsubsection*{Rotatetexture}
 Only available for tiles. Auto-Rotates textures so the uvs are rotated
 the same way to avoids seams between tiles.
 
-\paragraph*{Transparencyhint}
+\subsubsection*{Transparencyhint}
 Helps the engine to prioritize transparent meshes, similar to a z-buffer. If
 you have multiple meshes with transparent textures and have issues like
 flickering try changing this value.
 
-\paragraph*{Smoothgroup}
+\subsubsection*{Smoothgroup}
 Controls how or wether at all to create smoothgroups or shading groups.
 \begin{description}
     \item[Separate] Each face will have its own smoothgroup. This results in no smoothing at all.
@@ -140,7 +140,7 @@ Controls how or wether at all to create smoothgroups or shading groups.
     \item[Auto] Auto generates smoothgroups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
 
-\subsubsection{Danglymeshes}
+\subsection{Danglymeshes}
 Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
 wind, character movement and spells. A danglymesh has a set of weights which
 determine how far a vertex can be displaced from its original position.
@@ -154,13 +154,13 @@ properties:
     \item[Displacement]
 \end{description}
 
-\subsubsection{Skinmeshes}
+\subsection{Skinmeshes}
 \todo{Skinmesh description}
 A Skinmesh has all properties of a trimesh in addition to the following
 properties:
 \todo{List properties}
 
-\subsubsection{Animeshes}
+\subsection{Animeshes}
 Animmeshes are Trimeshes with animated UV textures. At the moment Animeshes
 will be imported as Trimeshes and thus lose their animations.
 
@@ -168,11 +168,11 @@ An Animesh has all properties of a trimesh in addition to the following
 properties:
 \todo{List properties}
 
-\subsubsection{Walkmeshes}
+\subsection{Walkmeshes}
 Walkmeshes indicate where a character can walk. The type depends on the type
-of mdl you want to create.
+of mdl you want to create. \\
 
-You will need to select the appropriate type of the walkmesh.
+You will need to select the appropriate type of walkmesh:
 \begin{description}
     \item[Tileset] Walkmesh for tiles. Assign Materials to each face to set the
                    surface type of tile (stone, grass, unwalkable, ...).
@@ -183,12 +183,12 @@ You will need to select the appropriate type of the walkmesh.
     \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
 
-\subsection{Emitters}
+\section{Emitters}
 Support for Emitters is rudimentary. Blenders particle systems is too
 different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
-\subsection{Lamps}
+\section{Lamps}
 Blender lamp poperties will be used for exporting a light.
 Exported properties are:
 \begin{itemize}
@@ -196,7 +196,7 @@ Exported properties are:
 \item Distance
 \end{itemize}
 
-\subsubsection*{Light type}
+\subsection*{Light type}
 There are some special light types, all of which are used to give builders
 the ability to select light color in the Toolset.
 \begin{description}
@@ -207,34 +207,34 @@ the ability to select light color in the Toolset.
     \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
 \end{description}
 
-\subsubsection*{Wirecolor}
+\subsection*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
 color for the object's wireframe in 3dsmax.
 
-\subsubsection*{Priority}
+\subsection*{Priority}
 Unknown. Might control when the light source casts a shadow.
 
-\subsubsection*{Ambient Only}
+\subsection*{Ambient Only}
 This controls if the light is only an ambient light source or
 if it is directional as well.
 
-\subsubsection*{Fading}
+\subsection*{Fading}
 Unknown. Might activate some kind of distance fall off for the light.
 
-\subsubsection*{Shadows}
+\subsection*{Shadows}
 Determines if this light is capable of casting shadows.
 
-\subsubsection*{Is Dynamic}
+\subsection*{Is Dynamic}
 Unknown.
 
-\subsubsection*{Affect Dynamic}
+\subsection*{Affect Dynamic}
 This controls whether this light affects dynamic objects, i.e. characters.
 Disabling this will prevent this light from casting shadows with dynamic
 objects, but it will in turn improve performance.
 
 This is basically a less strict version of the \textit{Shadows} setting.
 
-\subsubsection*{Lensflares}
+\subsection*{Lensflares}
 Add a series of lensflares for this light.
 
 Lensflares are unavailable for Mainlights or Sourcelights.
