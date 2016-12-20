@@ -40,4 +40,8 @@ nosetests.xml
 *.log
 *.out
 *.toc
+*.synctex.gz
+
+# Binaries
 *.pdf
+*.zip

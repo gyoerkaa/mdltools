@@ -28,7 +28,7 @@ The following types of Dummies are available:
     \item[Impact] Impact target for most spells/ visual effects.
     \item[Head Hit] Spells/ visual effects
     \item[Head] Head location for Spells/ visual effects
-    \item[Hand] Point of origin for (some) spells. If a spell/ visual is origintating from this mdl, this will be the point of origin most of the time.
+    \item[Hand] Point of origin for (some) spells. If a spell/ visual is originating from this mdl, this will be the point of origin most of the time.
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
@@ -37,7 +37,7 @@ missing from the mdl, the engine will use (0,0,0) as the default location
 for that Dummy. \\
 
 Selecting the dummytype is not enough to make them work, they need to have
-the correct name or to be precise the correct suffix.
+the correct name or to be precise the suffix.
 The export script will try to generate a valid name depending on
 the Dummys type, but it is recommended to do it manually to avoid naming
 conflicts. \\
@@ -69,12 +69,12 @@ these values, selecting any child of the Rootdummy will do.
 
 \subsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
-reference other mdl files. Reference nodes can be found in some spells and
+reference other mdl files. These nodes can be found in some spells and
 most of the time references fx\_ref.
 
 \subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some spells, but
-they seem to behave excatly like normal dummy nodes, i.e they have the same
+they seem to behave exactly like normal dummy nodes, i.e they have the same
 attributes.
 
 \section{Meshes}
@@ -85,14 +85,14 @@ to convert the faces to triangles, the export script will handle that.
 
 \subsubsection*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
-colour for the object's wireframe in 3dsmax.
+colour for the object's wire-frame in 3dsmax.
 
 \subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
 This will not be visible in blender's viewports or renderers.
 
 \subsubsection*{Ambient Color}
-OpenGl material property. The Aurora Engine uses per object ambient light,
+OpenGL material property. The Aurora Engine uses per-object ambient light,
 which you can define here. Blenders ambient light is defined on a per scene
 basis. Therefore this property not be visible in blender's viewports or
 renderers.
@@ -101,7 +101,7 @@ renderers.
 A matching .txi file for the texture and a .env file are necessary
 
 \subsubsection*{Tilefade}
-Only available for tiles. Controls wether this mesh will turn invisible to
+Only available for tiles. Controls whether this mesh will turn invisible to
 clear the view.
 \begin{description}
     \item[None] This mesh will always be visible.
@@ -111,11 +111,11 @@ clear the view.
 \end{description}
 
 \subsubsection*{Render}
-Controls wether this objects should be rendered in-game. Meshes can still
+Controls whether this objects should be rendered in-game. Meshes can still
 cast a shadow without being rendered.
 
 \subsubsection*{Shadow}
-Controls wether this objects should cast a shadow.
+Controls whether this objects should cast a shadow.
 
 \subsubsection*{Beaming}
 Unknown. Probably unused.
@@ -124,7 +124,7 @@ Unknown. Probably unused.
 Unknown. Probably unused.
 
 \subsubsection*{Rotatetexture}
-Only available for tiles. Auto-Rotates textures so the uvs are rotated
+Only available for tiles. Auto-Rotates textures so the UVs are rotated
 the same way to avoids seams between tiles.
 
 \subsubsection*{Transparencyhint}
@@ -161,7 +161,7 @@ properties:
 \todo{List properties}
 
 \subsection{Animeshes}
-Animmeshes are Trimeshes with animated UV textures. At the moment Animeshes
+Animeshes are Trimeshes with animated UV textures. At the moment Animeshes
 will be imported as Trimeshes and thus lose their animations.
 
 An Animesh has all properties of a trimesh in addition to the following
@@ -189,7 +189,7 @@ different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
 \section{Lamps}
-Blender lamp poperties will be used for exporting a light.
+Blender lamp properties will be used for exporting a light.
 Exported properties are:
 \begin{itemize}
 \item Color
@@ -202,8 +202,8 @@ the ability to select light color in the Toolset.
 \begin{description}
     \item[Mainlight 1] For Tiles only. Color can be changed in the Toolset.
     \item[Mainlight 2] For Tiles only. Color can be changed in the Toolset.
-    \item[Sourcelight 1] For Tiles only. This is acually a burning flame. Color can be changed in the Toolset.
-    \item[Sourcelight 2] For Tiles only. This is acually a burning flame. Color can be changed in the Toolset.
+    \item[Sourcelight 1] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
+    \item[Sourcelight 2] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
     \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
 \end{description}
 
@@ -235,9 +235,9 @@ objects, but it will in turn improve performance.
 This is basically a less strict version of the \textit{Shadows} setting.
 
 \subsection*{Lensflares}
-Add a series of lensflares for this light.
+Add a series of lens-flares for this light.
 
-Lensflares are unavailable for Mainlights or Sourcelights.
+Lens-flares are unavailable for Mainlights or Sourcelights.
 \begin{description}
     \item[Texture] Texture for this flare
     \item[Colorshift] Unknown. Possibly color difference from the light color.
