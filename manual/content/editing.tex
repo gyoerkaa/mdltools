@@ -59,7 +59,7 @@ information about the model and the Aurora Property panel will
 change accordingly.
 
 They have the following properties:
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Classification] TODO
     \item[Supermodel] References another mdl file. All animations will be available in this mdl.
     \item[Animationscale] Unknown
@@ -103,7 +103,7 @@ A matching .txi file for the texture and a .env file are necessary
 \subsubsection*{Tilefade}
 Only available for tiles. Controls whether this mesh will turn invisible to
 clear the view.
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[None] This mesh will always be visible.
     \item[Fade] The object will fade.
     \item[Base] Unknown
@@ -134,7 +134,7 @@ flickering try changing this value.
 
 \subsubsection*{Smoothgroup}
 Controls how or wether at all to create smoothgroups or shading groups.
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Separate] Each face will have its own smoothgroup. This results in no smoothing at all.
     \item[Single] All faces belong to a single smoothgroup. Meshes will be smoothed.
     \item[Auto] Auto generates smoothgroups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
@@ -147,7 +147,7 @@ determine how far a vertex can be displaced from its original position.
 
 A Danglymesh has all properties of a trimesh in addition to the following
 properties:
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Dangle group] The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
     \item[Period]
     \item[Tightness]
@@ -173,7 +173,7 @@ Walkmeshes indicate where a character can walk. The type depends on the type
 of mdl you want to create. \\
 
 You will need to select the appropriate type of walkmesh:
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Tileset] Walkmesh for tiles. Assign Materials to each face to set the
                    surface type of tile (stone, grass, unwalkable, ...).
                    This will also affect footstep sounds and grass growth.
@@ -199,7 +199,7 @@ Exported properties are:
 \subsection*{Light type}
 There are some special light types, all of which are used to give builders
 the ability to select light color in the Toolset.
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Mainlight 1] For Tiles only. Color can be changed in the Toolset.
     \item[Mainlight 2] For Tiles only. Color can be changed in the Toolset.
     \item[Sourcelight 1] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
@@ -238,7 +238,7 @@ This is basically a less strict version of the \textit{Shadows} setting.
 Add a series of lens-flares for this light.
 
 Lens-flares are unavailable for Mainlights or Sourcelights.
-\begin{description}
+\begin{description}[leftmargin=6em,style=nextline]
     \item[Texture] Texture for this flare
     \item[Colorshift] Unknown. Possibly color difference from the light color.
     \item[Size] Size of the flares. This will scale the texture.
