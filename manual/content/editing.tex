@@ -5,13 +5,13 @@ converted to meshes before attempting to export them.
 
 \section{Empties}
 Empties appear in mdl files as Dummies. Like in blender they are used to group
-objects. In addition there are special types of Dummies which for
+objects. In addition there are special types of Empties/Dummies which for
 example indicate locations for spells effects.
 
 \subsection{Dummy}
-Simple Empties/Dummies with a parent are either used to group objects or
+Simple Empties with a parent are either used to group objects or
 indicate a special location for the engine. If a Dummy doesn't have a
-parent it is considered to be a {\textit{Rootdummy}} instead of a simple Dummy
+parent it is considered to be a Rootdummy instead of a simple Dummy
 and the available options will change. \\
 
 \begin{figure}
@@ -47,25 +47,24 @@ working name. It will take the dummy's name and append the needed suffix for
 the selected Dummytype. \\
 
 \subsection{Rootdummy}
-Each mdl requires at least one Empty: The {\textit{Rootdummy}}. All children
-of a {\textit{Rootdummy}} are considered to be part of the same mdl. All
-objects which are to be exported have to be a descendant of
-the {\textit{Rootdummy}}. \\
+Each mdl requires at least one Empty: The Rootdummy. All children
+of this Rootdummy are considered to be part of the same mdl. \\
 
 An Empty with the type Dummy and without a parent will automatically be
-considered a Rootummy. The {\textit{Rootdummy}} must have the same name as the
+considered a Rootummy. The Rootdummy must have the same name as the
 mdl file (minus the file extension). Rootdummys hold additional
 information about the model and the Aurora Property panel will
 change accordingly.
 
-They have the following properties:
-\begin{description}[leftmargin=6em,style=nextline]
-    \item[Classification] TODO
-    \item[Supermodel] References another mdl file. All animations will be available in this mdl.
-    \item[Animationscale] Unknown
-\end{description}
-It is not necessary to select the Rootdummy to access
-these values, selecting any child of the Rootdummy will do.
+\subsubsection*{Classification}
+TODO
+
+\subsubsection*{Supermodel}
+Reference to another mdl file. All animations from that file 
+will be available in this mdl.
+
+\subsubsection*{Animationscale}
+Unknown
 
 \subsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
@@ -80,12 +79,12 @@ attributes.
 \section{Meshes}
 
 \subsection{Trimeshes}
-The default type of of mesh consisting of triangles. It is not necessary to
-to convert the faces to triangles, the export script will handle that.
+The default type of mesh consisting of triangles. It is not necessary to convert 
+the faces to triangles, the export script will handle that.
 
 \subsubsection*{Wirecolor}
 This is unused in-game. You can safely ignore it. This probably defines the
-colour for the object's wire-frame in 3dsmax.
+color for the object's wire-frame in 3dsmax.
 
 \subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
@@ -133,11 +132,11 @@ you have multiple meshes with transparent textures and have issues like
 flickering try changing this value.
 
 \subsubsection*{Smoothgroup}
-Controls how or wether at all to create smoothgroups or shading groups.
+Controls how or whether at all to create smoothing groups or shading groups.
 \begin{description}[leftmargin=6em,style=nextline]
-    \item[Separate] Each face will have its own smoothgroup. This results in no smoothing at all.
-    \item[Single] All faces belong to a single smoothgroup. Meshes will be smoothed.
-    \item[Auto] Auto generates smoothgroups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
+    \item[Separate] Each face will have its own smoothing group. This results in no smoothing at all.
+    \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed.
+    \item[Auto] Auto generate smoothing group, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
 
 \subsection{Danglymeshes}
@@ -145,8 +144,8 @@ Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
 wind, character movement and spells. A danglymesh has a set of weights which
 determine how far a vertex can be displaced from its original position.
 
-A Danglymesh has all properties of a trimesh in addition to the following
-properties:
+A Danglymesh has the following properties in addition to the properties of a 
+trimesh:
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Dangle group] The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
     \item[Period]
@@ -156,30 +155,29 @@ properties:
 
 \subsection{Skinmeshes}
 \todo{Skinmesh description}
-A Skinmesh has all properties of a trimesh in addition to the following
-properties:
+A Skinmesh has the following properties in addition to the properties of a 
+trimesh:
 \todo{List properties}
 
 \subsection{Animeshes}
 Animeshes are Trimeshes with animated UV textures. At the moment Animeshes
-will be imported as Trimeshes and thus lose their animations.
+are imported as Trimeshes and will thus lose their animations.
 
-An Animesh has all properties of a trimesh in addition to the following
-properties:
+An Animesh has the following properties in addition to the properties of a 
+trimesh:
 \todo{List properties}
 
 \subsection{Walkmeshes}
-Walkmeshes indicate where a character can walk. The type depends on the type
-of mdl you want to create. \\
-
-You will need to select the appropriate type of walkmesh:
+Walkmeshes indicate where a character can walk. It is necessary to select 
+the appropriate type of walkmesh, which depends on the type of model itself. 
+The following types are available:
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Tileset] Walkmesh for tiles. Assign Materials to each face to set the
                    surface type of tile (stone, grass, unwalkable, ...).
                    This will also affect footstep sounds and grass growth.
-    \item[Door: Closed] The walkmesh for the closed state of the door. Blocks movement.
-    \item[Door: Open 1] The Walkmesh for the first open state of the door. Blocks movement.
-    \item[Door: Open 2] The Walkmesh for the second open state of the door. Blocks movement.
+    \item[Door: Closed] The walkmesh for the closed state of a door. Blocks movement.
+    \item[Door: Open 1] The Walkmesh for the first open state of a door. Blocks movement.
+    \item[Door: Open 2] The Walkmesh for the second open state of a door. Blocks movement.
     \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
 
