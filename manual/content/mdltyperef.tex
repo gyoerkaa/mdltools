@@ -23,7 +23,7 @@ following dummies:
     \item[closing2] Transition from open2 to closed.
     \item[trans] Unknown
     \item[die] Animation when the placeable is destroyed. Most placeables omit this altogether or sink into the ground.
-    \item[dead] Dead state. Most placeables omit this altogether or have a single position key below ground level.
+    \item[dead] Dead state. Most placeables omit this or have a single position key below ground level.
 \end{description}
 
 \section{Effects}
@@ -34,18 +34,18 @@ TODO
 While not mandatory, it is recommended that placeables have at very least the
 following dummies:
 \begin{itemize}
-\item Use1
-\item Use2
-\item Impact
+	\item Use1
+	\item Use2
+	\item Impact
 \end{itemize}
 They will ensure it can be used properly and spell/effects hit the right spot.
 
 \subsection*{Possible Animations}
 \begin{description}
     \item[default] Default state. It is recommended to add this if there are other animations present. If this is omitted and other animations are present a placeable can't be set to static in the toolset (else the game will crash)
-    \item[on]
+    \item[on] On state
     \item[on2off] Transition from on to off state.
-    \item[off]
+    \item[off] Off state
     \item[off2on] Transition from off to on state.
     \item[close] Closed state.
     \item[close2open] Transition from closed to open state.
@@ -61,12 +61,13 @@ They will ensure it can be used properly and spell/effects hit the right spot.
 \subsection*{Tile Walkmesh (AABB)}
 The walkmesh must be parented to the the {\textit{Rootdummy}} object.
 No overlapping faces are allowed. To specify the surface type, it is necessary
-to add the walkmesh materials to the object. You can add all walkmesh
+to add walkmesh materials to the object. You can add all walkmesh
 materials by clicking on the {\textit{Load walkmesh materials}} Button in the
 Aurora mesh properties panel. \\ \\
 
 The walkmesh materials are then added as materials slots and accessible
-through the materials tab in the object properties. \\ \\
+through the materials tab in the object properties. You'll need to assign
+a material to every face. \\ \\
 
 The export script will create an aabb tree from the walkmesh during export
 and add it to the {\textit{*.mdl}} file. It will also create a
