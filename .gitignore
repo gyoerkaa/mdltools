@@ -37,8 +37,12 @@ nosetests.xml
 
 # Latex
 *.aux
+*.bcf
+*.idx
 *.log
 *.out
+*.ptc
+*.run.xml
 *.toc
 *.synctex.gz
 
