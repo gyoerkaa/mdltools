@@ -37,13 +37,17 @@ nosetests.xml
 
 # Latex
 *.aux
+*.bbl
 *.bcf
+*.blg
 *.idx
+*.ilg
+*.ind
 *.log
-*.out
 *.ptc
 *.run.xml
 *.toc
+*.out
 *.synctex.gz
 
 # Binaries
