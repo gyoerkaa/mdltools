@@ -88,25 +88,25 @@ The default type of mesh consisting of triangles. It is not necessary to convert
 the faces to triangles, the export script will handle that.
 
 \subsubsection*{Wirecolor}
-This is unused in-game. You can safely ignore it. This probably defines the
-color for the object's wire-frame in 3dsmax.
+This property is unused by the engine. It can safely be ignored. It probably defines the
+color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
+compatibility reasons.
 
 \subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
-This will not be visible in blender's viewports or renderers.
+This will not be displayed in blender's viewports or renderers.
 
 \subsubsection*{Ambient Color}
-OpenGL material property. The Aurora Engine uses per-object ambient light,
-which you can define here. Blenders ambient light is defined on a per scene
-basis. Therefore this property not be visible in blender's viewports or
-renderers.
+OpenGL material property. The engine uses per-object ambient light whereas Blender's 
+defines it on a per scene basis. Therefore this property is not displayed in 
+Blender's viewports or renderers.
 
 \subsubsection*{Shininess}
-A matching .txi file for the texture and a .env file are necessary
+Shininess requires a matching .txi file for the texture and a .env file.
 
 \subsubsection*{Tilefade}
-Only available for tiles. Controls whether this mesh will turn invisible to
-clear the view.
+This property is only relevant for tiles. It controls whether this 
+mesh will turn invisible to clear the view.
 \begin{description}[leftmargin=6em,style=nextline]
     \item[None] This mesh will always be visible.
     \item[Fade] The object will fade.
@@ -115,7 +115,7 @@ clear the view.
 \end{description}
 
 \subsubsection*{Render}
-Controls whether this objects should be rendered in-game. Meshes can still
+This property controls whether this object should be rendered in-game. Meshes can still
 cast a shadow without being rendered.
 
 \subsubsection*{Shadow}
@@ -132,22 +132,22 @@ Only available for tiles. Auto-Rotates textures so the UVs are rotated
 the same way to avoids seams between tiles.
 
 \subsubsection*{Transparencyhint}
-Helps the engine to prioritize transparent meshes, similar to a z-buffer. If
-you have multiple meshes with transparent textures and have issues like
-flickering try changing this value.
+This helps the engine prioritize transparent meshes, similar to a z-buffer.
+Multiple overlapping meshes with transparency can cause issues like
+flickering, which may be resolved by changing this property.
 
 \subsubsection*{Smoothgroup}
 Controls how or whether at all to create smoothing groups or shading groups.
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Separate] Each face will have its own smoothing group. This results in no smoothing at all.
-    \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed.
-    \item[Auto] Auto generate smoothing group, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
+    \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed completely.
+    \item[Auto] Auto generate smoothing groups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
 
 \subsection{Danglymeshes}
-Danglymeshes are Trimeshes which are"bouncy" or "dangly". They are affected by
-wind, character movement and spells. A danglymesh has a set of weights which
-determine how far a vertex can be displaced from its original position.
+Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
+wind, character movement and visual effects. A set of weights determine how far a 
+vertex can be displaced from its original position.
 
 A Danglymesh has the following properties in addition to the properties of a 
 trimesh:
@@ -168,9 +168,6 @@ trimesh:
 Animeshes are Trimeshes with animated UV textures. At the moment Animeshes
 are imported as Trimeshes and will thus lose their animations.
 
-An Animesh has the following properties in addition to the properties of a 
-trimesh:
-\todo{List properties}
 
 \subsection{Walkmeshes}
 Walkmeshes indicate where a character can walk. It is necessary to select 
