@@ -1,18 +1,43 @@
 \chapter{Editing}
-There are three types of objects which can be exported as mdl: Empties,
+There are three types of objects which can be exported to a MDL: Empties,
 Meshes and Lamps. Other objects like curves and surfaces will have to be
 converted to meshes before attempting to export them.
 
 \section{Empties}
-Empties appear in mdl files as Dummies. Like in blender they are used to group
+Empties appear in MDLs as Dummies. Like in Blender they are used to group
 objects. In addition there are special types of Empties/Dummies which for
-example indicate locations for spells effects.
+example indicate locations for effects.
+
+\subsection{Aurora Root}
+Each MDL requires at least one Empty: The Aurora Root or Rootdummy. It holds 
+additional information and indicates which objects belong to an MDL. All children
+of a single Rootdummy are considered to be part of the same MDL. \\
+
+An Empty without a parent is automatically considered a Rootdummy. 
+The Rootdummy must have the same name as the MDL file (minus the file extension). \\
+
+A Rootdummy has the following properties:
+\subsubsection*{Classification}
+\begin{description}[leftmargin=6em,style=nextline]
+    \item[Item] Any inventory item.
+    \item[GUI] Unknown.
+    \item[Effect] For visual effects.
+    \item[Door] Doors, be it generic or for tilesets.
+    \item[Character] Creature or placeables. 
+    \item[Tile] For tilesets.
+    \item[Unknown] Avoid using this. It may be set during import.
+\end{description}
+
+\subsubsection*{Supermodel}
+Reference to another MDL file. All animations from that file 
+will be available in this MDL.
+
+\subsubsection*{Animationscale}
+Unknown
 
 \subsection{Dummy}
 Simple Empties with a parent are either used to group objects or
-indicate a special location for the engine. If a Dummy doesn't have a
-parent it is considered to be a Rootdummy instead of a simple Dummy
-and the available options will change. \\
+indicate a special location to the engine. \\
 
 \begin{figure}
   \centering
@@ -32,51 +57,23 @@ The following types of Dummies are available:
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
-Neither of the special Dummys are mandatory. If a particular Dummy is
-missing from the mdl, the engine will use (0,0,0) as the default location
-for that Dummy. \\
+None of the special Dummies are mandatory. If one is
+missing from the MDL, the engine will use (0,0,0) as the default location
+for that particular Dummy. \\
 
-Selecting the dummytype is not enough to make them work, they need to have
-the correct name or to be precise the suffix.
+Selecting the type is not enough to make a Dummy work, they need to have
+the correct name or to be precise: The correct suffix.
 The export script will try to generate a valid name depending on
-the Dummys type, but it is recommended to do it manually to avoid naming
+the Dummy's type, but it is recommended to do it manually to avoid naming
 conflicts. \\
 
-You can use the button next to the Dummytype selector to generate a
-working name. It will take the dummy's name and append the needed suffix for
-the selected Dummytype. \\
-
-\subsection{Rootdummy}
-Each mdl requires at least one Empty: The Rootdummy. All children
-of this Rootdummy are considered to be part of the same mdl. \\
-
-An Empty with the type Dummy and without a parent will automatically be
-considered a Rootummy. The Rootdummy must have the same name as the
-mdl file (minus the file extension). Rootdummys hold additional
-information about the model and the Aurora Property panel will
-change accordingly.
-
-\subsubsection*{Classification}
-\begin{description}[leftmargin=6em,style=nextline]
-    \item[Item] Any inventory item.
-    \item[GUI] Unknown.
-    \item[Effect] For visual effects.
-    \item[Door] Doors, be it generic or for tilesets.
-    \item[Character] Creature or placeables. 
-    \item[Tile] For tilesets.
-    \item[Unknown] Avoid using this. It may be set during import.
-\end{description}
-
-\subsubsection*{Supermodel}
-Reference to another mdl file. All animations from that file 
-will be available in this mdl.
-
-\subsubsection*{Animationscale}
-Unknown
+Use the button next to the Dummytype selector to generate a
+working name. The Rootdummy's name will be used to create a working
+suffix for the selected Dummytype. \\
 
 \subsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
-reference other mdl files. These nodes can be found in some spells and
+reference other MDL files. These nodes can be found in some spells and
 most of the time references fx\_ref.
 
 \subsection{Patch Node}

@@ -62,14 +62,51 @@ class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
-class NVB_PANEL_EMPTY(bpy.types.Panel):
+class NVB_PANEL_ROOTDUMMY(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
-    This is only available for EMPTY objects.
-    It is located under the object panel in the properties window
+    This is only available for EMPTY objects without a parent.
+    It is located under the object panel in the properties window,
     """
 
-    bl_idname = 'nvb.propertypanel.empty'
+    bl_idname = 'nvb.propertypanel.rootdummy'
+    bl_label = 'Aurora Root Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        """Render only when of EMTPY-type and no parent."""
+        obj = context.object
+        return (obj and (obj.type == 'EMPTY') and (obj.parent is None))
+
+    def draw(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        layout = self.layout
+
+        row = layout.row()
+        box = row.box()
+        split = box.split()
+        col = split.column()
+        col.label(text='Classification:')
+        col.label(text='Supermodel:')
+        col.label(text='Animation Scale:')
+        col = split.column()
+        col.prop(obj.nvb, 'classification', text='')
+        col.prop(obj.nvb, 'supermodel', text='')
+        col.prop(obj.nvb, 'animscale', text='')
+
+
+class NVB_PANEL_DUMMY(bpy.types.Panel):
+    """Property panel for additional properties needed for the mdl file.
+
+    This is only available for EMPTY objects with a parent.
+    It is located under the object panel in the properties window,
+    """
+
+    bl_idname = 'nvb.propertypanel.dummy'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -77,8 +114,9 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
-        return (context.object and context.object.type == 'EMPTY')
+        """Render only when of EMTPY-type and has parent."""
+        obj = context.object
+        return (obj and (obj.type == 'EMPTY') and obj.parent is not None)
 
     def draw(self, context):
         """TODO: DOC."""
@@ -90,39 +128,24 @@ class NVB_PANEL_EMPTY(bpy.types.Panel):
         layout.separator()
 
         # Display properties depending on type of the empty
-        if nvb_utils.isRootDummy(obj):
-            # No parent = Rootdummy
+        if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
             row = layout.row()
             box = row.box()
-            split = box.split()
-            col = split.column()
-            col.label(text='Classification:')
-            col.label(text='Supermodel:')
-            col.label(text='Animation Scale:')
-            col = split.column()
-            col.prop(obj.nvb, 'classification', text='')
-            col.prop(obj.nvb, 'supermodel', text='')
-            col.prop(obj.nvb, 'animscale', text='')
-            layout.separator()
+
+            row = box.row()
+            row.prop(obj.nvb, 'refmodel')
+            row = box.row()
+            row.prop(obj.nvb, 'reattachable')
         else:
-            if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
-                row = layout.row()
-                box = row.box()
+            row = layout.row()
+            box = row.box()
 
-                row = box.row()
-                row.prop(obj.nvb, 'refmodel')
-                row = box.row()
-                row.prop(obj.nvb, 'reattachable')
-            else:
-                row = layout.row()
-                box = row.box()
-
-                row = box.row()
-                row.prop(obj.nvb, 'wirecolor')
-                row = box.row(align=True)
-                row.prop(obj.nvb, 'dummytype')
-                row.operator('nvb.dummy_generatename',
-                             icon='SORTALPHA', text='')
+            row = box.row()
+            row.prop(obj.nvb, 'wirecolor')
+            row = box.row(align=True)
+            row.prop(obj.nvb, 'dummytype')
+            row.operator('nvb.dummy_generatename',
+                         icon='SORTALPHA', text='')
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):
