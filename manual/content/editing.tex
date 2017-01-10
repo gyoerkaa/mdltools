@@ -73,11 +73,11 @@ suffix for the selected Dummytype. \\
 
 \subsection{Reference Node}
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
-reference other MDL files. These nodes can be found in some spells and
-most of the time references fx\_ref.
+reference other MDL files. These nodes can be found in some visual effects and reference fx\_ref 
+most of the time.
 
 \subsection{Patch Node}
-The purpose and usage of these nodes is unknown. They occur in some spells, but
+The purpose and usage of these nodes is unknown. They occur in some visual effects, but
 they seem to behave exactly like normal dummy nodes, i.e they have the same
 attributes.
 
@@ -246,22 +246,34 @@ Lens-flares are unavailable for Mainlights or Sourcelights.
 \end{description}
 
 \section{Materials \& Textures}
-\begin{description}[leftmargin=6em,style=nextline]
-    \item[Diffuse] TODO
-    \item[Specular] TODO
-\end{description}
+MDL files support a single material with a single texture. If multiple 
+materials or textures are assigned, the export script will choose the currently 
+active one or, failing that, the topmost one.
+
+The following properties are exported:
+\begin{itemize}
+    \item Diffuse
+    \item Specular
+    \item Alpha values
+\end{itemize}
 
 \subsection*{Alpha}
-TODO
+Neverblender can export either material or texture alpha. When both properties are present 
+the latter takes precedence.
 
 \section{Animations}
+Each animation has to be defined by name and start/end frames. Valid names 
+are listed in the reference chapter for each type of MDL.
 
+The following properties can be animated:
 \begin{itemize}
     \item Location
     \item Rotation
-    \item Scale (Uniform)
+    \item Scale (Uniform only)
     \item Material or Texture Alpha
     \item Self-Illumination color
     \item Lamp color
     \item Lamp distance (Light radius)
 \end{itemize}
+Animation data like start/end frames and name are stored in the Rootdummy. Deleting the Rootdummy will result in
+the loss of this data.
