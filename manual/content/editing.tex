@@ -84,8 +84,9 @@ attributes.
 \section{Meshes}
 
 \subsection{Trimeshes}
-The default type of mesh consisting of triangles. It is not necessary to convert 
-the faces to triangles, the export script will handle that.
+The default type of mesh for an MDL. As the name suggests it consisting of 
+triangles, but it is unnecessary to explicitly convert the faces to triangles 
+as Neverblender does that automatically during the export process.
 
 \subsubsection*{Wirecolor}
 This property is unused by the engine. It can safely be ignored. It probably defines the
@@ -94,7 +95,7 @@ compatibility reasons.
 
 \subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
-This will not be displayed in blender's viewports or renderers.
+This property will not be displayed in blender's viewports or renderers.
 
 \subsubsection*{Ambient Color}
 OpenGL material property. The engine uses per-object ambient light whereas Blender's 
@@ -115,11 +116,17 @@ mesh will turn invisible to clear the view.
 \end{description}
 
 \subsubsection*{Render}
-This property controls whether this object should be rendered in-game. Meshes can still
+This property controls whether this object should be rendered. Note: Meshes can still
 cast a shadow without being rendered.
 
 \subsubsection*{Shadow}
-Controls whether this objects should cast a shadow.
+Controls whether this objects should cast a shadow. 
+
+Trimeshes with disabled rendering and enabled shadows are also called Shadowmeshes.
+It is recommended to disable Shadows for complex Meshes with a 
+large amount of triangles and use a Shadowmesh with a low polycount instead. 
+Failing to do so might negatively impact performance and corrupt the shadows of the 
+model as the engine is only capable of handling shadows for simple, convex objects.
 
 \subsubsection*{Beaming}
 Unknown. Probably unused.
@@ -159,10 +166,12 @@ trimesh:
 \end{description}
 
 \subsection{Skinmeshes}
-\todo{Skinmesh description}
-A Skinmesh has the following properties in addition to the properties of a 
-trimesh:
-\todo{List properties}
+A skinmesh is used to create skeletal animations. At the moment it is not 
+possible to use Blender's armature system directly. Instead several vertex groups 
+must be created with their names matching one of the other trimeshes in the MDL. 
+Unfortunately this means that no animations are visible in blender which can make 
+creation of new skinmeshes rather difficult.
+
 
 \subsection{Animeshes}
 Animeshes are Trimeshes with animated UV textures. At the moment Animeshes
@@ -182,6 +191,7 @@ The following types are available:
     \item[Door: Open 2] The Walkmesh for the second open state of a door. Blocks movement.
     \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
+It is recommended to keep walkmeshes as simple as possible.
 
 \section{Emitters}
 Support for Emitters is rudimentary. Blenders particle systems is too
