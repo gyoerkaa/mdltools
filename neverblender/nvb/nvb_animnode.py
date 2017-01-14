@@ -46,9 +46,10 @@ class Node():
         self.clipw = 0.0
         self.cliph = 0.0
 
-        self.objdata = False
-        self.matdata = False
-        self.uvdata = False
+        self.objdata = False  # Object animations present (loc, rot, scale ...)
+        self.matdata = False  # Material animations present
+        self.uvdata = False  # Animmesh, uv animations present
+        self.vertdata = False  # Animmesh, vertex animations present
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -122,6 +123,7 @@ class Node():
                 elif label == 'animverts':
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
+                    self.vertdata = True
                 elif label == 'animtverts':
                     numVals = l_int(line[1])
                     nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
