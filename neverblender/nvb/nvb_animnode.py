@@ -399,15 +399,18 @@ class Node():
 
     def createDataUV(self, obj, uvlayer, anim, options):
         """TODO:Doc."""
-        # Sanity checks
         if not obj.data:
             return
+        # Calculate number of tvert groups. There should be only two.
+        # We can handle more, but not less.
         numUVs = len(uvlayer.data)
-        if (len(self.animtverts) % numUVs) != 0:
+        numSamples = len(self.animtverts) // numUVs
+        if numSamples <= 1:
             return
-        # Get animation data, create if needed.
+        # Get animation data for object data (not the object itself!)
         animData = obj.data.animation_data
         if not animData:
+            # Create animation data if necessary
             animData = obj.data.animation_data_create()
         # Get action, create if needed.
         action = animData.action
@@ -416,18 +419,20 @@ class Node():
             action.use_fake_user = True
             animData.action = action
         # Insert keyframes
-        frameStart = anim.frameStart
+        # We need to create two curves for each uv, one for each coordinate
         kfOptions = {'FAST'}
-        dp_prefix = 'uv_layers["' + uvlayer.name + '"].data['
-        for idx, animtvert in enumerate(self.animtverts):
-            dp = dp_prefix + str(idx) + '].uv'
-            setIdx = idx // numUVs
-            frame = frameStart + \
-                (setIdx * nvb_utils.nwtime2frame(self.sampleperiod))
-            curveU = Node.getCurve(action, dp, 0)
-            curveV = Node.getCurve(action, dp, 1)
-            curveU.keyframe_points.insert(frame, animtvert[0], kfOptions)
-            curveV.keyframe_points.insert(frame, animtvert[1], kfOptions)
+        frameStart = anim.frameStart
+        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod)
+        dataPathPrefix = 'uv_layers["' + uvlayer.name + '"].data['
+        for uvIdx in range(numUVs):
+            dataPath = dataPathPrefix + str(uvIdx) + '].uv'
+            animUVCoords = self.animtverts[uvIdx::numUVs]
+            curveU = Node.getCurve(action, dataPath, 0)
+            curveV = Node.getCurve(action, dataPath, 1)
+            for frameIdx, uv in enumerate(animUVCoords):
+                frame = frameStart + (frameIdx * sampleDistance)
+                curveU.keyframe_points.insert(frame, uv[0], kfOptions)
+                curveV.keyframe_points.insert(frame, uv[1], kfOptions)
 
     def create(self, obj, anim, options):
         """TODO:Doc."""
@@ -476,7 +481,7 @@ class Node():
                 keys[frame] = values
 
     @staticmethod
-    def generateAsciiKeysEmitter(obj, anim, asciiLines):
+    def generateAsciiEmitterData(obj, anim, asciiLines):
         """TODO: DOC."""
         if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
             return
@@ -515,12 +520,12 @@ class Node():
                    'radiuskey': collections.OrderedDict(),
                    'alphakey': collections.OrderedDict()}
 
-        # Object Data
+        # Get animation data from object
         if obj.animation_data:
             action = obj.animation_data.action
             if action:
                 Node.getKeysFromAction(action, anim, keyDict)
-        # Material/ texture data (= alpha keys)
+        # Get animation data from Material/ texture data (= alpha keys only)
         if obj.active_material and obj.active_material.animation_data:
             action = obj.active_material.animation_data.action
             if action:
@@ -612,6 +617,23 @@ class Node():
                 asciiLines.append(s)
 
     @staticmethod
+    def generateAsciiAnimmeshData(obj, anim, asciiLines):
+        """Add data for animeshes."""
+        # Check if the object is an animmesh:
+        if (obj.type != 'MESH') or \
+           (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
+            return
+        # Check if the object has a texture:
+        if not obj.active_material or (not obj.active_material.active_texture):
+            return
+        # Get the animation data from the object's data
+        # (not from the object itself)
+        if obj.data.animation_data:
+            action = obj.data.animation_data.action
+            if action:
+                pass
+
+    @staticmethod
     def generateAscii(obj, anim, asciiLines):
         """TODO:Doc."""
         if not obj:
@@ -624,6 +646,7 @@ class Node():
             asciiLines.append('    parent ' + obj.parent.name)
         else:
             asciiLines.append('    parent null')
-        Node.generateAsciiKeysEmitter(obj, anim, asciiLines)
+        Node.generateAsciiEmitterData(obj, anim, asciiLines)
         Node.generateAsciiKeys(obj, anim, asciiLines)
+        Node.generateAsciiAnimmeshData(obj, anim, asciiLines)
         asciiLines.append('  endnode')
