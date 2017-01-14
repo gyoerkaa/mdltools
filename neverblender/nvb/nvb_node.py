@@ -22,6 +22,12 @@ class FaceList():
         self.uvIdx = []  # int 3-tuple, texture/uv vertex indices
         self.matId = []  # int, material index
 
+    def __len__(self):
+        return min(len(self.faces),
+                   len(self.shdgr),
+                   len(self.uvIdx),
+                   len(self.matId))
+
 
 class FlareList():
     """TODO: DOC."""
@@ -354,6 +360,12 @@ class Trimesh(Node):
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
+
+        # Re-Initialize values in case this method is called multiple times
+        self.verts = []
+        self.tverts = []
+        self.facelist = FaceList()
+
         for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
@@ -416,21 +428,20 @@ class Trimesh(Node):
                 elif (label == 'bitmap'):
                     self.bitmap = nvb_utils.getAuroraString(line[1])
                 elif (label == 'verts'):
-                    numVals = l_int(line[1])
-                    nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                 self.verts)
-                    # self.verts = [(float(l[0]), float(l[1]), float(l[2]))
-                    # for l in asciiNode[i+1:i+numVals+1]]
+                    if not self.verts:
+                        numVals = l_int(line[1])
+                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                                     self.verts)
                 elif (label == 'faces'):
-                    numVals = l_int(line[1])
-                    nvb_parse.faces(asciiLines[i+1:i+numVals+1],
-                                    self.facelist)
+                    if len(self.facelist) <= 0:
+                        numVals = l_int(line[1])
+                        nvb_parse.faces(asciiLines[i+1:i+numVals+1],
+                                        self.facelist)
                 elif (label == 'tverts'):
-                    numVals = l_int(line[1])
-                    nvb_parse.f2(asciiLines[i+1:i+numVals+1],
-                                 self.tverts)
-                    # self.tverts = [(float(l[0]), float(l[1]))
-                    # for l in asciiNode[i+1:i+numVals+1]]
+                    if not self.tverts:
+                        numVals = l_int(line[1])
+                        nvb_parse.f2(asciiLines[i+1:i+numVals+1],
+                                     self.tverts)
 
     def createMaterial(self, name, options):
         """TODO: Doc."""
@@ -496,7 +507,6 @@ class Trimesh(Node):
             if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
                 uv = mesh.tessface_uv_textures.new(name + '.uv')
                 mesh.tessface_uv_textures.active = uv
-
                 for i in range(len(self.facelist.uvIdx)):
                     # Get a tessface
                     tessface = mesh.tessfaces[i]
@@ -876,6 +886,9 @@ class Danglymesh(Trimesh):
         """TODO: Doc."""
         Trimesh.loadAscii(self, asciiLines, nodeidx)
 
+        # Re-initialize values, in case this member is called multiple times
+        self.constraints = []
+
         l_int = int
         l_float = float
         l_isNumber = nvb_utils.isNumber
@@ -893,11 +906,10 @@ class Danglymesh(Trimesh):
                 elif (label == 'displacement'):
                     self.displacement = l_float(line[1])
                 elif (label == 'constraints'):
-                    numVals = l_int(line[1])
-                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
-                                 self.constraints)
-                    # self.constraints = \
-                    # [float(l[0]) for l in asciiNode[idx+1:idx+numVals+1]]
+                    if not self.constraints:
+                        numVals = l_int(line[1])
+                        nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
+                                     self.constraints)
 
     def createConstraints(self, obj):
         """Create a vertex group for the object."""

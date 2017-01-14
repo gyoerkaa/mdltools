@@ -48,8 +48,7 @@ class Node():
 
         self.objdata = False  # Object animations present (loc, rot, scale ...)
         self.matdata = False  # Material animations present
-        self.uvdata = False  # Animmesh, uv animations present
-        self.vertdata = False  # Animmesh, vertex animations present
+        self.animmeshdata = False  # Animmesh animations present
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -67,6 +66,9 @@ class Node():
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
+        self.animtverts = []
+        self.animverts = []
+
         l_float = float
         l_int = int
         l_isNumber = nvb_utils.isNumber
@@ -121,13 +123,17 @@ class Node():
                 elif label == 'cliph':
                     self.cliph = l_float(line[1])
                 elif label == 'animverts':
-                    numVals = l_int(line[1])
-                    nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animverts)
-                    self.vertdata = True
+                    if not self.animverts:
+                        numVals = l_int(line[1])
+                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                                     self.animverts)
+                        self.animmeshdata = True
                 elif label == 'animtverts':
-                    numVals = l_int(line[1])
-                    nvb_parse.f3(asciiLines[i+1:i+numVals+1], self.animtverts)
-                    self.uvdata = True
+                    if not self.animtverts:
+                        numVals = l_int(line[1])
+                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                                     self.animtverts)
+                        self.animmeshdata = True
                 # Keyed animations
                 elif label == 'positionkey':
                     numKeys = self.findEnd(asciiLines[i+1:])
@@ -422,15 +428,17 @@ class Node():
         # We need to create two curves for each uv, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
-        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod)
+        sampleDistance = \
+            nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dataPathPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         for uvIdx in range(numUVs):
             dataPath = dataPathPrefix + str(uvIdx) + '].uv'
             animUVCoords = self.animtverts[uvIdx::numUVs]
             curveU = Node.getCurve(action, dataPath, 0)
             curveV = Node.getCurve(action, dataPath, 1)
-            for frameIdx, uv in enumerate(animUVCoords):
-                frame = frameStart + (frameIdx * sampleDistance)
+            for sampleIdx, uv in enumerate(animUVCoords):
+                print(uv)
+                frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, uv[0], kfOptions)
                 curveV.keyframe_points.insert(frame, uv[1], kfOptions)
 
@@ -440,7 +448,7 @@ class Node():
             self.createDataObject(obj, anim)
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
-        if self.uvdata and obj.data and obj.data.uv_layers.active:
+        if self.animmeshdata and obj.data and obj.data.uv_layers.active:
             self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
