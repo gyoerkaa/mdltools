@@ -109,7 +109,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For all objects
     wirecolor = bpy.props.FloatVectorProperty(
                 name='Wirecolor',
-                description='Color of the wireframe. Unused.',
+                description='Color of the wireframe, Unused',
                 subtype='COLOR_GAMMA',
                 default=(1.0, 1.0, 1.0),
                 min=0.0, max=1.0,
@@ -347,7 +347,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default=False)
     affectdynamic = bpy.props.BoolProperty(
                 name='Affect Dynamic',
-                description='Affect dynamic objects.',
+                description='Affect dynamic objects',
                 default=False)
     negativelight = bpy.props.BoolProperty(
                 name='Negative Light',

@@ -69,7 +69,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
     bl_label = 'Scale animation.'
 
     scaleFactor = bpy.props.FloatProperty(name='scale',
-                                          description='Scale the animation.',
+                                          description='Scale the animation',
                                           min=0.1,
                                           default=1.0)
 
@@ -185,11 +185,11 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
     cropFront = bpy.props.IntProperty(
                     name='cropFront',
                     min=0,
-                    description='Insert Frames before the first keyframe.')
+                    description='Insert Frames before the first keyframe')
     cropBack = bpy.props.IntProperty(
                     name='cropBack',
                     min=0,
-                    description='Insert Frames after the last keyframe.')
+                    description='Insert Frames after the last keyframe')
 
     @classmethod
     def poll(cls, context):
@@ -291,16 +291,16 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
     """Open a dialog to pad a single animation."""
 
     bl_idname = 'nvb.anim_pad'
-    bl_label = 'Pad animation.'
+    bl_label = 'Pad animation'
 
     padFront = bpy.props.IntProperty(
                     name='padFront',
                     min=0,
-                    description='Insert Frames before the first keyframe.')
+                    description='Insert Frames before the first keyframe')
     padBack = bpy.props.IntProperty(
                     name='padBack',
                     min=0,
-                    description='Insert Frames after the last keyframe.')
+                    description='Insert Frames after the last keyframe')
 
     @classmethod
     def poll(cls, context):
