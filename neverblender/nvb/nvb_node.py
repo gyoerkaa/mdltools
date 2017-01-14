@@ -492,7 +492,6 @@ class Trimesh(Node):
         if options.materialMode != 'NON':
             material = self.createMaterial(name, options)
             mesh.materials.append(material)
-
             # Create UV map
             if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
                 uv = mesh.tessface_uv_textures.new(name + '.uv')
@@ -522,7 +521,10 @@ class Trimesh(Node):
                     tessfaceUV.uv3 = self.tverts[uvIdx[2]]
                     # Apply texture to uv face
                     tessfaceUV.image = material.texture_slots[0].texture.image
-
+                # Add the new uv map to texture slot (doesn't work properly)
+                # if material.active_texture:
+                #    ts = material.texture_slots[material.active_texture_index]
+                #    ts.uv_layer = uv.name
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
             bm = bmesh.new()

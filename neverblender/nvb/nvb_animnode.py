@@ -428,7 +428,6 @@ class Node():
             curveV = Node.getCurve(action, dp, 1)
             curveU.keyframe_points.insert(frame, animtvert[0], kfOptions)
             curveV.keyframe_points.insert(frame, animtvert[1], kfOptions)
-        pass
 
     def create(self, obj, anim, options):
         """TODO:Doc."""
@@ -437,8 +436,7 @@ class Node():
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
         if self.uvdata and obj.data and obj.data.uv_layers.active:
-            pass
-            # self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
+            self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmitter(obj, anim, options)
