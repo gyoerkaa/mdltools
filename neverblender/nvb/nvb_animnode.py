@@ -123,11 +123,12 @@ class Node():
                 elif label == 'cliph':
                     self.cliph = l_float(line[1])
                 elif label == 'animverts':
-                    if not self.animverts:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.animverts)
-                        self.animmeshdata = True
+                    pass  # Bob Dole doesn't need this
+                    # if not self.animverts:
+                    #     numVals = l_int(line[1])
+                    #     nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                    #                  self.animverts)
+                    #     self.animmeshdata = True
                 elif label == 'animtverts':
                     if not self.animtverts:
                         numVals = l_int(line[1])
