@@ -49,7 +49,7 @@ class Node():
         self.objdata = False  # Object animations present (loc, rot, scale ...)
         self.matdata = False  # Material animations present
         self.uvdata = False  # Animmesh, uv animations present
-        
+        self.shapedata = False  # Animmesh, vertex animations present
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -124,12 +124,11 @@ class Node():
                 elif label == 'cliph':
                     self.cliph = l_float(line[1])
                 elif label == 'animverts':
-                    pass  # Bob Dole doesn't need this
-                    # if not self.animverts:
-                    #     numVals = l_int(line[1])
-                    #     nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                    #                  self.animverts)
-                    #     self.uvdata = True
+                    if not self.animverts:
+                        numVals = l_int(line[1])
+                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                                     self.animverts)
+                        self.shapedata = True
                 elif label == 'animtverts':
                     if not self.animtverts:
                         numVals = l_int(line[1])
@@ -634,12 +633,13 @@ class Node():
                 asciiLines.append(s)
 
     @staticmethod
-    def generateAsciiUVData(obj, anim, asciiLines):
-        """Add data for animeshes."""
-        # Check if the object is an animmesh:
-        if (obj.type != 'MESH') or \
-           (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
-            return
+    def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
+        """Add data for animated texture vertices (shapekeys)."""
+        pass
+
+    @staticmethod
+    def generateAsciiAnimmeshUV(obj, anim, asciiLines):
+        """Add data for animated texture coordinates."""
         # Check if the object has a texture:
         if not obj.active_material or (not obj.active_material.active_texture):
             return
@@ -649,6 +649,15 @@ class Node():
             action = obj.data.animation_data.action
             if action:
                 pass
+
+    @staticmethod
+    def generateAsciiAnimmeshData(obj, anim, asciiLines):
+        """TODO:Doc."""
+        # Check if the object is an animmesh:
+        if (obj.type == 'MESH') and \
+           (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
+            generateAsciiAnimmeshUV(obj, anim, asciiLines)
+            generateAsciiAnimmeshShapes(obj, anim, asciiLines)
 
     @staticmethod
     def generateAscii(obj, anim, asciiLines):
@@ -663,7 +672,7 @@ class Node():
             asciiLines.append('    parent ' + obj.parent.name)
         else:
             asciiLines.append('    parent null')
+        Node.generateAsciiAnimmeshData(obj, anim, asciiLines)
         Node.generateAsciiEmitterData(obj, anim, asciiLines)
         Node.generateAsciiKeys(obj, anim, asciiLines)
-        Node.generateAsciiAnimmeshUVData(obj, anim, asciiLines)
         asciiLines.append('  endnode')
