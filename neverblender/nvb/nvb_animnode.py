@@ -407,10 +407,14 @@ class Node():
         """TODO:Doc."""
         if not obj.data:
             return
+        # Check if the original uv/tvert order was saved
+        if uvlayer.name not in nvb_def.tvert_order:
+            return
+        tvert_order = nvb_def.tvert_order[uvlayer.name]
         # Calculate number of tvert groups. There should be only two.
         # We can handle more, but not less.
-        numUVs = len(uvlayer.data)
-        numSamples = len(self.animtverts) // numUVs
+        numTVerts = len(tvert_order)
+        numSamples = len(self.animtverts) // numTVerts
         if numSamples <= 1:
             return
         # Get animation data for object data (not the object itself!)
@@ -431,16 +435,15 @@ class Node():
         sampleDistance = \
             nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dataPathPrefix = 'uv_layers["' + uvlayer.name + '"].data['
-        for uvIdx in range(numUVs):
+        for uvIdx, tvertIdx in enumerate(tvert_order):
             dataPath = dataPathPrefix + str(uvIdx) + '].uv'
-            animUVCoords = self.animtverts[uvIdx::numUVs]
+            tvertCoords = self.animtverts[tvertIdx::numTVerts]
             curveU = Node.getCurve(action, dataPath, 0)
             curveV = Node.getCurve(action, dataPath, 1)
-            for sampleIdx, uv in enumerate(animUVCoords):
-                print(uv)
+            for sampleIdx, co in enumerate(tvertCoords):
                 frame = frameStart + (sampleIdx * sampleDistance)
-                curveU.keyframe_points.insert(frame, uv[0], kfOptions)
-                curveV.keyframe_points.insert(frame, uv[1], kfOptions)
+                curveU.keyframe_points.insert(frame, co[0], kfOptions)
+                curveV.keyframe_points.insert(frame, co[1], kfOptions)
 
     def create(self, obj, anim, options):
         """TODO:Doc."""

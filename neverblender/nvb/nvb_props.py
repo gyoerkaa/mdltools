@@ -114,7 +114,9 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default=(1.0, 1.0, 1.0),
                 min=0.0, max=1.0,
                 soft_min=0.0, soft_max=1.0)
-    imporder = bpy.props.IntProperty(name='Order of Import',
+
+    # Helper properties to store additional values. Cannot be edited.
+    imporder = bpy.props.IntProperty(name='Original position in MDL',
                                      default=0)
 
     # For all emptys

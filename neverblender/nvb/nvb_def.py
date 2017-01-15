@@ -8,6 +8,8 @@ anim_globstart = 1
 anim_offset = 60
 # Some presets
 anim_fps = 30
+# Save order of tverts for each objects {objectName:[p1, p2, ... pN]}
+tvert_order = dict()
 # Predefined walkmesh materials
 wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_Dirt',          (0.610, 0.235, 0.050), 0.0],
@@ -44,6 +46,7 @@ class MalformedMdlFile(Exception):
     def __str__(self):
         """TODO: DOC."""
         return repr(self.parameter)
+
 
 """
 class Animtype():

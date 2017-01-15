@@ -507,6 +507,9 @@ class Trimesh(Node):
             if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
                 uv = mesh.tessface_uv_textures.new(name + '.uv')
                 mesh.tessface_uv_textures.active = uv
+                # we need to save the order the tverts were created in blender
+                # for animmeshes/uv animations
+                tvert_neworder = []
                 for i in range(len(self.facelist.uvIdx)):
                     # Get a tessface
                     tessface = mesh.tessfaces[i]
@@ -529,8 +532,13 @@ class Trimesh(Node):
                     tessfaceUV.uv1 = self.tverts[uvIdx[0]]
                     tessfaceUV.uv2 = self.tverts[uvIdx[1]]
                     tessfaceUV.uv3 = self.tverts[uvIdx[2]]
+
+                    tvert_neworder.extend([uvIdx[0], uvIdx[1], uvIdx[2]])
+
                     # Apply texture to uv face
                     tessfaceUV.image = material.texture_slots[0].texture.image
+                if uv.name not in nvb_def.tvert_order:
+                    nvb_def.tvert_order[uv.name] = tvert_neworder
                 # Add the new uv map to texture slot (doesn't work properly)
                 # if material.active_texture:
                 #    ts = material.texture_slots[material.active_texture_index]
