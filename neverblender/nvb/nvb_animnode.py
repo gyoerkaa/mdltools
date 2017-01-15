@@ -48,7 +48,8 @@ class Node():
 
         self.objdata = False  # Object animations present (loc, rot, scale ...)
         self.matdata = False  # Material animations present
-        self.animmeshdata = False  # Animmesh animations present
+        self.uvdata = False  # Animmesh, uv animations present
+        
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
@@ -128,13 +129,13 @@ class Node():
                     #     numVals = l_int(line[1])
                     #     nvb_parse.f3(asciiLines[i+1:i+numVals+1],
                     #                  self.animverts)
-                    #     self.animmeshdata = True
+                    #     self.uvdata = True
                 elif label == 'animtverts':
                     if not self.animtverts:
                         numVals = l_int(line[1])
                         nvb_parse.f3(asciiLines[i+1:i+numVals+1],
                                      self.animtverts)
-                        self.animmeshdata = True
+                        self.uvdata = True
                 # Keyed animations
                 elif label == 'positionkey':
                     numKeys = self.findEnd(asciiLines[i+1:])
@@ -404,8 +405,12 @@ class Node():
                     txt.write('\n    ' + ' '.join(line))
             txt.write('\n  endnode')
 
+    def createDataShape(self, obj, uvlayer, anim, options):
+        """Import animated vertices as shapekeys"""
+        pass
+
     def createDataUV(self, obj, uvlayer, anim, options):
-        """TODO:Doc."""
+        """Import animated texture coordinates"""
         if not obj.data:
             return
         # Check if the original uv/tvert order was saved
@@ -452,7 +457,7 @@ class Node():
             self.createDataObject(obj, anim)
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
-        if self.animmeshdata and obj.data and obj.data.uv_layers.active:
+        if self.uvdata and obj.data and obj.data.uv_layers.active:
             self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
@@ -629,7 +634,7 @@ class Node():
                 asciiLines.append(s)
 
     @staticmethod
-    def generateAsciiAnimmeshData(obj, anim, asciiLines):
+    def generateAsciiUVData(obj, anim, asciiLines):
         """Add data for animeshes."""
         # Check if the object is an animmesh:
         if (obj.type != 'MESH') or \
@@ -660,5 +665,5 @@ class Node():
             asciiLines.append('    parent null')
         Node.generateAsciiEmitterData(obj, anim, asciiLines)
         Node.generateAsciiKeys(obj, anim, asciiLines)
-        Node.generateAsciiAnimmeshData(obj, anim, asciiLines)
+        Node.generateAsciiAnimmeshUVData(obj, anim, asciiLines)
         asciiLines.append('  endnode')
