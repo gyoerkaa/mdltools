@@ -547,17 +547,16 @@ class Animnode():
             if action:
                 Animnode.getKeysFromAction(action, anim, keyDict)
 
-        l_round = round  # For speed
+        l_rnd = round  # For speed
         animStart = anim.frameStart
 
         kname = 'orientationkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
-                print(keyList)
                 formatStr = '    orientation \
                             {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
-                key = keyList[0]
+                key = keyList.popitem()[1]
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
                 s = formatStr.format(val[0], val[1], val[2], val[3])
@@ -565,8 +564,7 @@ class Animnode():
             else:
                 asciiLines.append('    orientationkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_round(nvb_utils.frame2nwtime(frame - animStart),
-                                   5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                     val = nvb_utils.euler2nwangle(eul)
                     formatStr = '      {: 6.5f} \
@@ -579,14 +577,13 @@ class Animnode():
             keyList = keyDict[kname]
             if len(keyList) == 1:
                 formatStr = '    position {: 6.5f} {: 6.5f} {: 6.5f}'
-                key = keyList[0]
+                key = keyList.popitem()[1]
                 s = formatStr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
             else:
                 asciiLines.append('    positionkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_round(nvb_utils.frame2nwtime(frame - animStart),
-                                   5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
                     formatStr = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
                     s = formatStr.format(time, key[0], key[1], key[2])
                     asciiLines.append(s)
@@ -594,28 +591,40 @@ class Animnode():
         kname = 'scalekey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
-            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-            for frame, key in keyList.items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
+            if len(keyList) == 1:
+                formatStr = '    scale {: 6.5f}'
+                key = keyList.popitem()[1]
+                s = formatStr.format(key[0])
                 asciiLines.append(s)
+            else:
+                asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+                for frame, key in keyList.items():
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
+                    asciiLines.append(s)
 
         kname = 'selfillumcolorkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
-            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-            for frame, key in keyList.items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
-                formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatStr.format(time, key[0], key[1], key[2])
+            if len(keyList) == 1:
+                formatStr = '    selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'
+                key = keyList.popitem()[1]
+                s = formatStr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
+            else:
+                asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+                for frame, key in keyList.items():
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
+                    s = formatStr.format(time, key[0], key[1], key[2])
+                    asciiLines.append(s)
 
         kname = 'colorkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             for frame, key in keyList.items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
                 s = formatStr.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
@@ -625,7 +634,7 @@ class Animnode():
             keyList = keyDict[kname]
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             for frame, key in keyList.items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
@@ -634,7 +643,7 @@ class Animnode():
             keyList = keyDict[kname]
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             for frame, key in keyList.items():
-                time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
                 asciiLines.append(s)
 
