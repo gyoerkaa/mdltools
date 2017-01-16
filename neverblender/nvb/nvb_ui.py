@@ -29,20 +29,14 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
         """TODO: DOC."""
-        custom_icon = 'NONE'
-
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            # layout.label(item.name, icon = custom_icon)
-            layout.prop(item, 'name', text='', emboss=False, icon_value=icon)
-            if item.mute:
-                muteIcon = 'RESTRICT_VIEW_ON'
-            else:
-                muteIcon = 'RESTRICT_VIEW_OFF'
+            layout.label(text=item.name, translate=False, icon_value=icon)
+            muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
             layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
+            layout.label('', icon=icon)
 
 
 class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):

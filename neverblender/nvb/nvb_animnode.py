@@ -554,6 +554,7 @@ class Animnode():
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
+                print(keyList)
                 formatStr = '    orientation \
                             {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
                 key = keyList[0]
