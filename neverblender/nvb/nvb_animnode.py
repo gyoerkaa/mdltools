@@ -662,7 +662,7 @@ class Animnode():
         obj.data.update(calc_tessface=True)
         tf_uv = obj.data.tessface_uv_textures.active.data
         tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
-        tessfaceUVList = [uv for f in tessfaceUVList for uv in f]
+        tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
         # Gget the correct data path
         uvname = obj.data.uv_layers.active.name
         dp_start = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
@@ -693,20 +693,22 @@ class Animnode():
                             values[uvIdx][axis] = p.co[1]
                             keys[frame] = values
                 # Create ascii representation and add it to the output
-                if (len(keys) % len(tessfaceUVList) == 0):
-                    asciiLines.append('    animtverts ' + str(len(keys)))
-                    asciiLines.append('      clipu 0.0')
-                    asciiLines.append('      clipv 0.0')
-                    asciiLines.append('      clipw 1.0')
-                    asciiLines.append('      cliph 1.0')
+                sumKeys = sum([len(l) for f, l in keys.items()])
+                if (sumKeys % len(tessfaceUVList) == 0):
+                    asciiLines.append('    clipu 0.0')
+                    asciiLines.append('    clipv 0.0')
+                    asciiLines.append('    clipw 1.0')
+                    asciiLines.append('    cliph 1.0')
                     samplePeriod = nvb_utils.frame2nwtime(
                         samplingEnd-samplingStart,
                         bpy.context.scene.render.fps)
-                    asciiLines.append('      sampleperiod ' + str())
+                    asciiLines.append('    sampleperiod ' +
+                                      str(round(samplePeriod, 5)))
+                    asciiLines.append('    animtverts ' + str(sumKeys))
                     for frame, key in keys.items():
                         for val in key:
-                            formatString = '    {: 6.3f} {: 6.3f}  0'
-                            s = formatStr.format(time, val[0], val[1])
+                            formatStr = '      {: 6.3f} {: 6.3f}  0'
+                            s = formatStr.format(val[0], val[1])
                             asciiLines.append(s)
                     asciiLines.append('    endlist')
 
