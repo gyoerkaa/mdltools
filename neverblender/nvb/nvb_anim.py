@@ -74,7 +74,7 @@ class Animation():
         nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
         for idx, asciiNode in enumerate(nodeList):
             asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
-            node = nvb_animnode.Node()
+            node = nvb_animnode.Animnode()
             node.loadAscii(asciiLines, idx)
             self.nodes.append(node)
 
@@ -90,7 +90,7 @@ class Animation():
     @staticmethod
     def generateAsciiNodes(obj, anim, asciiLines):
         """TODO: Doc."""
-        nvb_animnode.Node.generateAscii(obj, anim, asciiLines)
+        nvb_animnode.Animnode.generateAscii(obj, anim, asciiLines)
 
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)

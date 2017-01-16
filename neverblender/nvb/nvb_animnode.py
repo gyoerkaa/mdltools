@@ -9,7 +9,7 @@ from . import nvb_utils
 from . import nvb_parse
 
 
-class Node():
+class Animnode():
     """TODO: DOC."""
 
     def __init__(self, name='UNNAMED'):
@@ -217,7 +217,7 @@ class Node():
             # No texture.
             # data_path = material.alpha
             dp = 'alpha'
-        curve = Node.getCurve(action, dp)
+        curve = Animnode.getCurve(action, dp)
         if self.alphakey:
             for key in self.alphakey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
@@ -244,9 +244,9 @@ class Node():
         kfOptions = {'FAST'}
         dp = 'rotation_euler'
         if (self.orientationkey):
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             currEul = None
             prevEul = None
             for key in self.orientationkey:
@@ -258,9 +258,9 @@ class Node():
                 curveY.keyframe_points.insert(frame, currEul.y, kfOptions)
                 curveZ.keyframe_points.insert(frame, currEul.z, kfOptions)
         elif self.orientation is not None:
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             eul = nvb_utils.nwangle2euler(self.orientation)
             curveX.keyframe_points.insert(frameStart, eul[0])
             curveY.keyframe_points.insert(frameStart, eul[1])
@@ -272,18 +272,18 @@ class Node():
 
         dp = 'location'
         if (self.positionkey):
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             for key in self.positionkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curveX.keyframe_points.insert(frame, key[1], kfOptions)
                 curveY.keyframe_points.insert(frame, key[2], kfOptions)
                 curveZ.keyframe_points.insert(frame, key[3], kfOptions)
         elif (self.position is not None):
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             curveX.keyframe_points.insert(frameStart, self.position[0])
             curveY.keyframe_points.insert(frameStart, self.position[1])
             curveZ.keyframe_points.insert(frameStart, self.position[2])
@@ -294,18 +294,18 @@ class Node():
 
         dp = 'scale'
         if (self.scalekey):
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             for key in self.scalekey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[1])
                 curveZ.keyframe_points.insert(frame, key[1])
         elif (self.scale is not None):
-            curveX = Node.getCurve(action, dp, 0)
-            curveY = Node.getCurve(action, dp, 1)
-            curveZ = Node.getCurve(action, dp, 2)
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             curveX.keyframe_points.insert(frameStart, self.scale)
             curveY.keyframe_points.insert(frameStart, self.scale)
             curveZ.keyframe_points.insert(frameStart, self.scale)
@@ -316,9 +316,9 @@ class Node():
 
         dp = 'nvb.selfillumcolor'
         if (self.selfillumcolorkey):
-            curveR = Node.getCurve(action, dp, 0)
-            curveG = Node.getCurve(action, dp, 1)
-            curveB = Node.getCurve(action, dp, 2)
+            curveR = Animnode.getCurve(action, dp, 0)
+            curveG = Animnode.getCurve(action, dp, 1)
+            curveB = Animnode.getCurve(action, dp, 2)
             for key in self.selfillumcolorkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
@@ -328,9 +328,9 @@ class Node():
                 curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
                                               key[3])
         elif (self.selfillumcolor is not None):
-            curveR = Node.getCurve(action, dp, 0)
-            curveG = Node.getCurve(action, dp, 1)
-            curveB = Node.getCurve(action, dp, 2)
+            curveR = Animnode.getCurve(action, dp, 0)
+            curveG = Animnode.getCurve(action, dp, 1)
+            curveB = Animnode.getCurve(action, dp, 2)
             curveR.keyframe_points.insert(frameStart, self.selfillumcolor[0])
             curveG.keyframe_points.insert(frameStart, self.selfillumcolor[1])
             curveB.keyframe_points.insert(frameStart, self.selfillumcolor[2])
@@ -341,9 +341,9 @@ class Node():
 
         dp = 'color'
         if self.colorkey:
-            curveR = Node.getCurve(action, dp, 0)
-            curveG = Node.getCurve(action, dp, 1)
-            curveB = Node.getCurve(action, dp, 2)
+            curveR = Animnode.getCurve(action, dp, 0)
+            curveG = Animnode.getCurve(action, dp, 1)
+            curveB = Animnode.getCurve(action, dp, 2)
             for key in self.colorkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
@@ -353,9 +353,9 @@ class Node():
                 curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
                                               key[3])
         elif self.color:
-            curveR = Node.getCurve(action, dp, 0)
-            curveG = Node.getCurve(action, dp, 1)
-            curveB = Node.getCurve(action, dp, 2)
+            curveR = Animnode.getCurve(action, dp, 0)
+            curveG = Animnode.getCurve(action, dp, 1)
+            curveB = Animnode.getCurve(action, dp, 2)
             curveR.keyframe_points.insert(frameStart, self.color[0])
             curveG.keyframe_points.insert(frameStart, self.color[1])
             curveB.keyframe_points.insert(frameStart, self.color[2])
@@ -366,13 +366,13 @@ class Node():
 
         dp = 'distance'
         if self.radiuskey:
-            curve = Node.getCurve(action, dp)
+            curve = Animnode.getCurve(action, dp)
             for key in self.radiuskey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
                                              key[1])
         elif self.radius:
-            curve = Node.getCurve(action, dp, 0)
+            curve = Animnode.getCurve(action, dp, 0)
             curve.keyframe_points.insert(frameStart, self.radius)
             if frameStart < frameEnd:
                 curve.keyframe_points.insert(frameEnd, self.radius)
@@ -443,8 +443,8 @@ class Node():
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dataPath = dataPathPrefix + str(uvIdx) + '].uv'
             tvertCoords = self.animtverts[tvertIdx::numTVerts]
-            curveU = Node.getCurve(action, dataPath, 0)
-            curveV = Node.getCurve(action, dataPath, 1)
+            curveU = Animnode.getCurve(action, dataPath, 0)
+            curveV = Animnode.getCurve(action, dataPath, 1)
             for sampleIdx, co in enumerate(tvertCoords):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
@@ -540,30 +540,30 @@ class Node():
         if obj.animation_data:
             action = obj.animation_data.action
             if action:
-                Node.getKeysFromAction(action, anim, keyDict)
+                Animnode.getKeysFromAction(action, anim, keyDict)
         # Get animation data from Material/ texture data (= alpha keys only)
         if obj.active_material and obj.active_material.animation_data:
             action = obj.active_material.animation_data.action
             if action:
-                Node.getKeysFromAction(action, anim, keyDict)
+                Animnode.getKeysFromAction(action, anim, keyDict)
 
         l_round = round  # For speed
         animStart = anim.frameStart
 
         kname = 'orientationkey'
         if len(keyDict[kname]) > 0:
-            if len(keyDict[kname]) == 1:
+            keyList = keyDict[kname]
+            if len(keyList) == 1:
                 formatStr = '    orientation \
                             {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
-                key = keyDict[kname][0]
+                key = keyList[0]
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
                 s = formatStr.format(val[0], val[1], val[2], val[3])
                 asciiLines.append(s)
             else:
-                asciiLines.append('    orientationkey ' +
-                                  str(len(keyDict[kname])))
-                for frame, key in keyDict[kname].items():
+                asciiLines.append('    orientationkey ' + str(len(keyList)))
+                for frame, key in keyList.items():
                     time = l_round(nvb_utils.frame2nwtime(frame - animStart),
                                    5)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
@@ -575,15 +575,15 @@ class Node():
 
         kname = 'positionkey'
         if len(keyDict[kname]) > 0:
-            if len(keyDict[kname]) == 1:
+            keyList = keyDict[kname]
+            if len(keyList) == 1:
                 formatStr = '    position {: 6.5f} {: 6.5f} {: 6.5f}'
-                key = keyDict[kname][0]
+                key = keyList[0]
                 s = formatStr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
             else:
-                asciiLines.append('    positionkey ' +
-                                  str(len(keyDict[kname])))
-                for frame, key in keyDict[kname].items():
+                asciiLines.append('    positionkey ' + str(len(keyList)))
+                for frame, key in keyList.items():
                     time = l_round(nvb_utils.frame2nwtime(frame - animStart),
                                    5)
                     formatStr = '      {: 6.5f} {: 6.5f} {: 6.5f} {: 6.5f}'
@@ -592,16 +592,18 @@ class Node():
 
         kname = 'scalekey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
+            keyList = keyDict[kname]
+            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+            for frame, key in keyList.items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
         kname = 'selfillumcolorkey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
+            keyList = keyDict[kname]
+            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+            for frame, key in keyList.items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
                 s = formatStr.format(time, key[0], key[1], key[2])
@@ -609,8 +611,9 @@ class Node():
 
         kname = 'colorkey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
+            keyList = keyDict[kname]
+            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+            for frame, key in keyList.items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 formatStr = '      {: 6.5f} {: 3.2f} {: 3.2f} {: 3.2f}'
                 s = formatStr.format(time, key[0], key[1], key[2])
@@ -618,16 +621,18 @@ class Node():
 
         kname = 'radiuskey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
+            keyList = keyDict[kname]
+            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+            for frame, key in keyList.items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 6.5f}'.format(time, key[0])
                 asciiLines.append(s)
 
         kname = 'alphakey'
         if len(keyDict[kname]) > 0:
-            asciiLines.append('    ' + kname + ' ' + str(len(keyDict[kname])))
-            for frame, key in keyDict[kname].items():
+            keyList = keyDict[kname]
+            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
+            for frame, key in keyList.items():
                 time = l_round(nvb_utils.frame2nwtime(frame - animStart), 5)
                 s = '      {: 6.5f} {: 3.2f}'.format(time, key[0])
                 asciiLines.append(s)
@@ -672,7 +677,7 @@ class Node():
             asciiLines.append('    parent ' + obj.parent.name)
         else:
             asciiLines.append('    parent null')
-        Node.generateAsciiAnimmeshData(obj, anim, asciiLines)
-        Node.generateAsciiEmitterData(obj, anim, asciiLines)
-        Node.generateAsciiKeys(obj, anim, asciiLines)
+        Animnode.generateAsciiAnimmeshData(obj, anim, asciiLines)
+        Animnode.generateAsciiEmitterData(obj, anim, asciiLines)
+        Animnode.generateAsciiKeys(obj, anim, asciiLines)
         asciiLines.append('  endnode')

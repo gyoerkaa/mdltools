@@ -11,10 +11,10 @@ from . import nvb_io
 
 
 class NVB_OP_Anim_Clone(bpy.types.Operator):
-    """Clone animation and add it to the animation list."""
+    """Clone animation and add it to the animation list"""
 
     bl_idname = 'nvb.anim_clone'
-    bl_label = 'Clone animation.'
+    bl_label = 'Clone animation'
 
     @classmethod
     def poll(cls, context):
@@ -63,10 +63,10 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Scale(bpy.types.Operator):
-    """Open a dialog to scale a single animation."""
+    """Open a dialog to scale a single animation"""
 
     bl_idname = 'nvb.anim_scale'
-    bl_label = 'Scale animation.'
+    bl_label = 'Scale animation'
 
     scaleFactor = bpy.props.FloatProperty(name='scale',
                                           description='Scale the animation',
@@ -177,10 +177,10 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Crop(bpy.types.Operator):
-    """Open a dialog to crop a single animation."""
+    """Open a dialog to crop a single animation"""
 
     bl_idname = 'nvb.anim_crop'
-    bl_label = 'Crop animation.'
+    bl_label = 'Crop animation'
 
     cropFront = bpy.props.IntProperty(
                     name='cropFront',
@@ -288,7 +288,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Pad(bpy.types.Operator):
-    """Open a dialog to pad a single animation."""
+    """Open a dialog to pad a single animation"""
 
     bl_idname = 'nvb.anim_pad'
     bl_label = 'Pad animation'
@@ -373,7 +373,7 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Focus(bpy.types.Operator):
-    """Set the Start and end frames of the timeline."""
+    """Set the Start and end frames of the timeline"""
 
     bl_idname = 'nvb.anim_focus'
     bl_label = 'Set start and end frame of the timeline to the animation'
@@ -396,7 +396,7 @@ class NVB_OP_Anim_Focus(bpy.types.Operator):
 
 
 class NVB_OP_Anim_New(bpy.types.Operator):
-    """Add a new animation to the animation list."""
+    """Add a new animation to the animation list"""
 
     bl_idname = 'nvb.anim_new'
     bl_label = 'Create new animation'
@@ -416,7 +416,7 @@ class NVB_OP_Anim_New(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Delete(bpy.types.Operator):
-    """Delete the selected animation from the animation list."""
+    """Delete the selected animation from the animation list"""
 
     bl_idname = 'nvb.anim_delete'
     bl_label = 'Delete an animation'
@@ -461,7 +461,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Moveback(bpy.types.Operator):
-    """Move an animation and its keyframes to the end of the animation list."""
+    """Move an animation and its keyframes to the end of the animation list"""
 
     bl_idname = 'nvb.anim_moveback'
     bl_label = 'Move an animation and its keyframes to the end.'
@@ -526,7 +526,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
 
 
 class NVB_OP_Anim_Move(bpy.types.Operator):
-    """Move an item in the animation list, without affecting keyframes."""
+    """Move an item in the animation list, without affecting keyframes"""
 
     bl_idname = 'nvb.anim_move'
     bl_label = 'Move an animation in the list, without affecting keyframes'
@@ -649,7 +649,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
 
 
 class NVB_OP_LightFlare_New(bpy.types.Operator):
-    """Add a new item to the flare list."""
+    """Add a new item to the flare list"""
 
     bl_idname = 'nvb.lightflare_new'
     bl_label = 'Add a new flare to a light'
@@ -663,7 +663,7 @@ class NVB_OP_LightFlare_New(bpy.types.Operator):
 
 
 class NVB_OP_LightFlare_Delete(bpy.types.Operator):
-    """Delete the selected item from the flare list."""
+    """Delete the selected item from the flare list"""
 
     bl_idname = 'nvb.lightflare_delete'
     bl_label = 'Deletes a flare from the light'
@@ -686,7 +686,7 @@ class NVB_OP_LightFlare_Delete(bpy.types.Operator):
 
 
 class NVB_OP_LightFlare_Move(bpy.types.Operator):
-    """Move an item in the flare list."""
+    """Move an item in the flare list"""
 
     bl_idname = 'nvb.lightflare_move'
     bl_label = 'Move an item in the flare list'
@@ -721,7 +721,7 @@ class NVB_OP_LightFlare_Move(bpy.types.Operator):
 
 
 class NVB_OP_AnimEvent_New(bpy.types.Operator):
-    """Add a new item to the event list."""
+    """Add a new item to the event list"""
 
     bl_idname = 'nvb.animevent_new'
     bl_label = 'Add a new event to an animation'
@@ -747,7 +747,7 @@ class NVB_OP_AnimEvent_New(bpy.types.Operator):
 
 
 class NVB_OP_AnimEvent_Delete(bpy.types.Operator):
-    """Delete the selected item from the event list."""
+    """Delete the selected item from the event list"""
 
     bl_idname = 'nvb.animevent_delete'
     bl_label = 'Deletes an event from an animation'
@@ -779,7 +779,7 @@ class NVB_OP_AnimEvent_Delete(bpy.types.Operator):
 
 
 class NVB_OP_AnimEvent_Move(bpy.types.Operator):
-    """Move an item in the event list."""
+    """Move an item in the event list"""
 
     bl_idname = 'nvb.animevent_move'
     bl_label = 'Move an item in the event  list'
@@ -822,7 +822,7 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
 
 
 class NVB_OP_DummyGenerateName(bpy.types.Operator):
-    """Generate an appropriate name for the dummy."""
+    """Generate an appropriate name for the dummy"""
 
     bl_idname = 'nvb.dummy_generatename'
     bl_label = 'Generate an appropriate name for the dummy'
@@ -863,7 +863,7 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
 
 
 class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
-    """Import Aurora Engine model (.mdl)."""
+    """Import Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlimport'
     bl_label = 'Import Aurora MDL'
@@ -929,7 +929,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
 
 class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
-    """Export Aurora Engine model (.mdl)."""
+    """Export Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlexport'
     bl_label = 'Export Aurora MDL'
@@ -965,7 +965,7 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
 
 class LoadWokMaterials(bpy.types.Operator):
-    """Load all materials for aabb walkmeshes for the selected object."""
+    """Load all materials for aabb walkmeshes for the selected object"""
 
     bl_idname = "nvb.load_wok_mats"
     bl_label = "Load walkmesh materials"
@@ -1005,7 +1005,7 @@ class LoadWokMaterials(bpy.types.Operator):
 
 
 class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
-    """TODO: DOC."""
+    """TODO: DOC"""
 
     bl_idname = "nvb.render_minimap"
     bl_label = "Render Minimap"
@@ -1031,7 +1031,7 @@ class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
 
 
 class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
-    """TODO: DOC."""
+    """TODO: DOC"""
 
     bl_idname = "nvb.skingroup_add"
     bl_label = "Add new Skingroup"
