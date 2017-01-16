@@ -727,10 +727,10 @@ class Trimesh(Node):
             uv2 = 0
             uv3 = 0
             if tessfaces_uvs:
-                uvData = tessfaces_uvs.data[i]
-                uv1 = nvb_utils.addUVToList(uvData.uv1, uvList, compress_uvs)
-                uv2 = nvb_utils.addUVToList(uvData.uv2, uvList, compress_uvs)
-                uv3 = nvb_utils.addUVToList(uvData.uv3, uvList, compress_uvs)
+                uvFace = tessfaces_uvs.data[i]
+                uv1 = nvb_utils.addUVToList(uvFace.uv1, uvList, compress_uvs)
+                uv2 = nvb_utils.addUVToList(uvFace.uv2, uvList, compress_uvs)
+                uv3 = nvb_utils.addUVToList(uvFace.uv3, uvList, compress_uvs)
 
             faceList.append([tface.vertices[0],
                              tface.vertices[1],
@@ -760,7 +760,7 @@ class Trimesh(Node):
 
             if (len(uvList) > 0):
                 asciiLines.append('  tverts ' + str(len(uvList)))
-                formatString = '    {: 6.3f} {: 6.3f}'
+                formatString = '    {: 6.3f} {: 6.3f}  0'
                 for uv in uvList:
                     s = formatString.format(round(uv[0], 3), round(uv[1], 3))
                     asciiLines.append(s)

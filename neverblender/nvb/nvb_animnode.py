@@ -659,20 +659,56 @@ class Animnode():
         if not obj.data.uv_layers.active:
             return
         # Original uv data. Needed to fill in values for unanimated uv's.
-        # tessfaces_uvs = obj.data.tessface_uv_textures.active
-        # Active uv layer to get the correct data path
+        obj.data.update(calc_tessface=True)
+        tf_uv = obj.data.tessface_uv_textures.active.data
+        tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
+        tessfaceUVList = [uv for f in tessfaceUVList for uv in f]
+        # Gget the correct data path
         uvname = obj.data.uv_layers.active.name
+        dp_start = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
+        tf = len(dp_start)
         # Get the animation data from the object data
         # (not from the object itself)
-        tdp = 'uv_layers["' + uvname + '"].data[' + str(0) + '].uv'
+        samplingStart = anim.frameStart
+        samplingEnd = anim.frameEnd
+        keys = collections.OrderedDict()  # {frame:values}
         if obj.data.animation_data:
             action = obj.data.animation_data.action
             if action:
-                keyed_frames = (-1, -1)
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
-                    # axis = fcurve.array_index
-
+                    if dp.startswith(dp_start):
+                        uvIdx = int(dp[tf:-4])
+                        axis = fcurve.array_index
+                        kfp = [p for p in fcurve.keyframe_points
+                               if anim.frameStart <= p.co[0] <= anim.frameEnd]
+                        for p in kfp:
+                            frame = int(round(p.co[0]))
+                            samplingStart = min(frame, samplingStart)
+                            samplingEnd = max(frame, samplingEnd)
+                            if frame in keys:
+                                values = keys[frame]
+                            else:
+                                values = tessfaceUVList
+                            values[uvIdx][axis] = p.co[1]
+                            keys[frame] = values
+                # Create ascii representation and add it to the output
+                if (len(keys) % len(tessfaceUVList) == 0):
+                    asciiLines.append('    animtverts ' + str(len(keys)))
+                    asciiLines.append('      clipu 0.0')
+                    asciiLines.append('      clipv 0.0')
+                    asciiLines.append('      clipw 1.0')
+                    asciiLines.append('      cliph 1.0')
+                    samplePeriod = nvb_utils.frame2nwtime(
+                        samplingEnd-samplingStart,
+                        bpy.context.scene.render.fps)
+                    asciiLines.append('      sampleperiod ' + str())
+                    for frame, key in keys.items():
+                        for val in key:
+                            formatString = '    {: 6.3f} {: 6.3f}  0'
+                            s = formatStr.format(time, val[0], val[1])
+                            asciiLines.append(s)
+                    asciiLines.append('    endlist')
 
     @staticmethod
     def generateAsciiAnimmeshData(obj, anim, asciiLines):
