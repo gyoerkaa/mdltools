@@ -536,9 +536,9 @@ def setupMinimapRender(rootDummy,
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def addUVToList(uv, uvList):
-    """Helper function to keep UVs unique."""
-    if uv in uvList:
+def addUVToList(uv, uvList, compress=True):
+    """Helper function to avoid exporting mutiples of uv coordinates."""
+    if compress and (uv in uvList):
         return uvList.index(uv)
     else:
         uvList.append(uv)

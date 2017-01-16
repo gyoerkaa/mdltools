@@ -685,7 +685,6 @@ class Trimesh(Node):
         # Recalculate tessfaces for export
         mesh.calc_tessface()
 
-        # Calculate smooth groups
         smoothGroups = []
         numSmoothGroups = 0
         if ((obj.nvb.smoothgroup == 'SEPR') or
@@ -717,6 +716,7 @@ class Trimesh(Node):
         # Add faces and corresponding tverts and shading groups
         tessfaces = mesh.tessfaces
         tessfaces_uvs = mesh.tessface_uv_textures.active
+        compress_uvs = (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH)
         for i in range(len(tessfaces)):
             tface = tessfaces[i]
             smGroup = smoothGroups[i]
@@ -728,9 +728,9 @@ class Trimesh(Node):
             uv3 = 0
             if tessfaces_uvs:
                 uvData = tessfaces_uvs.data[i]
-                uv1 = nvb_utils.addUVToList(uvData.uv1, uvList)
-                uv2 = nvb_utils.addUVToList(uvData.uv2, uvList)
-                uv3 = nvb_utils.addUVToList(uvData.uv3, uvList)
+                uv1 = nvb_utils.addUVToList(uvData.uv1, uvList, compress_uvs)
+                uv2 = nvb_utils.addUVToList(uvData.uv2, uvList, compress_uvs)
+                uv3 = nvb_utils.addUVToList(uvData.uv3, uvList, compress_uvs)
 
             faceList.append([tface.vertices[0],
                              tface.vertices[1],

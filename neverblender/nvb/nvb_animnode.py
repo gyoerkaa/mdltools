@@ -7,6 +7,7 @@ import bpy
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_parse
+from . import nvb_node
 
 
 class Animnode():
@@ -655,24 +656,41 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
         """Add data for animated texture coordinates."""
-        # Check if the object has a texture:
-        if not obj.active_material or (not obj.active_material.active_texture):
+        if not obj.data.uv_layers.active:
             return
-        # Get the animation data from the object's data
+        # Original uv data. Needed to fill in values for unanimated uv's.
+        # tessfaces_uvs = obj.data.tessface_uv_textures.active
+        # Active uv layer to get the correct data path
+        uvname = obj.data.uv_layers.active.name
+        # Get the animation data from the object data
         # (not from the object itself)
+        tdp = 'uv_layers["' + uvname + '"].data[' + str(0) + '].uv'
         if obj.data.animation_data:
             action = obj.data.animation_data.action
             if action:
-                pass
+                keyed_frames = (-1, -1)
+                for fcurve in action.fcurves:
+                    dp = fcurve.data_path
+                    # axis = fcurve.array_index
+
 
     @staticmethod
     def generateAsciiAnimmeshData(obj, anim, asciiLines):
         """TODO:Doc."""
         # Check if the object is an animmesh:
-        if (obj.type == 'MESH') and \
-           (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
-            generateAsciiAnimmeshUV(obj, anim, asciiLines)
-            generateAsciiAnimmeshShapes(obj, anim, asciiLines)
+        if (obj.type != 'MESH') or \
+           (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
+            return
+        options = nvb_def.ExportOptions()
+        # Check if the object has a texture
+        if (obj.active_material) and (obj.active_material.active_texture):
+            nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
+                                                options, True)
+            Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines)
+        else:
+            nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
+                                                options, False)
+        #  TODO: Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines)
 
     @staticmethod
     def generateAscii(obj, anim, asciiLines):
