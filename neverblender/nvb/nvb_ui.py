@@ -166,9 +166,10 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        row = layout.row()
+        row = layout.row(align=True)
         row.prop(obj.nvb, 'lighttype', text='Type')
-
+        row.operator('nvb.light_generatename',
+                     icon='SORTALPHA', text='')
         layout.separator()
 
         row = layout.row()
