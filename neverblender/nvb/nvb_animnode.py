@@ -2,6 +2,7 @@
 
 import mathutils
 import collections
+import copy
 import bpy
 
 from . import nvb_def
@@ -689,7 +690,7 @@ class Animnode():
                             if frame in keys:
                                 values = keys[frame]
                             else:
-                                values = tessfaceUVList
+                                values = copy.deepcopy(tessfaceUVList)
                             values[uvIdx][axis] = p.co[1]
                             keys[frame] = values
                 # Create ascii representation and add it to the output

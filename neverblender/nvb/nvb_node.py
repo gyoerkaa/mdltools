@@ -1328,7 +1328,7 @@ class Light(Node):
         obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
         obj.nvb.fadinglight = (self.fadinglight >= 1)
-        obj.nvb.isdynamic = (self.ndynamictype >= 1) or (self.isdynamic >= 1)
+        obj.nvb.isdynamic = (self.isdynamic >= 1)  # or(self.ndynamictype >= 1)
         obj.nvb.affectdynamic = (self.affectdynamic >= 1)
 
         if (self.flareradius > 0) or (self.lensflares >= 1):
