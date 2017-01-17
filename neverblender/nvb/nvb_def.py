@@ -312,18 +312,42 @@ class Lighttype():
 
     ALL = {DEFAULT, MAIN1, MAIN2, SOURCE1, SOURCE2}
 
-    suffix_list = [('ml1', MAIN1),
+    suffix2type = [('ml1', MAIN1),
                    ('ml2', MAIN2),
                    ('???', SOURCE1),
                    ('???', SOURCE2)]
 
+    type2suffix = {DEFAULT:   '',
+                   MAIN1:     'ml1',
+                   MAIN2:     'ml2',
+                   SOURCE1:   '???',
+                   SOURCE2:   '???'}
+
     @classmethod
-    def get(cls, nodeName):
+    def getSuffix(cls, obj):
         """TODO: Doc."""
-        for suffix in cls.suffix_list:
+        objName = obj.name
+        for suffix in cls.suffix2type:
+            if objName.endswith(suffix[0]):
+                return suffix[1]
+        return ''
+
+    @classmethod
+    def getType(cls, nodeName):
+        """TODO: Doc."""
+        for suffix in cls.suffix2type:
             if nodeName.endswith(suffix[0]):
                 return suffix[1]
         return cls.DEFAULT
+
+    @classmethod
+    def generateSuffix(cls, obj):
+        """TODO: Doc."""
+        suffix = ''
+        if obj.type == 'LAMP':
+            if obj.nvb.lighttype in cls.type2suffix:
+                suffix = cls.type2suffix[obj.nvb.lighttype]
+        return suffix
 
 
 class ImportOptions():

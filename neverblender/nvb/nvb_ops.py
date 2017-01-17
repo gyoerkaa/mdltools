@@ -821,11 +821,50 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class NVB_OP_LightGenerateName(bpy.types.Operator):
+    """Generate an appropriate name for the light"""
+
+    bl_idname = 'nvb.light_generatename'
+    bl_label = 'Generate a name for the light'
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if a Lamp is selected."""
+        return (context.object and context.object.type == 'LAMP')
+
+    def execute(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        rootDummy = nvb_utils.findObjRootDummy(obj)
+        if not rootDummy:
+            self.report({'INFO'}, 'Failure: No rootdummy.')
+            return {'CANCELLED'}
+        currentSuffix = nvb_def.Lighttype.getSuffix(obj)
+        newSuffix = nvb_def.Lighttype.generateSuffix(obj)
+        baseName = rootDummy.name
+        if newSuffix:
+            # Remove old suffix first
+            if currentSuffix:
+                baseName = obj.name[:-1*len(currentSuffix)]
+            newName = baseName + '_' + newSuffix
+            if newName in bpy.data.objects:
+                self.report({'INFO'}, 'Failure: Name already exists.')
+                return {'CANCELLED'}
+            elif obj.name.endswith(newSuffix):
+                self.report({'INFO'}, 'Failure: Suffix already exists.')
+                return {'CANCELLED'}
+            else:
+                obj.name = newName
+                return {'FINISHED'}
+        self.report({'INFO'}, 'Failure: No suffix found.')
+        return {'CANCELLED'}
+
+
 class NVB_OP_DummyGenerateName(bpy.types.Operator):
     """Generate an appropriate name for the dummy"""
 
     bl_idname = 'nvb.dummy_generatename'
-    bl_label = 'Generate an appropriate name for the dummy'
+    bl_label = 'Generate a name for the dummy'
 
     @classmethod
     def poll(self, context):

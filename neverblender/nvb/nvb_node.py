@@ -1324,7 +1324,7 @@ class Light(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.ambientonly = (self.ambientonly >= 1)
-        obj.nvb.lighttype = nvb_def.Lighttype.get(self.name)
+        obj.nvb.lighttype = nvb_def.Lighttype.getType(self.name)
         obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.lightpriority = self.lightpriority
         obj.nvb.fadinglight = (self.fadinglight >= 1)
