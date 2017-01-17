@@ -145,6 +145,8 @@ def belongsToMdl(obj, classification):
         return ((obj.nvb.meshtype != nvb_def.Meshtype.WALKMESH) or
                 ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
                  (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB)))
+    elif obj.type == 'LAMP':
+        return True
     return False
 
 
