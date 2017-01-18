@@ -547,15 +547,6 @@ def addUVToList(uv, uvList, compress=True):
         return (len(uvList)-1)
 
 
-def createHookModifiers(obj):
-    """TODO: DOC."""
-    for vg in obj.vertex_groups:
-        if vg.name in bpy.data.objects:
-            mod = obj.modifiers.new(vg.name + '.skin', 'HOOK')
-            mod.object = bpy.data.objects[vg.name]
-            mod.vertex_group = vg
-
-
 def eulerFilter(currEul, prevEul):
     """TODO: DOC."""
     def distance(a, b):
