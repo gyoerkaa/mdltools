@@ -86,7 +86,7 @@ attributes.
 
 \subsection{Trimeshes}
 The default type of mesh for an MDL. As the name suggests it consisting of 
-triangles, but it is unnecessary to explicitly convert the faces to triangles 
+triangles, but it is not necessary to explicitly convert the faces to triangles 
 as Neverblender does that automatically during the export process.
 
 \subsubsection*{Wirecolor}
@@ -113,7 +113,7 @@ mesh will turn invisible to clear the view.
     \item[None] This mesh will always be visible.
     \item[Fade] The object will fade.
     \item[Base] Unknown
-    \item[Neighbour] The object will fade along with meshes in neighbouring tiles.
+    \item[Neighbour] The object will fade along with meshes in neighboring tiles.
 \end{description}
 
 \subsubsection*{Render}
@@ -200,12 +200,14 @@ different to allow a direct import, instead Emitters are imported as plain
 text. While all data will be retained, editing is difficult.
 
 \section{Lamps}
-Blender lamp properties will be used for exporting a light.
+Blender's lamp properties will be used for exporting a light.
 Exported properties are:
 \begin{itemize}
 \item Color
 \item Distance
 \end{itemize}
+It is recommended to check \textit{Sphere} to better represent 
+the look of a light source.
 
 \subsection*{Light type}
 There are some special light types, all of which are used to give builders
