@@ -174,9 +174,12 @@ Unfortunately this means that no animations are visible in blender which can mak
 creation of new skinmeshes rather difficult.
 
 
-\subsection{Animeshes}
-Animeshes are Trimeshes with animated UV textures. At the moment Animeshes
-are imported as Trimeshes and will thus lose their animations.
+\subsection{Animmeshes}
+Animeshes are Trimeshes with animated UV coordinates or vertices. The latter is unsupported. 
+It is recommended to use the AnimAll Add-On to enable insertion of keyframes 
+for UV coordinates. The number of animated keyframes for Animmeshes is limited to 
+two (start and beginning of 
+the animation).
 
 
 \subsection{Walkmeshes}
@@ -272,7 +275,8 @@ The following properties are exported:
 
 \subsection*{Alpha}
 Neverblender can export either material or texture alpha. When both properties are present 
-the latter takes precedence.
+the latter takes precedence. This matches the output in blenders 3D view (with GLSL mode enabled) 
+or renderer.
 
 \section{Animations}
 Each animation has to be defined by name and start/end frames. Valid names 
