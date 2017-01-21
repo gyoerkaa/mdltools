@@ -85,9 +85,10 @@ attributes.
 \section{Meshes}
 
 \subsection{Trimeshes}
-The default type of mesh for an MDL. As the name suggests it consisting of 
-triangles, but it is not necessary to explicitly convert the faces to triangles 
-as Neverblender does that automatically during the export process.
+Any newly created mesh object is a trimesh by default, the most common type of mesh 
+used by the aurora engine. As the name suggests it consists of triangles, but it is 
+not necessary to explicitly convert the faces to triangles as Neverblender does that 
+automatically during the export process.
 
 \subsubsection*{Wirecolor}
 This property is unused by the engine. It can safely be ignored. It probably defines the
@@ -195,7 +196,11 @@ The following types are available:
     \item[Door: Open 2] The Walkmesh for the second open state of a door. Blocks movement.
     \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
-It is recommended to keep walkmeshes as simple as possible.
+
+\subsubsection*{Tileset}
+Walkmesh for tiles. No overlapping faces are allowed. To specify the surface type, it is necessary to add the walkmesh materials to the object. You can add all walkmesh materials by clicking on the {\textit{Load walkmesh materials}} Button in the Aurora mesh properties panel. The materials are then added as materials slots and accessible through the materials tab in the object properties. \\ \\
+The export script will create a matching {\textit{.wok}} file.
+
 
 \section{Emitters}
 Support for Emitters is rudimentary. Blenders particle systems is too
