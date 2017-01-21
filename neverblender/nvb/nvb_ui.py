@@ -71,14 +71,17 @@ class NVB_PANEL_ROOTDUMMY(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """Render only when of EMTPY-type and no parent."""
+        """TODO: DOC."""
         obj = context.object
-        return (obj and (obj.type == 'EMPTY') and (obj.parent is None))
+        if not obj:
+            return False
+        rd = nvb_utils.findObjRootDummy(obj)
+        return rd is not None
 
     def draw(self, context):
         """TODO: DOC."""
-        obj = context.object
         layout = self.layout
+        obj = nvb_utils.findObjRootDummy(context.object)
 
         row = layout.row()
         box = row.box()
@@ -384,9 +387,10 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        if not context.object:
+        obj = context.object
+        if not obj:
             return False
-        rd = nvb_utils.findObjRootDummy(context.object)
+        rd = nvb_utils.findObjRootDummy(obj)
         return rd is not None
 
     def draw(self, context):
