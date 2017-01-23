@@ -687,9 +687,9 @@ class Trimesh(Node):
 
         smoothGroups = []
         numSmoothGroups = 0
-        if ((obj.nvb.smoothgroup == 'SEPR') or
-                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or
-                (not options.exportSmoothGroups)):
+        if (obj.nvb.smoothgroup == 'SEPR') or \
+           (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) or \
+           (not options.exportSmoothGroups):
             # 0 = Do not use smoothgroups
             smoothGroups = [0] * len(mesh.polygons)
             numSmoothGroups = 1
