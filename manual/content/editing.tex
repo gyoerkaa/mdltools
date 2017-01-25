@@ -97,15 +97,14 @@ compatibility reasons.
 
 \subsubsection*{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
-This property will not be displayed in blender's viewports or renderers.
+This property will not be visible in Blender.
 
 \subsubsection*{Ambient Color}
 OpenGL material property. The engine uses per-object ambient light whereas Blender's 
-defines it on a per scene basis. Therefore this property is not displayed in 
-Blender's viewports or renderers.
+defines it on a per scene basis. Therefore this property will not be visible in Blender.
 
 \subsubsection*{Shininess}
-Shininess requires a matching .txi file for the texture and a .env file.
+Shininess requires a matching texture information file (*.txi).
 
 \subsubsection*{Tilefade}
 This property is only relevant for tiles. It controls whether this 
@@ -141,12 +140,15 @@ Only available for tiles. Auto-Rotates textures so the UVs are rotated
 the same way to avoids seams between tiles.
 
 \subsubsection*{Transparencyhint}
-This helps the engine prioritize transparent meshes, similar to a z-buffer.
-Multiple overlapping meshes with transparency can cause issues like
-flickering, which may be resolved by changing this property.
+This helps the engine prioritize transparency, similar to a z-buffer.
+Multiple overlapping transparent meshes can cause issues like
+flickering, which may be resolved by changing this property. Objects 
+with lower transparencyhint values are rendered first.\\
+
+This property can be ignored if neither material nor texture have transparency.
 
 \subsubsection*{Smoothgroup}
-Controls how or whether at all to create smoothing groups or shading groups.
+Controls smoothing groups or shading groups are created
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Separate] Each face will have its own smoothing group. This results in no smoothing at all.
     \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed completely.
@@ -158,8 +160,8 @@ Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
 wind, character movement and visual effects. A set of weights determine how far a 
 vertex can be displaced from its original position.
 
-A Danglymesh has the following properties in addition to the properties of a 
-trimesh:
+In addition to the properties of a trimesh, a Danglymesh has the following 
+properties:
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Dangle group] The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
     \item[Period]
