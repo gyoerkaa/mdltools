@@ -31,16 +31,24 @@
 
 \usepackage{tikz} % Required for drawing custom shapes
 
-\usepackage[english]{babel} % English language/hyphenation
+\usepackage[english]{babel}
+\usepackage{csquotes}
 
 \usepackage{enumitem} % Customize lists
 \setlist{nolistsep} % Reduce spacing between bullet points and numbered lists
 
 \usepackage{booktabs} % Required for nicer horizontal rules in tables
 
-\usepackage{xcolor} % Required for specifying colors by name
-\definecolor{maincolor}{RGB}{56,82,114} % Define the color used for highlighting throughout the book
-%\definecolor{maincolor}{RGB}{243,102,25} % ocre
+\usepackage{xcolor} % Required for specifying colors
+\definecolor{maincolor}{RGB}{56,82,114}
+
+\usepackage{hyperref}
+
+\usepackage{bookmark}
+
+			              
+\usepackage{todonotes}
+\usepackage{menukeys}
 
 %-------------------------------------------------------------------------------
 %	FONTS
@@ -458,7 +466,7 @@ innerbottommargin=5pt]{cBox}
 \draw[anchor=west] (\Gm@lmargin+.3cm,-6cm) node {\huge\sffamily\bfseries\color{black}#1\strut};
 \end{tikzpicture}};
 \end{tikzpicture}
-\fi\fi\par\vspace*{200\p@}}}
+\fi\fi\par\vspace*{180\p@}}}
 
 %-------------------------------------------
 
@@ -471,25 +479,5 @@ innerbottommargin=5pt]{cBox}
 \draw[anchor=west] (\Gm@lmargin+.3cm,-6cm) node {\huge\sffamily\bfseries\color{black}#1\strut};
 \end{tikzpicture}};
 \end{tikzpicture}
-\par\vspace*{200\p@}}
+\par\vspace*{180\p@}}
 \makeatother
-
-%-------------------------------------------------------------------------------
-%	HYPERLINKS IN THE DOCUMENTS
-%-------------------------------------------------------------------------------
-
-\usepackage{hyperref}
-\hypersetup{hidelinks,backref=true,pagebackref=true,hyperindex=true,colorlinks=false,breaklinks=true,urlcolor= maincolor,bookmarks=true,bookmarksopen=false,pdftitle={Title},pdfauthor={Author}}
-\usepackage{bookmark}
-\bookmarksetup{
-open,
-numbered,
-addtohook={%
-\ifnum\bookmarkget{level}=0 % chapter
-\bookmarksetup{bold}%
-\fi
-\ifnum\bookmarkget{level}=-1 % part
-\bookmarksetup{color=maincolor,bold}%
-\fi
-}
-}
