@@ -16,9 +16,10 @@ of a single Rootdummy are considered to be part of the same MDL. \\
 Any Empty without a parent is automatically considered a Rootdummy. 
 The Rootdummy must have the same name as the MDL file (minus the file extension). \\
 
-A Rootdummy has the following properties:
-\subsubsection*{Classification}
+An Empy has the following properties:
 
+\begin{property}{Classification}
+Determines the type of MDL
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Item] Any inventory item.
     \item[GUI] Unknown.
@@ -28,13 +29,17 @@ A Rootdummy has the following properties:
     \item[Tile] For tilesets.
     \item[Unknown] Avoid using this. It may be set during import.
 \end{description}
+\end{property}
 
-\subsubsection*{Supermodel}
+\begin{property}{Supermodel}
 Reference to another MDL file. All animations from that file 
 will be available in this MDL.
+\end{property}
 
-\subsubsection*{Animationscale}
-Unknown
+\begin{property}{Animationscale}
+Reference to another MDL file. All animations from that file 
+will be available in this MDL.
+\end{property}
 
 \subsection{Dummy}
 Simple Empties with a parent are either used to group objects or
@@ -47,6 +52,7 @@ indicate a special location to the engine. \\
   \label{fig:panel_dummy}
 \end{figure}
 
+\begin{property}{Dummytype}
 The following types of Dummies are available:
 \begin{description}[leftmargin=6em,style=nextline]
     \item[None] Simple dummy without any special purpose.
@@ -58,6 +64,7 @@ The following types of Dummies are available:
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
+\end{property}
 None of the special Dummies are mandatory. If one is
 missing from the MDL, the engine will use (0,0,0) as the default location
 for that particular Dummy. \\
@@ -90,23 +97,27 @@ used by the aurora engine. As the name suggests it consists of triangles, but it
 not necessary to explicitly convert the faces to triangles as Neverblender does that 
 automatically during the export process.
 
-\subsubsection*{Wirecolor}
+\begin{property}{Wirecolor}
 This property is unused by the engine. It can safely be ignored. It probably defines the
 color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
 compatibility reasons.
+\end{property}
 
-\subsubsection*{Self-Illumination Color}
+\begin{property}{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
 This property will not be visible in Blender.
+\end{property}
 
-\subsubsection*{Ambient Color}
+\begin{property}{Ambient Color}
 OpenGL material property. The engine uses per-object ambient light whereas Blender's 
 defines it on a per scene basis. Therefore this property will not be visible in Blender.
+\end{property}
 
-\subsubsection*{Shininess}
+\begin{property}{Shininess}
 Shininess requires a matching texture information file (*.txi).
+\end{property}
 
-\subsubsection*{Tilefade}
+\begin{property}{Tilefade}
 This property is only relevant for tiles. It controls whether this 
 mesh will turn invisible to clear the view.
 \begin{description}[leftmargin=6em,style=nextline]
@@ -115,12 +126,14 @@ mesh will turn invisible to clear the view.
     \item[Base] Unknown
     \item[Neighbour] The object will fade along with meshes in neighboring tiles.
 \end{description}
+\end{property}
 
-\subsubsection*{Render}
+\begin{property}{Render}
 This property controls whether this object should be rendered. Note: Meshes can still
 cast a shadow without being rendered.
+\end{property}
 
-\subsubsection*{Shadow}
+\begin{property}{Shadow}
 Controls whether this objects should cast a shadow. 
 
 Trimeshes with disabled rendering and enabled shadows are also called Shadowmeshes.
@@ -128,32 +141,38 @@ It is recommended to disable Shadows for complex Meshes with a
 large amount of triangles and use a Shadowmesh with a low polycount instead. 
 Failing to do so might negatively impact performance and corrupt the shadows of the 
 model as the engine is only capable of handling shadows for simple, convex objects.
+\end{property}
 
-\subsubsection*{Beaming}
+\begin{property}{Beaming}
 Unknown. Probably unused.
+\end{property}
 
-\subsubsection*{Inherit Color}
+\begin{property}{Inherit Color}
 Unknown. Probably unused.
+\end{property}
 
-\subsubsection*{Rotatetexture}
+\begin{property}{Rotatetexture}
 Only available for tiles. Auto-Rotates textures so the UVs are rotated
 the same way to avoids seams between tiles.
+\end{property}
 
-\subsubsection*{Transparencyhint}
+\begin{property}{Transparencyhint}
 This helps the engine prioritize transparency, similar to a z-buffer.
 Multiple overlapping transparent meshes can cause issues like
 flickering, which may be resolved by changing this property. Objects 
 with lower transparencyhint values are rendered first.\\
 
 This property can be ignored if neither material nor texture have transparency.
+\end{property}
 
-\subsubsection*{Smoothgroup}
+\begin{property}{Smoothgroup}
 Controls smoothing groups or shading groups are created
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Separate] Each face will have its own smoothing group. This results in no smoothing at all.
     \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed completely.
     \item[Auto] Auto generate smoothing groups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
+\end{property}
 
 \subsection{Danglymeshes}
 Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
@@ -219,7 +238,7 @@ Exported properties are:
 It is recommended to check \textit{Sphere} to better represent 
 the look of a light source.
 
-\subsection*{Light type}
+\begin{property}{Light type}
 There are some special light types, all of which are used to give builders
 the ability to select light color in the Toolset.
 \begin{description}[leftmargin=8em,style=nextline]
@@ -229,35 +248,38 @@ the ability to select light color in the Toolset.
     \item[Sourcelight 2] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
     \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
 \end{description}
+\end{property}
 
-\subsection*{Wirecolor}
-This is unused in-game. You can safely ignore it. This probably defines the
-color for the object's wireframe in 3dsmax.
-
-\subsection*{Priority}
+\begin{property}{Priority}
 Unknown. Might control when the light source casts a shadow.
+\end{property}
 
-\subsection*{Ambient Only}
+\begin{property}{Ambient Only}
 This controls if the light is only an ambient light source or
 if it is directional as well.
+\end{property}
 
-\subsection*{Fading}
+\begin{property}{Fading}
 Unknown. Might activate some kind of distance fall off for the light.
+\end{property}
 
-\subsection*{Shadows}
+\begin{property}{Shadows}
 Determines if this light is capable of casting shadows.
+\end{property}
 
-\subsection*{Is Dynamic}
+\begin{property}{Is Dynamic}
 Unknown.
+\end{property}
 
-\subsection*{Affect Dynamic}
+\begin{property}{Affect Dynamic}
 This controls whether this light affects dynamic objects, i.e. characters.
 Disabling this will prevent this light from casting shadows with dynamic
 objects, but it will in turn improve performance.
 
 This is basically a less strict version of the \textit{Shadows} setting.
+\end{property}
 
-\subsection*{Lensflares}
+\begin{property}{Lensflares}
 Add a series of lens-flares for this light.
 
 Lens-flares are unavailable for Mainlights or Sourcelights.
@@ -267,6 +289,7 @@ Lens-flares are unavailable for Mainlights or Sourcelights.
     \item[Size] Size of the flares. This will scale the texture.
     \item[Position] Distance from the lights origin.
 \end{description}
+\end{property}
 
 \section{Materials \& Textures}
 MDL files support a single material with a single texture. If multiple 

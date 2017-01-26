@@ -1,0 +1,18 @@
+\newmdenv[skipabove=7pt,
+skipbelow=7pt,
+rightline=false,
+leftline=true,
+topline=false,
+bottomline=false,
+linecolor=maincolor,
+innerleftmargin=5pt,
+innerrightmargin=5pt,
+innertopmargin=0pt,
+leftmargin=0cm,
+rightmargin=0cm,
+linewidth=4pt,
+innerbottommargin=0pt]{propertyBox}
+
+\newenvironment{property}[1]
+			   {\begin{propertyBox}{\sffamily\bfseries#1}\index{#1}\\}
+			   {\end{propertyBox}}
