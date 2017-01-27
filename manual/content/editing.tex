@@ -14,9 +14,8 @@ additional information and indicates which objects belong to an MDL. All childre
 of a single Rootdummy are considered to be part of the same MDL. \\
 
 Any Empty without a parent is automatically considered a Rootdummy. 
-The Rootdummy must have the same name as the MDL file (minus the file extension). \\
-
-An Empy has the following properties:
+The Rootdummy must have the same name as the MDL file (minus the file extension). 
+A Rootdummy has the following properties:
 
 \begin{property}{Classification}
 Determines the type of MDL
@@ -83,6 +82,14 @@ suffix for the selected Dummytype. \\
 The purpose and usage of these nodes is unknown. Supposedly it can be used to
 reference other MDL files. These nodes can be found in some visual effects and reference fx\_ref 
 most of the time.
+
+\begin{property}{Reference Model}
+The name of another MDL file without file-extension.
+\end{property}
+
+\begin{property}{Reattachable}
+Unknown purpose.
+\end{property}
 
 \subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some visual effects, but
