@@ -190,17 +190,19 @@ In addition to the properties of a trimesh, a Danglymesh has the following
 properties:
 
 \begin{property}{Dangle group} 
-The dangle group is a vertex group containing the weights of vertices for the danglymesh. You must select an existing vertex group.
+The dangle group is a vertex group containing the weights of vertices for the danglymesh. 
+You must select an existing vertex group. Vertex paint may be used to paint the weights. A vertex with a weight of
+0.0 will not change position.
 \end{property}
 
 \begin{property}{Period} 
-TODO
+Determines how quickly the vertices move and how fast they come to a rest.
 \end{property}
 \begin{property}{Tightness} 
-TODO
+The 'tension' in the object, restricting movement. 
 \end{property}
 \begin{property}{Displacement} 
-TODO
+Determine show far the vertices are allowed to move. This is further restricted by the Dangle group.
 \end{property}
 
 
