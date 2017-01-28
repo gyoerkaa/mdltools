@@ -215,12 +215,6 @@
 
 \usepackage{amsmath,amsfonts,amssymb,amsthm} % For math equations, theorems, symbols, etc
 
-\newcommand{\intoo}[2]{\mathopen{]}#1\,;#2\mathclose{[}}
-\newcommand{\ud}{\mathop{\mathrm{{}d}}\mathopen{}}
-\newcommand{\intff}[2]{\mathopen{[}#1\,;#2\mathclose{]}}
-\newtheorem{notation}{Notation}[chapter]
-
-
 %-------------------------------------------------------------------------------
 %	DEFINITION OF COLORED BOXES
 %-------------------------------------------------------------------------------
@@ -229,77 +223,103 @@
 
 % Theorem box
 \newmdenv[skipabove=7pt,
-skipbelow=7pt,
-backgroundcolor=black!5,
-linecolor=maincolor,
-innerleftmargin=5pt,
-innerrightmargin=5pt,
-innertopmargin=5pt,
-leftmargin=0cm,
-rightmargin=0cm,
-innerbottommargin=5pt]{tBox}
+          skipbelow=7pt,
+          backgroundcolor=black!5,
+          linecolor=maincolor,
+          innerleftmargin=5pt,
+          innerrightmargin=5pt,
+          innertopmargin=5pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          innerbottommargin=5pt]{tBox}
 
 % Exercise box	  
 \newmdenv[skipabove=7pt,
-skipbelow=7pt,
-rightline=false,
-leftline=true,
-topline=false,
-bottomline=false,
-backgroundcolor=maincolor!10,
-linecolor=maincolor,
-innerleftmargin=5pt,
-innerrightmargin=5pt,
-innertopmargin=5pt,
-innerbottommargin=5pt,
-leftmargin=0cm,
-rightmargin=0cm,
-linewidth=4pt]{eBox}	
+          skipbelow=7pt,
+          rightline=false,
+          leftline=true,
+          topline=false,
+          bottomline=false,
+          backgroundcolor=maincolor!10,
+          linecolor=maincolor,
+          innerleftmargin=5pt,
+          innerrightmargin=5pt,
+          innertopmargin=5pt,
+          innerbottommargin=5pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          linewidth=4pt]{eBox}	
 
 % Definition box
 \newmdenv[skipabove=7pt,
-skipbelow=7pt,
-rightline=false,
-leftline=true,
-topline=false,
-bottomline=false,
-linecolor=maincolor,
-innerleftmargin=5pt,
-innerrightmargin=5pt,
-innertopmargin=0pt,
-leftmargin=0cm,
-rightmargin=0cm,
-linewidth=4pt,
-innerbottommargin=0pt]{dBox}	
+          skipbelow=7pt,
+          rightline=false,
+          leftline=true,
+          topline=false,
+          bottomline=false,
+          linecolor=maincolor,
+          innerleftmargin=5pt,
+          innerrightmargin=5pt,
+          innertopmargin=0pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          linewidth=4pt,
+          innerbottommargin=0pt]{dBox}	
 
 % Corollary box
 \newmdenv[skipabove=7pt,
-skipbelow=7pt,
-rightline=false,
-leftline=true,
-topline=false,
-bottomline=false,
-linecolor=gray,
-backgroundcolor=black!5,
-innerleftmargin=5pt,
-innerrightmargin=5pt,
-innertopmargin=5pt,
-leftmargin=0cm,
-rightmargin=0cm,
-linewidth=4pt,
-innerbottommargin=5pt]{cBox}
+          skipbelow=7pt,
+          rightline=false,
+          leftline=true,
+          topline=false,
+          bottomline=false,
+          linecolor=gray,
+          backgroundcolor=black!5,
+          innerleftmargin=5pt,
+          innerrightmargin=5pt,
+          innertopmargin=5pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          linewidth=4pt,
+          innerbottommargin=5pt]{cBox}
 
 %-------------------------------------------------------------------------------
 %	REMARK ENVIRONMENT
 %-------------------------------------------------------------------------------
 
-\newenvironment{remark}{\par\vspace{10pt}\small % Vertical white space above the remark and smaller font size
-\begin{list}{}{
-\leftmargin=35pt % Indentation on the left
-\rightmargin=25pt}\item\ignorespaces % Indentation on the right
-\makebox[-2.5pt]{\begin{tikzpicture}[overlay]
-\node[draw=maincolor!60,line width=1pt,circle,fill=maincolor!25,font=\sffamily\bfseries,inner sep=2pt,outer sep=0pt] at (-15pt,0pt){\textcolor{maincolor}{R}};\end{tikzpicture}} % Orange R in a circle
-\advance\baselineskip -1pt}{\end{list}\vskip5pt} % Tighter line spacing and white space after remark
+\newenvironment{remark}
+			   {\par\vspace{10pt}\small % Vertical white space above the remark and smaller font size
+				\begin{list}{}{\leftmargin=35pt % Indentation on the left
+							   \rightmargin=25pt}\item\ignorespaces % Indentation on the right
+						       \makebox[-2.5pt]{\begin{tikzpicture}[overlay]
+					\node[draw=maincolor!60,line width=1pt,circle,fill=maincolor!25,font=\sffamily\bfseries,inner sep=2pt,outer sep=0pt] at (-15pt,0pt){\textcolor{maincolor}{R}};\end{tikzpicture}} % Orange R in a circle
+					\advance\baselineskip -1pt}
+				{\end{list}\vskip5pt} % Tighter line spacing and white space after remark
+
+%-------------------------------------------------------------------------------
+%	PROPERTY ENVIRONMENT
+%-------------------------------------------------------------------------------
+
+\newmdenv[skipabove=7pt,
+          skipbelow=7pt,
+          backgroundcolor=black!5,
+          rightline=false,
+          leftline=true,
+          topline=false,
+          bottomline=false,
+          linecolor=maincolor,
+          innerleftmargin=5pt,
+          innerrightmargin=5pt,
+          innertopmargin=0pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          linewidth=4pt,
+          innerbottommargin=0pt]{propertyBox}
+
+\newenvironment{property}[1]
+               {\begin{propertyBox}{\sffamily\bfseries#1}\index{#1}\\}
+               {\end{propertyBox}}
+
 
 %-------------------------------------------------------------------------------
 %	SECTION NUMBERING IN THE MARGIN
