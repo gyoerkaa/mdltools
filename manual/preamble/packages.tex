@@ -297,8 +297,29 @@
 				{\end{list}\vskip5pt} % Tighter line spacing and white space after remark
 
 %-------------------------------------------------------------------------------
-%	PROPERTY ENVIRONMENT
+%	PROPERTY ENVIRONMENTS
 %-------------------------------------------------------------------------------
+
+\newmdenv[skipabove=7pt,
+          skipbelow=7pt,
+          backgroundcolor=black!5,
+          linecolor=black!50,
+          topline=false,
+          rightline=false,
+          bottomline=false,
+          leftline=true,
+          innertopmargin=5pt,
+          innerrightmargin=5pt,
+          innerbottommargin=5pt,
+          innerleftmargin=5pt,
+          leftmargin=0cm,
+          rightmargin=0cm,
+          linewidth=4pt]{mdeBlenderProperty}
+
+\newenvironment{propertyBlender}[1]
+               {\begin{mdeBlenderProperty}{\sffamily\bfseries#1}\index{#1}\\}
+               {\end{mdeBlenderProperty}}
+
 
 \newmdenv[skipabove=7pt,
           skipbelow=7pt,
@@ -314,11 +335,11 @@
           innerleftmargin=5pt,
           leftmargin=0cm,
           rightmargin=0cm,
-          linewidth=4pt]{propertyBox}
+          linewidth=4pt]{mdeAuroraProperty}
 
-\newenvironment{property}[1]
-               {\begin{propertyBox}{\sffamily\bfseries#1}\index{#1}\\}
-               {\end{propertyBox}}
+\newenvironment{propertyAurora}[1]
+               {\begin{mdeAuroraProperty}{\sffamily\bfseries#1}\index{#1}\\}
+               {\end{mdeAuroraProperty}}
 
 
 %-------------------------------------------------------------------------------

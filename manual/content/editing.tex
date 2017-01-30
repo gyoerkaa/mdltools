@@ -17,7 +17,7 @@ Any Empty without a parent is automatically considered a Rootdummy.
 The Rootdummy must have the same name as the MDL file (minus the file extension). 
 A Rootdummy has the following properties:
 
-\begin{property}{Classification}
+\begin{propertyAurora}{Classification}
 Determines the type of MDL
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Item] Any inventory item.
@@ -28,17 +28,17 @@ Determines the type of MDL
     \item[Tile] For tilesets.
     \item[Unknown] Avoid using this. It may be set during import.
 \end{description}
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Supermodel}
+\begin{propertyAurora}{Supermodel}
 Reference to another MDL file. All animations from that file 
 will be available in this MDL.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Animationscale}
+\begin{propertyAurora}{Animationscale}
 Reference to another MDL file. All animations from that file 
 will be available in this MDL.
-\end{property}
+\end{propertyAurora}
 
 \subsection{Dummy}
 Simple Empties with a parent are either used to group objects or
@@ -51,7 +51,7 @@ indicate a special location to the engine. \\
   \label{fig:panel_dummy}
 \end{figure}
 
-\begin{property}{Dummytype}
+\begin{propertyAurora}{Dummytype}
 The following types of Dummies are available:
 \begin{description}[leftmargin=6em,style=nextline]
     \item[None] Simple dummy without any special purpose.
@@ -63,7 +63,7 @@ The following types of Dummies are available:
     \item[Use 1] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
     \item[Use 2] Use Node for placeables or doors. Upon receiving a use command a character will move to the closest of the two use nodes.
 \end{description}
-\end{property}
+\end{propertyAurora}
 None of the special Dummies are mandatory. If one is
 missing from the MDL, the engine will use (0,0,0) as the default location
 for that particular Dummy. \\
@@ -83,13 +83,13 @@ The purpose and usage of these nodes is unknown. Supposedly it can be used to
 reference other MDL files. These nodes can be found in some visual effects and reference fx\_ref 
 most of the time.
 
-\begin{property}{Reference Model}
+\begin{propertyAurora}{Reference Model}
 The name of another MDL file without file-extension.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Reattachable}
+\begin{propertyAurora}{Reattachable}
 Unknown purpose.
-\end{property}
+\end{propertyAurora}
 
 \subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some visual effects, but
@@ -104,27 +104,35 @@ used by the aurora engine. As the name suggests it consists of triangles, but it
 not necessary to explicitly convert the faces to triangles as Neverblender does that 
 automatically during the export process.
 
-\begin{property}{Wirecolor}
+\begin{propertyBlender}{Scale}
+Blender's scale factor property cannot be exported directly as the engine 
+only supports uniform scale. If a non-uniform scale value is used the export 
+script will try to apply the scaling factor to the object and it's children.
+This may cause issues with animation. Therefore it is recommended to either keep 
+the scale uniform or apply it manually before exporting.
+\end{propertyBlender}  
+ 
+\begin{propertyAurora}{Wirecolor}
 This property is unused by the engine. It can safely be ignored. It probably defines the
 color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
 compatibility reasons.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Self-Illumination Color}
+\begin{propertyAurora}{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
 This property will not be visible in Blender.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Ambient Color}
+\begin{propertyAurora}{Ambient Color}
 OpenGL material property. The engine uses per-object ambient light whereas Blender's 
 defines it on a per scene basis. Therefore this property will not be visible in Blender.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Shininess}
+\begin{propertyAurora}{Shininess}
 Shininess requires a matching texture information file (*.txi).
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Tilefade}
+\begin{propertyAurora}{Tilefade}
 This property is only relevant for tiles. It controls whether this 
 mesh will turn invisible to clear the view.
 \begin{description}[leftmargin=6em,style=nextline]
@@ -133,14 +141,14 @@ mesh will turn invisible to clear the view.
     \item[Base] Unknown
     \item[Neighbour] The object will fade along with meshes in neighboring tiles.
 \end{description}
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Render}
+\begin{propertyAurora}{Render}
 This property controls whether this object should be rendered. Note: Meshes can still
 cast a shadow without being rendered.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Shadow}
+\begin{propertyAurora}{Shadow}
 Controls whether this objects should cast a shadow. 
 
 Trimeshes with disabled rendering and enabled shadows are also called Shadowmeshes.
@@ -148,70 +156,67 @@ It is recommended to disable Shadows for complex Meshes with a
 large amount of triangles and use a Shadowmesh with a low polycount instead. 
 Failing to do so might negatively impact performance and corrupt the shadows of the 
 model as the engine is only capable of handling shadows for simple, convex objects.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Beaming}
+\begin{propertyAurora}{Beaming}
 Unknown. Probably unused.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Inherit Color}
+\begin{propertyAurora}{Inherit Color}
 Unknown. Probably unused.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Rotatetexture}
+\begin{propertyAurora}{Rotatetexture}
 Only available for tiles. Auto-Rotates textures so the UVs are rotated
 the same way to avoids seams between tiles.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Transparencyhint}
+\begin{propertyAurora}{Transparencyhint}
 This helps the engine prioritize transparency, similar to a z-buffer.
 Multiple overlapping transparent meshes can cause issues like
 flickering, which may be resolved by changing this property. Objects 
 with lower transparencyhint values are rendered first.\\
 
 This property can be ignored if neither material nor texture have transparency.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Smoothgroup}
+\begin{propertyAurora}{Smoothgroup}
 Controls smoothing groups or shading groups are created
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Separate] Each face will have its own smoothing group. This results in no smoothing at all.
     \item[Single] All faces belong to a single smoothing group. Meshes will be smoothed completely.
     \item[Auto] Auto generate smoothing groups, depending on the settings in blender and edges marked as sharp. Replicates blenders smoothing as closely as possible.
 \end{description}
-\end{property}
+\end{propertyAurora}
 
 \subsection{Danglymeshes}
 Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
-wind, character movement and visual effects. A set of weights determine how far a 
-vertex can be displaced from its original position.
+wind, character movement and visual effects. Danglymeshes possess the same 
+properties as Trimeshes in addition to the following ones.
 
-In addition to the properties of a trimesh, a Danglymesh has the following 
-properties:
-
-\begin{property}{Dangle group} 
+\begin{propertyAurora}{Dangle group} 
 The dangle group is a vertex group containing the weights of vertices for the danglymesh. 
 You must select an existing vertex group. Vertex paint may be used to paint the weights. A vertex with a weight of
 0.0 will not change position.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Period} 
+\begin{propertyAurora}{Period} 
 Determines how quickly the vertices move and how fast they come to a rest.
-\end{property}
-\begin{property}{Tightness} 
+\end{propertyAurora}
+\begin{propertyAurora}{Tightness} 
 The 'tension' in the object, restricting movement. 
-\end{property}
-\begin{property}{Displacement} 
+\end{propertyAurora}
+\begin{propertyAurora}{Displacement} 
 Determine show far the vertices are allowed to move. This is further restricted by the Dangle group.
-\end{property}
+\end{propertyAurora}
 
 
 \subsection{Skinmeshes}
 A skinmesh is used to create skeletal animations. At the moment it is not 
 possible to use Blender's armature system directly. Instead several vertex groups 
 must be created with their names matching one of the other trimeshes in the MDL. 
-Unfortunately this means that no animations are visible in blender which can make 
-creation of new skinmeshes rather difficult.
+Unfortunately this means that no animations are visible in blender which makes
+creation of new skinmeshes difficult.
 
 
 \subsection{Animmeshes}
@@ -225,26 +230,24 @@ the animation).
 \subsection{Walkmeshes}
 Walkmeshes indicate where a character can walk. It is necessary to select 
 the appropriate type of walkmesh, which depends on the type of model itself. 
-The following types are available:
+
+\begin{propertyAurora}{Walkmeshtype} 
+Sets the type of a walkmesh. The available types depends on the classification of the MDL:
 \begin{description}[leftmargin=10em,style=nextline]
-    \item[Tileset] Walkmesh for tiles. Assign Materials to each face to set the
-                   surface type of tile (stone, grass, unwalkable, ...).
-                   This will also affect footstep sounds and grass growth.
+    \item[Tileset] Walkmesh for tiles. This will also affect footstep sounds and grass growth. No overlapping faces are allowed. To specify the surface type, it is necessary to add the walkmesh materials to the object. You can add all walkmesh materials by clicking on the {\textit{Load walkmesh materials}} Button in the Aurora mesh properties panel. The materials are then added as materials slots and accessible through the materials tab in the object properties.
+    The export script will create a matching {\textit{.wok}} file. 
     \item[Door: Closed] The walkmesh for the closed state of a door. Blocks movement.
     \item[Door: Open 1] The Walkmesh for the first open state of a door. Blocks movement.
     \item[Door: Open 2] The Walkmesh for the second open state of a door. Blocks movement.
     \item[Placeable] Walkmesh for placeables. Blocks movement.
 \end{description}
-
-\subsubsection*{Tileset}
-Walkmesh for tiles. No overlapping faces are allowed. To specify the surface type, it is necessary to add the walkmesh materials to the object. You can add all walkmesh materials by clicking on the {\textit{Load walkmesh materials}} Button in the Aurora mesh properties panel. The materials are then added as materials slots and accessible through the materials tab in the object properties. \\ \\
-The export script will create a matching {\textit{.wok}} file.
-
+\end{propertyAurora}
 
 \section{Emitters}
 Support for Emitters is rudimentary. Blenders particle systems is too
 different to allow a direct import, instead Emitters are imported as plain
-text. While all data will be retained, editing is difficult.
+text. While all data will be retained, editing is only possible by altering the 
+generated text file for each emitter.
 
 \section{Lamps}
 Blender's lamp properties will be used for exporting a light.
@@ -253,51 +256,51 @@ Exported properties are:
 \item Color
 \item Distance
 \end{itemize}
-It is recommended to check \textit{Sphere} to better represent 
-the look of a light source.
+It is recommended to check \textit{Sphere} to better replicate the resulting effect 
+of a light source in the 3D view.
 
-\begin{property}{Light type}
+\begin{propertyAurora}{Light type}
 There are some special light types, all of which are used to give builders
 the ability to select light color in the Toolset.
 \begin{description}[leftmargin=8em,style=nextline]
-    \item[Mainlight 1] For Tiles only. Color can be changed in the Toolset.
-    \item[Mainlight 2] For Tiles only. Color can be changed in the Toolset.
+    \item[Mainlight 1] For Tiles only. The Lamp Color property will not affect this lamp as it can be changed in the Toolset.
+    \item[Mainlight 2] For Tiles only. The Lamp Color property will not affect this lamp as it can be changed in the Toolset.
     \item[Sourcelight 1] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
     \item[Sourcelight 2] For Tiles only. This is actually a burning flame. Color can be changed in the Toolset.
     \item[Default] Default type, can always be used. Blenders lamp properties will be used (color and distance)
 \end{description}
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Priority}
+\begin{propertyAurora}{Priority}
 Unknown. Might control when the light source casts a shadow.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Ambient Only}
+\begin{propertyAurora}{Ambient Only}
 This controls if the light is only an ambient light source or
 if it is directional as well.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Fading}
+\begin{propertyAurora}{Fading}
 Unknown. Might activate some kind of distance fall off for the light.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Shadows}
-Determines if this light is capable of casting shadows.
-\end{property}
+\begin{propertyAurora}{Shadows}
+Determines if this light is capable of producing shadows.
+\end{propertyAurora}
 
-\begin{property}{Is Dynamic}
+\begin{propertyAurora}{Is Dynamic}
 Unknown.
-\end{property}
+\end{propertyAurora}
 
-\begin{property}{Affect Dynamic}
+\begin{propertyAurora}{Affect Dynamic}
 This controls whether this light affects dynamic objects, i.e. characters.
-Disabling this will prevent this light from casting shadows with dynamic
+Disabling this will prevent this light from producing shadows with dynamic
 objects, but it will in turn improve performance.
 
-This is basically a less strict version of the \textit{Shadows} setting.
-\end{property}
+This is a less strict version of the \textit{Shadows} setting.
+\end{propertyAurora}
 
-\begin{property}{Lensflares}
+\begin{propertyAurora}{Lensflares}
 Add a series of lens-flares for this light.
 
 Lens-flares are unavailable for Mainlights or Sourcelights.
@@ -307,7 +310,7 @@ Lens-flares are unavailable for Mainlights or Sourcelights.
     \item[Size] Size of the flares. This will scale the texture.
     \item[Position] Distance from the lights origin.
 \end{description}
-\end{property}
+\end{propertyAurora}
 
 \section{Materials \& Textures}
 MDL files support a single material with a single texture. If multiple 
