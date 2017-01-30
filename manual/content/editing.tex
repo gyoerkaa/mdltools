@@ -149,11 +149,10 @@ cast a shadow without being rendered.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadow}
-Controls whether this objects should cast a shadow. 
+Controls whether this objects should cast a shadow. It is recommended to 
+disable Shadows for complex Meshes with a large amount of triangles and 
+use a create a lower poly mesh with disabled rendering and enabled shadows.
 
-Trimeshes with disabled rendering and enabled shadows are also called Shadowmeshes.
-It is recommended to disable Shadows for complex Meshes with a 
-large amount of triangles and use a Shadowmesh with a low polycount instead. 
 Failing to do so might negatively impact performance and corrupt the shadows of the 
 model as the engine is only capable of handling shadows for simple, convex objects.
 \end{propertyAurora}
