@@ -31,8 +31,9 @@ Determines the type of MDL
 \end{propertyAurora}
 
 \begin{propertyAurora}{Supermodel}
-Reference to another MDL file. All animations from that file 
-will be available in this MDL.
+Reference to another MDL file. When a model is assigned a supermodel, 
+the engine loads the animation data from the super model on to the 
+pieces that have the same name in the current model.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Animationscale}
@@ -144,8 +145,9 @@ mesh will turn invisible to clear the view.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Render}
-This property controls whether this object should be rendered. Note: Meshes can still
-cast a shadow without being rendered.
+If render is on, then the part renders, if it is not then it doesn’t. The geometry is
+still in memory though, it is not culled. Use this in conjunction with the Shadows
+property to make simpler shadow volume objects than the visible geometry.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadow}
@@ -158,25 +160,32 @@ model as the engine is only capable of handling shadows for simple, convex objec
 \end{propertyAurora}
 
 \begin{propertyAurora}{Beaming}
-Unknown. Probably unused.
+For light-rays. This is how the light-rays in the forest tileset are generated. 
+Light rays cannot be made specifically for a tile, as tiles can rotate.
+Instead a different kind of shadow was created where the shadow
+volume is rendered at an alpha value and a specific colour. To create shadow
+volumes, make a group of simple triangles above the camera level and enable
+this flag.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Inherit Color}
-Unknown. Probably unused.
+Unused. It was intended for tintable 
+objects to be able to inherit their parent's color.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Rotatetexture}
-Only available for tiles. Auto-Rotates textures so the UVs are rotated
-the same way to avoids seams between tiles.
+This is for ground mapping on tilesets. When a model with
+this flag is rotated, the engine knows to rotate the uv coordinates back 
+to the original position. This eliminates texture seams on floors 
+and grass over tile edges.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Transparencyhint}
-This helps the engine prioritize transparency, similar to a z-buffer.
-Multiple overlapping transparent meshes can cause issues like
-flickering, which may be resolved by changing this property. Objects 
-with lower transparencyhint values are rendered first.\\
-
-This property can be ignored if neither material nor texture have transparency.
+As transparencies can be extremely costly to calculate from alpha values on a
+texture, we can give the engine priority values on transparent objects to let it
+know which are more important. If an object has a transparency hint of 1, then it
+will be rendered after a transparent object that has a value of 0. This does not work 
+on dynamic objects, it only affects static objects.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Smoothgroup}
@@ -271,7 +280,18 @@ the ability to select light color in the Toolset.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Priority}
-Unknown. Might control when the light source casts a shadow.
+Use by the engine's light manager to prevent using too many lights that affect dynamic 
+objects. This relates to the light count setting in the game. In order for the manager 
+to know which lights can be culled first, a priority number is assigned to each light.
+to it, from 1-5, 1 being the highest priority. This is the general
+scheme:
+\begin{enumerate}
+    \item The sun \& the moon
+    \item Torches \& light spells
+    \item Spells, general lights
+    \item Un-needed tile lights
+    \item Other un-needed lights, for example from weapons.
+\end{enumerate}
 \end{propertyAurora}
 
 \begin{propertyAurora}{Ambient Only}
@@ -280,7 +300,11 @@ if it is directional as well.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Fading}
-Unknown. Might activate some kind of distance fall off for the light.
+When a light (connected to a model) is loaded or dropped from a scene, the light
+can effectively 'flick' on and off. If this check is on, the light will take a moment
+to fade on or off for a better overall feel. In some cases it’s best to have this un-
+checked, for things like spells where you want the light to be at it’s brightest as
+soon as it appears.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadows}
@@ -344,3 +368,14 @@ The following properties can be animated:
 \end{itemize}
 Animation data like start/end frames and name are stored in the Rootdummy. Deleting the Rootdummy will result in
 the loss of this data.
+
+\begin{propertyAurora}{Root}
+    Similar to the Supermodel property, however this overrides only a 
+    specific selection of nodes instead of all of them.
+\end{propertyAurora}
+
+\begin{propertyAurora}{Transition Time}
+    This value influences how much mixing occurs with the previous animation in order to 
+    fade smoothly into the current animation. Most animations use the default value of 0.25.
+\end{propertyAurora}
+
