@@ -3,6 +3,26 @@ There are three types of objects which can be exported to a MDL: Empties,
 Meshes and Lamps. Other objects like curves and surfaces will have to be
 converted to meshes before attempting to export them.
 
+\begin{propertyBlender}{Location}
+    Blender's location property. It behaves as expected, the only exception 
+    is that it will be rounded to three decimal places.
+\end{propertyBlender} 
+
+\begin{propertyBlender}{Scale}
+    Blender's scale property cannot be exported directly as the engine 
+    only supports uniform scale. If a non-uniform scale value is used the export 
+    script will try to apply the scaling factor to the object and it's children.
+    This may cause issues with animation. Therefore it is recommended to either keep 
+    the scale uniform or apply it manually before exporting.
+\end{propertyBlender}  
+
+\begin{propertyAurora}{Wirecolor}
+    This property is unused by the engine. It can safely be ignored. It probably defines the
+    color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
+    compatibility reasons.
+\end{propertyAurora}
+
+
 \section{Empties}
 Empties are used to group objects and indicate special 
 locations. Empties are called Dummies in MDL files.
@@ -104,20 +124,6 @@ Any newly created mesh object is a trimesh by default, the most common type of m
 used by the aurora engine. As the name suggests it consists of triangles, but it is 
 not necessary to explicitly convert the faces to triangles as Neverblender does that 
 automatically during the export process.
-
-\begin{propertyBlender}{Scale}
-Blender's scale factor property cannot be exported directly as the engine 
-only supports uniform scale. If a non-uniform scale value is used the export 
-script will try to apply the scaling factor to the object and it's children.
-This may cause issues with animation. Therefore it is recommended to either keep 
-the scale uniform or apply it manually before exporting.
-\end{propertyBlender}  
- 
-\begin{propertyAurora}{Wirecolor}
-This property is unused by the engine. It can safely be ignored. It probably defines the
-color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
-compatibility reasons.
-\end{propertyAurora}
 
 \begin{propertyAurora}{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
