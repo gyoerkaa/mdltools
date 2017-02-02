@@ -4,16 +4,16 @@ Meshes and Lamps. Other objects like curves and surfaces will have to be
 converted to meshes before attempting to export them.
 
 \begin{propertyBlender}{Location}
-    Blender's location property. It behaves as expected, the only exception 
-    is that it will be rounded to three decimal places.
+    Blender's location property. The engine will round it down to three decimal places.
 \end{propertyBlender} 
 
 \begin{propertyBlender}{Scale}
     Blender's scale property cannot be exported directly as the engine 
     only supports uniform scale. If a non-uniform scale value is used the export 
     script will try to apply the scaling factor to the object and it's children.
-    This may cause issues with animation. Therefore it is recommended to either keep 
-    the scale uniform or apply it manually before exporting.
+    However this is not entirely reliable and may cause issues, especially with 
+    animations. Therefore it is recommended to either keep the scale uniform or 
+    apply it manually before exporting.
 \end{propertyBlender}  
 
 \begin{propertyAurora}{Wirecolor}
@@ -68,7 +68,7 @@ indicate a special location to the engine. \\
 \begin{figure}
   \centering
   \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_dummy}
-  \caption[panel dummy]{Dummy Property Panel}
+  %\caption[panel dummy]{Dummy Property Panel}
   \label{fig:panel_dummy}
 \end{figure}
 
@@ -124,6 +124,13 @@ Any newly created mesh object is a trimesh by default, the most common type of m
 used by the aurora engine. As the name suggests it consists of triangles, but it is 
 not necessary to explicitly convert the faces to triangles as Neverblender does that 
 automatically during the export process.
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_trimesh}
+    %\caption[panel_trimesh]{Trimesh Property Panel}
+    \label{fig:panel_trimesh}
+\end{figure}
 
 \begin{propertyAurora}{Self-Illumination Color}
 Makes the mesh seem to glow. It does not act as a light source however.
