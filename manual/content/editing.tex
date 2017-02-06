@@ -141,7 +141,7 @@ automatically during the export process.
 \end{figure}
 
 \begin{propertyAurora}{Self-Illumination Color}
-Makes the mesh seem to glow. It does not act as a light source however.
+Makes the mesh glow without acting as a light source.
 This property will not be visible in Blender.
 \end{propertyAurora}
 
@@ -287,14 +287,10 @@ text. While all data will be retained, editing is only possible by altering the
 generated text file for each emitter.
 
 \section{Lamps}
-Blender's lamp properties will be used for exporting a light.
-Exported properties are:
-\begin{itemize}
-\item Color
-\item Distance
-\end{itemize}
+Blender's lamp properties for Color and distance will be used for exporting a light.
+
 It is recommended to check \textit{Sphere} to better replicate the resulting effect 
-of a light source in the 3D view.
+of a light source in the 3D view. This property has no influence in the engine.
 
 \begin{propertyAurora}{Light type}
 There are some special light types, all of which are used to give builders
@@ -311,9 +307,8 @@ the ability to select light color in the Toolset.
 \begin{propertyAurora}{Priority}
 Use by the engine's light manager to prevent using too many lights that affect dynamic 
 objects. This relates to the light count setting in the game. In order for the manager 
-to know which lights can be culled first, a priority number is assigned to each light.
-to it, from 1-5, 1 being the highest priority. This is the general
-scheme:
+to know which lights can be culled first, a priority is assigned to each light, ranging from 1-5, 
+1 being the highest priority. This is the general scheme:
 \begin{enumerate}
     \item The sun \& the moon
     \item Torches \& light spells
@@ -329,11 +324,10 @@ if it is directional as well.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Fading}
-When a light (connected to a model) is loaded or dropped from a scene, the light
-can effectively 'flick' on and off. If this check is on, the light will take a moment
-to fade on or off for a better overall feel. In some cases it’s best to have this un-
-checked, for things like spells where you want the light to be at it’s brightest as
-soon as it appears.
+When a light is loaded or dropped from a scene, the light will 'flick' on and off. 
+If this check is on, the light will take a moment to fade on or off for a better overall feel.
+In some cases it’s best to have this un-checked, for things like spells where you want 
+the light to be at it’s brightest as soon as it appears.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadows}
@@ -353,14 +347,14 @@ This is a less strict version of the \textit{Shadows} setting.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Lensflares}
-Add a series of lens-flares for this light.
-
-Lens-flares are unavailable for Mainlights or Sourcelights.
+Add a series of lens-flares for this light. Lens-flares are unavailable for 
+Mainlights or Sourcelights. The flare radius is global for all flares of 
+this light source and is in cm (as opposed to meters in other distance values).
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Texture] Texture for this flare
     \item[Colorshift] Unknown. Possibly color difference from the light color.
     \item[Size] Size of the flares. This will scale the texture.
-    \item[Position] Distance from the lights origin.
+    \item[Position] Distance from the lights origin. Values from -1 to 1.
 \end{description}
 \end{propertyAurora}
 
