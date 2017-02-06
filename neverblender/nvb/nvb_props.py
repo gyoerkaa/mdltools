@@ -90,7 +90,8 @@ class NVB_PG_FLARE(bpy.types.PropertyGroup):
                                    default=1)
     position = bpy.props.FloatProperty(name='Position',
                                        description='Flare position',
-                                       default=1)
+                                       default=1,
+                                       min=-1.0, max=1.0)
     colorshift = bpy.props.FloatVectorProperty(name='Colorshift',
                                                description='Colorshift',
                                                subtype='COLOR_GAMMA',
