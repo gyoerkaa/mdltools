@@ -1,3 +1,5 @@
+# Neverblender: Copyright (C) 2012-2017 Attila Gyoerkoes, GPL v2.
+
 """TODO: DOC."""
 
 import bpy
