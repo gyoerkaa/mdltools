@@ -417,13 +417,15 @@ class Animnode():
         numSamples = len(self.animverts) // numVerts
         if (numSamples < 1) or (len(self.animverts) % numVerts > 0):
             return
-        # Create a 'base' shapekey to represent the default state
-        # This may not actually be used, but it's good practice
-        sk_base = obj.shape_key_add(name='Basis',
-                                    from_mix=False)
+        # Get or create a 'base' shapekey to represents the default state
+        if nvb_def.aurorashape in bpy.data.shape_keys:
+            keyBlock = bpy.data.shape_keys[nvb_def.aurorashape]
+        else:
+            keyBlock = obj.shape_key_add(name=nvb_def.aurorashape,
+                                         from_mix=False)
         # Check if the vertex-sets are actually the same, in which case only
         # a single shape key will be created and keyed multiple times
-        shapekeyData = []
+        keyData = []  # TODO
         # Get animation data or create it
         animData = bpy.data.shape_keys['Key'].animation_data
         if not animData:
@@ -434,11 +436,22 @@ class Animnode():
             action = bpy.data.actions.new(name=obj.name)
             action.use_fake_user = True
             animData.action = action
-        for idx, skd in enumerate(shapekeyData):
-            keyBlock = obj.shape_key_add(name=anim.name+str(idx),
-                                         from_mix=False)
-            dataPath = 'key_blocks["' + keyBlock.name + '"].value'
-            pass
+        kfOptions = {'FAST'}
+        frameStart = anim.frameStart
+        sampleDistance = \
+            nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
+        dataPathPrefix = 'key_blocks["' + keyBlock.name + '"].data['
+        for idx in range(numSamples):
+            samples = self.animverts[idx*numSamples:(idx+1)*numSamples]
+            dataPath = dataPathPrefix + str(idx) + '].co'
+            curveX = Animnode.getCurve(action, dataPath, 0)
+            curveY = Animnode.getCurve(action, dataPath, 1)
+            curveZ = Animnode.getCurve(action, dataPath, 2)
+            for sampleIdx, co in enumerate(samples):
+                frame = frameStart + (sampleIdx * sampleDistance)
+                curveX.keyframe_points.insert(frame, co[0], kfOptions)
+                curveY.keyframe_points.insert(frame, co[1], kfOptions)
+                curveZ.keyframe_points.insert(frame, co[2], kfOptions)
 
     def createDataUV(self, obj, anim, options):
         """Import animated texture coordinates"""
@@ -476,10 +489,10 @@ class Animnode():
         dataPathPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dataPath = dataPathPrefix + str(uvIdx) + '].uv'
-            tvertCoords = self.animtverts[tvertIdx::numTVerts]
+            samples = self.animtverts[tvertIdx::numTVerts]
             curveU = Animnode.getCurve(action, dataPath, 0)
             curveV = Animnode.getCurve(action, dataPath, 1)
-            for sampleIdx, co in enumerate(tvertCoords):
+            for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
                 curveV.keyframe_points.insert(frame, co[1], kfOptions)
