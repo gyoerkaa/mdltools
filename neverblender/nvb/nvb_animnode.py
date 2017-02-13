@@ -408,13 +408,44 @@ class Animnode():
                     txt.write('\n    ' + ' '.join(line))
             txt.write('\n  endnode')
 
-    def createDataShape(self, obj, uvlayer, anim, options):
+    def createDataShape(self, obj, anim, options):
         """Import animated vertices as shapekeys"""
-        pass
+        if not obj.data:
+            return
+        # Sanity check: we need at least one set of vertices
+        numVerts = len(obj.data.vertices)
+        numSamples = len(self.animverts) // numVerts
+        if numSamples < 1:
+            return
+        # Create a 'base' shapekey to represent the default state
+        # This may not actually be used, but it's good practice
+        sk_base = obj.shape_key_add(name='Basis',
+                                    from_mix=False)
+        # Check if the vertex-sets are actually the same, in which case only
+        # a single shape key will be created and keyed multiple times
+        shapekeyData = []
+        # Get animation data or create it
+        animData = bpy.data.shape_keys['Key'].animation_data
+        if not animData:
+            animData = bpy.data.shape_keys['Key'].data.animation_data_create()
+        # Get action, create if needed.
+        action = animData.action
+        if not action:
+            action = bpy.data.actions.new(name=obj.name)
+            action.use_fake_user = True
+            animData.action = action
+        for idx, skd in enumerate(shapekeyData):
+            keyBlock = obj.shape_key_add(name=anim.name+str(idx),
+                                         from_mix=False)
+            dataPath = 'key_blocks["' + keyBlock.name + '"].value'
+            pass
 
-    def createDataUV(self, obj, uvlayer, anim, options):
+    def createDataUV(self, obj, anim, options):
         """Import animated texture coordinates"""
         if not obj.data:
+            return
+        uvlayer = obj.data.uv_layers.active
+        if not uvlayer:
             return
         # Check if the original uv/tvert order was saved
         if uvlayer.name not in nvb_def.tvert_order:
@@ -426,10 +457,9 @@ class Animnode():
         numSamples = len(self.animtverts) // numTVerts
         if numSamples <= 1:
             return
-        # Get animation data for object data (not the object itself!)
+        # Get animation data or create it
         animData = obj.data.animation_data
         if not animData:
-            # Create animation data if necessary
             animData = obj.data.animation_data_create()
         # Get action, create if needed.
         action = animData.action
@@ -461,7 +491,7 @@ class Animnode():
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
         if self.uvdata and obj.data and obj.data.uv_layers.active:
-            self.createDataUV(obj, obj.data.uv_layers.active, anim, options)
+            self.createDataUV(obj, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmitter(obj, anim, options)
@@ -653,7 +683,13 @@ class Animnode():
 
     @staticmethod
     def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
-        """Add data for animated texture vertices (shapekeys)."""
+        """Add data for animated vertices."""
+
+        # Creates at least two shape keys:
+        #  - Create a basic shape with the default vertices
+        #  - If the first set in the MDL differs from the basic set create an
+        #    extra shape
+        #  - Create the second shape with the second set of vertices
         pass
 
     @staticmethod
@@ -666,16 +702,16 @@ class Animnode():
         tf_uv = obj.data.tessface_uv_textures.active.data
         tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
         tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
-        # Gget the correct data path
+        # Get the correct data path
         uvname = obj.data.uv_layers.active.name
         dp_start = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
         tf = len(dp_start)
-        # Get the animation data from the object data
-        # (not from the object itself)
         samplingStart = anim.frameStart
         samplingEnd = anim.frameEnd
         keys = collections.OrderedDict()  # {frame:values}
         if obj.data.animation_data:
+            # Get the animation data from the object data
+            # (not from the object itself!)
             action = obj.data.animation_data.action
             if action:
                 for fcurve in action.fcurves:
