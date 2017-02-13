@@ -415,7 +415,7 @@ class Animnode():
         # Sanity check: we need at least one set of vertices
         numVerts = len(obj.data.vertices)
         numSamples = len(self.animverts) // numVerts
-        if numSamples < 1:
+        if (numSamples < 1) or (len(self.animverts) % numVerts > 0):
             return
         # Create a 'base' shapekey to represent the default state
         # This may not actually be used, but it's good practice
@@ -455,7 +455,7 @@ class Animnode():
         # We can handle more, but not less.
         numTVerts = len(tvert_order)
         numSamples = len(self.animtverts) // numTVerts
-        if numSamples <= 1:
+        if (numSamples <= 1) or (len(self.animtverts) % numTVerts > 0):
             return
         # Get animation data or create it
         animData = obj.data.animation_data
