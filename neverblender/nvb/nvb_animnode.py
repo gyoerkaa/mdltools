@@ -415,22 +415,29 @@ class Animnode():
         # Sanity check: we need at least one set of vertices
         numVerts = len(obj.data.vertices)
         numSamples = len(self.animverts) // numVerts
-        if (numSamples < 1) or (len(self.animverts) % numVerts > 0):
+        if (numSamples < 1):
+            # TODO: Error Message
             return
-        # Get or create a 'base' shapekey to represents the default state
-        if nvb_def.aurorashape in bpy.data.shape_keys:
-            keyBlock = bpy.data.shape_keys[nvb_def.aurorashape]
+        if (len(self.animverts) % numVerts > 0):
+            # TODO: Error Message
+            return
+        # Get or create the shapekey to hold the animation
+        if obj.nvb.aurorashapekey:
+            shapekeyname = obj.nvb.aurorashapekey
         else:
-            keyBlock = obj.shape_key_add(name=nvb_def.aurorashape,
+            shapekeyname = nvb_def.shapekeyname
+        if obj.data.shape_keys and \
+           shapekeyname in obj.data.shape_keys.key_blocks:
+            keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
+        else:
+            keyBlock = obj.shape_key_add(name=shapekeyname,
                                          from_mix=False)
-        # Check if the vertex-sets are actually the same, in which case only
-        # a single shape key will be created and keyed multiple times
-        keyData = []  # TODO
-        # Get animation data or create it
-        animData = bpy.data.shape_keys['Key'].animation_data
+            obj.nvb.aurorashapekey = keyBlock.name
+        # Get animation data, create it if necessary
+        animData = obj.data.shape_keys.animation_data
         if not animData:
-            animData = bpy.data.shape_keys['Key'].data.animation_data_create()
-        # Get action, create if needed.
+            animData = obj.data.shape_keys.animation_data_create()
+        # Get action, create one if necessary
         action = animData.action
         if not action:
             action = bpy.data.actions.new(name=obj.name)
@@ -440,13 +447,13 @@ class Animnode():
         frameStart = anim.frameStart
         sampleDistance = \
             nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
-        dataPathPrefix = 'key_blocks["' + keyBlock.name + '"].data['
+        dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
         for idx in range(numSamples):
-            samples = self.animverts[idx*numSamples:(idx+1)*numSamples]
-            dataPath = dataPathPrefix + str(idx) + '].co'
-            curveX = Animnode.getCurve(action, dataPath, 0)
-            curveY = Animnode.getCurve(action, dataPath, 1)
-            curveZ = Animnode.getCurve(action, dataPath, 2)
+            samples = self.animverts[idx*numSamples:(idx+1)*numSamples-1]
+            dp = dpPrefix + str(idx) + '].co'
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveX.keyframe_points.insert(frame, co[0], kfOptions)
@@ -457,9 +464,9 @@ class Animnode():
         """Import animated texture coordinates"""
         if not obj.data:
             return
-        uvlayer = obj.data.uv_layers.active
-        if not uvlayer:
+        if not obj.data.uv_layers.active:
             return
+        uvlayer = obj.data.uv_layers.active
         # Check if the original uv/tvert order was saved
         if uvlayer.name not in nvb_def.tvert_order:
             return
@@ -468,13 +475,17 @@ class Animnode():
         # We can handle more, but not less.
         numTVerts = len(tvert_order)
         numSamples = len(self.animtverts) // numTVerts
-        if (numSamples <= 1) or (len(self.animtverts) % numTVerts > 0):
+        if (numSamples <= 1):
+            # TODO: Error Message
             return
-        # Get animation data or create it
+        if (len(self.animtverts) % numTVerts > 0):
+            # TODO: Error Message
+            return
+        # Get animation data, create it if necessary
         animData = obj.data.animation_data
         if not animData:
             animData = obj.data.animation_data_create()
-        # Get action, create if needed.
+        # Get action, create one if necessary
         action = animData.action
         if not action:
             action = bpy.data.actions.new(name=obj.name)
@@ -486,12 +497,12 @@ class Animnode():
         frameStart = anim.frameStart
         sampleDistance = \
             nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
-        dataPathPrefix = 'uv_layers["' + uvlayer.name + '"].data['
+        dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         for uvIdx, tvertIdx in enumerate(tvert_order):
-            dataPath = dataPathPrefix + str(uvIdx) + '].uv'
+            dp = dpPrefix + str(uvIdx) + '].uv'
             samples = self.animtverts[tvertIdx::numTVerts]
-            curveU = Animnode.getCurve(action, dataPath, 0)
-            curveV = Animnode.getCurve(action, dataPath, 1)
+            curveU = Animnode.getCurve(action, dp, 0)
+            curveV = Animnode.getCurve(action, dp, 1)
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
@@ -503,8 +514,10 @@ class Animnode():
             self.createDataObject(obj, anim)
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
-        if self.uvdata and obj.data and obj.data.uv_layers.active:
+        if self.uvdata and obj.data:
             self.createDataUV(obj, anim, options)
+        if self.shapedata and obj.data:
+            self.createDataShape(obj, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataEmitter(obj, anim, options)
@@ -697,13 +710,52 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
         """Add data for animated vertices."""
+        if not obj.data:
+            return
+        if not obj.nvb.aurorashapekey:
+            return
+        if not obj.data.shape_keys:
+            # TODO: Error Message
+            return
+        if obj.nvb.aurorashapekey not in obj.data.shape_keys.key_block:
+            # TODO: Error Message
+            return
+        shapekeyname = obj.nvb.aurorashapekey
+        keyBlock = obj.data.shape_keys.key_block[shapekeyname]
 
-        # Creates at least two shape keys:
-        #  - Create a basic shape with the default vertices
-        #  - If the first set in the MDL differs from the basic set create an
-        #    extra shape
-        #  - Create the second shape with the second set of vertices
-        pass
+        # Original vertex data. Needed to fill in values for unanimated
+        # vertices.
+        mesh = obj.to_mesh(bpy.context.scene,
+                           options.applyModifiers,
+                           options.meshConvert)
+        vertexList = mesh.vertices
+
+        dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
+        tf = len(dp_start)
+        samplingStart = anim.frameStart
+        samplingEnd = anim.frameEnd
+        keys = collections.OrderedDict()  # {frame:values}
+        if obj.data.animation_data:
+            # Get the animation data
+            action = obj.data.animation_data.action
+            if action:
+                for fcurve in action.fcurves:
+                    dp = fcurve.data_path
+                    if dp.startswith(dpPrefix):
+                        vertexIdx = int(dp[tf:-4])
+                        axis = fcurve.array_index
+                        kfp = [p for p in fcurve.keyframe_points
+                               if anim.frameStart <= p.co[0] <= anim.frameEnd]
+                        for p in kfp:
+                            frame = int(round(p.co[0]))
+                            samplingStart = min(frame, samplingStart)
+                            samplingEnd = max(frame, samplingEnd)
+                            if frame in keys:
+                                values = keys[frame]
+                            else:
+                                values = copy.deepcopy(vertexList)
+                            values[vertexIdx][axis] = p.co[1]
+                            keys[frame] = values
 
     @staticmethod
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
@@ -717,7 +769,7 @@ class Animnode():
         tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
         # Get the correct data path
         uvname = obj.data.uv_layers.active.name
-        dp_start = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
+        dpPrefix = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
         tf = len(dp_start)
         samplingStart = anim.frameStart
         samplingEnd = anim.frameEnd
@@ -729,7 +781,7 @@ class Animnode():
             if action:
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
-                    if dp.startswith(dp_start):
+                    if dp.startswith(dpPrefix):
                         uvIdx = int(dp[tf:-4])
                         axis = fcurve.array_index
                         kfp = [p for p in fcurve.keyframe_points

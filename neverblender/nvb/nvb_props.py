@@ -303,7 +303,11 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     shininess = bpy.props.IntProperty(name='Shininess',
                                       description='Used with txi file',
                                       default=1, min=0, max=32)
-
+    # For Animeshes
+    aurorashapekey = bpy.props.StringProperty(
+        name='Shapekey',
+        description='Shape key to use for animated vertices',
+        default='')
     # For danglymeshes
     period = bpy.props.FloatProperty(name='Period',
                                      default=1.0, min=0.0, max=32.0)

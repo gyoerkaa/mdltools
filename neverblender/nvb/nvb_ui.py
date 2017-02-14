@@ -344,11 +344,27 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
+                row.label(text='Skinmesh Properties')
+                row = box.row()
                 row.label(text='Create vertex group: ')
                 row = box.row(align=True)
                 row.prop_search(obj.nvb, 'skingroup_obj',
                                 context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
+
+            # Additional props for Animmeshes
+            elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
+                row = layout.row()
+                box = row.box()
+                row = box.row()
+                row.label(text='Animmesh Properties')
+                row = box.row()
+                if obj.data and obj.data.shape_keys:
+                    row.prop_search(obj.nvb, 'aurorashapekey',
+                                    obj.data.shape_keys, 'key_blocks',
+                                    text='Shapekey')
+                else:
+                    row.prop(obj.nvb, 'aurorashapekey', text='Shapekey')
 
 
 class NVB_MENU_ANIMLIST_SPECIALS(bpy.types.Menu):

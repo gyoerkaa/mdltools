@@ -13,7 +13,7 @@ anim_fps = 30
 # Save order of tverts for each objects {objectName:[p1, p2, ... pN]}
 tvert_order = dict()
 # Shapekey name
-aurorashape = 'aurora_animesh'
+shapekeyname = 'aurora_animesh'
 # Predefined walkmesh materials
 wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_Dirt',          (0.610, 0.235, 0.050), 0.0],
