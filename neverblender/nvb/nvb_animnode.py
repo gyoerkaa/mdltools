@@ -412,20 +412,23 @@ class Animnode():
         """Import animated vertices as shapekeys"""
         if not obj.data:
             return
-        # Sanity check: we need at least one set of vertices
         numVerts = len(obj.data.vertices)
-        numSamples = len(self.animverts) // numVerts
-        if (numSamples < 1):
-            # TODO: Error Message
-            return
+        # Sanity check: Number of animated verts should be a mupltiple of the
+        # number of verts
         if (len(self.animverts) % numVerts > 0):
             # TODO: Error Message
             return
-        # Get or create the shapekey to hold the animation
+        numSamples = len(self.animverts) // numVerts
+        # Sanity check: At least one set of vertices is needed
+        if (numSamples < 1):
+            # TODO: Error Message
+            return
+        # Get the shape key name
         if obj.nvb.aurorashapekey:
             shapekeyname = obj.nvb.aurorashapekey
         else:
             shapekeyname = nvb_def.shapekeyname
+        # Get or create the shape key to hold the animation
         if obj.data.shape_keys and \
            shapekeyname in obj.data.shape_keys.key_blocks:
             keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
@@ -443,14 +446,16 @@ class Animnode():
             action = bpy.data.actions.new(name=obj.name)
             action.use_fake_user = True
             animData.action = action
+        # Insert keyframes
+        # We need to create three curves for each vert, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
         sampleDistance = \
             nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
-        for idx in range(numSamples):
-            samples = self.animverts[idx*numSamples:(idx+1)*numSamples-1]
-            dp = dpPrefix + str(idx) + '].co'
+        for vertIdx in range(numVerts):
+            samples = self.animverts[vertIdx::numVerts]
+            dp = dpPrefix + str(vertIdx) + '].co'
             curveX = Animnode.getCurve(action, dp, 0)
             curveY = Animnode.getCurve(action, dp, 1)
             curveZ = Animnode.getCurve(action, dp, 2)
@@ -471,14 +476,16 @@ class Animnode():
         if uvlayer.name not in nvb_def.tvert_order:
             return
         tvert_order = nvb_def.tvert_order[uvlayer.name]
-        # Calculate number of tvert groups. There should be only two.
-        # We can handle more, but not less.
+
         numTVerts = len(tvert_order)
-        numSamples = len(self.animtverts) // numTVerts
-        if (numSamples <= 1):
+        # Sanity check: Number of animated uvs/tverts has to be multiple of
+        # the number of uvs
+        if (len(self.animtverts) % numTVerts > 0):
             # TODO: Error Message
             return
-        if (len(self.animtverts) % numTVerts > 0):
+        numSamples = len(self.animtverts) // numTVerts
+        # Sanity check: There should be at least two samples
+        if (numSamples <= 1):
             # TODO: Error Message
             return
         # Get animation data, create it if necessary
