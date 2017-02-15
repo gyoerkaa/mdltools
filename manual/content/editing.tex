@@ -257,12 +257,14 @@ creation of new skinmeshes difficult.
 
 
 \subsection{Animmeshes}
-Animeshes are Trimeshes with animated UV coordinates or vertices. Neverblender is able to
-export keyframes for aniamted UV's. It is recommended to use the AnimAll Add-On to 
-enable insertion of keyframes for UV coordinates. The number of 
-animated keyframes for Animmeshes is limited to 
-two (start and beginning of the animation).
+Animeshes are Trimeshes with animated UV coordinates or vertices, the latter requires the use of a 
+shape key. The AnimAll Add-On is required to edit to animate UV coordinates and shape keys. The number of 
+animated keyframes for Animmeshes is limited to two (start and beginning of the animation).
 
+\begin{propertyAurora}{Shapekey} 
+    The shape key from which the animation data is taken. If no key is specified, vertex animations will
+    not be exported.
+\end{propertyAurora}
 
 \subsection{Walkmeshes}
 Walkmeshes indicate where a character can walk. It is necessary to select 
