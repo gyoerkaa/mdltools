@@ -722,10 +722,10 @@ class Animnode():
         if not obj.nvb.aurorashapekey:
             return
         if not obj.data.shape_keys:
-            # TODO: Error Message
+            # No animated vertices here
             return
         if obj.nvb.aurorashapekey not in obj.data.shape_keys.key_block:
-            # TODO: Error Message
+            # No animated vertices here
             return
         shapekeyname = obj.nvb.aurorashapekey
         keyBlock = obj.data.shape_keys.key_block[shapekeyname]
@@ -742,9 +742,9 @@ class Animnode():
         samplingStart = anim.frameStart
         samplingEnd = anim.frameEnd
         keys = collections.OrderedDict()  # {frame:values}
-        if obj.data.animation_data:
+        if obj.data.shape_keys.animation_data:
             # Get the animation data
-            action = obj.data.animation_data.action
+            action = obj.data.shape_keys.animation_data.action
             if action:
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
