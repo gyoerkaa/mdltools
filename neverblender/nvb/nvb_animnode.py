@@ -416,12 +416,18 @@ class Animnode():
         # Sanity check: Number of animated verts should be a mupltiple of the
         # number of verts
         if (len(self.animverts) % numVerts > 0):
-            # TODO: Error Message
+            print("Neverblender: WARNING - Sample size mismatch (" +
+                  "animesh " + obj.name + ")")
             return
         numSamples = len(self.animverts) // numVerts
-        # Sanity check: At least one set of vertices is needed
-        if (numSamples < 1):
-            # TODO: Error Message
+        if numSamples == 1:
+            sampleDistance = 0
+        elif numSamples > 1:
+            sampleDistance = \
+                nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
+        else:
+            print("Neverblender: WARNING - No samples (" +
+                  "animesh " + obj.name + ")")
             return
         # Get the shape key name
         if obj.nvb.aurorashapekey:
@@ -450,15 +456,13 @@ class Animnode():
         # We need to create three curves for each vert, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
-        sampleDistance = \
-            nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
         for vertIdx in range(numVerts):
-            samples = self.animverts[vertIdx::numVerts]
             dp = dpPrefix + str(vertIdx) + '].co'
             curveX = Animnode.getCurve(action, dp, 0)
             curveY = Animnode.getCurve(action, dp, 1)
             curveZ = Animnode.getCurve(action, dp, 2)
+            samples = self.animverts[vertIdx::numVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveX.keyframe_points.insert(frame, co[0], kfOptions)
@@ -476,17 +480,22 @@ class Animnode():
         if uvlayer.name not in nvb_def.tvert_order:
             return
         tvert_order = nvb_def.tvert_order[uvlayer.name]
-
         numTVerts = len(tvert_order)
         # Sanity check: Number of animated uvs/tverts has to be multiple of
         # the number of uvs
         if (len(self.animtverts) % numTVerts > 0):
-            # TODO: Error Message
+            print("Neverblender: WARNING - Sample size mismatch (" +
+                  "animesh " + obj.name + ")")
             return
         numSamples = len(self.animtverts) // numTVerts
-        # Sanity check: There should be at least two samples
-        if (numSamples <= 1):
-            # TODO: Error Message
+        if numSamples == 1:
+            sampleDistance = 0
+        elif numSamples > 1:
+            sampleDistance = \
+                nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
+        else:
+            print("Neverblender: WARNING - No samples (" +
+                  "animesh " + obj.name + ")")
             return
         # Get animation data, create it if necessary
         animData = obj.data.animation_data
@@ -505,11 +514,12 @@ class Animnode():
         sampleDistance = \
             nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
+        # uvIdx = order in blender, tvertIdx = order in mdl
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dp = dpPrefix + str(uvIdx) + '].uv'
-            samples = self.animtverts[tvertIdx::numTVerts]
             curveU = Animnode.getCurve(action, dp, 0)
             curveV = Animnode.getCurve(action, dp, 1)
+            samples = self.animtverts[tvertIdx::numTVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
@@ -521,9 +531,9 @@ class Animnode():
             self.createDataObject(obj, anim)
         if self.matdata and obj.active_material:
             self.createDataMaterial(obj.active_material, anim)
-        if self.uvdata and obj.data:
+        if self.uvdata:
             self.createDataUV(obj, anim, options)
-        if self.shapedata and obj.data:
+        if self.shapedata:
             self.createDataShape(obj, anim, options)
         if self.rawascii and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
@@ -717,8 +727,6 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
         """Add data for animated vertices."""
-        if not obj.data:
-            return
         if not obj.nvb.aurorashapekey:
             return
         if not obj.data.shape_keys:
@@ -729,7 +737,6 @@ class Animnode():
             return
         shapekeyname = obj.nvb.aurorashapekey
         keyBlock = obj.data.shape_keys.key_block[shapekeyname]
-
         # Original vertex data. Needed to fill in values for unanimated
         # vertices.
         mesh = obj.to_mesh(bpy.context.scene,
@@ -737,15 +744,15 @@ class Animnode():
                            options.meshConvert)
         vertexList = mesh.vertices
 
-        dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
-        tf = len(dp_start)
-        samplingStart = anim.frameStart
-        samplingEnd = anim.frameEnd
-        keys = collections.OrderedDict()  # {frame:values}
         if obj.data.shape_keys.animation_data:
             # Get the animation data
             action = obj.data.shape_keys.animation_data.action
             if action:
+                dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
+                tf = len(dpPrefix)
+                samplingStart = anim.frameStart
+                samplingEnd = anim.frameEnd
+                keys = collections.OrderedDict()  # {frame:values}
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
                     if dp.startswith(dpPrefix):
@@ -767,25 +774,36 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
         """Add data for animated texture coordinates."""
+        if not obj.active_material:
+            print("Neverblender: WARNING - Animesh " +
+                  obj.name + " has no material.")
+            return
+        if not obj.active_material.active_texture:
+            print("Neverblender: WARNING - Animesh " +
+                  obj.name + " has no texture.")
+            return
         if not obj.data.uv_layers.active:
+            print("Neverblender: WARNING - Animesh " +
+                  obj.name + " has uv layer.")
             return
         # Original uv data. Needed to fill in values for unanimated uv's.
         obj.data.update(calc_tessface=True)
         tf_uv = obj.data.tessface_uv_textures.active.data
         tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
         tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
-        # Get the correct data path
-        uvname = obj.data.uv_layers.active.name
-        dpPrefix = 'uv_layers["' + uvname + '"].data['  # + UV_IDX + '].uv'
-        tf = len(dp_start)
-        samplingStart = anim.frameStart
-        samplingEnd = anim.frameEnd
-        keys = collections.OrderedDict()  # {frame:values}
+
         if obj.data.animation_data:
             # Get the animation data from the object data
             # (not from the object itself!)
             action = obj.data.animation_data.action
             if action:
+                # Get the correct data path
+                uvname = obj.data.uv_layers.active.name
+                dpPrefix = 'uv_layers["' + uvname + '"].data['
+                tf = len(dpPrefix)
+                samplingStart = anim.frameStart
+                samplingEnd = anim.frameEnd
+                keys = collections.OrderedDict()  # {frame:values}
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
                     if dp.startswith(dpPrefix):
@@ -826,20 +844,17 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshData(obj, anim, asciiLines):
         """TODO:Doc."""
+        if not obj.data:
+            return
         # Check if the object is an animmesh:
         if (obj.type != 'MESH') or \
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
         options = nvb_def.ExportOptions()
-        # Check if the object has a texture
-        if (obj.active_material) and (obj.active_material.active_texture):
-            nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
-                                                options, True)
-            Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines)
-        else:
-            nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
-                                                options, False)
-        #  TODO: Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines)
+        nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
+                                            options, True)
+        Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines)
+        Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines)
 
     @staticmethod
     def generateAscii(obj, anim, asciiLines):

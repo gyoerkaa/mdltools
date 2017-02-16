@@ -512,6 +512,7 @@ class Trimesh(Node):
                 # we need to save the order the tverts were created in blender
                 # for animmeshes/uv animations
                 tvert_neworder = []
+                # Create uv's
                 for i in range(len(self.facelist.uvIdx)):
                     # Get a tessface
                     tessface = mesh.tessfaces[i]
