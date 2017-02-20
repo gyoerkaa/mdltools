@@ -444,17 +444,33 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
                 objList.append(c)
         # Remove keyframes
         for obj in objList:
-            framesToDelete = []
-            if obj.animation_data and obj.animation_data.action:
+            # Delete the objects animation
+            framesToDel = []
+            animData = obj.animation_data
+            if animData and animData.action:
                 # Find out which ones to delete
-                for fcurve in obj.animation_data.action.fcurves:
+                for fcurve in animData.action.fcurves:
                     for p in fcurve.keyframe_points:
                         if (anim.frameStart <= p.co[0] <= anim.frameEnd):
-                            framesToDelete.append((fcurve.data_path, p.co[0]))
+                            framesToDel.append((fcurve.data_path, p.co[0]))
                 # Delete them by accessing them from the object.
                 # (Can't do it directly)
                 for dp, f in framesToDelete:
                     obj.keyframe_delete(dp, frame=f)
+            # Delete the object's materials animation
+            framesToDel = []
+            if obj.active_material:
+                animData = obj.active_material.animation_data
+                if animData and animData.action:
+                    # Find out which ones to delete
+                    for fcurve in animData.action.fcurves:
+                        for p in fcurve.keyframe_points:
+                            if (anim.frameStart <= p.co[0] <= anim.frameEnd):
+                                framesToDel.append((fcurve.data_path, p.co[0]))
+                    # Delete them by accessing them from the object.
+                    # (Can't do it directly)
+                    for dp, f in framesToDelete:
+                        obj.keyframe_delete(dp, frame=f)
         # Remove animation from List
         animList.remove(animListIdx)
         if animListIdx > 0:
