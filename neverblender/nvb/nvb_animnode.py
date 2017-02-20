@@ -511,8 +511,6 @@ class Animnode():
         # We need to create two curves for each uv, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
-        sampleDistance = \
-            nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
         dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         # uvIdx = order in blender, tvertIdx = order in mdl
         for uvIdx, tvertIdx in enumerate(tvert_order):
@@ -775,16 +773,10 @@ class Animnode():
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
         """Add data for animated texture coordinates."""
         if not obj.active_material:
-            print("Neverblender: WARNING - Animesh " +
-                  obj.name + " has no material.")
             return
         if not obj.active_material.active_texture:
-            print("Neverblender: WARNING - Animesh " +
-                  obj.name + " has no texture.")
             return
         if not obj.data.uv_layers.active:
-            print("Neverblender: WARNING - Animesh " +
-                  obj.name + " has uv layer.")
             return
         # Original uv data. Needed to fill in values for unanimated uv's.
         obj.data.update(calc_tessface=True)
