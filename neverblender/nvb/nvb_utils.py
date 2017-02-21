@@ -459,24 +459,6 @@ def getActionList(obj, actionList):
         getActionList(child, actionList)
 
 
-def moveAnimationKeys(rootDummy, anim, newAnimRange):
-    """TODO: Doc."""
-    # animRanges = []
-    # animRanges = [(a.frameStart, a.frameEnd) for a in rootDummy.nvb.animList]
-
-    actionList = []
-    getActionList(rootDummy, actionList)
-    # offset = newStartFrame
-    for action in actionList:
-        for fcurve in action.fcurves:
-            # Get the keyframe points of the animation
-            kfp = [p for p in fcurve.keyframe_points
-                   if anim.frameStart <= p.co[0] <= anim.frameEnd]
-            # Get the keyframe points which have to be moved to make rootDummy
-            for p in kfp:
-                pass  # p.co[0] += newStartFrame
-
-
 def setupMinimapRender(rootDummy,
                        scene,
                        lamp_color=(1.0, 1.0, 1.0),
