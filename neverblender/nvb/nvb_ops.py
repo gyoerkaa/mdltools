@@ -656,86 +656,6 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 1)
         return False
 
-    def swap(self, rootDummy, fromIdx, toIdx):
-        """Swap the keyframes of two adjacent animations."""
-        # Get the target animation (to be moved)
-        fromAnim = rootDummy.nvb.animList[fromIdx]
-        fromStart = fromAnim.frameStart
-        fromEnd = fromAnim.frameEnd
-        # Get the animation currently sitting at that position
-        toAnim = rootDummy.nvb.animList[toIdx]
-        toStart = toAnim.frameStart
-        toEnd = toAnim.frameEnd
-        # New animation bounds
-        if fromStart > toEnd:
-            fromNewStart = toStart
-            fromNewEnd = fromNewStart + (fromEnd - fromStart)
-            toNewStart = fromNewEnd + (fromStart - toEnd)
-            toNewEnd = toNewStart + (toEnd - toStart)
-        elif toStart > fromEnd:
-            toNewStart = fromStart
-            toNewEnd = toNewStart + (toEnd - toStart)
-            fromNewStart = toNewEnd + (toStart - fromEnd)
-            fromNewEnd = fromNewStart + (fromEnd - fromStart)
-        else:
-            return
-        # Get a list of affected objects
-        objList = [rootDummy]
-        for o in objList:
-            for c in o.children:
-                objList.append(c)
-        # Move keyframes
-        kfOptions = {'FAST'}  # insertion options
-        for obj in objList:
-            framesToDelete = []
-            fromAnimKfp = {}
-            toAnimKfp = {}
-            if obj.animation_data and obj.animation_data.action:
-                # Find out which ones to delete
-                action = obj.animation_data.action
-                for fcurve in action.fcurves:
-                    for p in fcurve.keyframe_points:
-                        if (fromStart <= p.co[0] <= fromEnd):
-                            key = fcurve.data_path + str(fcurve.array_index)
-                            if key in fromAnimKfp:
-                                fromAnimKfp[key].append((p.co[0], p.co[1]))
-                            else:
-                                fromAnimKfp[key] = [(p.co[0], p.co[1])]
-                            framesToDelete.append((fcurve.data_path, p.co[0]))
-                        elif (toStart <= p.co[0] <= toEnd):
-                            key = fcurve.data_path + str(fcurve.array_index)
-                            if key in toAnimKfp:
-                                toAnimKfp[key].append((p.co[0], p.co[1]))
-                            else:
-                                toAnimKfp[key] = [(p.co[0], p.co[1])]
-                            framesToDelete.append((fcurve.data_path, p.co[0]))
-                # Delete them by accessing them from the object.
-                # (Can't do it directly)
-                for dp, f in framesToDelete:
-                    obj.keyframe_delete(dp, frame=f)
-                # Restore keyframes, but swap places
-                for fcurve in action.fcurves:
-                    key = fcurve.data_path + str(fcurve.array_index)
-                    if key in fromAnimKfp:
-                        for p in fromAnimKfp[key]:
-                            frame = fromNewStart + (p[0] - fromStart)
-                            fcurve.keyframe_points.insert(frame, p[1],
-                                                          kfOptions)
-                    if key in toAnimKfp:
-                        for p in toAnimKfp[key]:
-                            frame = toNewStart + (p[0] - toStart)
-                            fcurve.keyframe_points.insert(frame, p[1],
-                                                          kfOptions)
-        # Adjust list entries
-        fromAnim.frameStart = fromNewStart
-        fromAnim.frameEnd = fromNewEnd
-        for e in fromAnim.eventList:
-            e.frame = fromNewStart + (e.frame - fromStart)
-        toAnim.frameStart = toNewStart
-        toAnim.frameEnd = toNewEnd
-        for e in toAnim.eventList:
-            e.frame = toNewStart + (e.frame - toStart)
-
     def execute(self, context):
         """TODO: DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
@@ -746,10 +666,8 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         maxIdx = len(animList) - 1
         if self.direction == 'DOWN':
             newIdx = currentIdx + 1
-            # self.swap(rootDummy, currentIdx, newIdx)
         elif self.direction == 'UP':
             newIdx = currentIdx - 1
-            # self.swap(rootDummy, currentIdx, newIdx)
         else:
             return {'CANCELLED'}
 
@@ -758,7 +676,6 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
             return {'CANCELLED'}
         animList.move(currentIdx, newIdx)
         rootDummy.nvb.animListIdx = newIdx
-        # nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
 
