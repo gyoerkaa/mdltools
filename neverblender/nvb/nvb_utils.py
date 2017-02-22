@@ -442,23 +442,6 @@ def getAuroraAlpha(obj):
         return 1.0
 
 
-def getActionList(obj, actionList):
-    """TODO: Doc."""
-    # Object Data
-    if obj.animation_data:
-        action = obj.animation_data.action
-        if action:
-            actionList.append(action)
-    # Material/ texture data (= alpha keys)
-    if obj.active_material and obj.active_material.animation_data:
-        action = obj.active_material.animation_data.action
-        if action:
-            actionList.append(action)
-
-    for child in obj.children:
-        getActionList(child, actionList)
-
-
 def setupMinimapRender(rootDummy,
                        scene,
                        lamp_color=(1.0, 1.0, 1.0),
