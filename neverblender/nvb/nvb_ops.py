@@ -100,56 +100,49 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def execute(self, context):
+    def scaleFramesUp(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
-        if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Failure: Convoluted animations.')
-            return {'CANCELLED'}
-        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        oldSize = ta.frameEnd - ta.frameStart + 1
-        newSize = self.scaleFactor * oldSize
-        # Check resulting length (has to be >= 1)
-        if (newSize < 1):
-            self.report({'INFO'}, 'Failure: Resulting size < 1.')
-            return {'CANCELLED'}
-        if (math.fabs(oldSize - newSize) < 1):
-            self.report({'INFO'}, 'Failure: Same size.')
-            return {'CANCELLED'}
-        padding = newSize - oldSize
-        # Adjust keyframes
-        actionList = []
-        nvb_utils.getActionList(rootDummy, actionList)
-        if self.scaleFactor > 1.0:
-            for action in actionList:
-                for fcurve in action.fcurves:
-                    # Move keyframes back to create enough space
-                    for p in reversed(fcurve.keyframe_points):
-                        if (p.co[0] > ta.frameEnd):
-                            p.co[0] += padding
-                            p.handle_left.x += padding
-                            p.handle_right.x += padding
-                    # Now scale the animation
-                    for p in fcurve.keyframe_points:
-                        if (ta.frameStart <= p.co[0] <= ta.frameEnd):
-                            oldFrame = p.co[0]
-                            newFrame = (oldFrame - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
-                            p.co[0] = newFrame
-                            p.handle_left.x = newFrame - \
-                                (oldFrame - p.handle_left.x)
-                            p.handle_right.x = newFrame + \
-                                (p.handle_right.x - oldFrame)
-                    fcurve.update()
-        elif self.scaleFactor < 1.0:
-            for action in actionList:
-                for fcurve in action.fcurves:
+        if target.animation_data and target.animation_data.action:
+            oldSize = animEnd - animStart + 1
+            newSize = scaleFactor * oldSize
+            padding = newSize - oldSize
+            insertionOptions = {'FAST'}
+            action = target.animation_data.action
+            for fcurve in action.fcurves:
+                # Move keyframes back to create enough space
+                for p in reversed(fcurve.keyframe_points):
+                    if (p.co[0] > animEnd):
+                        p.co[0] += padding
+                        p.handle_left.x += padding
+                        p.handle_right.x += padding
+                # Now scale the animation
+                for p in fcurve.keyframe_points:
+                    if (animStart <= p.co[0] <= animEnd):
+                        oldFrame = p.co[0]
+                        newFrame = (oldFrame - animStart) * \
+                            scaleFactor + animStart
+                        p.co[0] = newFrame
+                        p.handle_left.x = newFrame - \
+                            (oldFrame - p.handle_left.x)
+                        p.handle_right.x = newFrame + \
+                            (p.handle_right.x - oldFrame)
+                fcurve.update()
+
+    def scaleFramesDown(self, target, animStart, animEnd, scaleFactor):
+        """TODO:DOC."""
+        if target.animation_data and target.animation_data.action:
+            oldSize = animEnd - animStart + 1
+            newSize = scaleFactor * oldSize
+            padding = newSize - oldSize
+            insertionOptions = {'FAST'}
+            action = target.animation_data.action
+            for fcurve in action.fcurves:
                     # Scale the animation down first
                     for p in fcurve.keyframe_points:
-                        if (ta.frameStart <= p.co[0] <= ta.frameEnd):
+                        if (animStart <= p.co[0] <= animEnd):
                             oldFrame = p.co[0]
-                            newFrame = (oldFrame - ta.frameStart) * \
-                                self.scaleFactor + ta.frameStart
+                            newFrame = (oldFrame - animStart) * \
+                                scaleFactor + animStart
                             p.co[0] = newFrame
                             p.handle_left.x = newFrame - \
                                 (oldFrame - p.handle_left.x)
@@ -157,13 +150,55 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                                 (p.handle_right.x - oldFrame)
                     # Move keyframes forward to close gaps
                     for p in fcurve.keyframe_points:
-                        if (p.co[0] > ta.frameEnd):
+                        if (p.co[0] > animEnd):
                             p.co[0] += padding
                             p.handle_left.x += padding
                             p.handle_right.x += padding
                     fcurve.update()
+
+    def scaleFrames(self, target, animStart, animEnd, scaleFactor):
+        """TODO:DOC."""
+        if target.animation_data and target.animation_data.action:
+            if scaleFactor > 1.0:
+                self.scaleFramesUp(target, animStart, animEnd, scaleFactor)
+            elif scaleFactor < 1.0:
+                self.scaleFramesDown(target, animStart, animEnd, scaleFactor)
+
+    def execute(self, context):
+        """TODO:DOC."""
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        if not nvb_utils.checkAnimBounds(rootDummy):
+            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            return {'CANCELLED'}
+        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        # Check resulting length (has to be >= 1)
+        oldSize = ta.frameEnd - ta.frameStart + 1
+        newSize = self.scaleFactor * oldSize
+        if (newSize < 1):
+            self.report({'INFO'}, 'Failure: Resulting size < 1.')
+            return {'CANCELLED'}
+        if (math.fabs(oldSize - newSize) < 1):
+            self.report({'INFO'}, 'Failure: Same size.')
+            return {'CANCELLED'}
+        # Get a list of affected objects
+        objList = []
+        nvb_utils.getAllChildren(rootDummy, objList)
+        # Adjust keyframes
+        for obj in objList:
+            # Adjust the objects animation
+            animData = obj.animation_data
+            self.scaleFrames(obj, animStart, animEnd, self.scaleFactor)
+            # Adjust the object's material animation
+            if obj.active_material:
+                self.scaleFrames(obj.active_material,
+                                 animStart, animEnd, self.scaleFactor)
+            # Adjust the object's shape key animation
+            if obj.data.shape_keys:
+                self.scaleFrames(obj.data.shape_keys,
+                                 animStart, animEnd, self.scaleFactor)
         # Adjust the bounds of animations coming after the
         # target (scaled) animation
+        padding = newSize - oldSize
         for a in reversed(rootDummy.nvb.animList):
             if a.frameStart > ta.frameEnd:
                 a.frameStart += padding
@@ -264,10 +299,9 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
         cb = self.cropBack
         animStart = anim.frameStart
         animEnd = anim.frameEnd
-        oldLength = anim.frameEnd - anim.frameStart + 1
         totalCrop = cf + cb
         # Resulting length has to be at lest 1 frame
-        if totalCrop > oldLength:
+        if totalCrop > (animEnd - animStart + 1):
             self.report({'INFO'}, 'Failure: Resulting length < 1.')
             return {'CANCELLED'}
         # Get a list of affected objects
