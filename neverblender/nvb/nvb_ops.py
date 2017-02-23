@@ -210,6 +210,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         for e in ta.eventList:
             e.frame = (e.frame - ta.frameStart) * \
                 self.scaleFactor + ta.frameStart
+        # Re-adjust the timeline to the new bounds
         nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
@@ -334,6 +335,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             else:
                 e.frame -= totalCrop
         anim.frameEnd -= totalCrop
+        # Re-adjust the timeline to the new bounds
         nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
@@ -433,6 +435,7 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         ta.frameEnd += totalPadding
         for e in ta.eventList:
             e.frame += self.padFront
+        # Re-adjust the timeline to the new bounds
         nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
@@ -635,6 +638,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
         newAnimIdx = len(animList) - 1
         animList.move(currentAnimIdx, newAnimIdx)
         rootDummy.nvb.animListIdx = newAnimIdx
+        # Re-adjust the timeline to the new bounds
         nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
 
