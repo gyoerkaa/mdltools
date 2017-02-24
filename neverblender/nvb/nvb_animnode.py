@@ -1,5 +1,3 @@
-# Neverblender: Copyright (C) 2012-2017 Attila Gyoerkoes, GPL v2.
-
 """TODO: DOC."""
 
 import mathutils
@@ -82,7 +80,7 @@ class Animnode():
         for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
             if not l_isNumber(label):
                 if label == 'node':
@@ -409,7 +407,7 @@ class Animnode():
             txt.write('\n  endnode')
 
     def createDataShape(self, obj, anim, options):
-        """Import animated vertices as shapekeys"""
+        """Import animated vertices as shapekeys."""
         if not obj.data:
             return
         numVerts = len(obj.data.vertices)
@@ -470,7 +468,7 @@ class Animnode():
                 curveZ.keyframe_points.insert(frame, co[2], kfOptions)
 
     def createDataUV(self, obj, anim, options):
-        """Import animated texture coordinates"""
+        """Import animated texture coordinates."""
         if not obj.data:
             return
         if not obj.data.uv_layers.active:
@@ -738,8 +736,8 @@ class Animnode():
         # Original vertex data. Needed to fill in values for unanimated
         # vertices.
         mesh = obj.to_mesh(bpy.context.scene,
-                           options.applyModifiers,
-                           options.meshConvert)
+                           True,
+                           'RENDER')
         vertexList = mesh.vertices
 
         if obj.data.shape_keys.animation_data:

@@ -17,6 +17,8 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
+"""TODO: DOC."""
+
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",

@@ -55,25 +55,25 @@ class Mdl():
         for line in asciiLines:
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
             if (label == 'newmodel'):
                 try:
                     self.name = line[1]
-                except IndexError:
+                except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read model name.")
             elif (label == 'setsupermodel'):
                 try:
                     # line should be
                     # ['setsupermodel', modelname, supermodelname]
                     self.supermodel = line[2]
-                except IndexError:
+                except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read supermodel. \
                            Using default value " + self.supermodel)
             elif (label == 'classification'):
                 try:
                     self.classification = line[1].lower()
-                except IndexError:
+                except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read \
                            classification. \
                            Using Default value " + self.classification)
@@ -85,7 +85,7 @@ class Mdl():
             elif (label == 'setanimationscale'):
                 try:
                     self.animscale = line[1]
-                except IndexError:
+                except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read \
                            animationscale. \
                            Using default value " + self.animscale)

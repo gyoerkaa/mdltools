@@ -63,7 +63,7 @@ class Animation():
             elif (label == 'animroot'):
                 try:
                     self.animroot = line[1]
-                except:
+                except ValueError:
                     self.animroot = ''
             elif (label == 'event'):
                 self.events.append((float(line[1]), line[2]))

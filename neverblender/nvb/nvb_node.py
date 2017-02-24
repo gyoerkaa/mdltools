@@ -1,5 +1,3 @@
-# Neverblender: Copyright (C) 2012-2017 Attila Gyoerkoes, GPL v2.
-
 """TODO: DOC."""
 
 import mathutils
@@ -25,6 +23,7 @@ class FaceList():
         self.matId = []  # int, material index
 
     def __len__(self):
+        """TODO: DOC."""
         return min(len(self.faces),
                    len(self.shdgr),
                    len(self.uvIdx),
@@ -282,7 +281,7 @@ class Reference(Node):
         for line in asciiLines:
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 # Probably empty line or whatever, skip it
                 continue
             if not l_isNumber(label):
@@ -291,7 +290,7 @@ class Reference(Node):
                 elif (label == 'reattachable'):
                     try:
                         self.reattachable = int(line[1])
-                    except:
+                    except (ValueError, IndexError):
                         pass  # TODO: Print a warning or smth
 
     def createObjectData(self, obj, options):
@@ -371,7 +370,7 @@ class Trimesh(Node):
         for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 # Probably empty line or whatever, skip it
                 continue
 
@@ -381,12 +380,12 @@ class Trimesh(Node):
                 elif (label == 'render'):
                     try:
                         self.render = l_int(line[1])
-                    except:
+                    except (ValueError, IndexError):
                         pass
                 elif (label == 'shadow'):
                     try:
                         self.shadow = l_int(line[1])
-                    except:
+                    except (ValueError, IndexError):
                         pass
                 elif (label == 'beaming'):
                     self.beaming = l_int(line[1])
@@ -423,7 +422,7 @@ class Trimesh(Node):
                         self.center = (l_float(line[1]),
                                        l_float(line[2]),
                                        l_float(line[3]))
-                    except:
+                    except (ValueError, IndexError):
                         # Probably a 'undefined' string, cannot be converted
                         # We just let it slide and ignore it
                         pass
@@ -906,7 +905,7 @@ class Danglymesh(Trimesh):
         for idx, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 # Probably empty line or whatever, skip it
                 continue
             if not l_isNumber(label):
@@ -955,7 +954,7 @@ class Danglymesh(Trimesh):
         for i, v in enumerate(obj.data.vertices):
             try:
                 asciiLines.append('    ' + str(round(vgroup.weight(i)*255, 3)))
-            except:
+            except (IndexError, AttributeError, ValueError):
                 # Vertex is not part of this group
                 asciiLines.append('    0.0')
 
@@ -1052,7 +1051,7 @@ class Skinmesh(Trimesh):
             for group in skingroups:
                 try:
                     weights.append([group.name, group.weight(i)])
-                except:
+                except (IndexError, AttributeError, ValueError):
                     # Vertex not part of this group
                     pass
             vertexWeights.append(weights)

@@ -57,7 +57,6 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         # Copy keyframes
         for obj in objList:
             # Copy the objects animation
-            animData = obj.animation_data
             self.cloneFrames(obj, animStart, animEnd, cloneStart)
             # Copy the object's material animation
             if obj.active_material:
@@ -106,7 +105,6 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
             oldSize = animEnd - animStart + 1
             newSize = scaleFactor * oldSize
             padding = newSize - oldSize
-            insertionOptions = {'FAST'}
             action = target.animation_data.action
             for fcurve in action.fcurves:
                 # Move keyframes back to create enough space
@@ -134,7 +132,6 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
             oldSize = animEnd - animStart + 1
             newSize = scaleFactor * oldSize
             padding = newSize - oldSize
-            insertionOptions = {'FAST'}
             action = target.animation_data.action
             for fcurve in action.fcurves:
                     # Scale the animation down first
@@ -186,16 +183,15 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         # Adjust keyframes
         for obj in objList:
             # Adjust the objects animation
-            animData = obj.animation_data
-            self.scaleFrames(obj, animStart, animEnd, self.scaleFactor)
+            self.scaleFrames(obj, ta.frameStart, ta.frameEnd, self.scaleFactor)
             # Adjust the object's material animation
             if obj.active_material:
                 self.scaleFrames(obj.active_material,
-                                 animStart, animEnd, self.scaleFactor)
+                                 ta.frameStart, ta.frameEnd, self.scaleFactor)
             # Adjust the object's shape key animation
             if obj.data.shape_keys:
                 self.scaleFrames(obj.data.shape_keys,
-                                 animStart, animEnd, self.scaleFactor)
+                                 ta.frameStart, ta.frameEnd, self.scaleFactor)
         # Adjust the bounds of animations coming after the
         # target (scaled) animation
         padding = newSize - oldSize
@@ -264,7 +260,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             action = target.animation_data.action
             framesToDelete = []
             # Find out which ones to delete
-            for fcurve in obj.animation_data.action.fcurves:
+            for fcurve in target.animation_data.action.fcurves:
                 for p in fcurve.keyframe_points:
                     if (animStart <= p.co[0] < animStart + cf) or \
                        (animEnd - cb < p.co[0] <= animEnd):
@@ -272,7 +268,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             # Delete the frames by accessing them from the object.
             # (Can't do it directly)
             for dp, f in framesToDelete:
-                obj.keyframe_delete(dp, frame=f)
+                target.keyframe_delete(dp, frame=f)
             # Move the keyframes to the front to remove gaps
             for fcurve in action.fcurves:
                 for p in fcurve.keyframe_points:
@@ -516,7 +512,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def deleteFrames(self, target, frameStart, frameStop):
+    def deleteFrames(self, target, frameStart, frameEnd):
         """TODO: DOC."""
         if target.animation_data and target.animation_data.action:
             # Find out which frames to delete
