@@ -1,5 +1,3 @@
-# Neverblender: Copyright (C) 2012-2017 Attila Gyoerkoes, GPL v2.
-
 """TODO: DOC."""
 
 import math
@@ -115,10 +113,10 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                         p.handle_right.x += padding
                 # Now scale the animation
                 for p in fcurve.keyframe_points:
-                    if (animStart <= p.co[0] <= animEnd):
+                    if (animStart < p.co[0] <= animEnd):
                         oldFrame = p.co[0]
-                        newFrame = (oldFrame - animStart) * \
-                            scaleFactor + animStart
+                        newFrame = (oldFrame - animStart + 1) * \
+                            scaleFactor + animStart - 1
                         p.co[0] = newFrame
                         p.handle_left.x = newFrame - \
                             (oldFrame - p.handle_left.x)
@@ -136,10 +134,10 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
             for fcurve in action.fcurves:
                     # Scale the animation down first
                     for p in fcurve.keyframe_points:
-                        if (animStart <= p.co[0] <= animEnd):
+                        if (animStart < p.co[0] <= animEnd):
                             oldFrame = p.co[0]
-                            newFrame = (oldFrame - animStart) * \
-                                scaleFactor + animStart
+                            newFrame = (oldFrame - animStart + 1) * \
+                                scaleFactor + animStart - 1
                             p.co[0] = newFrame
                             p.handle_left.x = newFrame - \
                                 (oldFrame - p.handle_left.x)
@@ -204,8 +202,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         # Adjust the target (scaled) animation itself
         ta.frameEnd += padding
         for e in ta.eventList:
-            e.frame = (e.frame - ta.frameStart) * \
-                self.scaleFactor + ta.frameStart
+            e.frame = (e.frame - ta.frameStart + 1) * \
+                self.scaleFactor + ta.frameStart - 1
         # Re-adjust the timeline to the new bounds
         nvb_utils.toggleAnimFocus(context.scene, rootDummy)
         return {'FINISHED'}
