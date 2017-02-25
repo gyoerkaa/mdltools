@@ -63,7 +63,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
                 self.cloneFrames(obj.active_material,
                                  animStart, animEnd, cloneStart)
             # Copy the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.cloneFrames(obj.data.shape_keys,
                                  animStart, animEnd, cloneStart)
         # Copy data
@@ -189,7 +189,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                 self.scaleFrames(obj.active_material,
                                  ta.frameStart, ta.frameEnd, self.scaleFactor)
             # Adjust the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.scaleFrames(obj.data.shape_keys,
                                  ta.frameStart, ta.frameEnd, self.scaleFactor)
         # Adjust the bounds of animations coming after the
@@ -307,13 +307,12 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
         # Pad keyframes
         for obj in objList:
             # Copy the objects animation
-            animData = obj.animation_data
             self.cropFrames(obj, animStart, animEnd)
             # Copy the object's material animation
             if obj.active_material:
                 self.cropFrames(obj.active_material, animStart, animEnd)
             # Copy the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.cropFrames(obj.data.shape_keys, animStart, animEnd)
         # Update the animations in the list
         for a in rootDummy.nvb.animList:
@@ -411,13 +410,12 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         # Copy keyframes
         for obj in objList:
             # Copy the objects animation
-            animData = obj.animation_data
             self.padFrames(obj, ta.frameStart, ta.frameEnd)
             # Copy the object's material animation
             if obj.active_material:
                 self.padFrames(obj.active_material, ta.frameStart, ta.frameEnd)
             # Copy the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.padFrames(obj.data.shape_keys, ta.frameStart, ta.frameEnd)
         # Update the animations in the list
         totalPadding = self.padBack + self.padFront
@@ -547,7 +545,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
             if obj.active_material:
                 self.deleteFrames(obj.active_material, frameStart, frameEnd)
             # Delete the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.deleteFrames(obj.data.shape_keys, frameStart, frameEnd)
         # Remove animation from List
         animList.remove(animListIdx)
@@ -621,7 +619,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
                 self.moveFrames(obj.active_material,
                                 oldStart, oldEnd, newStart)
             # Delete the object's shape key animation
-            if obj.data.shape_keys:
+            if obj.data and obj.data.shape_keys:
                 self.moveFrames(obj.data.shape_keys,
                                 oldStart, oldEnd, newStart)
 
