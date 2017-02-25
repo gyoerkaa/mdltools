@@ -758,19 +758,22 @@ class NVB_OP_AnimEvent_New(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if there is an animation."""
-        obj = context.object
-        animList = obj.nvb.animList
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        animList = rootDummy.nvb.animList
 
         return len(animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
-        anim = obj.nvb.animList[obj.nvb.animListIdx]
+        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
 
         eventList = anim.eventList
         newEvent = eventList.add()
-        newEvent.frame = anim.frameStart
+        if anim.frameStart <= bpy.context.scene.frame_current <= anim.frameEnd:
+            newEvent.frame = bpy.context.scene.frame_current
+        else:
+            newEvent.frame = anim.frameStart
 
         return {'FINISHED'}
 
