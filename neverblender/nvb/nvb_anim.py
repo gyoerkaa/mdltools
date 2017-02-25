@@ -52,7 +52,7 @@ class Animation():
         for line in asciiLines:
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
             if (label == 'newanim'):
                 self.name = nvb_utils.getAuroraString(line[1])
@@ -63,7 +63,7 @@ class Animation():
             elif (label == 'animroot'):
                 try:
                     self.animroot = line[1]
-                except ValueError:
+                except (ValueError, IndexError):
                     self.animroot = ''
             elif (label == 'event'):
                 self.events.append((float(line[1]), line[2]))

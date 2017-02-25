@@ -88,7 +88,7 @@ class Node(object):
         for line in asciiLines:
             try:
                 label = line[0].lower()
-            except IndexError:
+            except (IndexError, AttributeError):
                 # Probably empty line or whatever, skip it
                 continue
 
