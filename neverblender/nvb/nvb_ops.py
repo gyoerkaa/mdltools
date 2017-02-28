@@ -24,6 +24,10 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
+    def cloneEmitter(self, target, cloneStart):
+        """TODO:DOC."""
+        pass
+
     def cloneFrames(self, target, animStart, animEnd, cloneStart):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -64,6 +68,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             if obj.data and obj.data.shape_keys:
                 self.cloneFrames(obj.data.shape_keys,
                                  animStart, animEnd, cloneStart)
+            self.cloneEmitter(obj, cloneStart)
         # Copy data
         clone.frameEnd = cloneStart + (animEnd - animStart)
         clone.ttime = anim.ttime

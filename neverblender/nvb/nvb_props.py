@@ -9,11 +9,12 @@ def nvb_update_shadow_prop(self, context):
     obj = context.object
     if obj and (obj.type == 'LAMP'):
         try:
+            # Compatibility with old blender versions
             if (obj.nvb.shadow):
                 obj.data.shadow_method = 'RAY_SHADOW'
             else:
                 obj.data.shadow_method = 'NOSHADOW'
-        except:
+        except ValueError:
             pass
 
 

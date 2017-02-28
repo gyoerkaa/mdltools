@@ -159,6 +159,17 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
+def getEmitterAnims(anim):
+    """TODO: DOC."""
+    if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
+        return
+    oldAsciiBlock = bpy.data.texts[anim.rawascii].as_string()
+    dlm = 'node '
+    nodeList = [dlm+block for block in oldAsciiBlock.split(dlm) if block]
+    for node in nodeList:
+        pass
+
+
 def generateWalkmeshParent(rootDummy):
     """TODO: DOC."""
     suffix = ''
