@@ -161,13 +161,15 @@ def isRootDummy(obj):
 
 def getEmitterAnims(anim):
     """TODO: DOC."""
+    anims = dict()
     if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
         return
     oldAsciiBlock = bpy.data.texts[anim.rawascii].as_string()
     dlm = 'node '
     nodeList = [dlm+block for block in oldAsciiBlock.split(dlm) if block]
     for node in nodeList:
-        pass
+        keys = []
+        anims[node.name] = keys
 
 
 def generateWalkmeshParent(rootDummy):
