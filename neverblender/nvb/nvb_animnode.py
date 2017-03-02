@@ -380,31 +380,29 @@ class Animnode():
                 curve.keyframe_points.insert(frameEnd, self.radius)
 
     def createDataEmitter(self, obj, anim, options):
-        """TODO:Doc."""
-        # Add imcompatible animations (emitters) as a text object
-        if (self.rawascii):
-            # Get the text file
-            txt = None
-            if anim.rawascii and (anim.rawascii in bpy.data.texts):
-                txt = bpy.data.texts[anim.rawascii]
-            if not txt:
-                txt = bpy.data.texts.new(options.mdlname +
-                                         '.anim.' + anim.name)
-                anim.rawascii = txt.name
-            # Convert nwn time to frames and write to text file
-            objType = nvb_utils.getNodeType(obj)
-            txt.write('  node ' + objType + ' ' + self.name)
-            l_isNumber = nvb_utils.isNumber
-            frameStart = anim.frameStart
-            for line in self.rawascii:
-                if l_isNumber(line[0]):
-                    nwtime = float(line[0])
-                    frame = frameStart + nvb_utils.nwtime2frame(nwtime)
-                    txt.write('\n      ' +
-                              str(frame) + ' ' + ' '.join(line[1:]))
-                else:
-                    txt.write('\n    ' + ' '.join(line))
-            txt.write('\n  endnode')
+        """Adds imcompatible animations (emitters) as a text object."""
+        # Get the text file
+        txt = None
+        if anim.rawascii and (anim.rawascii in bpy.data.texts):
+            txt = bpy.data.texts[anim.rawascii]
+        if not txt:
+            txt = bpy.data.texts.new(options.mdlname +
+                                     '.anim.' + anim.name)
+            anim.rawascii = txt.name
+        # Convert nwn time to frames and write to text file
+        objType = nvb_utils.getNodeType(obj)
+        txt.write('  node ' + objType + ' ' + self.name)
+        l_isNumber = nvb_utils.isNumber
+        frameStart = anim.frameStart
+        for line in self.rawascii:
+            if l_isNumber(line[0]):
+                nwtime = float(line[0])
+                frame = frameStart + nvb_utils.nwtime2frame(nwtime)
+                txt.write('\n      ' +
+                          str(frame) + ' ' + ' '.join(line[1:]))
+            else:
+                txt.write('\n    ' + ' '.join(line))
+        txt.write('\n  endnode')
 
     def createDataShape(self, obj, anim, options):
         """Import animated vertices as shapekeys."""

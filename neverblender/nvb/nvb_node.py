@@ -338,6 +338,46 @@ class Trimesh(Node):
         self.facelist = FaceList()
         self.tverts = []  # list of texture vertices
 
+    @staticmethod
+    def getAuroraAlpha(obj):
+        """Get the alpha value of material or texture.
+
+        This will return
+            1. texture_slot.alpha_factor when there is a texture
+            2. material.alpha when there is no texture
+            3. 1.0 when there is no material
+        """
+        mat = obj.active_material
+        if mat and mat.use_transparency:
+            tex = mat.active_texture
+            if tex:
+                tslotIdx = mat.active_texture_index
+                tslot = mat.texture_slots[tslotIdx]
+                return tslot.alpha_factor
+            else:
+                return mat.alpha
+        else:
+            return 1.0
+
+    def setMaterialAuroraAlpha(self, mat, alpha):
+        """Set the alpha value of material or texture.
+
+        This will set
+            1. texture_slot.alpha_factor when there is a texture
+            2. material.alpha there is no texture, but a material
+            3. Do nothing, when there is no material
+        """
+        mat.use_transparency = True
+        tex = mat.active_texture
+        if tex:
+            mat.alpha = 0.0
+            tslotIdx = mat.active_texture_index
+            tslot = mat.texture_slots[tslotIdx]
+            tslot.use_map_alpha = True
+            tslot.alpha_factor = alpha
+        else:
+            mat.alpha = alpha
+
     def createImage(self, imgName, imgPath, imgSearch=False):
         """TODO: Doc."""
         image = \
@@ -486,7 +526,7 @@ class Trimesh(Node):
                     if image is not None:
                         textureSlot.texture.image = image
 
-        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
+        self.setMaterialAuroraAlpha(material, self.alpha)
 
         return material
 
@@ -645,7 +685,7 @@ class Trimesh(Node):
                         imgName = nvb_utils.getImageFilename(texture.image)
                         hasImgTexture = True
                 asciiLines.append('  bitmap ' + imgName)
-                alphaValue = nvb_utils.getAuroraAlpha(obj)
+                alphaValue = Trimesh.getAuroraAlpha(obj)
                 asciiLines.append('  alpha ' + str(round(alphaValue, 2)))
 
             else:
@@ -872,7 +912,7 @@ class Animmesh(Trimesh):
             if image is not None:
                 textureSlot.texture.image = image
 
-        nvb_utils.setMaterialAuroraAlpha(material, self.alpha)
+        self.setMaterialAuroraAlpha(material, self.alpha)
 
         return material
 
