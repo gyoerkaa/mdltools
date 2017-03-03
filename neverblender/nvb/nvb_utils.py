@@ -167,8 +167,18 @@ def getEmitterAnims(anim):
     oldAsciiBlock = bpy.data.texts[anim.rawascii].as_string()
     dlm = 'node '
     nodeList = [dlm+block for block in oldAsciiBlock.split(dlm) if block]
+    l_isNumber = isNumber
     for node in nodeList:
-        keys = []
+        txtLines = node.splitlines()
+        keys = dict()
+        for i, line in enumerate([l.strip().split() for l in txtLines]):
+            try:
+                label = line[0].lower()
+            except IndexError:
+                continue
+            if not l_isNumber(label):
+                numKeys = 0  # self.findEnd(asciiLines[i+1:])
+                keys[label] = txtLines[i:i+numKeys+1]
         anims[node.name] = keys
 
 
