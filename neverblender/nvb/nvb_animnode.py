@@ -380,7 +380,7 @@ class Animnode():
                 curve.keyframe_points.insert(frameEnd, self.radius)
 
     def createDataEmitter(self, obj, anim, options):
-        """Adds imcompatible animations (emitters) as a text object."""
+        """Add imcompatible animations (emitters) as a text object."""
         # Get the text file
         txt = None
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
