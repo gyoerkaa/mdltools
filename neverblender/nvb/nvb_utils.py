@@ -171,7 +171,7 @@ def isRootDummy(obj):
 
 def getRawAnimData(txtBlock):
     """TODO: DOC."""
-    anims = dict()
+    animData = []
     dlm = 'node '
     nodeList = [dlm+block for block in txtBlock.split(dlm) if block]
     l_isNumber = isNumber
@@ -186,15 +186,25 @@ def getRawAnimData(txtBlock):
                 continue
             if not l_isNumber(label):
                 if label == 'node':
-                    # nodeType = line[1].lower()
+                    nodeType = line[1].lower()
                     nodeName = getAuroraString(line[2])
                 else:
                     numKeys = findEnd(txtLines[i+1:])
                     if label not in keys:
                         keys[label] = txtLines[i:i+numKeys+1]
         if nodeName:
-            anims[nodeName] = keys
-    return anims
+            animData.append([nodeName, nodeType, keys])
+    return animData
+
+
+def adjustRawAnimBounds(txtBlock, newStart, newEnd):
+    """TODO: DOC."""
+    originalData = getRawAnimData(txtBlock)
+    # adjustedData = []
+    for nodeName, nodeType, keyDict in originalData:
+        for label, keyList in keyDict.items():
+            for key in keyList:
+                pass
 
 
 def generateWalkmeshParent(rootDummy):
