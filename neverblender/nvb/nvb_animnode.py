@@ -139,24 +139,24 @@ class Animnode():
                         self.uvdata = True
                 # Keyed animations
                 elif label == 'positionkey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                                  self.positionkey)
                     self.objdata = True
                 elif label == 'orientationkey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
                                  self.orientationkey)
                     self.objdata = True
                 elif label == 'scalekey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
                                  self.scalekey)
                     self.objdata = True
                 elif label == 'alphakey':
                     # If this is an emitter, alphakeys are incompatible. We'll
                     # handle them later as plain text
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     if nodetype == 'emitter':
                         nvb_parse.txt(asciiLines[i:i+numKeys+1],
                                       self.rawdata)
@@ -165,23 +165,23 @@ class Animnode():
                                      self.alphakey)
                     self.matdata = True
                 elif label == 'selfillumcolorkey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
                                  self.selfillumcolorkey)
                     self.objdata = True
                 # Lights/lamps only
                 elif label == 'colorkey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.colorkey)
                     self.objdata = True
                 elif label == 'radiuskey':
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.radiuskey)
                     self.objdata = True
                 # Some unknown label.
                 # Probably keys for emitters, incompatible, save as plain text
-            elif (nodetype == 'emitter') and (label[0] != '#'):
-                    numKeys = self.findEnd(asciiLines[i+1:])
+                elif (nodetype == 'emitter') and (label[0] != '#'):
+                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     self.rawdata.extend(asciiLines[i:i+numKeys+1])
 
     @staticmethod
@@ -400,7 +400,7 @@ class Animnode():
                 values = [float(v) for v in line[1:]]
                 frame = frameStart + nvb_utils.nwtime2frame(nwtime)
                 formatStr = '\n      {: >4d}' + \
-                            ' '.join(['{: > 6.5f}']*len(values))
+                            ' '.join(['{: > 8.5f}']*len(values))
                 s = formatStr.format(frame, *values)
                 txt.write(s)
             else:

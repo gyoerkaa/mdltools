@@ -57,6 +57,16 @@ class NodeNameResolver(collections.OrderedDict):
         return objName
 
 
+def findEnd(asciiBlock):
+    """Find the end of a key list.
+
+    We don't know when a list of keys of keys will end. We'll have to
+    search for the first non-numeric value
+    """
+    return next((i for i, v in enumerate(asciiBlock)
+                 if not isNumber(v[0])), -1)
+
+
 def isNumber(s):
     """Check if the string s is a number."""
     try:
@@ -159,7 +169,7 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def getRawData(txtBlock):
+def getRawAnimData(txtBlock):
     """TODO: DOC."""
     anims = dict()
     dlm = 'node '
@@ -168,15 +178,23 @@ def getRawData(txtBlock):
     for node in nodeList:
         txtLines = node.splitlines()
         keys = dict()
+        nodeName = None
         for i, line in enumerate([l.strip().split() for l in txtLines]):
             try:
                 label = line[0].lower()
             except IndexError:
                 continue
             if not l_isNumber(label):
-                numKeys = 0  # self.findEnd(asciiLines[i+1:])
-                keys[label] = txtLines[i:i+numKeys+1]
-        anims[node.name] = keys
+                if label == 'node':
+                    # nodeType = line[1].lower()
+                    nodeName = getAuroraString(line[2])
+                else:
+                    numKeys = findEnd(txtLines[i+1:])
+                    if label not in keys:
+                        keys[label] = txtLines[i:i+numKeys+1]
+        if nodeName:
+            anims[nodeName] = keys
+    return anims
 
 
 def generateWalkmeshParent(rootDummy):
