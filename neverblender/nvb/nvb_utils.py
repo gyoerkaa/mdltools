@@ -159,14 +159,11 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def getEmitterAnims(anim):
+def getRawData(txtBlock):
     """TODO: DOC."""
     anims = dict()
-    if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
-        return
-    oldAsciiBlock = bpy.data.texts[anim.rawascii].as_string()
     dlm = 'node '
-    nodeList = [dlm+block for block in oldAsciiBlock.split(dlm) if block]
+    nodeList = [dlm+block for block in txtBlock.split(dlm) if block]
     l_isNumber = isNumber
     for node in nodeList:
         txtLines = node.splitlines()
