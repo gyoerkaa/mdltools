@@ -24,9 +24,13 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def cloneEmitter(self, target, cloneStart):
+    def cloneEmitter(self, anim, mdlName, cloneStart):
         """TODO:DOC."""
-        pass
+        if anim.rawascii and (anim.rawascii in bpy.data.texts):
+            txt = bpy.data.texts[anim.rawascii]
+            copy = txt.copy()
+            copy.name = mdlName + '.anim.' + anim.name
+            # TODO: Adjust frames
 
     def cloneFrames(self, target, animStart, animEnd, cloneStart):
         """TODO:DOC."""
@@ -68,7 +72,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             if obj.data and obj.data.shape_keys:
                 self.cloneFrames(obj.data.shape_keys,
                                  animStart, animEnd, cloneStart)
-            self.cloneEmitter(obj, cloneStart)
+            self.cloneEmitter(obj, cloneStart, rootDummy.name)
         # Copy data
         clone.frameEnd = cloneStart + (animEnd - animStart)
         clone.ttime = anim.ttime
