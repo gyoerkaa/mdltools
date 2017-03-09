@@ -24,25 +24,30 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def cloneEmitter(self, anim, mdlName, cloneStart):
+    def cloneEmitter(self, mdlname, anim, cloneStart):
         """TODO:DOC."""
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
             txt = bpy.data.texts[anim.rawascii]
-            copy = txt.copy()
-            copy.name = mdlName + '.anim.' + anim.name
+            txtCopy = txt.copy()
+            txtCopy.name = mdlname + '.anim.' + anim.name
             # TODO: Adjust frames
+            # animData = nvb_utils.readRawAnimData(txtCopy)
+            anim.rawascii = txtCopy.name
 
-    def cloneFrames(self, target, animStart, animEnd, cloneStart):
+    def cloneFrames(self, target, anim, cloneStart):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
+            animStart = anim.frameStart
+            animEnd = anim.frameEnd
             insertionOptions = {'FAST'}
             action = target.animation_data.action
             for fcurve in action.fcurves:
                 # Get the keyframe points of the selected animation
                 kfp = [p for p in fcurve.keyframe_points
                        if animStart <= p.co[0] <= animEnd]
+                offset = cloneStart - animStart
                 for p in kfp:
-                    frame = cloneStart + (p.co[0] - animStart)
+                    frame = p.co[0] + offset
                     fcurve.keyframe_points.insert(frame, p.co[1],
                                                   insertionOptions)
                 fcurve.update()
@@ -63,16 +68,14 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         # Copy keyframes
         for obj in objList:
             # Copy the objects animation
-            self.cloneFrames(obj, animStart, animEnd, cloneStart)
+            self.cloneFrames(obj, anim, cloneStart)
             # Copy the object's material animation
             if obj.active_material:
-                self.cloneFrames(obj.active_material,
-                                 animStart, animEnd, cloneStart)
+                self.cloneFrames(obj.active_material, anim, cloneStart)
             # Copy the object's shape key animation
             if obj.data and obj.data.shape_keys:
-                self.cloneFrames(obj.data.shape_keys,
-                                 animStart, animEnd, cloneStart)
-            self.cloneEmitter(obj, cloneStart, rootDummy.name)
+                self.cloneFrames(obj.data.shape_keys, anim, cloneStart)
+            self.cloneEmitter(obj, anim, rootDummy.name, cloneStart)
         # Copy data
         clone.frameEnd = cloneStart + (animEnd - animStart)
         clone.ttime = anim.ttime

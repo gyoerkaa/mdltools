@@ -182,7 +182,13 @@ class Animnode():
                 # Probably keys for emitters, incompatible, save as plain text
                 elif (nodetype == 'emitter') and (label[0] != '#'):
                     numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    self.rawdata.extend(asciiLines[i:i+numKeys+1])
+                    if numKeys > 0:
+                        # Set of unknown keys
+                        self.rawdata.append([label, asciiLines[i+1:i+numKeys]])
+                    else:
+                        # Single unknown value
+                        self.rawdata.append([' '.join(line), []])
+                    # self.rawdata.extend(asciiLines[i:i+numKeys+1])
 
     @staticmethod
     def getCurve(action, dataPath, idx=0):
@@ -391,21 +397,24 @@ class Animnode():
             anim.rawascii = txt.name
         # Convert nwn time to frames and write to text object
         objType = nvb_utils.getNodeType(obj)
-        txt.write('  node ' + objType + ' ' + self.name)
-        l_isNumber = nvb_utils.isNumber
+        txt.write('node ' + objType + ' ' + self.name + '\n')
         frameStart = anim.frameStart
-        for line in self.rawdata:
-            if l_isNumber(line[0]):
-                nwtime = float(line[0])
-                values = [float(v) for v in line[1:]]
-                frame = frameStart + nvb_utils.nwtime2frame(nwtime)
-                formatStr = '\n      {: >4d}' + \
-                            ' '.join(['{: > 8.5f}']*len(values))
-                s = formatStr.format(frame, *values)
-                txt.write(s)
+        for label, keyList in self.rawdata:
+            if keyList:
+                # List of unknown keys
+                txt.write('  ' + label + ' ' + len(keyList) + '\n')
+                for key in keyList:
+                    nwtime = float(key[0])
+                    values = [float(v) for v in key[1:]]
+                    frame = frameStart + nvb_utils.nwtime2frame(nwtime)
+                    formatStr = '    {: >4d}' + \
+                                ' '.join(['{: > 8.5f}']*len(values) + '\n')
+                    s = formatStr.format(frame, *values)
+                    txt.write(s)
             else:
-                txt.write('\n    ' + ' '.join(line))
-        txt.write('\n  endnode')
+                # Single unknown value
+                txt.write('  ' + ' '.join(label) + '\n')
+        txt.write('endnode\n')
 
     def createDataShape(self, obj, anim, options):
         """Import animated vertices as shapekeys."""

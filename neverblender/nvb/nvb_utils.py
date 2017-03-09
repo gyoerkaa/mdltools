@@ -169,41 +169,67 @@ def isRootDummy(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def getRawAnimData(txtBlock):
+def readRawAnimData(txtBlock):
     """TODO: DOC."""
     animData = []
     dlm = 'node '
     nodeList = [dlm+block for block in txtBlock.split(dlm) if block]
     l_isNumber = isNumber
     for node in nodeList:
-        txtLines = node.splitlines()
-        keys = dict()
-        nodeName = None
-        for i, line in enumerate([l.strip().split() for l in txtLines]):
+        txtLines = [l.strip().split() for l in node.splitlines()]
+        keylist = []
+        nodename = ''
+        nodetype = ''
+        for i, line in enumerate(txtLines):
             try:
                 label = line[0].lower()
             except IndexError:
                 continue
             if not l_isNumber(label):
                 if label == 'node':
-                    nodeType = line[1].lower()
-                    nodeName = getAuroraString(line[2])
-                else:
+                    nodetype = line[1].lower()
+                    nodename = getAuroraString(line[2])
+                elif (label[0] != '#'):
                     numKeys = findEnd(txtLines[i+1:])
-                    if label not in keys:
-                        keys[label] = txtLines[i:i+numKeys+1]
-        if nodeName:
-            animData.append([nodeName, nodeType, keys])
+                    if numKeys > 0:
+                        # Set of unknown keys
+                        keylist.append([label, txtLines[i+1:i+numKeys]])
+                    else:
+                        # Single unknown value
+                        keylist.append([' '.join(line), []])
+        if nodename:
+            animData.append([nodename, nodetype, keylist])
     return animData
+
+
+def writeRawAnimData(txt, animData, frameStart=0):
+    """TODO: Doc."""
+    for nodename, nodetype, keylist in animData:
+        txt.write('node ' + nodetype + ' ' + nodename + '\n')
+        for label, keys in keylist:
+            if keylist:
+                txt.write('  ' + label + ' ' + len(keys) + '\n')
+                for k in keys:
+                    nwtime = float(k[0])
+                    values = [float(v) for v in k[1:]]
+                    frame = frameStart + nwtime2frame(nwtime)
+                    formatStr = '    {: >4d}' + \
+                                ' '.join(['{: > 8.5f}']*len(values) + '\n')
+                    s = formatStr.format(frame, *values)
+                    txt.write(s)
+            else:
+                # Single unknown value
+                txt.write('  ' + ' '.join(label) + '\n')
+        txt.write('endnode\n')
 
 
 def adjustRawAnimBounds(txtBlock, newStart, newEnd):
     """TODO: DOC."""
-    originalData = getRawAnimData(txtBlock)
+    originalData = readRawAnimData(txtBlock)
     # adjustedData = []
-    for nodeName, nodeType, keyDict in originalData:
-        for label, keyList in keyDict.items():
-            for key in keyList:
+    for nodeName, nodeType, keyList in originalData:
+        for label, keys in keyList:
+            for k in keys:
                 pass
 
 
