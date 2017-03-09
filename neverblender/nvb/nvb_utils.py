@@ -226,11 +226,12 @@ def writeRawAnimData(txt, animData, frameStart=0):
 def adjustRawAnimBounds(txtBlock, newStart, newEnd):
     """TODO: DOC."""
     originalData = readRawAnimData(txtBlock)
-    # adjustedData = []
+    adjustedData = []
     for nodeName, nodeType, keyList in originalData:
         for label, keys in keyList:
             for k in keys:
                 pass
+    writeRawAnimData(adjustedData)
 
 
 def generateWalkmeshParent(rootDummy):
