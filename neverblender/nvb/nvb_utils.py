@@ -231,7 +231,7 @@ def adjustRawAnimBounds(txtBlock, newStart, newEnd):
         for label, keys in keyList:
             for k in keys:
                 pass
-    writeRawAnimData(adjustedData)
+    writeRawAnimData(txtBlock, adjustedData)
 
 
 def generateWalkmeshParent(rootDummy):
