@@ -185,15 +185,17 @@ def writeRawAnimData(txt, animData, frameStart=0):
         txt.write('endnode\n')
 
 
-def adjustRawAnimBounds(txtBlock, newStart, newEnd):
+def adjustRawAnimBounds(txtBlock, newStart, newEnd, oldStart, oldEnd):
     """TODO: DOC."""
-    originalData = readRawAnimData(txtBlock)
-    adjustedData = []
-    for nodeName, nodeType, keyList in originalData:
+    animData = readRawAnimData(txtBlock)
+    scaleFactor = (newEnd - newStart)/(oldEnd-oldStart)
+    for nodeName, nodeType, keyList in animData:
         for label, keys in keyList:
             for k in keys:
-                pass
-    writeRawAnimData(txtBlock, adjustedData)
+                frame = (int(k[0]) - oldStart) * scaleFactor + newStart
+                k[0] = str(frame)
+    txtBlock.clear()
+    writeRawAnimData(txtBlock, animData)
 
 
 def generateWalkmeshParent(rootDummy):

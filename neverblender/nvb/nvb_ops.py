@@ -36,7 +36,6 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
                 for label, keys in keyList:
                     for k in keys:
                         k[0] = str(int(k[0]) + offset)
-                        print(k[0])
             newtxt = bpy.data.texts.new(mdlname + '.anim.' + clone.name)
             nvb_utils.writeRawAnimData(newtxt, animData)
             clone.rawascii = newtxt.name
