@@ -230,7 +230,8 @@ class Animnode():
                     numKeys = nvb_utils.findEnd(asciiLines[i+1:])
                     if numKeys > 1:
                         # Set of unknown keys
-                        self.rawdata.append([label, asciiLines[i+1:i+numKeys]])
+                        self.rawdata.append([label,
+                                            asciiLines[i+1:i+numKeys+1]])
                     elif numKeys == 1:
                         # Single unknown key
                         self.rawdata.append([label, [asciiLines[i+1]]])
