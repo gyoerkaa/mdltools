@@ -1,6 +1,7 @@
 """TODO: DOC."""
 
 import math
+import copy
 
 import bpy
 import bpy_extras
@@ -24,15 +25,21 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def cloneEmitter(self, mdlname, anim, cloneStart):
+    def cloneEmitter(self, mdlname, anim, clone):
         """TODO:DOC."""
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            txt = bpy.data.texts[anim.rawascii]
-            txtCopy = txt.copy()
-            txtCopy.name = mdlname + '.anim.' + anim.name
-            # TODO: Adjust frames
-            # animData = nvb_utils.readRawAnimData(txtCopy)
-            anim.rawascii = txtCopy.name
+            oldtxt = copy.deepcopy(bpy.data.texts[anim.rawascii].as_string())
+            animData = []
+            animData = nvb_utils.readRawAnimData(oldtxt)
+            offset = clone.frameStart - anim.frameStart
+            for nodeName, nodeType, keyList in animData:
+                for label, keys in keyList:
+                    for k in keys:
+                        k[0] = str(int(k[0]) + offset)
+                        print(k[0])
+            newtxt = bpy.data.texts.new(mdlname + '.anim.' + clone.name)
+            nvb_utils.writeRawAnimData(newtxt, animData)
+            clone.rawascii = newtxt.name
 
     def cloneFrames(self, target, anim, cloneStart):
         """TODO:DOC."""
@@ -75,12 +82,13 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
             # Copy the object's shape key animation
             if obj.data and obj.data.shape_keys:
                 self.cloneFrames(obj.data.shape_keys, anim, cloneStart)
-            self.cloneEmitter(obj, anim, rootDummy.name, cloneStart)
         # Copy data
         clone.frameEnd = cloneStart + (animEnd - animStart)
         clone.ttime = anim.ttime
         clone.root = anim.root
-        clone.name = anim.name + '.copy'
+        clone.name = anim.name + '_copy'
+        # Copy emitter data
+        self.cloneEmitter(rootDummy.name, anim, clone)
         # Copy events
         for e in anim.eventList:
             clonedEvent = clone.eventList.add()

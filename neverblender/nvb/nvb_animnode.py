@@ -182,13 +182,15 @@ class Animnode():
                 # Probably keys for emitters, incompatible, save as plain text
                 elif (nodetype == 'emitter') and (label[0] != '#'):
                     numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    if numKeys > 0:
+                    if numKeys > 1:
                         # Set of unknown keys
                         self.rawdata.append([label, asciiLines[i+1:i+numKeys]])
+                    elif numKeys == 1:
+                        # Single unknown key
+                        self.rawdata.append([label, [asciiLines[i+1]]])
                     else:
                         # Single unknown value
                         self.rawdata.append([' '.join(line), []])
-                    # self.rawdata.extend(asciiLines[i:i+numKeys+1])
 
     @staticmethod
     def getCurve(action, dataPath, idx=0):
@@ -396,19 +398,19 @@ class Animnode():
                                      '.anim.' + anim.name)
             anim.rawascii = txt.name
         # Convert nwn time to frames and write to text object
-        objType = nvb_utils.getNodeType(obj)
-        txt.write('node ' + objType + ' ' + self.name + '\n')
+        txt.write('node ' + nvb_utils.getNodeType(obj) +
+                  ' ' + self.name + '\n')
         frameStart = anim.frameStart
         for label, keyList in self.rawdata:
             if keyList:
                 # List of unknown keys
-                txt.write('  ' + label + ' ' + len(keyList) + '\n')
+                txt.write('  ' + label + ' ' + str(len(keyList)) + '\n')
                 for key in keyList:
                     nwtime = float(key[0])
                     values = [float(v) for v in key[1:]]
                     frame = frameStart + nvb_utils.nwtime2frame(nwtime)
                     formatStr = '    {: >4d}' + \
-                                ' '.join(['{: > 8.5f}']*len(values) + '\n')
+                                ' '.join(['{: > 8.5f}']*len(values)) + '\n'
                     s = formatStr.format(frame, *values)
                     txt.write(s)
             else:
@@ -580,7 +582,7 @@ class Animnode():
                 keys[frame] = values
 
     @staticmethod
-    def generateAsciiEmitterData(obj, anim, asciiLines):
+    def generateAsciiRawData(obj, anim, asciiLines):
         """TODO: DOC."""
         if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
             return
@@ -875,6 +877,6 @@ class Animnode():
         else:
             asciiLines.append('    parent null')
         Animnode.generateAsciiAnimmeshData(obj, anim, asciiLines)
-        Animnode.generateAsciiEmitterData(obj, anim, asciiLines)
+        Animnode.generateAsciiRawData(obj, anim, asciiLines)
         Animnode.generateAsciiKeys(obj, anim, asciiLines)
         asciiLines.append('  endnode')

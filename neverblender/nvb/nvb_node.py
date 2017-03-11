@@ -484,16 +484,49 @@ class Trimesh(Node):
                         nvb_parse.f2(asciiLines[i+1:i+numVals+1],
                                      self.tverts)
 
+    def findMaterial(self, imageName=''):
+        """Find a material with similar values.
+
+        Compares the diffuse, specular and image values of the material
+        to the parameters.
+        """
+        def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+        def isclose_3f(a, b, rel_tol=0.1):
+            return (isclose(a[0], b[0], rel_tol) and
+                    isclose(a[1], b[1], rel_tol) and
+                    isclose(a[2], b[2], rel_tol))
+
+        for mat in bpy.data.materials:
+            eq = False
+            if not imageName:
+                # No texture
+                eq = not mat.active_texture
+                eq = eq and (mat.alpha == self.alpha)
+            else:
+                # Has to have a texture
+                if mat.active_texture:
+                    if mat.active_texture.type == 'IMAGE':
+                        if mat.active_texture.image.name:
+                            eq = (mat.active_texture.image.name == imageName)
+                    active_txslot = mat.texture_slots[mat.active_texture_index]
+                    eq = eq and (active_txslot.alpha_factor == self.alpha)
+
+            eq = eq and isclose_3f(mat.diffuse_color, self.diffuse)
+            eq = eq and isclose_3f(mat.specular_color, self.specular)
+            if eq:
+                return mat
+
+        return None
+
     def createMaterial(self, name, options):
         """TODO: Doc."""
         material = None
         texName = self.bitmap.lower()
         if options.materialMode == 'SIN':
             # Avoid duplicate materials, search for similar ones.
-            material = nvb_utils.findMaterial(self.diffuse,
-                                              self.specular,
-                                              texName,
-                                              self.alpha)
+            material = self.findMaterial(texName)
         if not material:
             # No similar material found, create new one
             material = bpy.data.materials.new(name)
@@ -698,6 +731,15 @@ class Trimesh(Node):
         return hasImgTexture
 
     @staticmethod
+    def addUVToList(uv, uvList, compress=True):
+        """Helper function to avoid exporting mutiples of uv coordinates."""
+        if compress and (uv in uvList):
+            return uvList.index(uv)
+        else:
+            uvList.append(uv)
+            return (len(uvList)-1)
+
+    @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
         """TODO: Doc."""
         mesh = obj.to_mesh(bpy.context.scene,
@@ -770,9 +812,9 @@ class Trimesh(Node):
             uv3 = 0
             if tessfaces_uvs:
                 uvFace = tessfaces_uvs.data[i]
-                uv1 = nvb_utils.addUVToList(uvFace.uv1, uvList, compress_uvs)
-                uv2 = nvb_utils.addUVToList(uvFace.uv2, uvList, compress_uvs)
-                uv3 = nvb_utils.addUVToList(uvFace.uv3, uvList, compress_uvs)
+                uv1 = Trimesh.addUVToList(uvFace.uv1, uvList, compress_uvs)
+                uv2 = Trimesh.addUVToList(uvFace.uv2, uvList, compress_uvs)
+                uv3 = Trimesh.addUVToList(uvFace.uv3, uvList, compress_uvs)
 
             faceList.append([tface.vertices[0],
                              tface.vertices[1],

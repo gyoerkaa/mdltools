@@ -84,46 +84,6 @@ def getAuroraString(s):
     return s
 
 
-def findMaterial(diffuse=(1.0, 1.0, 1.0),
-                 specular=(1.0, 1.0, 1.0),
-                 imageName='',
-                 alpha=1.0):
-    """Find a material with similar values.
-
-    Compares the diffuse, specular and image values of the material
-    to the parameters.
-    """
-    def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
-    def isclose_3f(a, b, rel_tol=0.1):
-        return (isclose(a[0], b[0], rel_tol) and
-                isclose(a[1], b[1], rel_tol) and
-                isclose(a[2], b[2], rel_tol))
-
-    for mat in bpy.data.materials:
-        eq = False
-        if not imageName:
-            # No texture
-            eq = not mat.active_texture
-            eq = eq and (mat.alpha == alpha)
-        else:
-            # Has to have a texture
-            if mat.active_texture:
-                if mat.active_texture.type == 'IMAGE':
-                    if mat.active_texture.image.name:
-                        eq = (mat.active_texture.image.name == imageName)
-                active_texslot = mat.texture_slots[mat.active_texture_index]
-                eq = eq and (active_texslot.alpha_factor == alpha)
-
-        eq = eq and isclose_3f(mat.diffuse_color, diffuse)
-        eq = eq and isclose_3f(mat.specular_color, specular)
-        if eq:
-            return mat
-
-    return None
-
-
 def belongsToWalkmesh(obj, classification):
     """Check if this object belongs to a walkmesh."""
     if not obj:
@@ -178,8 +138,8 @@ def readRawAnimData(txtBlock):
     for node in nodeList:
         txtLines = [l.strip().split() for l in node.splitlines()]
         keylist = []
-        nodename = ''
         nodetype = ''
+        nodename = ''
         for i, line in enumerate(txtLines):
             try:
                 label = line[0].lower()
@@ -189,11 +149,16 @@ def readRawAnimData(txtBlock):
                 if label == 'node':
                     nodetype = line[1].lower()
                     nodename = getAuroraString(line[2])
+                elif label == 'endnode':
+                    break
                 elif (label[0] != '#'):
                     numKeys = findEnd(txtLines[i+1:])
-                    if numKeys > 0:
+                    if numKeys > 1:
                         # Set of unknown keys
                         keylist.append([label, txtLines[i+1:i+numKeys]])
+                    elif numKeys == 1:
+                        # Single unknown key
+                        keylist.append([label, [txtLines[i+1]]])
                     else:
                         # Single unknown value
                         keylist.append([' '.join(line), []])
@@ -208,14 +173,12 @@ def writeRawAnimData(txt, animData, frameStart=0):
         txt.write('node ' + nodetype + ' ' + nodename + '\n')
         for label, keys in keylist:
             if keylist:
-                txt.write('  ' + label + ' ' + len(keys) + '\n')
+                # Unknown keys
+                txt.write('  ' + label + ' ' + str(len(keys)) + '\n')
                 for k in keys:
-                    nwtime = float(k[0])
-                    values = [float(v) for v in k[1:]]
-                    frame = frameStart + nwtime2frame(nwtime)
-                    formatStr = '    {: >4d}' + \
-                                ' '.join(['{: > 8.5f}']*len(values) + '\n')
-                    s = formatStr.format(frame, *values)
+                    # reformat frame
+                    frame = int(k[0])
+                    s = '    {: >4d} '.format(frame) + ' '.join(k[1:]) + '\n'
                     txt.write(s)
             else:
                 # Single unknown value
@@ -535,15 +498,6 @@ def setupMinimapRender(rootDummy,
     scene.render.resolution_percentage = 100
     scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
-
-
-def addUVToList(uv, uvList, compress=True):
-    """Helper function to avoid exporting mutiples of uv coordinates."""
-    if compress and (uv in uvList):
-        return uvList.index(uv)
-    else:
-        uvList.append(uv)
-        return (len(uvList)-1)
 
 
 def eulerFilter(currEul, prevEul):
