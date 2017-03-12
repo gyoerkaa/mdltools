@@ -170,6 +170,20 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                             p.handle_right.x += padding
                     fcurve.update()
 
+    def scaleEmitter(self, anim, scaleFactor):
+        """TODO:DOC."""
+        if anim.rawascii and (anim.rawascii in bpy.data.texts):
+            rawdata = bpy.data.texts[anim.rawascii]
+            txt = copy.deepcopy(rawdata.as_string())
+            animData = []
+            animData = nvb_utils.readRawAnimData(txt)
+            for nodeName, nodeType, keyList in animData:
+                for label, keys in keyList:
+                    for k in keys:
+                        k[0] = str(int(k[0]) * scaleFactor)
+            txt.clear()
+            nvb_utils.writeRawAnimData(txt, animData)
+
     def scaleFrames(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -197,6 +211,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         # Get a list of affected objects
         objList = []
         nvb_utils.getAllChildren(rootDummy, objList)
+        # Adjust Emitter data
+        self.scaleEmitter(ta, self.scaleFactor)
         # Adjust keyframes
         for obj in objList:
             # Adjust the objects animation
@@ -267,6 +283,23 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
+    def cropEmitter(self, anim):
+        """TODO:DOC."""
+        if anim.rawascii and (anim.rawascii in bpy.data.texts):
+            rawdata = bpy.data.texts[anim.rawascii]
+            txt = copy.deepcopy(rawdata.as_string())
+            animData = []
+            animData = nvb_utils.readRawAnimData(txt)
+            # Grab some values for speed
+            cf = self.cropFront
+            cb = self.cropBack
+            for nodeName, nodeType, keyList in animData:
+                for label, keys in keyList:
+                    for k in keys:
+                        frame = int(k[0])
+            txt.clear()
+            nvb_utils.writeRawAnimData(txt, animData)
+
     def cropFrames(self, target, animStart, animEnd):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -321,6 +354,8 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
         # Get a list of affected objects
         objList = []
         nvb_utils.getAllChildren(rootDummy, objList)
+        # Crop Emitter
+        self.cropEmitter(anim)
         # Pad keyframes
         for obj in objList:
             # Copy the objects animation
@@ -394,6 +429,20 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
+    def padEmitter(self, anim):
+        """TODO:DOC."""
+        if anim.rawascii and (anim.rawascii in bpy.data.texts):
+            rawdata = bpy.data.texts[anim.rawascii]
+            txt = copy.deepcopy(rawdata.as_string())
+            animData = []
+            animData = nvb_utils.readRawAnimData(txt)
+            for nodeName, nodeType, keyList in animData:
+                for label, keys in keyList:
+                    for k in keys:
+                        k[0] = str(int(k[0]) + self.padFront)
+            txt.clear()
+            nvb_utils.writeRawAnimData(txt, animData)
+
     def padFrames(self, target, animStart, animEnd):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -424,14 +473,16 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         # Get a list of affected objects
         objList = []
         nvb_utils.getAllChildren(rootDummy, objList)
-        # Copy keyframes
+        # Pad Emitter
+        self.padEmitter(ta)
+        # Pad keyframes
         for obj in objList:
-            # Copy the objects animation
+            # Pad the objects animation
             self.padFrames(obj, ta.frameStart, ta.frameEnd)
-            # Copy the object's material animation
+            # Pad the object's material animation
             if obj.active_material:
                 self.padFrames(obj.active_material, ta.frameStart, ta.frameEnd)
-            # Copy the object's shape key animation
+            # Pad the object's shape key animation
             if obj.data and obj.data.shape_keys:
                 self.padFrames(obj.data.shape_keys, ta.frameStart, ta.frameEnd)
         # Update the animations in the list

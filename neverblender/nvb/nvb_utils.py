@@ -185,14 +185,13 @@ def writeRawAnimData(txt, animData, frameStart=0):
         txt.write('endnode\n')
 
 
-def adjustRawAnimBounds(txtBlock, newStart, newEnd, oldStart, oldEnd):
+def adjustRawAnimBounds(txtBlock, scaleFactor):
     """TODO: DOC."""
     animData = readRawAnimData(txtBlock)
-    scaleFactor = (newEnd - newStart)/(oldEnd-oldStart)
     for nodeName, nodeType, keyList in animData:
         for label, keys in keyList:
             for k in keys:
-                frame = (int(k[0]) - oldStart) * scaleFactor + newStart
+                frame = int(k[0]) * scaleFactor
                 k[0] = str(frame)
     txtBlock.clear()
     writeRawAnimData(txtBlock, animData)

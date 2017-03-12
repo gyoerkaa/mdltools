@@ -447,7 +447,6 @@ class Animnode():
         # Convert nwn time to frames and write to text object
         txt.write('node ' + nvb_utils.getNodeType(obj) +
                   ' ' + self.name + '\n')
-        frameStart = anim.frameStart
         for label, keyList in self.rawdata:
             if keyList:
                 # List of unknown keys
@@ -455,7 +454,7 @@ class Animnode():
                 for key in keyList:
                     nwtime = float(key[0])
                     values = [float(v) for v in key[1:]]
-                    frame = frameStart + nvb_utils.nwtime2frame(nwtime)
+                    frame = nvb_utils.nwtime2frame(nwtime)
                     formatStr = '    {: >4d}' + \
                                 ' '.join(['{: > 8.5f}']*len(values)) + '\n'
                     s = formatStr.format(frame, *values)
@@ -642,7 +641,6 @@ class Animnode():
             return
         txtLines = txtBlock[nodeStart+len(obj.name):nodeEnd-1].splitlines()
         l_isNumber = nvb_utils.isNumber
-        animStart = anim.frameStart
         for line in [l.strip().split() for l in txtLines]:
             try:
                 label = line[0].lower()
@@ -651,7 +649,7 @@ class Animnode():
             # Lines starting with numbers are keys
             if l_isNumber(label):
                 frame = float(label)
-                nwtime = round(nvb_utils.frame2nwtime(frame - animStart), 5)
+                nwtime = round(nvb_utils.frame2nwtime(frame), 5)
                 values = [float(v) for v in line[1:]]
                 formatStr = '      {: >6.5f}' + \
                             ' '.join(['{: > 6.5f}']*len(values))
