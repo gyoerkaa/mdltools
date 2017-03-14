@@ -286,19 +286,26 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
     def cropEmitter(self, anim):
         """TODO:DOC."""
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawdata = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawdata.as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(txt)
+            rawascii = bpy.data.texts[anim.rawascii]
+            txt = copy.deepcopy(rawascii.as_string())
+            oldData = []
+            oldData = nvb_utils.readRawAnimData(txt)
+            newData = []
             # Grab some values for speed
             cf = self.cropFront
             cb = self.cropBack
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
-                    for k in keys:
+            for nodeName, nodeType, oldKeyList in oldData:
+                newKeyList = []
+                for label, oldKeys in oldKeyList:
+                    newKeys = []
+                    for k in oldKeys:
                         frame = int(k[0])
+                        if (cf < frame < cb):
+                            newKeys.append(k)
+                    newKeyList.append([label, newKeys])
+                newData.append([nodeName, nodeType, newKeyList])
             txt.clear()
-            nvb_utils.writeRawAnimData(txt, animData)
+            nvb_utils.writeRawAnimData(txt, newData)
 
     def cropFrames(self, target, animStart, animEnd):
         """TODO:DOC."""
