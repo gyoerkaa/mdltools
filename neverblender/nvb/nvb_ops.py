@@ -293,7 +293,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
             newData = []
             # Grab some values for speed
             cf = self.cropFront
-            cb = self.cropBack
+            cb = (anim.frameEnd - anim.frameStart) - self.cropBack
             for nodeName, nodeType, oldKeyList in oldData:
                 newKeyList = []
                 for label, oldKeys in oldKeyList:
