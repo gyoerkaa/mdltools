@@ -28,17 +28,10 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
     def cloneEmitter(self, mdlname, anim, clone):
         """TODO:DOC."""
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            oldtxt = copy.deepcopy(bpy.data.texts[anim.rawascii].as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(oldtxt)
-            offset = clone.frameStart - anim.frameStart
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
-                    for k in keys:
-                        k[0] = str(int(k[0]) + offset)
-            newtxt = bpy.data.texts.new(mdlname + '.anim.' + clone.name)
-            nvb_utils.writeRawAnimData(newtxt, animData)
-            clone.rawascii = newtxt.name
+            txt = bpy.data.texts[anim.rawascii].copy()
+            txt.name = bpy.data.texts[anim.rawascii].name + '_copy'
+            txt.use_fake_user = True
+            clone.rawascii = txt.name
 
     def cloneFrames(self, target, anim, cloneStart):
         """TODO:DOC."""

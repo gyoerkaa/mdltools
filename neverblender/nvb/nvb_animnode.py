@@ -443,6 +443,7 @@ class Animnode():
         if not txt:
             txt = bpy.data.texts.new(options.mdlname +
                                      '.anim.' + anim.name)
+            txt.use_fake_user = True
             anim.rawascii = txt.name
         # Convert nwn time to frames and write to text object
         txt.write('node ' + nvb_utils.getNodeType(obj) +
