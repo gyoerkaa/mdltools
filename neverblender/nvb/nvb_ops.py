@@ -49,7 +49,11 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
                     frame = p.co[0] + offset
                     fcurve.keyframe_points.insert(frame, p.co[1],
                                                   insertionOptions)
-                # fcurve.update()
+                # For compatibility with older blender versions
+                try:
+                    fcurve.update()
+                except AttributeError:
+                    pass
 
     def execute(self, context):
         """TODO:DOC."""
@@ -134,7 +138,11 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                             (oldFrame - p.handle_left.x)
                         p.handle_right.x = newFrame + \
                             (p.handle_right.x - oldFrame)
-                # fcurve.update()
+                # For compatibility with older blender versions
+                try:
+                    fcurve.update()
+                except AttributeError:
+                    pass
 
     def scaleFramesDown(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
@@ -161,7 +169,11 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                             p.co[0] += padding
                             p.handle_left.x += padding
                             p.handle_right.x += padding
-                    fcurve.update()
+                    # For compatibility with older blender versions
+                    try:
+                        fcurve.update()
+                    except AttributeError:
+                        pass
 
     def scaleEmitter(self, anim, scaleFactor):
         """TODO:DOC."""
@@ -330,7 +342,11 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
                             p.co[0] -= cb
                             p.handle_left.x -= cb
                             p.handle_right.x -= cb
-                fcurve.update()
+                # For compatibility with older blender versions
+                try:
+                    fcurve.update()
+                except AttributeError:
+                    pass
 
     def execute(self, context):
         """TODO:DOC."""
@@ -457,7 +473,11 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
                         p.co[0] += self.padFront
                         p.handle_left.x += self.padFront
                         p.handle_right.x += self.padFront
-                fcurve.update()
+                # For compatibility with older blender versions
+                try:
+                    fcurve.update()
+                except AttributeError:
+                    pass
 
     def execute(self, context):
         """TODO:DOC."""
