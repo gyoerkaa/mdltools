@@ -154,7 +154,7 @@ def readRawAnimData(txtBlock):
                     numKeys = findEnd(txtLines[i+1:])
                     if numKeys > 1:
                         # Set of unknown keys
-                        keylist.append([label, txtLines[i+1:i+numKeys]])
+                        keylist.append([label, txtLines[i+1:i+numKeys+1]])
                     elif numKeys == 1:
                         # Single unknown key
                         keylist.append([label, [txtLines[i+1]]])
@@ -176,7 +176,7 @@ def writeRawAnimData(txt, animData, frameStart=0):
                 txt.write('  ' + label + ' ' + str(len(keys)) + '\n')
                 for k in keys:
                     # reformat frame
-                    frame = int(k[0])
+                    frame = int(float(k[0]))
                     s = '    {: >4d} '.format(frame) + ' '.join(k[1:]) + '\n'
                     txt.write(s)
             else:

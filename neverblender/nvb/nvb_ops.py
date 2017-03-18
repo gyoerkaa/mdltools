@@ -166,10 +166,10 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
     def scaleEmitter(self, anim, scaleFactor):
         """TODO:DOC."""
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawdata = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawdata.as_string())
+            txt = bpy.data.texts[anim.rawascii]
+            rawdata = copy.deepcopy(txt.as_string())
             animData = []
-            animData = nvb_utils.readRawAnimData(txt)
+            animData = nvb_utils.readRawAnimData(rawdata)
             for nodeName, nodeType, keyList in animData:
                 for label, keys in keyList:
                     for k in keys:
