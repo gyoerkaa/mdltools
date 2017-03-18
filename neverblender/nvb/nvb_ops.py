@@ -49,7 +49,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
                     frame = p.co[0] + offset
                     fcurve.keyframe_points.insert(frame, p.co[1],
                                                   insertionOptions)
-                fcurve.update()
+                # fcurve.update()
 
     def execute(self, context):
         """TODO:DOC."""
@@ -112,7 +112,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
     def scaleFramesUp(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
-            oldSize = animEnd - animStart + 1
+            oldSize = animEnd - animStart
             newSize = scaleFactor * oldSize
             padding = newSize - oldSize
             action = target.animation_data.action
@@ -127,19 +127,19 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                 for p in fcurve.keyframe_points:
                     if (animStart < p.co[0] <= animEnd):
                         oldFrame = p.co[0]
-                        newFrame = (oldFrame - animStart + 1) * \
-                            scaleFactor + animStart - 1
+                        newFrame = (oldFrame - animStart) * \
+                            scaleFactor + animStart
                         p.co[0] = newFrame
                         p.handle_left.x = newFrame - \
                             (oldFrame - p.handle_left.x)
                         p.handle_right.x = newFrame + \
                             (p.handle_right.x - oldFrame)
-                fcurve.update()
+                # fcurve.update()
 
     def scaleFramesDown(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
-            oldSize = animEnd - animStart + 1
+            oldSize = animEnd - animStart
             newSize = scaleFactor * oldSize
             padding = newSize - oldSize
             action = target.animation_data.action
@@ -148,8 +148,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     for p in fcurve.keyframe_points:
                         if (animStart < p.co[0] <= animEnd):
                             oldFrame = p.co[0]
-                            newFrame = (oldFrame - animStart + 1) * \
-                                scaleFactor + animStart - 1
+                            newFrame = (oldFrame - animStart) * \
+                                scaleFactor + animStart
                             p.co[0] = newFrame
                             p.handle_left.x = newFrame - \
                                 (oldFrame - p.handle_left.x)
