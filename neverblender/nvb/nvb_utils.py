@@ -417,12 +417,12 @@ def getAuroraScale(obj):
 
 def nwtime2frame(time, fps=nvb_def.anim_fps):
     """Convert key time to frame number."""
-    return round(fps*time)
+    return max(round((fps*time)-1), 0)
 
 
 def frame2nwtime(frame, fps=nvb_def.anim_fps):
     """TODO: DOC."""
-    return round(frame / fps, 7)
+    return round((frame+1)/fps, 7)
 
 
 def euler2nwangle(eul):

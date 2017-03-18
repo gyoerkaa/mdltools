@@ -189,17 +189,17 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         """TODO:DOC."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Failure: Convoluted animations.')
+            self.report({'INFO'}, 'Error: Nested animations.')
             return {'CANCELLED'}
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Check resulting length (has to be >= 1)
-        oldSize = ta.frameEnd - ta.frameStart + 1
+        oldSize = ta.frameEnd - ta.frameStart
         newSize = self.scaleFactor * oldSize
         if (newSize < 1):
-            self.report({'INFO'}, 'Failure: Resulting size < 1.')
+            self.report({'INFO'}, 'Error: Resulting size < 1.')
             return {'CANCELLED'}
         if (math.fabs(oldSize - newSize) < 1):
-            self.report({'INFO'}, 'Failure: Same size.')
+            self.report({'INFO'}, 'Error: Same size.')
             return {'CANCELLED'}
         # Get a list of affected objects
         objList = []

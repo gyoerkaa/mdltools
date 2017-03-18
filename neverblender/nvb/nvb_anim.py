@@ -30,7 +30,6 @@ class Animation():
         newAnim.root = self.animroot
         newAnim.frameEnd = newAnim.frameStart + \
             nvb_utils.nwtime2frame(self.length)
-
         # Add events for new animation
         for ev in self.events:
             newEvent = newAnim.eventList.add()
