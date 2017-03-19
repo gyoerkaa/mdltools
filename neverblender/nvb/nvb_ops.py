@@ -201,7 +201,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
             return {'CANCELLED'}
         ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         # Check resulting length (has to be >= 1)
-        oldSize = ta.frameEnd - ta.frameStart
+        oldSize = ta.frameEnd - ta.frameStart + 1
         newSize = self.scaleFactor * oldSize
         if (newSize < 1):
             self.report({'INFO'}, 'Error: Resulting size < 1.')
