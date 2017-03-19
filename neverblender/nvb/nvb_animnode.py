@@ -185,54 +185,54 @@ class Animnode():
                         self.uvdata = True
                 # Keyed animations
                 elif label == 'positionkey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
                                  self.positionkey)
                     self.objdata = True
                 elif label == 'orientationkey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f5(asciiLines[i+1:i+numKeys+1],
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f5(asciiLines[i+1:i+numkeys+1],
                                  self.orientationkey)
                     self.objdata = True
                 elif label == 'scalekey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
                                  self.scalekey)
                     self.objdata = True
                 elif label == 'alphakey':
                     # If this is an emitter, alphakeys are incompatible. We'll
                     # handle them later as plain text
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
                     if nodetype == 'emitter':
-                        nvb_parse.txt(asciiLines[i:i+numKeys+1],
+                        nvb_parse.txt(asciiLines[i:i+numkeys+1],
                                       self.rawdata)
                     else:
-                        nvb_parse.f2(asciiLines[i+1:i+numKeys+1],
+                        nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
                                      self.alphakey)
                     self.matdata = True
                 elif label == 'selfillumcolorkey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1],
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
                                  self.selfillumcolorkey)
                     self.objdata = True
                 # Lights/lamps only
                 elif label == 'colorkey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numKeys+1], self.colorkey)
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1], self.colorkey)
                     self.objdata = True
                 elif label == 'radiuskey':
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    nvb_parse.f2(asciiLines[i+1:i+numKeys+1], self.radiuskey)
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1], self.radiuskey)
                     self.objdata = True
                 # Some unknown label.
                 # Probably keys for emitters, incompatible, save as plain text
                 elif (nodetype == 'emitter') and (label[0] != '#'):
-                    numKeys = nvb_utils.findEnd(asciiLines[i+1:])
-                    if numKeys > 1:
+                    numkeys = nvb_utils.findEnd(asciiLines[i+1:])
+                    if numkeys > 1:
                         # Set of unknown keys
                         self.rawdata.append([label,
-                                            asciiLines[i+1:i+numKeys+1]])
-                    elif numKeys == 1:
+                                            asciiLines[i+1:i+numkeys+1]])
+                    elif numkeys == 1:
                         # Single unknown key
                         self.rawdata.append([label, [asciiLines[i+1]]])
                     else:
@@ -625,6 +625,8 @@ class Animnode():
                     values = keys[frame]
                 else:
                     values = [0.0, 0.0, 0.0, 0.0]
+                print(frame)
+                print(values)
                 values[axis] = values[axis] + p.co[1]
                 keys[frame] = values
 

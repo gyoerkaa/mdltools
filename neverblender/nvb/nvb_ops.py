@@ -127,8 +127,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                 for p in fcurve.keyframe_points:
                     if (animStart < p.co[0] <= animEnd):
                         oldFrame = p.co[0]
-                        newFrame = (oldFrame - animStart) * \
-                            scaleFactor + animStart
+                        newFrame = (oldFrame - animStart + 1) * \
+                            scaleFactor + animStart - 1
                         p.co[0] = newFrame
                         p.handle_left.x = newFrame - \
                             (oldFrame - p.handle_left.x)
@@ -152,8 +152,8 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
                     for p in fcurve.keyframe_points:
                         if (animStart < p.co[0] <= animEnd):
                             oldFrame = p.co[0]
-                            newFrame = (oldFrame - animStart) * \
-                                scaleFactor + animStart
+                            newFrame = (oldFrame - animStart + 1) * \
+                                scaleFactor + animStart - 1
                             p.co[0] = newFrame
                             p.handle_left.x = newFrame - \
                                 (oldFrame - p.handle_left.x)
