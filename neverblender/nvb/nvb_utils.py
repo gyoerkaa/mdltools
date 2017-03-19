@@ -4,6 +4,7 @@ import mathutils
 import bpy
 import os
 import collections
+import math
 
 from . import nvb_def
 
@@ -305,14 +306,15 @@ def checkAnimBounds(rootDummy):
 
 def createAnimListItem(obj):
     """Append a new animation at the and of the animation list."""
-    newAnim = obj.nvb.animList.add()
-    newAnim.root = obj.name
     lastAnimEnd = nvb_def.anim_globstart
     for anim in obj.nvb.animList:
         if anim.frameEnd > lastAnimEnd:
             lastAnimEnd = anim.frameEnd
-    newAnim.frameStart = lastAnimEnd + nvb_def.anim_offset
-    newAnim.frameEnd = newAnim.frameStart
+    newAnim = obj.nvb.animList.add()
+    newAnim.root = obj.name
+    start = int(math.ceil((lastAnimEnd + nvb_def.anim_offset) / 10.0)) * 10
+    newAnim.frameStart = start
+    newAnim.frameEnd = start
     return newAnim
 
 

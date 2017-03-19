@@ -42,7 +42,7 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
     ttime = bpy.props.FloatProperty(
                 name='Transitiontime',
                 description='Used for for animations only',
-                default=1, min=0)
+                default=1.0, min=0.0)
     root = bpy.props.StringProperty(
                 name='Root',
                 description='Entry point of the animation',
@@ -54,10 +54,6 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
     markerStart = bpy.props.StringProperty(
                 name='Start Marker',
                 description='Start marker in the timeline',
-                default='')
-    markerEnd = bpy.props.StringProperty(
-                name='End Marker',
-                description='End marker in the timeline',
                 default='')
     rawascii = bpy.props.StringProperty(
                 name='Emitter Data',
