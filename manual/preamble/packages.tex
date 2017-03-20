@@ -316,10 +316,14 @@
           rightmargin=0cm,
           linewidth=4pt]{mdeBlenderProperty}
 
+\newenvironment{propertyBlender1}[1]
+               {\paragraph{#1}\index{#1}}
+               {}
+            
 \newenvironment{propertyBlender}[1]
                {\begin{mdeBlenderProperty}{\sffamily\bfseries#1}\index{#1}\\}
                {\end{mdeBlenderProperty}}
-
+ 
 
 \newmdenv[skipabove=7pt,
           skipbelow=7pt,
