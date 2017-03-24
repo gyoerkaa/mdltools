@@ -625,8 +625,6 @@ class Animnode():
                     values = keys[frame]
                 else:
                     values = [0.0, 0.0, 0.0, 0.0]
-                print(frame)
-                print(values)
                 values[axis] = values[axis] + p.co[1]
                 keys[frame] = values
 
@@ -790,7 +788,6 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
         """Add data for animated vertices."""
-        print(obj.name)
         shapekeyname = obj.nvb.aurorashapekey
         if not shapekeyname:
             return
