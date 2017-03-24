@@ -790,23 +790,24 @@ class Animnode():
     @staticmethod
     def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
         """Add data for animated vertices."""
-        if not obj.nvb.aurorashapekey:
+        print(obj.name)
+        shapekeyname = obj.nvb.aurorashapekey
+        if not shapekeyname:
             return
         if not obj.data.shape_keys:
             # No animated vertices here
             return
-        if obj.nvb.aurorashapekey not in obj.data.shape_keys.key_block:
+        if shapekeyname not in obj.data.shape_keys.key_blocks:
             # No animated vertices here
             return
-        shapekeyname = obj.nvb.aurorashapekey
-        keyBlock = obj.data.shape_keys.key_block[shapekeyname]
+        keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
         # Original vertex data. Needed to fill in values for unanimated
         # vertices.
         mesh = obj.to_mesh(bpy.context.scene,
                            True,
                            'RENDER')
-        vertexList = mesh.vertices
-
+        # vertexList = mesh.vertices[[f.uv1, f.uv2, f.uv3] for f in tf_uv]
+        vertexList = [[v.co[0], v.co[1], v.co[2]] for v in mesh.vertices]
         if obj.data.shape_keys.animation_data:
             # Get the animation data
             action = obj.data.shape_keys.animation_data.action
@@ -833,6 +834,26 @@ class Animnode():
                                 values = copy.deepcopy(vertexList)
                             values[vertexIdx][axis] = p.co[1]
                             keys[frame] = values
+
+                # Create ascii representation and add it to the output
+                sumKeys = sum([len(l) for f, l in keys.items()])
+                if (sumKeys % len(vertexList) == 0):
+                    asciiLines.append('    clipu 0.0')
+                    asciiLines.append('    clipv 0.0')
+                    asciiLines.append('    clipw 1.0')
+                    asciiLines.append('    cliph 1.0')
+                    samplePeriod = nvb_utils.frame2nwtime(
+                        samplingEnd-samplingStart,
+                        bpy.context.scene.render.fps)
+                    asciiLines.append('    sampleperiod ' +
+                                      str(round(samplePeriod, 5)))
+                    asciiLines.append('    animverts ' + str(sumKeys))
+                    for frame, key in keys.items():
+                        for val in key:
+                            formatStr = '      {: 6.3f} {: 6.3f} {: 6.3f}'
+                            s = formatStr.format(val[0], val[1], val[2])
+                            asciiLines.append(s)
+                    asciiLines.append('    endlist')
 
     @staticmethod
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
