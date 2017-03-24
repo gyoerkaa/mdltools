@@ -929,8 +929,10 @@ class Animnode():
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
         options = nvb_def.ExportOptions()
-        nvb_node.Animmesh.generateAsciiMesh(obj, asciiLines,
+        tmpLines = []
+        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines,
                                             options, True)
+        asciiLines.extend(['  '+l for l in tmpLines])
         Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines)
         Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines)
 
