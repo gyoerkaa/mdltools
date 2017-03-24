@@ -316,11 +316,11 @@
           rightmargin=0cm,
           linewidth=4pt]{mdeBlenderProperty}
 
-\newenvironment{propertyBlender1}[1]
+\newenvironment{propertyBlender}[1]
                {\paragraph{#1}\index{#1}}
                {}
             
-\newenvironment{propertyBlender}[1]
+\newenvironment{propertyBlenderB}[1]
                {\begin{mdeBlenderProperty}{\sffamily\bfseries#1}\index{#1}\\}
                {\end{mdeBlenderProperty}}
  
@@ -342,9 +342,12 @@
           linewidth=4pt]{mdeAuroraProperty}
 
 \newenvironment{propertyAurora}[1]
+               {\paragraph{#1}\index{#1}}
+               {}
+
+\newenvironment{propertyAuroraB}[1]
                {\begin{mdeAuroraProperty}{\sffamily\bfseries#1}\index{#1}\\}
                {\end{mdeAuroraProperty}}
-
 
 \usepackage{menukeys}
 

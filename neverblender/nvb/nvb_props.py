@@ -42,7 +42,7 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
     ttime = bpy.props.FloatProperty(
                 name='Transitiontime',
                 description='Used for for animations only',
-                default=1.0, min=0.0)
+                default=0.25, min=0.0)
     root = bpy.props.StringProperty(
                 name='Root',
                 description='Entry point of the animation',
