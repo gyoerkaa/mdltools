@@ -258,7 +258,7 @@ creation of new skinmeshes difficult.
 
 \subsection{Animmeshes}
 Animeshes are Trimeshes with animated UV coordinates or vertices, the latter requires the use of a 
-shape key. The AnimAll Add-On is required to edit to animate UV coordinates and shape keys. The number of 
+shape key. The AnimAll Add-On is required to animate UV coordinates and shape keys. The number of 
 animated keyframes for Animmeshes is limited to two (start and beginning of the animation).
 
 \begin{propertyAurora}{Shapekey} 
@@ -412,21 +412,18 @@ the loss of this data.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Start}
-    This value influences how much mixing occurs with the previous animation in order to 
-    fade smoothly into the current animation. Most animations use the default value of 0.25.
+    The animations first frame
 \end{propertyAurora}
 
 \begin{propertyAurora}{End}
-    This value influences how much mixing occurs with the previous animation in order to 
-    fade smoothly into the current animation. Most animations use the default value of 0.25.
+    The animations last frame
 \end{propertyAurora}
 
 \begin{propertyAurora}{Emitter Data}
-    This value influences how much mixing occurs with the previous animation in order to 
-    fade smoothly into the current animation. Most animations use the default value of 0.25.
+    Emitter data or other incompatible data will be imported as plain text and saved in a text object. The
+    time values are converted to frames during this process.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Animation Events}
-    This value influences how much mixing occurs with the previous animation in order to 
-    fade smoothly into the current animation. Most animations use the default value of 0.25.
+    Events like footstep sounds. Each event has a name and associated frame
 \end{propertyAurora}
