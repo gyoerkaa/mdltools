@@ -642,7 +642,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
     """Move an animation and its keyframes to the end of the animation list"""
 
     bl_idname = 'nvb.anim_moveback'
-    bl_label = 'Move an animation and its keyframes to the end.'
+    bl_label = 'Move to end.'
 
     @classmethod
     def poll(self, context):
