@@ -19,21 +19,21 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        """TODO:DOC."""
+        """Prevent execution if no rootdummy was found."""
         rootdummy = nvb_utils.findObjRootDummy(context.object)
         if rootdummy is not None:
             return (len(rootdummy.nvb.animList) > 0)
         return False
 
     def cloneEmitter(self, rawasciiID):
-        """TODO:DOC."""
+        """Clone the animations's emitter data."""
         txt = bpy.data.texts[rawasciiID].copy()
         txt.name = bpy.data.texts[rawasciiID].name + '_copy'
         txt.use_fake_user = True
         return txt.name
 
     def cloneFrames(self, target, animStart, animEnd, cloneStart):
-        """TODO:DOC."""
+        """Clone the animations keyframes."""
         if target.animation_data and target.animation_data.action:
             insertionOptions = {'FAST'}
             action = target.animation_data.action
@@ -53,7 +53,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
                     pass
 
     def execute(self, context):
-        """TODO:DOC."""
+        """Clone the animation."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         animStart = anim.frameStart
@@ -103,7 +103,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        """TODO:DOC."""
+        """Prevent execution if no rootdummy was found."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
@@ -552,7 +552,7 @@ class NVB_OP_Anim_Focus(bpy.types.Operator):
         return False
 
     def execute(self, context):
-        """TODO: DOC."""
+        """Set the timeline to this animation."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         scene = context.scene
 
@@ -573,15 +573,15 @@ class NVB_OP_Anim_New(bpy.types.Operator):
         return (rootDummy is not None)
 
     def execute(self, context):
-        """TODO: DOC."""
+        """Create the animation"""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
-        nvb_utils.createAnimListItem(rootDummy)
-
+        newanim = nvb_utils.createAnimListItem(rootDummy)
+        newanim.root = rootDummy.name
         return {'FINISHED'}
 
 
 class NVB_OP_Anim_Delete(bpy.types.Operator):
-    """Delete the selected animation from the animation list"""
+    """Delete the selected animation and its keyframes"""
 
     bl_idname = 'nvb.anim_delete'
     bl_label = 'Delete an animation'
@@ -595,7 +595,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
         return False
 
     def deleteFrames(self, target, frameStart, frameEnd):
-        """TODO: DOC."""
+        """Delete the animation's keyframes."""
         if target.animation_data and target.animation_data.action:
             # Find out which frames to delete
             action = target.animation_data.action
@@ -610,7 +610,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
                 target.keyframe_delete(dp, frame=f)
 
     def execute(self, context):
-        """TODO: DOC."""
+        """Delete the animation."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         animList = rootDummy.nvb.animList
         animListIdx = rootDummy.nvb.animListIdx
@@ -653,7 +653,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
         return False
 
     def moveFrames(self, target, oldStart, oldEnd, newStart):
-        """TODO: DOC."""
+        """Move the animation's keyframes."""
         if target.animation_data and target.animation_data.action:
             insertionOptions = {'FAST'}
             action = target.animation_data.action
@@ -672,7 +672,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
                 target.keyframe_delete(dp, frame=f)
 
     def execute(self, context):
-        """TODO: DOC."""
+        """Move the animation to the end of the animation list."""
         rootDummy = nvb_utils.findObjRootDummy(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
