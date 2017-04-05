@@ -10,7 +10,7 @@ from . import nvb_def
 
 
 class NodeNameResolver(collections.OrderedDict):
-    """TODO: DOC."""
+    """Solves naming conflicts."""
 
     def insertObj(self, nodeName, nodeParentName, nodeIdx, objName):
         """TODO: DOC."""
@@ -106,7 +106,7 @@ def belongsToWalkmesh(obj, classification):
 
 
 def belongsToMdl(obj, classification):
-    """TODO: Doc."""
+    """Return true, if an object belongs in the mdl file."""
     if not obj:
         return False
     if obj.type == 'EMPTY':
@@ -121,7 +121,7 @@ def belongsToMdl(obj, classification):
 
 
 def isRootDummy(obj):
-    """TODO: DOC."""
+    """Return true, if an object is the rootdummy."""
     if not obj:
         return False
     return (obj.parent is None) and \
@@ -199,7 +199,7 @@ def adjustRawAnimBounds(txtBlock, scaleFactor):
 
 
 def generateWalkmeshParent(rootDummy):
-    """TODO: DOC."""
+    """Generate a name for the walkmesh root from the original rootdummy."""
     suffix = ''
     if rootDummy.nvb.classification is nvb_def.Classification.DOOR:
         suffix = 'dwk'
