@@ -199,7 +199,7 @@ def adjustRawAnimBounds(txtBlock, scaleFactor):
 
 
 def generateWalkmeshParent(rootDummy):
-    """Generate a name for the walkmesh root from the original rootdummy."""
+    """Create the name for the walkmesh rootdummy (append '_pwk')."""
     suffix = ''
     if rootDummy.nvb.classification is nvb_def.Classification.DOOR:
         suffix = 'dwk'
@@ -211,7 +211,7 @@ def generateWalkmeshParent(rootDummy):
 
 
 def generateWalkmeshName(obj, rootDummy):
-    """TODO: DOC."""
+    """Create the name for the object in the walkmesh."""
     classifcation = rootDummy.nvb.classification
     suffix = ''
     currentName = obj.name
@@ -229,7 +229,7 @@ def generateWalkmeshName(obj, rootDummy):
 
 
 def findObjRootDummy(obj):
-    """TODO: DOC."""
+    """Return the rootdummy of this object."""
     while obj:
         if isRootDummy(obj):
             return obj
@@ -238,7 +238,7 @@ def findObjRootDummy(obj):
 
 
 def findRootDummy(obj=None):
-    """TODO: DOC."""
+    """Return any rootdummy in any scene."""
     # 1. Check the object and its parents
     match = findObjRootDummy(obj)
     if match:
@@ -279,7 +279,7 @@ def toggleAnimFocus(scene, rootDummy):
 
 
 def getAllChildren(obj, objList):
-    """TODO: DOC."""
+    """Generate a list of ths objects children."""
     if obj:
         objList.append(obj)
         for c in obj.children:
