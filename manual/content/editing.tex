@@ -1,5 +1,5 @@
 \chapter{Editing}
-There are three types of objects which can be exported to a MDL: Empties,
+There are three types of objects which can be exported: Empties,
 Meshes and Lamps. Other objects like curves and surfaces will have to be
 converted to meshes before attempting to export them.
 
@@ -11,15 +11,14 @@ converted to meshes before attempting to export them.
     Blender's scale property cannot be exported directly as the engine 
     only supports uniform scale. If a non-uniform scale value is used the export 
     script will try to apply the scaling factor to the object and it's children.
-    However this is not entirely reliable and may cause issues, especially with 
+    However this is not entirely reliable and may cause issues especially with 
     animations. Therefore it is recommended to either keep the scale uniform or 
     apply it manually before exporting.
 \end{propertyBlender}  
 
 \begin{propertyAurora}{Wirecolor}
-    This property is unused by the engine. It can safely be ignored. It probably defines the
-    color for the object's wire-frame in 3dsmax and exists in Neverblender only for 
-    compatibility reasons.
+    This property is present for all object, but unused by the engine. It can safely be ignored 
+    and exists only for compatibility reasons.
 \end{propertyAurora}
 
 
@@ -51,14 +50,14 @@ Determines the type of MDL
 \end{propertyAurora}
 
 \begin{propertyAurora}{Supermodel}
-Reference to another MDL file. When a model is assigned a supermodel, 
-the engine loads the animation data from the super model on to the 
+Reference to another model. When a model is assigned a supermodel, 
+the engine loads the animation data from the supermodel on to the 
 pieces that have the same name in the current model.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Animationscale}
-Reference to another MDL file. All animations from that file 
-will be available in this MDL.
+Used in conjunction with the supermodel. This property scales the current model in relation to 
+its supermodel, i.e. a value of 0.5 means the current model is half the size of the supermodel.
 \end{propertyAurora}
 
 \subsection{Dummy}
@@ -128,10 +127,10 @@ attributes.
     \label{fig:panel_trimesh}
 \end{figure}
 
-Any newly created mesh object is a trimesh by default, the most common type of mesh 
-used by the aurora engine. As the name suggests it consists of triangles, but it is 
-not necessary to explicitly convert the faces to triangles as Neverblender does that 
-automatically during the export process.
+Any newly created mesh object is considered a trimesh by default. As the name 
+suggests it consists of triangles, but it is not necessary to explicitly 
+convert the faces to triangles as Neverblender does that automatically 
+during the export process.
 
 \begin{figure}
     \centering
@@ -156,28 +155,28 @@ Shininess requires a matching texture information file (*.txi).
 
 \begin{propertyAurora}{Tilefade}
 This property is only relevant for tiles. It controls whether this 
-mesh will turn invisible to clear the view.
+mesh will turn invisible to offer a clear line of sight on the character.
 \begin{description}[leftmargin=6em,style=nextline]
     \item[None] This mesh will always be visible.
     \item[Fade] The object will fade.
     \item[Base] Unknown
-    \item[Neighbour] The object will fade along with meshes in neighboring tiles.
+    \item[Neighbor] The object will fade along with meshes in neighboring tiles.
 \end{description}
 \end{propertyAurora}
 
 \begin{propertyAurora}{Render}
-If render is on, then the part renders, if it is not then it doesn’t. The geometry is
-still in memory though, it is not culled. Use this in conjunction with the Shadows
-property to make simpler shadow volume objects than the visible geometry.
+Controls whether this object will be rendered. The geometry will still be loaded to the memory and 
+casts shadows, even if this is unchecked. This is frequently used in conjunction with the Shadow
+property to create a shadow volume object which is simpler than the actual visible geometry.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadow}
 Controls whether this objects should cast a shadow. It is recommended to 
-disable Shadows for complex Meshes with a large amount of triangles and 
-use a create a lower poly mesh with disabled rendering and enabled shadows.
+disable Shadows for complex meshes with a large amount of triangles and create 
+a lower poly mesh with disabled rendering and enabled shadows.
 
-Failing to do so might negatively impact performance and corrupt the shadows of the 
-model as the engine is only capable of handling shadows for simple, convex objects.
+Failing to do so might negatively impact performance or result in corrupt shadows as 
+the engine is only capable of handling shadows for simple, convex objects.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Beaming}
@@ -190,8 +189,8 @@ this flag.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Inherit Color}
-Unused. It was intended for tintable 
-objects to be able to inherit their parent's color.
+Unused. It was originally intended for tint-able objects to be 
+able to inherit their parent's color.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Rotatetexture}
@@ -202,8 +201,8 @@ and grass over tile edges.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Transparencyhint}
-As transparencies can be extremely costly to calculate from alpha values on a
-texture, we can give the engine priority values on transparent objects to let it
+As transparency can be extremely costly to calculate from alpha values on a
+texture, this property gives the engine priority values on transparent objects to let it
 know which are more important. If an object has a transparency hint of 1, then it
 will be rendered after a transparent object that has a value of 0. This does not work 
 on dynamic objects, it only affects static objects.
@@ -289,10 +288,10 @@ text. While all data will be retained, editing is only possible by altering the
 generated text file for each emitter.
 
 \section{Lamps}
-Blender's lamp properties for Color and distance will be used for exporting a light.
+Blender's lamp properties for color and distance will be used for exporting a light.
 
 It is recommended to check \textit{Sphere} to better replicate the resulting effect 
-of a light source in the 3D view. This property has no influence in the engine.
+of a light source.
 
 \begin{propertyAurora}{Light type}
 There are some special light types, all of which are used to give builders
