@@ -23,25 +23,24 @@ converted to meshes before attempting to export them.
 
 
 \section{Empties}
-Empties are used to group objects or indicate special locations. Each model has to have an Empty 
-as it's root object.
+The "Empty" is a single coordinate point with no additional geometry. Because an Empty has 
+no volume and surface, it cannot be rendered. Empties are used to group objects or indicate 
+special locations.
 
 
 \subsection{Aurora Root}
-Each MDL requires at least one Empty as it's root: The Aurora Root or Rootdummy. It holds 
-additional information and indicates which objects belong to an MDL. All children
-of a single Rootdummy are considered to be part of the same MDL. \\
+Each model requires at least one Empty at root level: The Aurora Root. All of it's children are 
+considered to be part of the same model. It also holds additional information like animation data 
+and model type. Any Empty without parent is automatically considered an Aurora Root. 
+It must have the same name as the model file (minus the file extension). 
 
-Any Empty without a parent is automatically considered a Rootdummy. 
-The Rootdummy must have the same name as the MDL file (minus the file extension). 
-A Rootdummy has the following properties:
-
+\subsubsection*{Properties}
 \begin{propertyAurora}{Classification}
 Determines the type of MDL
 \begin{description}[leftmargin=6em,style=nextline]
     \item[Item] Any inventory item.
     \item[GUI] Unknown.
-    \item[Effect] For visual effects.
+    \item[Effect] Visual effects.
     \item[Door] Doors, be it generic or for tilesets.
     \item[Character] Creature or placeables. 
     \item[Tile] For tilesets.
@@ -50,13 +49,13 @@ Determines the type of MDL
 \end{propertyAurora}
 
 \begin{propertyAurora}{Supermodel}
-Reference to another model. When a model is assigned a supermodel, 
-the engine loads the animation data from the supermodel on to the 
-pieces that have the same name in the current model.
+References another model. When a model is assigned a supermodel, 
+the engine loads the animation data from the supermodel onto the 
+pieces with matching names.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Animationscale}
-Used in conjunction with the supermodel. This property scales the current model in relation to 
+Used in conjunction with the supermodel property. This will scale the current model in relation to 
 its supermodel, i.e. a value of 0.5 means the current model is half the size of the supermodel.
 \end{propertyAurora}
 
@@ -70,6 +69,8 @@ indicate a special location to the engine. \\
   %\caption[panel dummy]{Dummy Property Panel}
   \label{fig:panel_dummy}
 \end{figure}
+
+\subsubsection*{Properties}
 
 \begin{propertyAurora}{Dummytype}
 The following types of Dummies are available:
@@ -377,21 +378,9 @@ the latter takes precedence. This matches the output in blenders 3D view (with G
 or renderer.
 
 \section{Animations}
-Each animation has to be defined by name and start/end frames. Valid names 
-are listed in the reference chapter for each type of MDL.
+Each animation is defined by name and start/end frames. The name 
+defines when an animation is used.
 
-\subsection{Animation Tools}
-
-\begin{description}
-\item[Add \& Delete] Add or delete an animation. Note that keyframes will be deleted too.
-\item[Move Back] Move the animations and its keyframes to the end of the timeline for easier editing.
-\item[Focus] Sets the start and end frames of the time to the currently selected animation.
-\item[Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
-\item[Scale] Scales an animation up or down
-\item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation.
-\end{description}
-
-\subsection{Animation Properties}
 The following properties can be animated:
 \begin{itemize}
     \item Location
@@ -407,6 +396,8 @@ The following properties can be animated:
 Additional animation data is stored in the Rootdummy. Deleting the Rootdummy will result in
 the loss of this data.
 
+\subsection{Animation Properties}
+
 \begin{propertyAurora}{Name}
     Similar to the Supermodel property, however this overrides only a 
     specific selection of nodes instead of all of them.
@@ -414,7 +405,7 @@ the loss of this data.
 
 \begin{propertyAurora}{Root}
     Similar to the Supermodel property, however this overrides only a 
-    specific selection of nodes instead of all of them.
+    the nodes below the root instead of all of them.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Transition Time}
@@ -423,11 +414,11 @@ the loss of this data.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Start}
-    The animations first frame
+    The animations first frame.
 \end{propertyAurora}
 
 \begin{propertyAurora}{End}
-    The animations last frame
+    The animations last frame.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Emitter Data}
@@ -436,5 +427,16 @@ the loss of this data.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Animation Events}
-    Events like footstep sounds. Each event has a name and associated frame
+    Events like footstep sounds. Each event has a name and associated frame.
 \end{propertyAurora}
+
+\subsection{Animation Tools}
+
+\begin{description}
+    \item[Add \& Delete] Add or delete an animation. Note that keyframes will be deleted too.
+    \item[Move Back] Move the animations and its keyframes to the end of the timeline for easier editing.
+    \item[Focus] Sets the start and end frames of the time to the currently selected animation.
+    \item[Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
+    \item[Scale] Scales an animation up or down
+    \item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation.
+\end{description}
