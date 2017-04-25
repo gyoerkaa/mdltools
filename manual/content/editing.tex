@@ -29,12 +29,11 @@ special locations.
 
 
 \subsection{Aurora Root}
-Each model requires at least one Empty at root level: The Aurora Root. All of it's children are 
+Each model requires an Empty at root level: The Aurora Root. All of it's children are 
 considered to be part of the same model. It also holds additional information like animation data 
 and model type. Any Empty without parent is automatically considered an Aurora Root. 
 It must have the same name as the model file (minus the file extension). 
 
-\subsubsection*{Properties}
 \begin{propertyAurora}{Classification}
 Determines the type of MDL
 \begin{description}[leftmargin=6em,style=nextline]
@@ -59,18 +58,9 @@ Used in conjunction with the supermodel property. This will scale the current mo
 its supermodel, i.e. a value of 0.5 means the current model is half the size of the supermodel.
 \end{propertyAurora}
 
-\subsection{Dummy}
+\subsection{Dummy Node}
 Simple Empties with a parent are either used to group objects or
 indicate a special location to the engine. \\
-
-\begin{figure}
-  \centering
-  \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_dummy}
-  %\caption[panel dummy]{Dummy Property Panel}
-  \label{fig:panel_dummy}
-\end{figure}
-
-\subsubsection*{Properties}
 
 \begin{propertyAurora}{Dummytype}
 The following types of Dummies are available:
@@ -121,24 +111,10 @@ attributes.
 
 \subsection{Trimeshes}
 
-\begin{figure}
-    \centering
-    \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_trimesh}
-    %\caption[panel trimesh]{Trimesh Property Panel}
-    \label{fig:panel_trimesh}
-\end{figure}
-
 Any newly created mesh object is considered a trimesh by default. As the name 
 suggests it consists of triangles, but it is not necessary to explicitly 
 convert the faces to triangles as Neverblender does that automatically 
 during the export process.
-
-\begin{figure}
-    \centering
-    \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_trimesh}
-    %\caption[panel_trimesh]{Trimesh Property Panel}
-    \label{fig:panel_trimesh}
-\end{figure}
 
 \begin{propertyAurora}{Self-Illumination Color}
 Makes the mesh glow without acting as a light source.
@@ -219,13 +195,6 @@ Controls smoothing groups or shading groups are created
 \end{propertyAurora}
 
 \subsection{Danglymeshes}
-
-\begin{figure}
-    \centering
-    \includegraphics[trim=0 0 0 0, clip, width=0.33\textwidth]{panel_danglymesh}
-    %\caption[panel danglymesh]{Danglymesh Property Panel}
-    \label{fig:panel_danglymesh}
-\end{figure}
 
 Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
 wind, character movement and visual effects. Danglymeshes possess the same 

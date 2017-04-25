@@ -8,33 +8,35 @@
 % Vel (vel@latextemplates.com)
 % 
 % Compiling:
-% 1) pdflatex main
-% 2) makeindex main.idx -s StyleInd.ist
-% 3) biber main
-% 4) pdflatex main x 2
+%   pdflatex main
+%   makeindex main.idx -s StyleInd.ist
+%   pdflatex main
+%   pdflatex main
 %
 % License:
 % CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
 %
 %-------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------------
-% MISC
-%-------------------------------------------------------------------------------
+\usepackage{avant} % Use the Avantgarde font for headings
+%\usepackage{times} % Use the Times font for headings
+\usepackage{mathptmx} % Use the Adobe Times Roman as the default text font together with math symbols from the Sym­bol, Chancery and Com­puter Modern fonts
 
-\usepackage[top=3cm,bottom=3cm,left=3cm,right=3cm,headsep=10pt,a4paper]{geometry} % Page margins
-
-\usepackage{graphicx} % Required for including pictures
-\graphicspath{{graphics/}} % Specifies the directory where pictures are stored
-
-\usepackage{lipsum} % Inserts dummy text
-
-\usepackage{tikz} % Required for drawing custom shapes
+\usepackage{microtype} % Slightly tweak font spacing for aesthetics
+\usepackage[utf8]{inputenc} % Required for including letters with accents
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
 
 \usepackage[english]{babel}
-\usepackage{csquotes}
+\usepackage[top=3cm,bottom=3cm,left=3cm,right=3cm,headsep=10pt,a4paper]{geometry}
 
-\usepackage{enumitem} % Customize lists
+\usepackage{graphicx}
+\graphicspath{{graphics/}}
+
+\usepackage{tikz}
+\usepackage{csquotes}
+\usepackage{mdframed}
+
+\usepackage{enumitem}
 \setlist{nolistsep} % Reduce spacing between bullet points and numbered lists
 
 \usepackage{booktabs} % Required for nicer horizontal rules in tables
@@ -42,17 +44,16 @@
 \usepackage{xcolor} % Required for specifying colors
 \definecolor{maincolor}{RGB}{56,82,114}
 
-\usepackage{hyperref}
-\hypersetup{hidelinks,
-			backref=true,
-			pagebackref=true,
-			hyperindex=true,
-			colorlinks=false,
-			breaklinks=true,
-			urlcolor=cyan,
-			bookmarks=true,
-			bookmarksopen=false,
-			pdftitle={Neverblender Manual},
+% Hyperref
+\usepackage[hidelinks,
+            hyperindex=true,
+            colorlinks=false,
+            breaklinks=true,
+            urlcolor=cyan,
+            pdfpagelayout=TwoPageRight,
+            bookmarks=true,
+            bookmarksopen=false]{hyperref}
+\hypersetup{pdftitle={Neverblender Manual},
 			pdfauthor={Author}}
 
 \usepackage{bookmark}
@@ -64,49 +65,21 @@
 						  \ifnum\bookmarkget{level}=-1 % part
 			              \bookmarksetup{color=maincolor,bold}%
 			              \fi}}
-       
-%-------------------------------------------------------------------------------
-% FONTS
-%-------------------------------------------------------------------------------
 
-\usepackage{avant} % Use the Avantgarde font for headings
-%\usepackage{times} % Use the Times font for headings
-\usepackage{mathptmx} % Use the Adobe Times Roman as the default text font together with math symbols from the Sym­bol, Chancery and Com­puter Modern fonts
-
-\usepackage{microtype} % Slightly tweak font spacing for aesthetics
-\usepackage[utf8]{inputenc} % Required for including letters with accents
-\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
-
-%-------------------------------------------------------------------------------
-% BIBLIOGRAPHY
-%-------------------------------------------------------------------------------
-
-\usepackage[style=alphabetic,
-			citestyle=numeric,
-			sorting=nyt,
-			sortcites=true,
-			autopunct=true,
-			babel=hyphen,
-			hyperref=true,
-			abbreviate=false,
-			backref=true,
-			backend=biber]{biblatex}
-\addbibresource{bibliography/bibliography.bib} % BibTeX bibliography file
-\defbibheading{bibempty}{}
-
-%-------------------------------------------------------------------------------
 % INDEX
-%-------------------------------------------------------------------------------
-
 \usepackage{calc} % For simpler calculation - used for spacing the index letter headings correctly
-\usepackage{makeidx} % Required to make an index
-\makeindex % Tells LaTeX to create the files required for indexing
+\usepackage{makeidx}
+\makeindex
+
+\usepackage{titletoc} % Required for manipulating the table of contents
+\usepackage{fancyhdr} % Required for header and footer configuration
+
+\usepackage{amsmath,amsfonts,amssymb,amsthm} % For math equations, theorems, symbols, etc
 
 %-------------------------------------------------------------------------------
 % MAIN TABLE OF CONTENTS
 %-------------------------------------------------------------------------------
 
-\usepackage{titletoc} % Required for manipulating the table of contents
 
 \contentsmargin{0cm} % Removes the default margin
 
@@ -181,173 +154,7 @@
 {}
 {}
 
-%-------------------------------------------------------------------------------
-%	PAGE HEADERS
-%-------------------------------------------------------------------------------
 
-\usepackage{fancyhdr} % Required for header and footer configuration
 
-\pagestyle{fancy}
-\renewcommand{\chaptermark}[1]{\markboth{\sffamily\normalsize\bfseries\chaptername\ \thechapter.\ #1}{}} % Chapter text font settings
-\renewcommand{\sectionmark}[1]{\markright{\sffamily\normalsize\thesection\hspace{5pt}#1}{}} % Section text font settings
-\fancyhf{} \fancyhead[LE,RO]{\sffamily\normalsize\thepage} % Font setting for the page number in the header
-\fancyhead[LO]{\rightmark} % Print the nearest section name on the left side of odd pages
-\fancyhead[RE]{\leftmark} % Print the current chapter name on the right side of even pages
-\renewcommand{\headrulewidth}{0.5pt} % Width of the rule under the header
-\addtolength{\headheight}{2.5pt} % Increase the spacing around the header slightly
-\renewcommand{\footrulewidth}{0pt} % Removes the rule in the footer
-\fancypagestyle{plain}{\fancyhead{}\renewcommand{\headrulewidth}{0pt}} % Style for when a plain pagestyle is specified
-
-% Removes the header from odd empty pages at the end of chapters
-\makeatletter
-\renewcommand{\cleardoublepage}{
-\clearpage\ifodd\c@page\else
-\hbox{}
-\vspace*{\fill}
-\thispagestyle{empty}
-\newpage
-\fi}
-\makeatother
-
-%-------------------------------------------------------------------------------
-%	THEOREM STYLES
-%-------------------------------------------------------------------------------
-
-\usepackage{amsmath,amsfonts,amssymb,amsthm} % For math equations, theorems, symbols, etc
-
-%-------------------------------------------------------------------------------
-%	DEFINITION OF COLORED BOXES
-%-------------------------------------------------------------------------------
-
-\RequirePackage[framemethod=default]{mdframed} % Required for creating the theorem, definition, exercise and corollary boxes
-
-% Theorem box
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          backgroundcolor=black!5,
-          linecolor=maincolor,
-          innerleftmargin=5pt,
-          innerrightmargin=5pt,
-          innertopmargin=5pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          innerbottommargin=5pt]{tBox}
-
-% Exercise box	  
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          rightline=false,
-          leftline=true,
-          topline=false,
-          bottomline=false,
-          backgroundcolor=maincolor!10,
-          linecolor=maincolor,
-          innerleftmargin=5pt,
-          innerrightmargin=5pt,
-          innertopmargin=5pt,
-          innerbottommargin=5pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          linewidth=4pt]{eBox}	
-
-% Definition box
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          rightline=false,
-          leftline=true,
-          topline=false,
-          bottomline=false,
-          linecolor=maincolor,
-          innerleftmargin=5pt,
-          innerrightmargin=5pt,
-          innertopmargin=0pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          linewidth=4pt,
-          innerbottommargin=0pt]{dBox}	
-
-% Corollary box
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          rightline=false,
-          leftline=true,
-          topline=false,
-          bottomline=false,
-          linecolor=gray,
-          backgroundcolor=black!5,
-          innerleftmargin=5pt,
-          innerrightmargin=5pt,
-          innertopmargin=5pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          linewidth=4pt,
-          innerbottommargin=5pt]{cBox}
-
-%-------------------------------------------------------------------------------
-%	REMARK ENVIRONMENT
-%-------------------------------------------------------------------------------
-
-\newenvironment{remark}
-			   {\par\vspace{10pt}\small % Vertical white space above the remark and smaller font size
-				\begin{list}{}{\leftmargin=35pt % Indentation on the left
-							   \rightmargin=25pt}\item\ignorespaces % Indentation on the right
-						       \makebox[-2.5pt]{\begin{tikzpicture}[overlay]
-					\node[draw=maincolor!60,line width=1pt,circle,fill=maincolor!25,font=\sffamily\bfseries,inner sep=2pt,outer sep=0pt] at (-15pt,0pt){\textcolor{maincolor}{R}};\end{tikzpicture}} % Orange R in a circle
-					\advance\baselineskip -1pt}
-				{\end{list}\vskip5pt} % Tighter line spacing and white space after remark
-
-%-------------------------------------------------------------------------------
-%	PROPERTY ENVIRONMENTS
-%-------------------------------------------------------------------------------
-
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          backgroundcolor=black!5,
-          linecolor=black!50,
-          topline=false,
-          rightline=false,
-          bottomline=false,
-          leftline=true,
-          innertopmargin=5pt,
-          innerrightmargin=5pt,
-          innerbottommargin=5pt,
-          innerleftmargin=5pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          linewidth=4pt]{mdeBlenderProperty}
-
-\newenvironment{propertyBlender}[1]
-               {\paragraph{#1}\index{#1}}
-               {}
-            
-\newenvironment{propertyBlenderB}[1]
-               {\begin{mdeBlenderProperty}{\sffamily\bfseries#1}\index{#1}\\}
-               {\end{mdeBlenderProperty}}
- 
-
-\newmdenv[skipabove=7pt,
-          skipbelow=7pt,
-          backgroundcolor=black!5,
-          linecolor=maincolor,
-          topline=false,
-          rightline=false,
-          bottomline=false,
-          leftline=true,
-          innertopmargin=5pt,
-          innerrightmargin=5pt,
-          innerbottommargin=5pt,
-          innerleftmargin=5pt,
-          leftmargin=0cm,
-          rightmargin=0cm,
-          linewidth=4pt]{mdeAuroraProperty}
-
-\newenvironment{propertyAurora}[1]
-               {\paragraph{#1}\index{#1}}
-               {}
-
-\newenvironment{propertyAuroraB}[1]
-               {\begin{mdeAuroraProperty}{\sffamily\bfseries#1}\index{#1}\\}
-               {\end{mdeAuroraProperty}}
-
-\usepackage{menukeys}
-
+\usepackage[os=win]{menukeys}
+\renewmenumacro{\menu}[>]{roundedmenus}
