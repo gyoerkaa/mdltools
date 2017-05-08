@@ -105,13 +105,13 @@ Unknown purpose.
 \subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some visual effects, but
 they seem to behave exactly like normal dummy nodes, i.e they have the same
-attributes.
+properties.
 
 \section{Meshes}
 
 \subsection{Trimeshes}
 
-Any newly created mesh object is considered a trimesh by default. As the name 
+Any newly created mesh object is a trimesh by default. As the name 
 suggests it consists of triangles, but it is not necessary to explicitly 
 convert the faces to triangles as Neverblender does that automatically 
 during the export process.
@@ -144,7 +144,7 @@ mesh will turn invisible to offer a clear line of sight on the character.
 \begin{propertyAurora}{Render}
 Controls whether this object will be rendered. The geometry will still be loaded to the memory and 
 casts shadows, even if this is unchecked. This is frequently used in conjunction with the Shadow
-property to create a shadow volume object which is simpler than the actual visible geometry.
+property to create a low-poly shadow volume object to improve performance.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Shadow}
@@ -172,9 +172,8 @@ able to inherit their parent's color.
 
 \begin{propertyAurora}{Rotatetexture}
 This is for ground mapping on tilesets. When a model with
-this flag is rotated, the engine knows to rotate the uv coordinates back 
-to the original position. This eliminates texture seams on floors 
-and grass over tile edges.
+this flag is rotated, the engine rotates the uv coordinates back 
+to the original position. This eliminates texture seams on tile edges.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Transparencyhint}
@@ -228,7 +227,8 @@ creation of new skinmeshes difficult.
 \subsection{Animmeshes}
 Animeshes are Trimeshes with animated UV coordinates or vertices, the latter requires the use of a 
 shape key. The AnimAll Add-On is required to animate UV coordinates and shape keys. The number of 
-animated keyframes for Animmeshes is limited to two (start and beginning of the animation).
+animated keyframes for Animmeshes is limited to two (start and beginning of the animation). It is necessary 
+to triangulate the faces of an animmesh before adding the animations.
 
 \begin{propertyAurora}{Shapekey} 
     The shape key from which the animation data is taken. If no key is specified, vertex animations will
@@ -400,12 +400,13 @@ the loss of this data.
 \end{propertyAurora}
 
 \subsection{Animation Tools}
+A number of tools are available to make editing of animations easier. Some of the tools will not work if the animations are convoluted, i.e. start and end frames are overlapping.
 
 \begin{description}
-    \item[Add \& Delete] Add or delete an animation. Note that keyframes will be deleted too.
-    \item[Move Back] Move the animations and its keyframes to the end of the timeline for easier editing.
-    \item[Focus] Sets the start and end frames of the time to the currently selected animation.
+    \item[Add \& Delete] Add or delete an animation. Note that the keyframes will be deleted too. If an animation is to be excluded from exporting, it may be preferable to simply disable it by clicking the eye symbol next to it's name.
+    \item[Move Back] Move the animation and its keyframes to the end of the timeline for easier editing.
+    \item[Focus] Sets the start and end frames of the timeline to the currently selected animation.
     \item[Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
-    \item[Scale] Scales an animation up or down
+    \item[Scale] Scales an animation up or down. If the fps values is not adjusted this will result in the animation being slowed down or speed up.
     \item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation.
 \end{description}
