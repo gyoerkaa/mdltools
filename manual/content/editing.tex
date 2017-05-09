@@ -384,7 +384,9 @@ will result in the loss of this data.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Start \& End}
-    The animations first and last frames.
+    The animations first and last frames. It's possible to re-use the same (key)frames for 
+    multiple animations, however some of the animation-tools will not work if the animations are 
+    convoluted in this way.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Emitter Data}
@@ -397,13 +399,15 @@ will result in the loss of this data.
 \end{propertyAurora}
 
 \subsection{Animation Tools}
-A number of tools are available to make editing of animations easier. Some of the tools will not work if the animations are convoluted, i.e. start and end frames are overlapping.
+A number of tools are available to make editing of animations easier. Some 
+of the tools will not work if the animations are convoluted, i.e. start and 
+end frames are overlapping.
 
 \begin{description}
     \item[Add \& Delete] Add or delete an animation. Note that the keyframes will be deleted too. If an animation is to be excluded from exporting, it may be preferable to simply disable it by clicking the eye symbol next to it's name.
-    \item[Move Back] Move the animation and its keyframes to the end of the timeline for easier editing.
+    \item[Move Back] Move the animation and its keyframes to the end of the timeline for easier editing. This operation will fail if keyframes are shared between multiple animations.
     \item[Focus] Sets the start and end frames of the timeline to the currently selected animation.
     \item[Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
-    \item[Scale] Scales an animation up or down. If the fps values is not adjusted this will result in the animation being slowed down or speed up.
-    \item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation.
+    \item[Scale] Scales an animation up or down. If the fps value is not adjusted this will result in the animation being slowed down or speed up. This operation will fail if keyframes are shared between multiple animations.
+    \item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation. This operation will fail if keyframes are shared between multiple animations.
 \end{description}
