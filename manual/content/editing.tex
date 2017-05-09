@@ -347,10 +347,8 @@ the latter takes precedence. This matches the output in blenders 3D view (with G
 or renderer.
 
 \section{Animations}
-Each animation is defined by name and start/end frames. The name 
-defines when an animation is used.
-
-The following properties can be animated:
+Mdl files support multiple animations. They are defined by name and start/end frame.
+The following animations can be exported to an mdl:
 \begin{itemize}
     \item Location
     \item Rotation
@@ -362,19 +360,22 @@ The following properties can be animated:
     \item Texture coordinates (using AnimAll, 2 key limit)
     \item Vertices (using AnimAll, 2 key limit)
 \end{itemize}
-Additional animation data is stored in the Rootdummy. Deleting the Rootdummy will result in
-the loss of this data.
+Keep in mind that the engine uses linear interpolation between keyframes, whereas blender 
+defaults to bezier interpolation. In order to get an exact representation of how the animations will 
+look like, it may be useful to switch to linear interpolation in blenders graph editor.
 
 \subsection{Animation Properties}
+The animation property panel is always available when any part of a model is selected. Note 
+that the properties of the animations are stored in the Aurora Root, therefore deleting it 
+will result in the loss of this data.
 
 \begin{propertyAurora}{Name}
-    Similar to the Supermodel property, however this overrides only a 
-    specific selection of nodes instead of all of them.
+    The name of the animation determines its usage. Each name has to be unique.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Root}
-    Similar to the Supermodel property, however this overrides only a 
-    the nodes below the root instead of all of them.
+    Similar to the Supermodel property, however this overrides only the 
+    nodes below the root instead of all of them.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Transition Time}
@@ -382,12 +383,8 @@ the loss of this data.
     fade smoothly into the current animation. Most animations use the default value of 0.25.
 \end{propertyAurora}
 
-\begin{propertyAurora}{Start}
-    The animations first frame.
-\end{propertyAurora}
-
-\begin{propertyAurora}{End}
-    The animations last frame.
+\begin{propertyAurora}{Start \& End}
+    The animations first and last frames.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Emitter Data}
