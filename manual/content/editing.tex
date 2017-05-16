@@ -350,8 +350,8 @@ The following properties are exported:
 
 \subsection*{Alpha}
 Neverblender can export either material or texture alpha. When both properties are present 
-the latter takes precedence. This matches the output in blenders 3D view (with GLSL mode enabled) 
-or renderer.
+the latter takes precedence. This matches the output in blenders renderer 
+and 3D view (with GLSL mode enabled).
 
 \section{Animations}
 Mdl files support multiple animations. They are defined by name and start/end frame.
@@ -412,9 +412,9 @@ end frames are overlapping.
 
 \begin{description}
     \item[Add \& Delete] Add or delete an animation. Note that the keyframes will be deleted too. If an animation is to be excluded from exporting, it may be preferable to simply disable it by clicking the eye symbol next to it's name.
-    \item[Move Back] Move the animation and its keyframes to the end of the timeline for easier editing. This operation will fail if keyframes are shared between multiple animations.
-    \item[Focus] Sets the start and end frames of the timeline to the currently selected animation.
-    \item[Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
-    \item[Scale] Scales an animation up or down. If the fps value is not adjusted this will result in the animation being slowed down or speed up. This operation will fail if keyframes are shared between multiple animations.
-    \item[Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation. This operation will fail if keyframes are shared between multiple animations.
+    \item[{\includegraphics[height=0.66\baselineskip]{icons/op_moveback}} Move Back] Move the animation and its keyframes to the end of the timeline for easier editing. This operation will fail if keyframes are shared between multiple animations.
+    \item[{\includegraphics[height=0.66\baselineskip]{icons/op_focus}}Focus] Sets the start and end frames of the timeline to the currently selected animation.
+    \item[{\includegraphics[height=0.66\baselineskip]{icons/op_clone}}Clone] Copies an animation and its keyframes. The copy is added to the end of the timeline.
+    \item[{\includegraphics[height=0.6\baselineskip]{icons/op_scale}}Scale] Scales an animation up or down. If the fps value is not adjusted this will result in the animation being slowed down or speed up. This operation will fail if keyframes are shared between multiple animations.
+    \item[{\includegraphics[height=0.66\baselineskip]{icons/op_pad}}Pad \& Crop] Add or remove a specific amount of keyframes at the start or end of an animation. This operation will fail if keyframes are shared between multiple animations.
 \end{description}
