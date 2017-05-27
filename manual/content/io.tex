@@ -8,9 +8,9 @@ select a \textit{mdl} file. The following options are available for this add-on:
     \item[Import Geometry] Import the geometry from the mdl file. This may be disabled to only import animations to an already existing model.
     \item[Import Walkmesh] Attempt to import a walkmesh. If the imported model is a placeable, the script will look for a {\textit{pwk}} file in the same folder. If the model is a door, it will look for a {\textit{dwk}} file. If the model is a tile, it will read the walkmesh directly from the \textit{mdl} file.
     \item[Import Smooth Groups] Import smoothing groups as sharp edges.
-    \item[Import Animations] Import animations from the mdl file. By default animations will be added to the imported geometry. If no geometry was imported, the script will try to add animations to already existing objects in blender.
-    \item[Materials] None = No materials or textures will be imported. Single = Neverblender will attempt to merge similar materials to reduce clutter. Multiple = Each object will get it's own material, even if this results in multiple identical materials.
-    \item[Image Search] Search for textures in sub-directories. This might take a significant amount of time depending on the number of files.
+    \item[Import Animations] Import animations from the mdl file. If no geometry was imported, the script will try to add animations to an already existing mdl.
+    \item[Materials] None = No materials are created. Single = Attempt to merge similar materials to reduce clutter. Multiple = Each object will get it's own material, may result in multiple identical materials.
+    \item[Image Search] Search for textures in sub-directories. This may take a significant amount of time.
 \end{description}
 
 \begin{figure}[hb]
