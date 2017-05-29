@@ -29,10 +29,17 @@ special locations.
 
 
 \subsection{Aurora Root}
-Each model requires an Empty at root level: The Aurora Root. All of it's children are 
-considered to be part of the same model. It also holds additional information like animation data 
-and model type. Any Empty without parent is automatically considered an Aurora Root. 
-It must have the same name as the model file (minus the file extension). 
+\begin{minipage}[t]{0.65\textwidth}
+    Each model requires an Empty at root level: The Aurora Root. All of it's children are 
+    considered to be part of the same model. It also holds additional information like animation data 
+    and model type. Any Empty without parent is automatically considered an Aurora Root. 
+    It must have the same name as the model file (minus the file extension). 
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering\raisebox{\dimexpr \topskip-\height}{%
+        \fbox{\includegraphics[width=\textwidth]{panel_empty_root}}}
+    \label{fig1}
+\end{minipage}
 
 \begin{propertyAurora}{Classification}
 Determines the type of MDL
@@ -47,6 +54,9 @@ Determines the type of MDL
 \end{description}
 \end{propertyAurora}
 
+
+
+
 \begin{propertyAurora}{Supermodel}
 References another model. When a model is assigned a supermodel, 
 the engine loads the animation data from the supermodel onto the 
@@ -59,8 +69,16 @@ its supermodel, i.e. a value of 0.5 means the current model is half the size of 
 \end{propertyAurora}
 
 \subsection{Dummy Node}
-Simple Empties with a parent are either used to group objects or
-indicate a special location to the engine. \\
+\begin{minipage}[t]{0.65\textwidth}
+    Simple Empties with a parent are either used to group objects or
+    indicate a special location to the engine. \\
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering\raisebox{\dimexpr \topskip-\height}{%
+        \fbox{\includegraphics[width=\textwidth]{panel_empty_dummy}}}
+    \label{fig1}
+\end{minipage}
+
 
 \begin{propertyAurora}{Dummytype}
 The following types of Dummies are available:
@@ -111,16 +129,17 @@ properties.
 
 \subsection{Trimeshes}
 
-Any newly created mesh object is a trimesh by default. As the name 
-suggests it consists of triangles, but it is not necessary to explicitly 
-convert the faces to triangles as Neverblender does that automatically 
-during the export process.
-
-% Does not work with lists
-%\begin{wrapfigure}{R}{5cm}
-%    \centering
-%    \rule{3cm}{7cm}
-%\end{wrapfigure}
+\begin{minipage}[t]{0.65\textwidth}
+    Any newly created mesh object is a trimesh by default. As the name 
+    suggests it consists of triangles, but it is not necessary to explicitly 
+    convert the faces to triangles as Neverblender does that automatically 
+    during the export process.
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering\raisebox{\dimexpr \topskip-\height}{%
+        \fbox{\includegraphics[width=\textwidth]{panel_mesh_trimesh}}}
+    \label{fig1}
+\end{minipage}
 
 \begin{propertyAurora}{Self-Illumination Color}
 Makes the mesh glow without acting as a light source.
@@ -199,11 +218,19 @@ Controls smoothing groups or shading groups are created
 \end{description}
 \end{propertyAurora}
 
+
 \subsection{Danglymeshes}
 
-Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
-wind, character movement and visual effects. Danglymeshes possess the same 
-properties as Trimeshes in addition to the following ones.
+\begin{minipage}[t]{0.65\textwidth}
+    Danglymeshes are Trimeshes which are "bouncy" or "dangly". They are affected by
+    wind, character movement and visual effects. Danglymeshes possess the same 
+    properties as Trimeshes in addition to the following ones.
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering\raisebox{\dimexpr \topskip-\height}{%
+        \fbox{\includegraphics[width=\textwidth]{panel_mesh_danglymesh}}}
+    \label{fig1}
+\end{minipage}
 
 \begin{propertyAurora}{Dangle group} 
 The dangle group is a vertex group containing the weights of vertices for the danglymesh. 
@@ -372,9 +399,18 @@ defaults to bezier interpolation. In order to get an exact representation of how
 look like, it may be useful to switch to linear interpolation in blenders graph editor.
 
 \subsection{Animation Properties}
-The animation property panel is always available when any part of a model is selected. Note 
-that the properties of the animations are stored in the Aurora Root, therefore deleting it 
-will result in the loss of this data.
+
+
+\begin{minipage}[t]{0.65\textwidth}
+    The animation property panel is always available when any part of a model is selected. Note 
+    that the properties of the animations are stored in the Aurora Root, therefore deleting it 
+    will result in the loss of this data.
+\end{minipage}\hfill
+\begin{minipage}[t]{0.3\textwidth}
+    \centering\raisebox{\dimexpr \topskip-\height}{%
+        \fbox{\includegraphics[width=\textwidth]{panel_animations}}}
+    \label{fig1}
+\end{minipage}
 
 \begin{propertyAurora}{Name}
     The name of the animation determines its usage. Each name has to be unique.
