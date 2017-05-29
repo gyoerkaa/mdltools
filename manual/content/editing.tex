@@ -7,6 +7,11 @@ converted to meshes before attempting to export them.
     Blender's location property. The engine will round it down to three decimal places.
 \end{propertyBlender} 
 
+\begin{propertyBlender}{Rotation}
+    Blender's rotation property. It is recommended to use Euler angles with animations, as the export script 
+    does not support other types of angles for keyframes. 
+\end{propertyBlender} 
+
 \begin{propertyBlender}{Scale}
     Blender's scale property cannot be exported directly as the engine 
     only supports uniform scale. If a non-uniform scale value is used the export 
@@ -29,13 +34,13 @@ special locations.
 
 
 \subsection{Aurora Root}
-\begin{minipage}[t]{0.65\textwidth}
+\begin{minipage}[t]{0.55\textwidth}
     Each model requires an Empty at root level: The Aurora Root. All of it's children are 
     considered to be part of the same model. It also holds additional information like animation data 
     and model type. Any Empty without parent is automatically considered an Aurora Root. 
     It must have the same name as the model file (minus the file extension). 
 \end{minipage}\hfill
-\begin{minipage}[t]{0.3\textwidth}
+\begin{minipage}[t]{0.4\textwidth}
     \centering\raisebox{\dimexpr \topskip-\height}{%
         \fbox{\includegraphics[width=\textwidth]{panel_empty_root}}}
     \label{fig1}
@@ -69,11 +74,13 @@ its supermodel, i.e. a value of 0.5 means the current model is half the size of 
 \end{propertyAurora}
 
 \subsection{Dummy Node}
-\begin{minipage}[t]{0.65\textwidth}
-    Simple Empties with a parent are either used to group objects or
-    indicate a special location to the engine. \\
+\begin{minipage}[t]{0.55\textwidth}
+    Simple Empties with a parent are either used to group objects like in blender or
+    indicate a special location for the engine to apply effect or attach other models to. 
+    In MDL files such empties are referred to as dummy's. Empties (or dummy) with a 
+    special purpose are distinguished by name and have to be unique across a MDL.
 \end{minipage}\hfill
-\begin{minipage}[t]{0.3\textwidth}
+\begin{minipage}[t]{0.4\textwidth}
     \centering\raisebox{\dimexpr \topskip-\height}{%
         \fbox{\includegraphics[width=\textwidth]{panel_empty_dummy}}}
     \label{fig1}
@@ -95,22 +102,21 @@ The following types of Dummies are available:
 \end{propertyAurora}
 None of the special Dummies are mandatory. If one is
 missing from the MDL, the engine will use (0,0,0) as the default location
-for that particular Dummy. \\
-
-Selecting the type is not enough to make a Dummy work, they need to have
-the correct name or to be precise: The correct suffix.
-The export script will try to generate a valid name depending on
-the Dummy's type, but it is recommended to do it manually to avoid naming
-conflicts. \\
+for that particular Dummy. However, selecting the type 
+is not enough to make a Dummy work, they need to have the correct name or to 
+be precise: The correct suffix. While the export script will try to generate a 
+valid name depending on the Dummy's type, but it is still recommended to do it 
+manually to avoid naming conflicts. \\
 
 Use the button next to the Dummytype selector to generate a
 working name. The Rootdummy's name will be used to create a working
-suffix for the selected Dummytype. \\
+suffix for the selected Dummytype. Alternatively it is always possible to name 
+it manually.
 
 \subsection{Reference Node}
-The purpose and usage of these nodes is unknown. Supposedly it can be used to
-reference other MDL files. These nodes can be found in some visual effects and reference fx\_ref 
-most of the time.
+The purpose and usage of these nodes is unknown. Supposedly they can be used to
+reference other MDL files. These nodes can be found in some visual effects (they reference 
+the fx\_ref most of the time).
 
 \begin{propertyAurora}{Reference Model}
 The name of another MDL file without file-extension.
@@ -122,32 +128,34 @@ Unknown purpose.
 
 \subsection{Patch Node}
 The purpose and usage of these nodes is unknown. They occur in some visual effects, but
-they seem to behave exactly like normal dummy nodes, i.e they have the same
-properties.
+they behave exactly like normal dummy nodes and have the same properties.
 
 \section{Meshes}
 
 \subsection{Trimeshes}
 
-\begin{minipage}[t]{0.65\textwidth}
-    Any newly created mesh object is a trimesh by default. As the name 
-    suggests it consists of triangles, but it is not necessary to explicitly 
-    convert the faces to triangles as Neverblender does that automatically 
-    during the export process.
+\begin{minipage}[t]{0.55\textwidth}
+    The Trimesh is the basic mesh in MDL files. Any newly created mesh object is a 
+    Trimesh by default. As the name suggests it consists of triangles, but it is 
+    not necessary to explicitly convert the faces to triangles as Neverblender does that 
+    automatically during the export process. \\
+    
+    All other types of mesh objects will always have the basic Trimesh properties in addition to 
+    their own set.
 \end{minipage}\hfill
-\begin{minipage}[t]{0.3\textwidth}
+\begin{minipage}[t]{0.4\textwidth}
     \centering\raisebox{\dimexpr \topskip-\height}{%
         \fbox{\includegraphics[width=\textwidth]{panel_mesh_trimesh}}}
     \label{fig1}
 \end{minipage}
 
 \begin{propertyAurora}{Self-Illumination Color}
-Makes the mesh glow without acting as a light source.
-This property will not be visible in Blender.
+Makes the mesh glow without actually acting as a light source. It most likely corresponds to the 
+GL\_EMISSION material parameter in OpenGL. This property will not be visible in Blender.
 \end{propertyAurora}
 
 \begin{propertyAurora}{Ambient Color}
-OpenGL material property. The engine uses per-object ambient light whereas Blender's 
+OpenGL GL\_Ambient material parameter. The engine uses per-object ambient light whereas Blender's 
 defines it on a per scene basis. Therefore this property will not be visible in Blender.
 \end{propertyAurora}
 
@@ -259,13 +267,14 @@ creation of new skinmeshes difficult.
 
 \subsection{Animmeshes}
 Animeshes are Trimeshes with animated UV coordinates or vertices, the latter requires the use of a 
-shape key. The AnimAll Add-On is required to animate UV coordinates and shape keys. The number of 
-animated keyframes for Animmeshes is limited to two (start and beginning of the animation). It is necessary 
-to triangulate the faces of an animmesh before adding the animations.
+shape key. The AnimAll Add-On is required to animate UV-coordinates and shape keys. The number of 
+animated keyframes for Animmeshes is limited to two (start and beginning of the animation). Unlike 
+trimeshes, it is necessary to triangulate the faces of an animmesh before adding the animations. 
 
 \begin{propertyAurora}{Shapekey} 
     The shape key from which the animation data is taken. If no key is specified, vertex animations will
-    not be exported.
+    not be exported. Animated UV-coordinates however are always exported if present, even 
+    if this property is empty.
 \end{propertyAurora}
 
 \subsection{Walkmeshes}
@@ -368,7 +377,7 @@ MDL files support a single material with a single texture. If multiple
 materials or textures are assigned, the export script will choose the currently 
 active one or, failing that, the topmost one.
 
-The following properties are exported:
+The following properties are exported from blender's default material properties:
 \begin{itemize}
     \item Diffuse
     \item Specular
@@ -401,12 +410,12 @@ look like, it may be useful to switch to linear interpolation in blenders graph 
 \subsection{Animation Properties}
 
 
-\begin{minipage}[t]{0.65\textwidth}
+\begin{minipage}[t]{0.55\textwidth}
     The animation property panel is always available when any part of a model is selected. Note 
     that the properties of the animations are stored in the Aurora Root, therefore deleting it 
     will result in the loss of this data.
 \end{minipage}\hfill
-\begin{minipage}[t]{0.3\textwidth}
+\begin{minipage}[t]{0.4\textwidth}
     \centering\raisebox{\dimexpr \topskip-\height}{%
         \fbox{\includegraphics[width=\textwidth]{panel_animations}}}
     \label{fig1}
@@ -442,18 +451,15 @@ look like, it may be useful to switch to linear interpolation in blenders graph 
 \end{propertyAurora}
 
 \subsection{Animation Tools}
-A number of tools are available to make editing of animations easier. Some 
-of the tools will not work if the animations are convoluted, i.e. start and 
-end frames are overlapping.
+A number of tools are available to make editing of animations easier. They are located at the 
+right-hand side of the animation list. Some of the tools will not work if the 
+animations are convoluted, i.e. start and end frames are overlapping.\\
 
-\paragraph{Add \& Delete} Add or delete an animation. Note that the keyframes will be deleted too. If an animation is to be excluded from exporting, it may be preferable to simply disable it by clicking the eye symbol next to it's name.
-
-\paragraph{Move Back}{\includegraphics[height=0.6\baselineskip]{icons/op_moveback}} Move the animation and its keyframes to the end of the timeline for easier editing. This operation will fail if keyframes are shared between multiple animations.
-
-\paragraph{Focus}{\includegraphics[height=0.6\baselineskip]{icons/op_focus}} Sets the start and end frames of the timeline to the currently selected animation.
-
-\paragraph{Clone}{\includegraphics[height=0.6\baselineskip]{icons/op_clone}}Copies an animation and its keyframes. The copy is added to the end of the timeline.
-    
-\paragraph{Scale}{\includegraphics[height=0.6\baselineskip]{icons/op_scale}}Scales an animation up or down. If the fps value is not adjusted this will result in the animation being slowed down or speed up. This operation will fail if keyframes are shared between multiple animations.
-    
-\paragraph{Pad \& Crop}{\includegraphics[height=0.6\baselineskip]{icons/op_pad}}Add or remove a specific amount of keyframes at the start or end of an animation. This operation will fail if keyframes are shared between multiple animations.
+\begin{description}[leftmargin=8em,style=nextline]
+    \item[Add \& Delete] Add or delete an animation. Note that the keyframes will be deleted too. If an animation is to be excluded from exporting, it may be preferable to simply disable it by clicking the eye symbol next to it's name.
+    \item[{\includegraphics[height=0.7\baselineskip]{icons/op_moveback}} Move Back]Move the animation and its keyframes to the end of the timeline for easier editing. This operation will fail if keyframes are shared between multiple animations.
+    \item[{\includegraphics[height=0.7\baselineskip]{icons/op_focus}} Focus] Sets the start and end frames of the timeline to the currently selected animation.
+    \item[{\includegraphics[height=0.7\baselineskip]{icons/op_clone}} Clone]Copies an animation and its keyframes. The copy is added to the end of the timeline.   
+    \item[{\includegraphics[height=0.7\baselineskip]{icons/op_scale}} Scale]Scales an animation up or down. If the fps value is not adjusted this will result in the animation being slowed down or speed up. This operation will fail if keyframes are shared between multiple animations.
+    \item[{\includegraphics[height=0.7\baselineskip]{icons/op_pad}} Pad \& Crop]Add or remove a specific amount of keyframes at the start or end of an animation. This operation will fail if keyframes are shared between multiple animations.
+\end{description}
