@@ -136,7 +136,8 @@ def process_all():
                                       importGeometry=True,
                                       importWalkmesh=False,
                                       importSmoothGroups=False,
-                                      importAnim=False,
+                                      importAnimations=False,
+                                      importSupermodel=False,
                                       materialMode='MUL',
                                       textureSearch=False,
                                       minimapMode=True,
@@ -149,7 +150,7 @@ def process_all():
             # Get mdl root
             mdlRoot = None
             for obj in bpy.data.objects:
-                if neverblender.nvb.nvb_utils.isRootDummy(obj, neverblender.nvb.nvb_def.Dummytype.MDLROOT):
+                if neverblender.nvb.nvb_utils.isRootDummy(obj):
                     mdlRoot = obj
                     break
 
