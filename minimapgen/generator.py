@@ -40,7 +40,14 @@ def load_settings():
     '''
     Loads settings from command line arguments
     '''
-    log('##### Options #####')
+    global minimap_size
+    global z_offset
+    global skip_fading
+    global light_color
+    global input_path
+    global output_path
+
+    log('##### Begin Options #####')
 
     for arg in sys.argv:
         words = arg.split('=')
@@ -49,7 +56,6 @@ def load_settings():
                 minimap_size = int(words[1])
             except:
                 log('WARNING: Could not read MINIMAP_SIZE. Using Default value.')
-
         if (words[0] == 'nvb_zoff'):
             try:
                 z_offset = float(words[1])
@@ -94,7 +100,7 @@ def load_settings():
     log('Light color: (' + str(cval[0]) + ', ' + str(cval[1]) + ', ' + str(cval[2]) + ')')
     log('Input path:  ' + input_path)
     log('Output path: ' + output_path)
-
+    log('##### End Options #####')
 
 def process_files():
     '''
@@ -145,9 +151,9 @@ def process_all():
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
                 log('    ERROR: ', error_report)
-
             log('    Import succesful')
-            # Get mdl root
+
+            # Get aurora root
             mdlRoot = None
             for obj in bpy.data.objects:
                 if neverblender.nvb.nvb_utils.isRootDummy(obj):

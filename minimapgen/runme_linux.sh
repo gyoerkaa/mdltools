@@ -1,10 +1,11 @@
+#!/bin/sh
 
 BLENDER=blender
 
 INPUT=in
 OUTPUT=out
 
-MSIZE=64
+MSIZE=32
 ZOFF=10.0
 LCOLOR="1.0,1.0,1.0"
 IMPFADE=0
