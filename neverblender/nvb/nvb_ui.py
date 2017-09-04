@@ -145,6 +145,36 @@ class NVB_PANEL_DUMMY(bpy.types.Panel):
                          icon='SORTALPHA', text='')
 
 
+class NVB_PANEL_ARMATURE(bpy.types.Panel):
+    """Property panel for armature properties.
+
+    Tools for auto-generating armatures from a models skinmesh and copying
+    animation from a models meshes.
+    """
+
+    bl_idname = 'nvb.propertypanel.armature'
+    bl_label = 'Aurora Armature Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return (context.object and context.object.type == 'ARMATURE')
+
+    def draw(self, context):
+        """TODO: DOC."""
+        # obj = context.object
+        layout = self.layout
+
+        row = layout.row()
+        box = row.box()
+
+        row = box.row()
+        row.label(text='TODO: Auto-generate exportable meshes from armature')
+
+
 class NVB_PANEL_LIGHT(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 

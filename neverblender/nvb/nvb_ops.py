@@ -11,6 +11,31 @@ from . import nvb_utils
 from . import nvb_io
 
 
+class NVB_OP_Armature_Generate(bpy.types.Operator):
+    """Generate armature from skinmesh weights and mdl bones"""
+
+    bl_idname = 'nvb.armature_generate'
+    bl_label = 'Generate Armature'
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        obj = context.object
+        rootdummy = nvb_utils.findObjRootDummy(obj)
+        return obj and (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) and \
+            (rootdummy is not None)
+
+    def execute(self, context):
+        """Create the animation"""
+        obj = context.object
+        # Get all vertex groups with a name that exists as object
+        vgroups = [g.name for g in obj.vertex_groups if
+                   g.name in bpy.data.objects]
+        # Sort the vertex groups
+        print(vgroups)
+        return {'FINISHED'}
+
+
 class NVB_OP_Anim_Clone(bpy.types.Operator):
     """Clone animation and add it to the animation list"""
 
