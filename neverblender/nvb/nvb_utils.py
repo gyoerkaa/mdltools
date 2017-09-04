@@ -280,6 +280,8 @@ def toggleAnimFocus(scene, rootDummy):
 
 def getAllChildren(obj, objList):
     """Generate a list of ths objects children."""
+    # TODO: Speed this one up, maybe with childrenRecursive(), check whether
+    #       read only is ok first
     if obj:
         objList.append(obj)
         for c in obj.children:
