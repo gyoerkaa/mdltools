@@ -31,8 +31,14 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
         # Get all vertex groups with a name that exists as object
         vgroups = [g.name for g in obj.vertex_groups if
                    g.name in bpy.data.objects]
-        # Sort the vertex groups
+        # Find the common root of the skeleton
+        # root = None
+        armature = bpy.data.armature.new(obj.name)
+        # TODO: Scratch this, need to find a way to add armatures without ops
+        #       The default way is to switch to edit mode which isn't always
+        #       possible or advisable
         print(vgroups)
+        print(armature.name)
         return {'FINISHED'}
 
 
