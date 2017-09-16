@@ -34,19 +34,13 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
         # Find the common root of the skeleton
         # root = None
         armature = bpy.data.armature.new(obj.name)
-        # TODO: find a way to add armatures without ops
+        # TODO: Find a way to add armatures without ops
         #       The default way is to switch to edit mode which isn't always
         #       possible or advisable
-        print(armature.name)
-        bpy.context.scene.objects.active = armature
-        bpy.ops.object.mode_set(mode='EDIT', toggle=False)
-        editbones = armature.data.edit_bones
         for vg in vgroups:
-            b = editbones.new('bone1')
-            # Set bone positions or it will not be stored
-            b.head = (1.0, 1.0, 0.0)
-            b.tail = (1.0, 1.0, 1.0)
-        bpy.ops.object.mode_set(mode='OBJECT')
+            pass
+        print(vgroups)
+        print(armature.name)
         return {'FINISHED'}
 
 
