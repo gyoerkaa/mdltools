@@ -17,30 +17,49 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
     bl_idname = 'nvb.armature_generate'
     bl_label = 'Generate Armature'
 
+    skingroups = []
+
+    def generateBoneData(self, obj, boneData):
+        """TODO: doc"""
+        if obj.name in self.skingroups:
+            # Valid bone: add to bonedata
+            bhead = (0.0, 0.0, 0.0)
+            bpname = ''  # parent name only if defined as skingroup as well
+            if obj.parent:
+                bhead = obj.parent.location
+                if obj.parent.name in self.skingroups:
+                    bpname = obj.parent.name
+            btail = obj.location
+            boneData.append((obj.name, bpname, bhead, btail))
+            for oc in obj.children:
+                self.generateBoneData(oc, boneData)
+
+    def generateBones(self, amt, boneData):
+        """TODO: doc"""
+        bpy.ops.object.mode_set(mode='EDIT')
+        for (bname, pname, bhead, btail) in boneData:
+            bone = amt.edit_bones.new(bname)
+
     @classmethod
     def poll(self, context):
-        """Prevent execution if no object is selected."""
+        """Prevent execution if no skinmesh-object is selected."""
         obj = context.object
-        rootdummy = nvb_utils.findObjRootDummy(obj)
-        return obj and (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) and \
-            (rootdummy is not None)
+        return obj and (obj.nvb.meshtype == nvb_def.Meshtype.SKIN)
 
     def execute(self, context):
         """Create the animation"""
         obj = context.object
+        auroraRoot = nvb_utils.findObjRootDummy(obj)
         # Get all vertex groups with a name that exists as object
-        vgroups = [g.name for g in obj.vertex_groups if
-                   g.name in bpy.data.objects]
-        # Find the common root of the skeleton
-        # root = None
+        self.skingroups = [vg.name for vg in obj.vertex_groups]
+        print(self.skingroups)
+        # Generate bone data
+        boneData = []
+        self.generateBoneData(auroraRoot, boneData)
+        # Create armature
         armature = bpy.data.armature.new(obj.name)
-        # TODO: Find a way to add armatures without ops
-        #       The default way is to switch to edit mode which isn't always
-        #       possible or advisable
-        for vg in vgroups:
-            pass
-        print(vgroups)
         print(armature.name)
+        self.generateBoneData(armature, boneData)
         return {'FINISHED'}
 
 
