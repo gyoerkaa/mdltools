@@ -5,6 +5,7 @@ import copy
 
 import bpy
 import bpy_extras
+import mathutils
 
 from . import nvb_def
 from . import nvb_utils
@@ -19,26 +20,38 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
 
     skingroups = []
 
-    def generateBoneData(self, obj, boneData):
+    def generateBones(self, armature, obj, pbone=None):
         """TODO: doc"""
+        bone = None
         if obj.name in self.skingroups:
-            # Valid bone: add to bonedata
-            bhead = (0.0, 0.0, 0.0)
-            bpname = ''  # parent name only if defined as skingroup as well
+            # Valid bone
+            bone = armature.edit_bones.new(obj.name)
+            # Set parent
+            if pbone:
+                bone.parent = pbone
+            # Set head
+            bhead = mathutils.Vector(0.0, 0.0, 0.0)
             if obj.parent:
-                bhead = obj.parent.location
-                if obj.parent.name in self.skingroups:
-                    bpname = obj.parent.name
-            btail = obj.location
-            boneData.append((obj.name, bpname, bhead, btail))
-            for oc in obj.children:
-                self.generateBoneData(oc, boneData)
-
-    def generateBones(self, amt, boneData):
-        """TODO: doc"""
-        bpy.ops.object.mode_set(mode='EDIT')
-        for (bname, pname, bhead, btail) in boneData:
-            bone = amt.edit_bones.new(bname)
+                bhead = obj.location
+                #  TODO: if pbone tail and obj.location are close enough
+                #        merge them
+            bone.head = bhead
+            # Set tail
+            btail = mathutils.Vector(0.0, 0.0, 0.0)
+            if len(obj.children) > 2:
+                # calculate average location of all children
+                locsum = mathutils.Vector(0.0, 0.0, 0.0)
+                for c in obj.children:
+                    locsum = locsum + c.location
+                btail = locsum/len(obj.children)
+            elif len(obj.children) == 1:
+                btail = obj.children[0].location
+            else:
+                # auto generate tail from mesh data
+                pass
+            bone.tail = btail
+        for c in obj.children:
+            self.generateBoneData(armature, c, bone)
 
     @classmethod
     def poll(self, context):
@@ -53,13 +66,10 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
         # Get all vertex groups with a name that exists as object
         self.skingroups = [vg.name for vg in obj.vertex_groups]
         print(self.skingroups)
-        # Generate bone data
-        boneData = []
-        self.generateBoneData(auroraRoot, boneData)
         # Create armature
         armature = bpy.data.armature.new(obj.name)
         print(armature.name)
-        self.generateBoneData(armature, boneData)
+        self.generateBones(armature, auroraRoot)
         return {'FINISHED'}
 
 
