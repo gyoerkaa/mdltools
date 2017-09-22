@@ -380,6 +380,13 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                                 context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
 
+                row = layout.row()
+                box = row.box()
+                row = box.row()
+                row.operator('nvb.armature_generate',
+                             text='Generate Armature',
+                             icon='BONE_DATA')
+
             # Additional props for Animmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
                 row = layout.row()

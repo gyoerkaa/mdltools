@@ -13,7 +13,7 @@ from . import nvb_io
 
 
 class NVB_OP_Armature_Generate(bpy.types.Operator):
-    """Generate armature from skinmesh weights and mdl bones"""
+    """Generate armature from skinmesh weights and mdl bones."""
 
     bl_idname = 'nvb.armature_generate'
     bl_label = 'Generate Armature'
@@ -21,21 +21,24 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
     skingroups = []
 
     def generateBones(self, armature, obj, pbone=None):
-        """TODO: doc"""
+        """TODO: doc."""
         bone = None
         if obj.name in self.skingroups:
             # Valid bone
             bone = armature.edit_bones.new(obj.name)
-            # Set parent
+            # Set head
+            bhead = obj.location
             if pbone:
                 bone.parent = pbone
-            # Set head
-            bhead = mathutils.Vector(0.0, 0.0, 0.0)
-            if obj.parent:
-                bhead = obj.location
-                #  TODO: if pbone tail and obj.location are close enough
-                #        merge them
-            bone.head = bhead
+                dist = math.sqrt(math.pow(pbone.tail.x - bhead.x, 2) +
+                                 math.pow(pbone.tail.y - bhead.y, 2) +
+                                 math.pow(pbone.tail.z - bhead.z, 2))
+                if dist <= 0.01:
+                    bone.head = pbone.tail
+                else:
+                    bone.head = bhead
+            else:
+                bone.head = bhead
             # Set tail
             btail = mathutils.Vector(0.0, 0.0, 0.0)
             if len(obj.children) > 2:
@@ -47,7 +50,8 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
             elif len(obj.children) == 1:
                 btail = obj.children[0].location
             else:
-                # auto generate tail from mesh data
+                # TODO: auto generate tail from mesh data
+                btail = bhead
                 pass
             bone.tail = btail
         for c in obj.children:
