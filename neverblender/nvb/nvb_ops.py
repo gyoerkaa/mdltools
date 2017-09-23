@@ -35,6 +35,7 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
                                  math.pow(pbone.tail.z - bhead.z, 2))
                 if dist <= 0.01:
                     bone.head = pbone.tail
+                    bone.use_connect = True
                 else:
                     bone.head = bhead
             else:
@@ -51,6 +52,7 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
                 btail = obj.children[0].location
             else:
                 # TODO: auto generate tail from mesh data
+                bbox = obj.bound_box
                 btail = bhead
                 pass
             bone.tail = btail
