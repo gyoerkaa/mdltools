@@ -52,8 +52,9 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
                 btail = obj.children[0].location
             else:
                 # TODO: auto generate tail from mesh data
-                bbox = obj.bound_box
-                btail = bhead
+                center = (sum((mathutils.Vector(p) for p in obj.bound_box),
+                              mathutils.Vector()) / 8) * obj.matrix_world
+                btail = center + center - bhead
                 pass
             bone.tail = btail
         for c in obj.children:
