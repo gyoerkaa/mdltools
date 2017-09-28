@@ -12,6 +12,23 @@ from . import nvb_utils
 from . import nvb_io
 
 
+class NVB_OP_Armature_GenerateMdl(bpy.types.Operator):
+    """Generate armature from skinmesh weights and mdl bones."""
+
+    bl_idname = 'nvb.armature_generatemdl'
+    bl_label = 'Generate Mdl'
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no armature is selected."""
+        obj = context.object
+        return obj and (obj.type == 'ARMATURE')
+
+    def execute(self, context):
+        """Create the mdl bones"""
+        pass
+
+
 class NVB_OP_Armature_Generate(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
