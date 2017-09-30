@@ -37,6 +37,10 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
 
     skingroups = []
 
+    def copyAnims(self, armature, obj):
+        """TODO: Doc."""
+        pass
+
     def generateBones(self, armature, obj, pbone=None):
         """TODO: doc."""
         bone = None
