@@ -18,6 +18,14 @@ class NVB_OP_Armature_GenerateMdl(bpy.types.Operator):
     bl_idname = 'nvb.armature_generatemdl'
     bl_label = 'Generate Mdl'
 
+    def copyAnims(self, armature, obj):
+        """TODO: Doc."""
+        pass
+
+    def generateBones(self, armature):
+        """TODO: doc."""
+        pass
+
     @classmethod
     def poll(self, context):
         """Prevent execution if no armature is selected."""
