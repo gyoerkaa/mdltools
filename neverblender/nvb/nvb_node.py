@@ -888,9 +888,10 @@ class Trimesh(Node):
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             col = obj.nvb.selfillumcolor
-            s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
-                                                              round(col[1], 2),
-                                                              round(col[2], 2))
+            s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'. \
+                format(round(col[0], 2),
+                       round(col[1], 2),
+                       round(col[2], 2))
             asciiLines.append(s)
 
             asciiLines.append('  render ' + str(int(obj.nvb.render)))
