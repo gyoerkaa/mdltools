@@ -241,7 +241,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        ('AUTO',
                         'Auto', 'Generate groups from sharp edges', 2)
                        ],
-                default='SEPR')
+                default='AUTO')
 
     shadow = bpy.props.BoolProperty(
                 name='Shadow',
