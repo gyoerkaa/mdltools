@@ -53,26 +53,27 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
         """TODO: doc."""
         bone = None
         if obj.name in self.skingroups:
-            # Valid bone
+            # Create a bone
             bone = armature.edit_bones.new(obj.name)
             # Set head
-            bhead = obj.location
             if pbone:
                 bone.parent = pbone
-                dist = math.sqrt(math.pow(pbone.tail.x - bhead.x, 2) +
-                                 math.pow(pbone.tail.y - bhead.y, 2) +
-                                 math.pow(pbone.tail.z - bhead.z, 2))
+                # Merge head with parent tail if distance is short enough
+                dist = math.sqrt(math.pow(pbone.tail.x - obj.location.x, 2) +
+                                 math.pow(pbone.tail.y - obj.location.y, 2) +
+                                 math.pow(pbone.tail.z - obj.location.z, 2))
                 if dist <= 0.01:
                     bone.head = pbone.tail
                     bone.use_connect = True
                 else:
-                    bone.head = bhead
+                    bone.head = obj.location
             else:
-                bone.head = bhead
+                bone.head = obj.location
+            bhead = bone.head
             # Set tail
             btail = mathutils.Vector(0.0, 0.0, 0.0)
             if len(obj.children) > 2:
-                # calculate average location of all children
+                # Multiple children: Calculate average location
                 locsum = mathutils.Vector(0.0, 0.0, 0.0)
                 for c in obj.children:
                     locsum = locsum + c.location
@@ -80,7 +81,7 @@ class NVB_OP_Armature_Generate(bpy.types.Operator):
             elif len(obj.children) == 1:
                 btail = obj.children[0].location
             else:
-                # TODO: auto generate tail from mesh data
+                # No children: Generate location from object bounding box
                 center = (sum((mathutils.Vector(p) for p in obj.bound_box),
                               mathutils.Vector()) / 8) * obj.matrix_world
                 btail = center + center - bhead
