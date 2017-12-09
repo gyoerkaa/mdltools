@@ -32,31 +32,33 @@ bl_info = {
     "tracker_url": "",
     "category": "Import-Export"}
 
+
 if 'bpy' in locals():
     import importlib
-    importlib.reload(nvb_def)
-    importlib.reload(nvb_utils)
-    importlib.reload(nvb_io)
-    importlib.reload(nvb_mdl)
-    importlib.reload(nvb_node)
-    importlib.reload(nvb_anim)
-    importlib.reload(nvb_animnode)
+    if "nvb_def" in locals():
+        importlib.reload(nvb_def)
+        importlib.reload(nvb_utils)
+        importlib.reload(nvb_io)
+        importlib.reload(nvb_mdl)
+        importlib.reload(nvb_node)
+        importlib.reload(nvb_anim)
+        importlib.reload(nvb_animnode)
 
-    importlib.reload(nvb_props)
-    importlib.reload(nvb_ops)
-    importlib.reload(nvb_ui)
-else:
-    from .nvb import nvb_def
-    from .nvb import nvb_utils
-    from .nvb import nvb_io
-    from .nvb import nvb_mdl
-    from .nvb import nvb_node
-    from .nvb import nvb_anim
-    from .nvb import nvb_animnode
+        importlib.reload(nvb_props)
+        importlib.reload(nvb_ops)
+        importlib.reload(nvb_ui)
 
-    from .nvb import nvb_props
-    from .nvb import nvb_ops
-    from .nvb import nvb_ui
+from .nvb import nvb_def
+from .nvb import nvb_utils
+from .nvb import nvb_io
+from .nvb import nvb_mdl
+from .nvb import nvb_node
+from .nvb import nvb_anim
+from .nvb import nvb_animnode
+
+from .nvb import nvb_props
+from .nvb import nvb_ops
+from .nvb import nvb_ui
 
 import bpy
 
