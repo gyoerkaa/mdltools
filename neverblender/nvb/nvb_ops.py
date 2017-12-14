@@ -12,15 +12,30 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_OP_Armature_GenerateMdl(bpy.types.Operator):
+class NVB_OP_Armature_CopyAnims(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
-
-    bl_idname = 'nvb.armature_generatemdl'
-    bl_label = 'Generate Mdl'
+    bl_idname = 'nvb.armature_copyanims'
+    bl_label = 'Get anims from mdl'
 
     def copyAnims(self, armature, obj):
         """TODO: Doc."""
         pass
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no armature is selected."""
+        obj = context.object
+        return obj and (obj.type == 'ARMATURE')
+
+    def execute(self, context):
+        """Create the mdl bones"""
+        pass
+
+
+class NVB_OP_Armature_ToMdl(bpy.types.Operator):
+    """Generate armature from skinmesh weights and mdl bones."""
+    bl_idname = 'nvb.armature_generatemdl'
+    bl_label = 'Generate Mdl from Armature'
 
     def generateBones(self, armature):
         """TODO: doc."""
@@ -37,11 +52,11 @@ class NVB_OP_Armature_GenerateMdl(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_Generate(bpy.types.Operator):
+class NVB_OP_Armature_FromMdl(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
     bl_idname = 'nvb.armature_generate'
-    bl_label = 'Generate Armature'
+    bl_label = 'Generate Armature from Mdl'
 
     skingroups = []
 
