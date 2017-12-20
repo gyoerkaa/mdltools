@@ -1134,7 +1134,7 @@ class Skinmesh(Trimesh):
             for group in skingroups:
                 try:
                     weights.append([group.name, group.weight(i)])
-                except (IndexError, AttributeError, ValueError):
+                except (IndexError, AttributeError, ValueError, RuntimeError):
                     # Vertex not part of this group
                     pass
             vertexWeights.append(weights)
