@@ -1037,7 +1037,7 @@ class Danglymesh(Trimesh):
         for i, v in enumerate(obj.data.vertices):
             try:
                 asciiLines.append('    ' + str(round(vgroup.weight(i)*255, 3)))
-            except (IndexError, AttributeError, ValueError):
+            except (IndexError, AttributeError, ValueError, RuntimeError):
                 # Vertex is not part of this group
                 asciiLines.append('    0.0')
 
@@ -1050,7 +1050,7 @@ class Danglymesh(Trimesh):
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
         asciiLines.append('  displacement ' +
                           str(round(obj.nvb.displacement, 3)))
-        Danglymesh.generateAsciiConstraints(obj, asciiLines)
+        Danglymesh.generateAsciiConstraints(obj, asciiLines, options)
 
 
 class Skinmesh(Trimesh):
@@ -1121,14 +1121,11 @@ class Skinmesh(Trimesh):
     def generateAsciiWeights(obj, asciiLines, options):
         """TODO: Doc."""
         # Get a list of skingroups for this object:
-        # A vertex group is a skingroup if there is an object in the mdl
-        # with the same name as the group
-        skingroups = []
-        for objName in bpy.data.objects.keys():
-            if objName in obj.vertex_groups:
-                skingroups.append(obj.vertex_groups[objName])
+        vertgroups = obj.vertex_groups
+        skingroups = [vertgroups[n] for n in bpy.data.objects.keys()
+                      if n in vertgroups]
 
-        vertexWeights = []
+        per_group_weight = []
         for i, v in enumerate(obj.data.vertices):
             weights = []
             for group in skingroups:
@@ -1137,11 +1134,11 @@ class Skinmesh(Trimesh):
                 except (IndexError, AttributeError, ValueError, RuntimeError):
                     # Vertex not part of this group
                     pass
-            vertexWeights.append(weights)
+            per_group_weight.append(weights)
 
         numVerts = len(obj.data.vertices)
         asciiLines.append('  weights ' + str(numVerts))
-        for weights in vertexWeights:
+        for weights in per_group_weight:
             line = '  '
             if weights:
                 for w in weights:
