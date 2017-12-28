@@ -121,11 +121,11 @@ class Node(object):
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.wirecolor = self.wirecolor
+        obj.nvb.imporder = self.nodeidx
 
     def createObject(self, options):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
-        obj.nvb.imporder = self.nodeidx
         self.createdObj = obj.name
         self.createObjectData(obj, options)
         return obj
@@ -1028,18 +1028,17 @@ class Danglymesh(Trimesh):
 
     @staticmethod
     def generateAsciiConstraints(obj, asciiLines, options):
-        """TODO: Doc."""
-        vgroupName = obj.nvb.constraints
-        vgroup = obj.vertex_groups[vgroupName]
-
-        numVerts = len(obj.data.vertices)
-        asciiLines.append('  constraints ' + str(numVerts))
-        for i, v in enumerate(obj.data.vertices):
-            try:
-                asciiLines.append('    ' + str(round(vgroup.weight(i)*255, 3)))
-            except (IndexError, AttributeError, ValueError, RuntimeError):
-                # Vertex is not part of this group
-                asciiLines.append('    0.0')
+        """Creates a list of constraint and adds them to ascii lines."""
+        vg_name = obj.nvb.constraints
+        vg = obj.vertex_groups[vg_name]
+        vg_idx = vg.index
+        vg_members = [v.index for v in obj.data.vertices
+                      if vg_idx in [g.group for g in v.groups]]
+        weights = [0.0] * len(obj.data.vertices)
+        asciiLines.append('  constraints ' + str(len(weights)))
+        for i in vg_members:
+            weights[i] = vg.weight(i)*255
+        asciiLines.extend(['    {: 5.1f}'.format(w) for w in weights])
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
@@ -1120,11 +1119,20 @@ class Skinmesh(Trimesh):
     @staticmethod
     def generateAsciiWeights(obj, asciiLines, options):
         """TODO: Doc."""
+        vg = obj.vertex_groups
+        skingroups = [vg[n].index for n in bpy.data.objects.keys() if n in vg]
+        asciiLines.append('  weights ' + str(len(obj.data.vertices)))
+        lrnd = round
+        for v in obj.data.vertices:
+            weights = [[vg[g.group].name, lrnd(vg[g.group].weight(v.index), 3)]
+                       for g in v.groups if g.group in skingroups]
+            asciiLines.append('  ' + ' '.join(['{} {:3.3f}'.format(w[0], w[1])
+                                              for w in weights]))
+        """
         # Get a list of skingroups for this object:
         vertgroups = obj.vertex_groups
         skingroups = [vertgroups[n] for n in bpy.data.objects.keys()
                       if n in vertgroups]
-
         per_group_weight = []
         for i, v in enumerate(obj.data.vertices):
             weights = []
@@ -1148,7 +1156,7 @@ class Skinmesh(Trimesh):
                 print('Neverblender: WARNING - Missing vertex weight')
                 line = 'ERROR: no weight'
             asciiLines.append(line)
-
+        """
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
