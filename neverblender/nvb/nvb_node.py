@@ -893,12 +893,18 @@ class Trimesh(Node):
                        round(col[1], 2),
                        round(col[2], 2))
             asciiLines.append(s)
-
-            asciiLines.append('  render ' + str(int(obj.nvb.render)))
-            asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
-            asciiLines.append('  beaming ' + str(int(obj.nvb.beaming)))
-            asciiLines.append('  inheritcolor ' +
-                              str(int(obj.nvb.inheritcolor)))
+            val = int(obj.nvb.render)
+            if val != 1:  # Skip if default value
+                asciiLines.append('  render ' + str(val))
+            val = int(obj.nvb.shadow)
+            if val != 1:  # Skip if default value
+                asciiLines.append('  shadow ' + str(val))
+            val = int(obj.nvb.beaming)
+            if val != 0:  # Skip if default value
+                asciiLines.append('  beaming ' + str(val))
+            val = int(obj.nvb.inheritcolor)
+            if val != 0:  # Skip if default value
+                asciiLines.append('  inheritcolor ' + str(val))
             asciiLines.append('  transparencyhint ' +
                               str(obj.nvb.transparencyhint))
             # These two are for tiles only
