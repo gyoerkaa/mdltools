@@ -888,17 +888,16 @@ class Trimesh(Node):
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             col = obj.nvb.selfillumcolor
-            s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'. \
-                format(round(col[0], 2),
-                       round(col[1], 2),
-                       round(col[2], 2))
-            asciiLines.append(s)
-            val = int(obj.nvb.render)
-            if val != 1:  # Skip if default value
-                asciiLines.append('  render ' + str(val))
-            val = int(obj.nvb.shadow)
-            if val != 1:  # Skip if default value
-                asciiLines.append('  shadow ' + str(val))
+            if round(sum(col), 2) > 0.0:  # Skip if default value
+                s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'. \
+                    format(round(col[0], 2),
+                           round(col[1], 2),
+                           round(col[2], 2))
+                asciiLines.append(s)
+            # Skip if default value
+            if not (obj.nvb.shadow and obj.nvb.render):
+                asciiLines.append('  render ' + str(int(obj.nvb.render)))
+                asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             val = int(obj.nvb.beaming)
             if val != 0:  # Skip if default value
                 asciiLines.append('  beaming ' + str(val))
