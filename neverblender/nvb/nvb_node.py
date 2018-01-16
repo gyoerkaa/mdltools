@@ -118,6 +118,7 @@ class Node(object):
     def createObjectData(self, obj, options):
         """TODO: DOC."""
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
+        # TODO: skip if 1
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.wirecolor = self.wirecolor
@@ -172,25 +173,9 @@ class Node(object):
                                 round(rot[2], 5),
                                 round(rot[3], 5))
         asciiLines.append(s)
-        '''
-        loc = obj.location
-        formatString = '  position {: 8.5f} {: 8.5f} {: 8.5f}'
-        s = formatString.format(round(loc[0], 5),
-                                round(loc[1], 5),
-                                round(loc[2], 5))
-        asciiLines.append(s)
-
-        rot = nvb_utils.getAuroraRotFromObject(obj)
-        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
-        s = formatString.format(round(rot[0], 5),
-                                round(rot[1], 5),
-                                round(rot[2], 5),
-                                round(rot[3], 5))
-        asciiLines.append(s)
-        '''
 
         scale = round(nvb_utils.getAuroraScale(obj), 3)
-        if (scale != 1.0):
+        if (0.998 < scale < 1.002):
             asciiLines.append('  scale ' + str(scale))
 
     @classmethod
@@ -387,7 +372,7 @@ class Trimesh(Node):
                                               place_holder=False,
                                               ncase_cmp=True)
         if (image is None):
-            print('Neverblender: WARNING - Could not load image ' + imgName)
+            # print('Neverblender: WARNING - Could not load image ' + imgName)
             image = bpy.data.images.new(imgName, 512, 512)
         else:
             image.name = imgName
@@ -671,7 +656,7 @@ class Trimesh(Node):
                (not self.render):
                 # Fading objects or shadow meshes won't be imported in
                 # minimap mode
-                # We may need them for the tree stucture, so import it
+                # might need them for the tree stucture, so import it
                 # as an empty
                 return Node.createObject(self, options)
 
@@ -689,7 +674,6 @@ class Trimesh(Node):
             # Shadow mesh: Everything should be black, no texture, no uv
             asciiLines.append('  diffuse 0.0 0.0 0.0')
             asciiLines.append('  specular 0.0 0.0 0.0')
-            asciiLines.append('  alpha 1.0')
             asciiLines.append('  bitmap black')
         else:
             # Check if this object has a material assigned to it
@@ -718,14 +702,13 @@ class Trimesh(Node):
                         imgName = nvb_utils.getImageFilename(texture.image)
                         hasImgTexture = True
                 asciiLines.append('  bitmap ' + imgName)
-                alphaValue = Trimesh.getAuroraAlpha(obj)
-                asciiLines.append('  alpha ' + str(round(alphaValue, 2)))
-
+                alpha = round(Trimesh.getAuroraAlpha(obj), 2)
+                if (alpha > 0.997):  # omit default value
+                    asciiLines.append('  alpha ' + str(alpha))
             else:
                 # No material, set some default values
                 asciiLines.append('  diffuse 1.0 1.0 1.0')
                 asciiLines.append('  specular 0.0 0.0 0.0')
-                asciiLines.append('  alpha 1.0')
                 asciiLines.append('  bitmap ' + nvb_def.null)
 
         return hasImgTexture
@@ -1133,35 +1116,7 @@ class Skinmesh(Trimesh):
                        for g in v.groups if g.group in skingroups]
             asciiLines.append('  ' + ' '.join(['{} {:3.3f}'.format(w[0], w[1])
                                               for w in weights]))
-        """
-        # Get a list of skingroups for this object:
-        vertgroups = obj.vertex_groups
-        skingroups = [vertgroups[n] for n in bpy.data.objects.keys()
-                      if n in vertgroups]
-        per_group_weight = []
-        for i, v in enumerate(obj.data.vertices):
-            weights = []
-            for group in skingroups:
-                try:
-                    weights.append([group.name, group.weight(i)])
-                except (IndexError, AttributeError, ValueError, RuntimeError):
-                    # Vertex not part of this group
-                    pass
-            per_group_weight.append(weights)
 
-        numVerts = len(obj.data.vertices)
-        asciiLines.append('  weights ' + str(numVerts))
-        for weights in per_group_weight:
-            line = '  '
-            if weights:
-                for w in weights:
-                    line += '  ' + w[0] + ' ' + str(round(w[1], 3))
-            else:
-                # No weights for this vertex ... this is a problem
-                print('Neverblender: WARNING - Missing vertex weight')
-                line = 'ERROR: no weight'
-            asciiLines.append(line)
-        """
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""

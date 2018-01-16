@@ -32,10 +32,10 @@ class NVB_OP_Armature_CopyAnims(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_ToMdl(bpy.types.Operator):
+class NVB_OP_Armature_ToAurora(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
-    bl_idname = 'nvb.armature_generatemdl'
-    bl_label = 'Generate Mdl from Armature'
+    bl_idname = 'nvb.armature_toaurora'
+    bl_label = 'Generate MDL pseudo bones from Armature'
 
     def generateBones(self, armature):
         """TODO: doc."""
@@ -52,11 +52,11 @@ class NVB_OP_Armature_ToMdl(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_FromMdl(bpy.types.Operator):
+class NVB_OP_Armature_FromAurora(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
-    bl_idname = 'nvb.armature_generate'
-    bl_label = 'Generate Armature from Mdl'
+    bl_idname = 'nvb.armature_fromaurora'
+    bl_label = 'Generate Armature from MDL pseudo bones'
 
     skingroups = []
 
