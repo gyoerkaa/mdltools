@@ -32,9 +32,9 @@ class NVB_OP_Armature_CopyAnims(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_ToAurora(bpy.types.Operator):
+class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
-    bl_idname = 'nvb.armature_toaurora'
+    bl_idname = 'nvb.armature_topseudo'
     bl_label = 'Generate MDL pseudo bones from Armature'
 
     def generateBones(self, armature):
@@ -52,58 +52,81 @@ class NVB_OP_Armature_ToAurora(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_FromAurora(bpy.types.Operator):
+class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
-    bl_idname = 'nvb.armature_fromaurora'
+    bl_idname = 'nvb.armature_frompseudo'
     bl_label = 'Generate Armature from MDL pseudo bones'
 
-    skingroups = []
+    # For detecting pseudo bones
+    pb_names = []
+    pb_root = None
+    pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact',
+                 'impc', 'ground', 'grnd']
+    pb_nstart = '?'
+    pb_nend = '?'
 
-    def copyAnims(self, armature, obj):
-        """TODO: Doc."""
-        pass
+    def isPseudoBone(self, obj, use_all=False):
+        """TODO: doc."""
+        oname = obj.name
+        if oname in self.pb_names:
+            return True
+        if oname in self.pb_ignore:
+            return False
+        if use_all:
+            if oname.startswith(self.pb_nstart) or \
+               oname.endswith(self.pb_nstart):
+                return True
+        return False
 
-    def generateBones(self, armature, obj, pbone=None):
+    def detectPseudoBoneProps(self, obj):
+        """TODO: doc."""
+        self.pb_names = [vg.name for vg in obj.vertex_groups]
+        for pbn in self.pb_names:
+            if pbn in bpy.data.objects:
+                pass
+
+    def generateBones(self, amt, obj, pbone=None):
         """TODO: doc."""
         bone = None
-        if obj.name in self.skingroups:
+        if self.isPseudoBone(obj):
             # Create a bone
-            bone = armature.edit_bones.new(obj.name)
+            bone = amt.edit_bones.new(obj.name)
             # Set head
+            loc = obj.matrix_world.translation
             if pbone:
                 bone.parent = pbone
                 # Merge head with parent tail if distance is short enough
-                dist = math.sqrt(math.pow(pbone.tail.x - obj.location.x, 2) +
-                                 math.pow(pbone.tail.y - obj.location.y, 2) +
-                                 math.pow(pbone.tail.z - obj.location.z, 2))
+                dist = math.sqrt(math.pow(pbone.tail.x - loc.x, 2) +
+                                 math.pow(pbone.tail.y - loc.y, 2) +
+                                 math.pow(pbone.tail.z - loc.z, 2))
                 if dist <= 0.01:
                     bone.head = pbone.tail
                     bone.use_connect = True
                 else:
-                    bone.head = obj.location
+                    bone.head = loc
             else:
-                bone.head = obj.location
+                bone.head = loc
             bhead = bone.head
             # Set tail
-            btail = mathutils.Vector(0.0, 0.0, 0.0)
-            if len(obj.children) > 2:
+            btail = mathutils.Vector([0.0, 0.0, 0.0])
+            if len(obj.children) >= 2:
                 # Multiple children: Calculate average location
-                locsum = mathutils.Vector(0.0, 0.0, 0.0)
+                locsum = mathutils.Vector([0.0, 0.0, 0.0])
                 for c in obj.children:
-                    locsum = locsum + c.location
+                    locsum = locsum + c.matrix_world.translation
                 btail = locsum/len(obj.children)
             elif len(obj.children) == 1:
-                btail = obj.children[0].location
+                btail = obj.children[0].matrix_world.translation
             else:
                 # No children: Generate location from object bounding box
-                center = (sum((mathutils.Vector(p) for p in obj.bound_box),
-                              mathutils.Vector()) / 8) * obj.matrix_world
+                center = obj.matrix_world * \
+                         (sum((mathutils.Vector(p) for p in obj.bound_box),
+                          mathutils.Vector()) / 8)
                 btail = center + center - bhead
-                pass
             bone.tail = btail
         for c in obj.children:
-            self.generateBoneData(armature, c, bone)
+            self.generateBones(amt, c, bone)
 
     @classmethod
     def poll(self, context):
@@ -112,16 +135,22 @@ class NVB_OP_Armature_FromAurora(bpy.types.Operator):
         return obj and (obj.nvb.meshtype == nvb_def.Meshtype.SKIN)
 
     def execute(self, context):
-        """Create the animation"""
+        """Create the armature"""
         obj = context.object
-        auroraRoot = nvb_utils.findObjRootDummy(obj)
         # Get all vertex groups with a name that exists as object
-        self.skingroups = [vg.name for vg in obj.vertex_groups]
-        print(self.skingroups)
+        self.detectPseudoBoneProps(obj)
+        root = nvb_utils.findObjRootDummy(obj)
+        print(self.pb_names)
+        # Try to find all potential edit_bones
         # Create armature
-        armature = bpy.data.armature.new(obj.name)
-        print(armature.name)
-        self.generateBones(armature, auroraRoot)
+        # armature = bpy.data.armatures.new(obj.name)
+        bpy.ops.object.add(type='ARMATURE',
+                           enter_editmode=True,
+                           location=root.location)
+        amt = context.scene.objects.active
+        bpy.ops.object.mode_set(mode='EDIT')
+        self.generateBones(amt.data, root)
+        bpy.ops.object.mode_set(mode='OBJECT')
         return {'FINISHED'}
 
 

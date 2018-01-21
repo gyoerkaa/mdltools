@@ -383,7 +383,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                 row = layout.row()
                 box = row.box()
                 row = box.row()
-                row.operator('nvb.armature_generate',
+                row.operator('nvb.armature_frompseudo',
                              text='Generate Armature',
                              icon='BONE_DATA')
 
