@@ -128,7 +128,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Emptytype.PATCH,
                         'Patch node', 'Unknown purpose', 2)],
                 default=nvb_def.Emptytype.DUMMY)
-    # For MDL Rootdummy
+    # For Aurora Root
     supermodel = bpy.props.StringProperty(
         name='Supermodel',
         description='Name of the model to inherit animations from',
@@ -200,6 +200,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     reattachable = bpy.props.BoolProperty(
                 name='Reattachable',
                 default=False)
+
     # Minimap generation
     minimapzoffset = bpy.props.FloatProperty(name='Minimap Z Offset',
                                              default=0.00,
@@ -207,6 +208,16 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     minimapsize = bpy.props.IntProperty(name='Size',
                                         default=32,
                                         min=16)
+
+    # Armature generation
+    armaturecopyanims = bpy.props.BoolProperty(
+        name='Copy Animations',
+        description='Copy animations to the created armature',
+        default=True)
+    armatureskinmeshonly = bpy.props.BoolProperty(
+        name='Only from Skinmesh',
+        description='Disregard objects not in skinmesh vertex groups',
+        default=True)
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

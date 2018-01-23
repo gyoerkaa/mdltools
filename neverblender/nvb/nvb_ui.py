@@ -168,11 +168,13 @@ class NVB_PANEL_ARMATURE(bpy.types.Panel):
         # obj = context.object
         layout = self.layout
 
+        # Armature Helper
         row = layout.row()
         box = row.box()
-
         row = box.row()
-        row.label(text='TODO: Auto-generate exportable meshes from armature')
+        row.operator('nvb.armature_topseudo',
+                     text='Generate Pseudo Bones',
+                     icon='BONE_DATA')
 
 
 class NVB_PANEL_LIGHT(bpy.types.Panel):
@@ -380,13 +382,6 @@ class NVB_PANEL_MESH(bpy.types.Panel):
                                 context.scene, 'objects')
                 row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
 
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.operator('nvb.armature_frompseudo',
-                             text='Generate Armature',
-                             icon='BONE_DATA')
-
             # Additional props for Animmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
                 row = layout.row()
@@ -550,8 +545,22 @@ class NVB_PANEL_UTILS(bpy.types.Panel):
             row = box.row()
             row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
             row = box.row()
-            row.prop(obj.nvb, 'minimapsize', text='Minimap size')
+            row.prop(obj.nvb, 'minimapsize', text='Minimap Size')
             row = box.row()
             row.operator('nvb.render_minimap',
                          text='Render Minimap',
                          icon='NONE')
+            # Armature Helper
+            row = layout.row()
+            box = row.box()
+            box.label(text='Armature Helper')
+            row = box.row()
+            row.prop(obj.nvb, 'armatureskinmeshonly',
+                     text='Only from Skinmesh')
+            row = box.row()
+            row.prop(obj.nvb, 'armaturecopyanims',
+                     text='Copy Animations')
+            row = box.row()
+            row.operator('nvb.armature_frompseudo',
+                         text='Generate Armature',
+                         icon='BONE_DATA')

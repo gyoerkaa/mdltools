@@ -2,6 +2,7 @@
 
 import math
 import copy
+import os
 
 import bpy
 import bpy_extras
@@ -48,7 +49,7 @@ class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
         return obj and (obj.type == 'ARMATURE')
 
     def execute(self, context):
-        """Create the mdl bones"""
+        """Create pseudo bones"""
         pass
 
 
@@ -60,31 +61,44 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
 
     # For detecting pseudo bones
     pb_names = []
-    pb_root = None
     pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact',
                  'impc', 'ground', 'grnd']
-    pb_nstart = '?'
-    pb_nend = '?'
+    pb_prefix = '?'
+    pb_suffix = '?'
 
-    def isPseudoBone(self, obj, use_all=False):
+    def isPseudoBone(self, obj):
         """TODO: doc."""
         oname = obj.name
         if oname in self.pb_names:
             return True
         if oname in self.pb_ignore:
             return False
-        if use_all:
-            if oname.startswith(self.pb_nstart) or \
-               oname.endswith(self.pb_nstart):
-                return True
+        if oname.startswith(self.pb_prefix) or \
+           oname.endswith(self.pb_suffix):
+            return True
         return False
 
-    def detectPseudoBoneProps(self, obj):
+    def getPseudoBonesRoot(self, auroraRoot):
         """TODO: doc."""
-        self.pb_names = [vg.name for vg in obj.vertex_groups]
-        for pbn in self.pb_names:
-            if pbn in bpy.data.objects:
-                pass
+        for c in auroraRoot.children:
+            for cc in c.children:
+                if self.isPseudoBone(cc):
+                    return c
+        return auroraRoot
+
+    def detectPseudoBones(self, auroraRoot):
+        """TODO: doc."""
+        # Get all names of skinmesh vertex groups which exist as object
+        children = []
+        nvb_utils.getAllChildren(auroraRoot, children)
+        for c in children:
+            if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
+                self.pb_names.extend([vg.name for vg in c.vertex_groups
+                                      if vg.name in bpy.data.objects])
+        pb_prefix = os.path.commonprefix(self.pb_names)
+        pb_prefix = pb_prefix if pb_prefix else '?'
+        pb_suffix = os.path.commonprefix([n[::-1] for n in self.pb_names])
+        pb_suffix = pb_suffix[::-1] if pb_suffix else '?'
 
     def generateBones(self, amt, obj, pbone=None):
         """TODO: doc."""
@@ -110,14 +124,15 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             bhead = bone.head
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
-            if len(obj.children) >= 2:
+            valid_children = [c for c in obj.children if self.isPseudoBone(c)]
+            if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
                 locsum = mathutils.Vector([0.0, 0.0, 0.0])
-                for c in obj.children:
+                for c in valid_children:
                     locsum = locsum + c.matrix_world.translation
-                btail = locsum/len(obj.children)
-            elif len(obj.children) == 1:
-                btail = obj.children[0].matrix_world.translation
+                btail = locsum/len(valid_children)
+            elif len(valid_children) == 1:
+                btail = valid_children[0].matrix_world.translation
             else:
                 # No children: Generate location from object bounding box
                 center = obj.matrix_world * \
@@ -130,26 +145,26 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        """Prevent execution if no skinmesh-object is selected."""
-        obj = context.object
-        return obj and (obj.nvb.meshtype == nvb_def.Meshtype.SKIN)
+        """Prevent execution if no root was found."""
+        auroraRoot = nvb_utils.findObjRootDummy(context.object)
+        return (auroraRoot is not None)
 
     def execute(self, context):
         """Create the armature"""
-        obj = context.object
+        auroraRoot = nvb_utils.findObjRootDummy(context.object)
         # Get all vertex groups with a name that exists as object
-        self.detectPseudoBoneProps(obj)
-        root = nvb_utils.findObjRootDummy(obj)
-        print(self.pb_names)
+        self.detectPseudoBones(auroraRoot)
+        pb_root = self.getPseudoBonesRoot(auroraRoot)
         # Try to find all potential edit_bones
         # Create armature
         # armature = bpy.data.armatures.new(obj.name)
         bpy.ops.object.add(type='ARMATURE',
                            enter_editmode=True,
-                           location=root.location)
+                           location=pb_root.location)
         amt = context.scene.objects.active
+        amt.name = auroraRoot.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
-        self.generateBones(amt.data, root)
+        self.generateBones(amt.data, pb_root)
         bpy.ops.object.mode_set(mode='OBJECT')
         return {'FINISHED'}
 
