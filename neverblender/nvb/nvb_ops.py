@@ -61,6 +61,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
 
     # For detecting pseudo bones
     pb_names = []
+    pb_root = None
     pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact',
                  'impc', 'ground', 'grnd']
     pb_prefix = '?'
@@ -95,14 +96,15 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
                 self.pb_names.extend([vg.name for vg in c.vertex_groups
                                       if vg.name in bpy.data.objects])
-        pb_prefix = os.path.commonprefix(self.pb_names)
-        pb_prefix = pb_prefix if pb_prefix else '?'
-        pb_suffix = os.path.commonprefix([n[::-1] for n in self.pb_names])
-        pb_suffix = pb_suffix[::-1] if pb_suffix else '?'
+        self.pb_prefix = os.path.commonprefix(self.pb_names)
+        self.pb_prefix = self.pb_prefix if self.pb_prefix else '?'
+        self.pb_suffix = os.path.commonprefix([n[::-1] for n in self.pb_names])
+        self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
 
     def generateBones(self, amt, obj, pbone=None):
         """TODO: doc."""
         bone = None
+        print(obj.name)
         if self.isPseudoBone(obj):
             # Create a bone
             bone = amt.edit_bones.new(obj.name)
@@ -115,13 +117,13 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                                  math.pow(pbone.tail.y - loc.y, 2) +
                                  math.pow(pbone.tail.z - loc.z, 2))
                 if dist <= 0.01:
-                    bone.head = pbone.tail
+                    bhead = pbone.tail
                     bone.use_connect = True
                 else:
-                    bone.head = loc
+                    bhead = loc
             else:
-                bone.head = loc
-            bhead = bone.head
+                bhead = loc
+            bone.head = bhead - self.pb_root.location
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
             valid_children = [c for c in obj.children if self.isPseudoBone(c)]
@@ -139,7 +141,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                          (sum((mathutils.Vector(p) for p in obj.bound_box),
                           mathutils.Vector()) / 8)
                 btail = center + center - bhead
-            bone.tail = btail
+            bone.tail = btail - self.pb_root.location
         for c in obj.children:
             self.generateBones(amt, c, bone)
 
@@ -154,17 +156,16 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         auroraRoot = nvb_utils.findObjRootDummy(context.object)
         # Get all vertex groups with a name that exists as object
         self.detectPseudoBones(auroraRoot)
-        pb_root = self.getPseudoBonesRoot(auroraRoot)
-        # Try to find all potential edit_bones
+        self.pb_root = self.getPseudoBonesRoot(auroraRoot)
         # Create armature
-        # armature = bpy.data.armatures.new(obj.name)
         bpy.ops.object.add(type='ARMATURE',
                            enter_editmode=True,
-                           location=pb_root.location)
+                           location=self.pb_root.location)
         amt = context.scene.objects.active
         amt.name = auroraRoot.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
-        self.generateBones(amt.data, pb_root)
+        for c in self.pb_root.children:
+            self.generateBones(amt.data, c)
         bpy.ops.object.mode_set(mode='OBJECT')
         return {'FINISHED'}
 
