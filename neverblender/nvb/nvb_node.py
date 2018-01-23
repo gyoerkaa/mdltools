@@ -1018,6 +1018,12 @@ class Danglymesh(Trimesh):
     def generateAsciiConstraints(obj, asciiLines, options):
         """Creates a list of constraint and adds them to ascii lines."""
         vg_name = obj.nvb.constraints
+        if vg_name not in obj.vertex_groups:
+            print('Neverblender: WARNING - No constraints for danglymesh ' +
+                  obj.name)
+            weights = [0] * len(obj.data.vertices)
+            asciiLines.extend(['    {: 5.1f}'.format(w) for w in weights])
+            return
         vg = obj.vertex_groups[vg_name]
         vg_idx = vg.index
         vg_members = [v.index for v in obj.data.vertices
