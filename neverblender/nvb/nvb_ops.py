@@ -60,24 +60,46 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
     bl_label = 'Generate Armature from MDL pseudo bones'
 
     # For detecting pseudo bones
-    pb_names = []
+    mdl_skingroups = []
     pb_root = None
     pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact',
                  'impc', 'ground', 'grnd']
     pb_prefix = '?'
     pb_suffix = '?'
 
+    def setupPseudoBoneDetection(self, auroraRoot):
+        """TODO: doc."""
+        # Get all names of skinmesh vertex groups which exist as object
+        children = []
+        nvb_utils.getAllChildren(auroraRoot, children)
+        for c in children:
+            if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
+                self.mdl_skingroups.extend([vg.name for vg in c.vertex_groups
+                                           if vg.name in bpy.data.objects])
+        self.pb_prefix = os.path.commonprefix(self.mdl_skingroups)
+        self.pb_prefix = self.pb_prefix if self.pb_prefix else '?'
+        self.pb_suffix = \
+            os.path.commonprefix([n[::-1] for n in self.mdl_skingroups])
+        self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
+
     def isPseudoBone(self, obj):
         """TODO: doc."""
         oname = obj.name
-        if oname in self.pb_names:
+        # Object is referred to in any vertex group of a skinmesh
+        if oname in self.mdl_skingroups:
             return True
+        # Some objects like impact nodes never are pseudo bones
         if oname in self.pb_ignore:
             return False
+        # Maybe: Object carries a common suffix or prefix
         if oname.startswith(self.pb_prefix) or \
            oname.endswith(self.pb_suffix):
             return True
-        return False
+        # If any child is a pseudo bone this object is too
+        children = []
+        nvb_utils.getAllChildren(obj, children)
+        cn = [c.name for c in children]
+        return bool(set(cn) & set(self.mdl_skingroups))
 
     def getPseudoBonesRoot(self, auroraRoot):
         """TODO: doc."""
@@ -85,26 +107,11 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             for cc in c.children:
                 if self.isPseudoBone(cc):
                     return c
-        return auroraRoot
-
-    def detectPseudoBones(self, auroraRoot):
-        """TODO: doc."""
-        # Get all names of skinmesh vertex groups which exist as object
-        children = []
-        nvb_utils.getAllChildren(auroraRoot, children)
-        for c in children:
-            if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
-                self.pb_names.extend([vg.name for vg in c.vertex_groups
-                                      if vg.name in bpy.data.objects])
-        self.pb_prefix = os.path.commonprefix(self.pb_names)
-        self.pb_prefix = self.pb_prefix if self.pb_prefix else '?'
-        self.pb_suffix = os.path.commonprefix([n[::-1] for n in self.pb_names])
-        self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
+        return None
 
     def generateBones(self, amt, obj, pbone=None):
         """TODO: doc."""
         bone = None
-        print(obj.name)
         if self.isPseudoBone(obj):
             # Create a bone
             bone = amt.edit_bones.new(obj.name)
@@ -155,8 +162,11 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         """Create the armature"""
         auroraRoot = nvb_utils.findObjRootDummy(context.object)
         # Get all vertex groups with a name that exists as object
-        self.detectPseudoBones(auroraRoot)
+        self.setupPseudoBoneDetection(auroraRoot)
         self.pb_root = self.getPseudoBonesRoot(auroraRoot)
+        if not self.pb_root:
+            self.report({'INFO'}, 'Error: No Pseudo Bone root.')
+            return {'CANCELLED'}
         # Create armature
         bpy.ops.object.add(type='ARMATURE',
                            enter_editmode=True,
@@ -167,6 +177,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         for c in self.pb_root.children:
             self.generateBones(amt.data, c)
         bpy.ops.object.mode_set(mode='OBJECT')
+        if auroraRoot.nvb.armaturecopyanims:
+            nvb_utils.copyAnims2Armature(amt, self.pb_root)
         return {'FINISHED'}
 
 

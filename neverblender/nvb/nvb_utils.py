@@ -502,3 +502,81 @@ def setupMinimapRender(rootDummy,
     scene.render.resolution_percentage = 100
     scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
+
+
+def addDefaultAnim(abase, frame=0):
+    """Add an keyframe with the current location and rotation."""
+    children = []
+    getAllChildren(abase, children)
+    # disregard rootdummy
+    if children[0] == abase:
+        del children[0]
+    for c in children:
+        if not c.animation_data:
+            c.animation_data_create()
+        action = c.animation_data.action
+        if not action:
+            action = bpy.data.actions.new(name=c.name)
+            action.use_fake_user = True
+            c.animation_data.action = action
+        # Rotation
+        dp = 'rotation_euler'
+        fcurve = action.fcurves.new(dp, 0)
+        fcurve.keyframe_points.insert(frame, c.rotation_euler.x)
+        fcurve = action.fcurves.new(dp, 1)
+        fcurve.keyframe_points.insert(frame, c.rotation_euler.y)
+        fcurve = action.fcurves.new(dp, 2)
+        fcurve.keyframe_points.insert(frame, c.rotation_euler.z)
+        dp = 'location'
+        fcurve = action.fcurves.new(dp, 0)
+        fcurve.keyframe_points.insert(frame, c.location.x)
+        fcurve = action.fcurves.new(dp, 1)
+        fcurve.keyframe_points.insert(frame, c.location.y)
+        fcurve = action.fcurves.new(dp, 2)
+        fcurve.keyframe_points.insert(frame, c.location.z)
+
+
+def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
+    """TODO: DOC."""
+    insertionOptions = {'FAST'}
+    bones = amt.data.bones
+    if not bones:
+        return
+    # Get or create animation data for this armature
+    if not amt.animation_data:
+        amt.animation_data_create()
+    # Get or create action for the animation data
+    amt_action = amt.animation_data.action
+    if not amt_action:
+        amt_action = bpy.data.actions.new(name=amt.name)
+        amt_action.use_fake_user = True
+        amt.animation_data.action = amt_action
+    offset = 0
+    for amt_bone in bones:
+        # Check wether there is an pseudo bone object with the same
+        # name as the bone
+        amt.pose.bones[amt_bone.name].rotation_mode = 'XYZ'
+        if amt_bone.name in bpy.data.objects:
+            mdl_bone = bpy.data.objects[amt_bone.name]
+            # Check for animations on this pseudo bone
+            if mdl_bone.animation_data and mdl_bone.animation_data.action:
+                for mdl_fcurve in mdl_bone.animation_data.action.fcurves:
+                    mdl_dp = mdl_fcurve.data_path
+                    amt_dp = 'pose.bones["' + amt_bone.name + '"].' + mdl_dp
+                    # Add keyframe points to armature
+                    amt_fcurve = amt_action.fcurves.new(amt_dp,
+                                                        mdl_fcurve.array_index)
+                    for p in mdl_fcurve.keyframe_points:
+                        frame = p.co[0] + offset
+                        amt_fcurve.keyframe_points.insert(frame, p.co[1],
+                                                          insertionOptions)
+                    # For compatibility with older blender versions
+                    try:
+                        amt_fcurve.update()
+                    except AttributeError:
+                        pass
+
+
+def copyAnims2Mdl(rootDummy, source, destructive=False):
+    """TODO: DOC."""
+    return True

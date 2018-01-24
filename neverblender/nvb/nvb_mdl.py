@@ -360,6 +360,9 @@ class Mdl():
     def createAnimations(self, options):
         """TODO: DOC."""
         rootDummy = nvb_utils.findRootDummy(bpy.context.object)
+        # Add an extra frame to the beginning representing the original
+        # location and rotation
+        nvb_utils.addDefaultAnim(rootDummy)
         # We will load the 'default' animation first, so it is at the front
         defaultAnims = [a for a in self.animations if a.name == 'default']
         for anim in defaultAnims:
