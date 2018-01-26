@@ -133,7 +133,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             bone.head = bhead - self.pb_root.location
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
-            valid_children = [c for c in obj.children if self.isPseudoBone(c)]
+            valid_children = [c for c in obj.children if
+                              self.isPseudoBone(c)]
             if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
                 locsum = mathutils.Vector([0.0, 0.0, 0.0])
@@ -151,6 +152,48 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             bone.tail = btail - self.pb_root.location
         for c in obj.children:
             self.generateBones(amt, c, bone)
+
+    def generateBones2(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
+        """TODO: doc."""
+        # TODO set every rotation to 0 before creating a bone
+        bone = None
+        loc = obj.matrix_local.translation + ploc
+        if self.isPseudoBone(obj):
+            # Create a bone
+            bone = amt.edit_bones.new(obj.name)
+            # Set head
+            # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
+            # loc = mat.translation
+            if pbone:
+                bone.parent = pbone
+                # Merge head with parent tail if distance is short enough
+                dist = math.sqrt(math.pow(pbone.tail.x - loc.x, 2) +
+                                 math.pow(pbone.tail.y - loc.y, 2) +
+                                 math.pow(pbone.tail.z - loc.z, 2))
+                if dist <= 0.01:
+                    loc = pbone.tail
+                    bone.use_connect = True
+            bone.head = loc
+            # Set tail
+            btail = mathutils.Vector([0.0, 0.0, 0.0])
+            valid_children = [c for c in obj.children if self.isPseudoBone(c)]
+            if len(valid_children) >= 2:
+                # Multiple children: Calculate average location
+                locsum = mathutils.Vector([0.0, 0.0, 0.0])
+                for c in valid_children:
+                    locsum = locsum + loc + c.matrix_local.translation
+                btail = locsum/len(valid_children)
+            elif len(valid_children) == 1:
+                btail = loc + valid_children[0].matrix_local.translation
+            else:
+                # No children: Generate location from object bounding box
+                center = loc + \
+                         (sum((mathutils.Vector(p) for p in obj.bound_box),
+                          mathutils.Vector()) / 8)
+                btail = center + center - bone.head
+            bone.tail = btail
+        for c in obj.children:
+            self.generateBones2(amt, c, bone, loc)
 
     @classmethod
     def poll(self, context):
@@ -175,7 +218,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         amt.name = auroraRoot.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
         for c in self.pb_root.children:
-            self.generateBones(amt.data, c)
+            # self.generateBones(amt.data, c, None)
+            self.generateBones2(amt.data, c, None)
         bpy.ops.object.mode_set(mode='OBJECT')
         if auroraRoot.nvb.armaturecopyanims:
             nvb_utils.copyAnims2Armature(amt, self.pb_root)
