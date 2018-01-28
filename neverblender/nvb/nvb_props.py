@@ -214,10 +214,16 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
         name='Copy Animations',
         description='Copy animations to the created armature',
         default=True)
-    armatureskinmeshonly = bpy.props.BoolProperty(
-        name='Only from Skinmesh',
-        description='Disregard objects not in skinmesh vertex groups',
-        default=True)
+    armaturesource = bpy.props.EnumProperty(
+        name='Armature Source',
+        items=[('SELN',
+                'Selection', 'Selected object and its children', 0),
+               ('ROOT',
+                'All', 'Aurora Root and its children', 1),
+               ('SKIN',
+                'Skinmeshes', 'Vertex groups from all skinmeshes', 2),
+               ],
+        default='SKIN')
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

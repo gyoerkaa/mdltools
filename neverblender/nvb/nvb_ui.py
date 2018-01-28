@@ -555,11 +555,10 @@ class NVB_PANEL_UTILS(bpy.types.Panel):
             box = row.box()
             box.label(text='Armature Helper')
             row = box.row()
-            row.prop(obj.nvb, 'armatureskinmeshonly',
-                     text='Only from Skinmesh')
+            row.label(text='Source')
+            row.prop(obj.nvb, 'armaturesource', text='Source', expand=True)
             row = box.row()
-            row.prop(obj.nvb, 'armaturecopyanims',
-                     text='Copy Animations')
+            row.prop(obj.nvb, 'armaturecopyanims', text='Copy Animations')
             row = box.row()
             row.operator('nvb.armature_frompseudo',
                          text='Generate Armature',

@@ -504,7 +504,7 @@ def setupMinimapRender(rootDummy,
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def addDefaultAnim(abase, frame=0):
+def addDefaultKeyframe(abase, frame=0):
     """Add an keyframe with the current location and rotation."""
     children = []
     getAllChildren(abase, children)
