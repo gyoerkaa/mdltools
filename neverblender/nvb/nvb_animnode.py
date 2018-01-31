@@ -306,6 +306,20 @@ class Animnode():
             curveZ = Animnode.getCurve(action, dp, 2)
             currEul = None
             prevEul = None
+            """
+            curveX.keyframe_points.add(len(self.orientationkey))
+            curveY.keyframe_points.add(len(self.orientationkey))
+            curveZ.keyframe_points.add(len(self.orientationkey))
+            for i in range(len(self.orientationkey)):
+                key = self.orientationkey[i]
+                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                eul = nvb_utils.nwangle2euler(key[1:5])
+                currEul = Animnode.eulerFilter(eul, prevEul)
+                prevEul = currEul
+                curveX.keyframe_points[i].co = frame, currEul.x
+                curveY.keyframe_points[i].co = frame, currEul.x
+                curveZ.keyframe_points[i].co = frame, currEul.x
+            """
             for key in self.orientationkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 eul = nvb_utils.nwangle2euler(key[1:5])
@@ -314,6 +328,7 @@ class Animnode():
                 curveX.keyframe_points.insert(frame, currEul.x, kfOptions)
                 curveY.keyframe_points.insert(frame, currEul.y, kfOptions)
                 curveZ.keyframe_points.insert(frame, currEul.z, kfOptions)
+
         elif self.orientation is not None:
             curveX = Animnode.getCurve(action, dp, 0)
             curveY = Animnode.getCurve(action, dp, 1)

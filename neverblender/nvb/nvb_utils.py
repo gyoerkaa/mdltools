@@ -538,7 +538,6 @@ def addDefaultKeyframe(abase, frame=0):
 
 def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
     """TODO: DOC."""
-    insertionOptions = {'FAST'}
     bones = amt.data.bones
     if not bones:
         return
