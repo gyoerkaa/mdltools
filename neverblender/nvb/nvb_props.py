@@ -218,10 +218,8 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
         name='Armature Source',
         items=[('SELN',
                 'Selection', 'Selected object and its children', 0),
-               ('ROOT',
-                'All', 'Aurora Root and its children', 1),
                ('SKIN',
-                'Skinmeshes', 'Vertex groups from all skinmeshes', 2),
+                'Skinmeshes', 'Vertex groups from all skinmeshes', 1),
                ],
         default='SKIN')
 

@@ -551,7 +551,7 @@ def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
         amt_action = bpy.data.actions.new(name=amt.name)
         amt_action.use_fake_user = True
         amt.animation_data.action = amt_action
-    offset = 0
+    frame_offset = 0
     for amt_bone in bones:
         # Check wether there is an pseudo bone object with the same
         # name as the bone
@@ -560,21 +560,28 @@ def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
             mdl_bone = bpy.data.objects[amt_bone.name]
             # Check for animations on this pseudo bone
             if mdl_bone.animation_data and mdl_bone.animation_data.action:
-                for mdl_fcurve in mdl_bone.animation_data.action.fcurves:
-                    mdl_dp = mdl_fcurve.data_path
+                for mdl_fcu in mdl_bone.animation_data.action.fcurves:
+                    # Get Data path
+                    mdl_dp = mdl_fcu.data_path
                     amt_dp = 'pose.bones["' + amt_bone.name + '"].' + mdl_dp
-                    # Add keyframe points to armature
-                    amt_fcurve = amt_action.fcurves.new(amt_dp,
-                                                        mdl_fcurve.array_index)
-                    for p in mdl_fcurve.keyframe_points:
-                        frame = p.co[0] + offset
-                        amt_fcurve.keyframe_points.insert(frame, p.co[1],
-                                                          insertionOptions)
-                    # For compatibility with older blender versions
-                    try:
-                        amt_fcurve.update()
-                    except AttributeError:
-                        pass
+                    # New fcurve
+                    amt_fcu = amt_action.fcurves.new(amt_dp,
+                                                     mdl_fcu.array_index)
+                    # Add keyframe points
+                    mdl_kfp = mdl_fcu.keyframe_points
+                    amt_fcu.keyframe_points.add(len(mdl_kfp))
+                    amt_kfp = amt_fcu.keyframe_points
+                    if mdl_dp == 'location':
+                        val_offset = mdl_bone.location[mdl_fcu.array_index]
+                        for i in range(len(amt_kfp)):
+                            amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
+                                            mdl_kfp[i].co[1] - val_offset
+                        amt_fcu.update()
+                    elif mdl_dp == 'rotation_euler':
+                        for i in range(len(amt_kfp)):
+                            amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
+                                            mdl_kfp[i].co[1]
+                        amt_fcu.update()
 
 
 def copyAnims2Mdl(rootDummy, source, destructive=False):

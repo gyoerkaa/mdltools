@@ -61,13 +61,12 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
 
     # For detecting pseudo bones
     mdl_skingroups = []
-    pb_root = None
-    pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact',
-                 'impc', 'ground', 'grnd']
+    pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
+                 'ground', 'grnd', 'handconjure', 'headconjure']
     pb_prefix = '?'
     pb_suffix = '?'
 
-    def setupPseudoBoneDetection(self, auroraRoot):
+    def setupPseudoBoneDetection(self, auroraRoot, strict=False):
         """TODO: doc."""
         # Get all names of skinmesh vertex groups which exist as object
         children = []
@@ -82,81 +81,48 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             os.path.commonprefix([n[::-1] for n in self.mdl_skingroups])
         self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
 
-    def isPseudoBone(self, obj):
-        """TODO: doc."""
-        oname = obj.name
-        # Object is referred to in any vertex group of a skinmesh
-        if oname in self.mdl_skingroups:
-            return True
-        # Some objects like impact nodes never are pseudo bones
-        if oname in self.pb_ignore:
-            return False
-        # Maybe: Object carries a common suffix or prefix
-        if oname.startswith(self.pb_prefix) or \
-           oname.endswith(self.pb_suffix):
-            return True
-        # If any child is a pseudo bone this object is too
-        children = []
-        nvb_utils.getAllChildren(obj, children)
-        cn = [c.name for c in children]
-        return bool(set(cn) & set(self.mdl_skingroups))
-
-    def getPseudoBonesRoot(self, auroraRoot):
+    def detectPseudoBonesRoot(self, auroraRoot, strict=False):
         """TODO: doc."""
         for c in auroraRoot.children:
             for cc in c.children:
-                if self.isPseudoBone(cc):
+                if self.isPseudoBone(cc, strict):
                     return c
         return None
 
-    def generateBonesAll(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
+    def isPseudoBone(self, obj, strict=False):
         """TODO: doc."""
-        bone = None
-        bhead = obj.matrix_local.translation + ploc
-        if obj.name not in self.pb_ignore:
-            bone = amt.edit_bones.new(obj.name)
-            # Set head
-            if pbone:
-                bone.parent = pbone
-                # Merge head with parent tail if distance is short enough
-                dist = math.sqrt(math.pow(pbone.tail.x - bhead.x, 2) +
-                                 math.pow(pbone.tail.y - bhead.y, 2) +
-                                 math.pow(pbone.tail.z - bhead.z, 2))
-                if dist <= 0.01:
-                    bhead = pbone.tail
-                    bone.use_connect = True
-            bone.head = bhead
-            # Set tail
-            btail = mathutils.Vector([0.0, 0.0, 0.0])
-            if len(obj.children) >= 2:
-                # Multiple children: Calculate average location
-                locsum = mathutils.Vector([0.0, 0.0, 0.0])
-                for c in obj.children:
-                    locsum = locsum + bhead + c.matrix_local.translation
-                btail = locsum/len(obj.children)
-            elif len(obj.children) == 1:
-                btail = obj.children[0].matrix_local.translation
-            else:
-                # No children: Generate location from object bounding box
-                center = bhead + \
-                         (sum((mathutils.Vector(p) for p in obj.bound_box),
-                          mathutils.Vector()) / 8)
-                btail = center + center - bone.head
-            bone.tail = btail
-            for c in obj.children:
-                self.generateBones(amt, c, bone, bhead)
+        oname = obj.name
+        if strict:
+            # Object is referred to in any vertex group of a skinmesh
+            if oname in self.mdl_skingroups:
+                return True
+            # Some objects like impact nodes never are pseudo bones
+            if oname in self.pb_ignore:
+                return False
+            # Maybe: Object carries a common suffix or prefix
+            if oname.startswith(self.pb_prefix) or \
+               oname.endswith(self.pb_suffix):
+                return True
+            # If any child is a pseudo bone this object is too
+            children = []
+            nvb_utils.getAllChildren(obj, children)
+            cn = [c.name for c in children]
+            return bool(set(cn) & set(self.mdl_skingroups))
+        else:
+            return (oname.lower() not in self.pb_ignore) and \
+                   (obj.nvb.meshtype != nvb_def.Meshtype.SKIN)
+        return False
 
-    def generateBonesSkin(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
+    def generateBones(self, amt, obj, strict=False,
+                      pbone=None, ploc=mathutils.Vector()):
         """TODO: doc."""
         # TODO set every rotation to 0 before creating a bone
         bone = None
         bhead = obj.matrix_local.translation + ploc
-        if self.isPseudoBone(obj):
-            # Create a bone
+        # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
+        if self.isPseudoBone(obj, strict):
             bone = amt.edit_bones.new(obj.name)
             # Set head
-            # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
-            # loc = mat.translation
             if pbone:
                 bone.parent = pbone
                 # Merge head with parent tail if distance is short enough
@@ -169,7 +135,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             bone.head = bhead
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
-            valid_children = [c for c in obj.children if self.isPseudoBone(c)]
+            valid_children = [c for c in obj.children
+                              if self.isPseudoBone(c, strict)]
             if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
                 locsum = mathutils.Vector([0.0, 0.0, 0.0])
@@ -180,13 +147,20 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                 btail = bhead + valid_children[0].matrix_local.translation
             else:
                 # No children: Generate location from object bounding box
-                center = bhead + \
-                         (sum((mathutils.Vector(p) for p in obj.bound_box),
-                          mathutils.Vector()) / 8)
-                btail = center + center - bone.head
+                if obj.type == 'MESH':
+                    center = bhead + \
+                             (sum((mathutils.Vector(p) for p in obj.bound_box),
+                              mathutils.Vector()) / 8)
+                    btail = center + center - bone.head
+                elif obj.type == 'EMPTY':
+                    if pbone:
+                        btail = pbone.tail - pbone.head + bhead
+                    else:
+                        btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+
             bone.tail = btail
         for c in obj.children:
-            self.generateBones2(amt, c, bone, bhead)
+            self.generateBones(amt, c, strict, bone, bhead)
 
     @classmethod
     def poll(self, context):
@@ -196,32 +170,33 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
 
     def execute(self, context):
         """Create the armature"""
-        obj = context.object
-        auroraRoot = nvb_utils.findObjRootDummy(obj)
-        if obj.nvb.armaturesource == 'SKIN':
+        aur_root = nvb_utils.findObjRootDummy(context.object)
+        # Get source for armature
+        if aur_root.nvb.armaturesource == 'SKIN':
             # Get all vertex groups with a name that exists as object
-            self.setupPseudoBoneDetection(auroraRoot)
-            self.pb_root = self.getPseudoBonesRoot(auroraRoot)
-            if not self.pb_root:
+            self.setupPseudoBoneDetection(aur_root)
+            pb_root = self.detectPseudoBonesRoot(aur_root)
+            if not pb_root:
                 self.report({'INFO'}, 'Error: No Pseudo Bone root.')
                 return {'CANCELLED'}
-        elif obj.nvb.armaturesource == 'SELN':
-            self.pb_root = obj
+            strict = True
         else:
-            self.pb_root = auroraRoot
+            pb_root = context.object
+            strict = False
         # Create armature
         bpy.ops.object.add(type='ARMATURE',
                            enter_editmode=True,
-                           location=self.pb_root.location)
+                           location=pb_root.location)
         amt = context.scene.objects.active
-        amt.name = auroraRoot.name + '.armature'
+        amt.name = aur_root.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
-        for c in self.pb_root.children:
-            # self.generateBones(amt.data, c, None)
-            self.generateBonesSkin(amt.data, c, None)
+        # Create the bones
+        for c in pb_root.children:
+            self.generateBones(amt.data, c, strict)
         bpy.ops.object.mode_set(mode='OBJECT')
-        if auroraRoot.nvb.armaturecopyanims:
-            nvb_utils.copyAnims2Armature(amt, self.pb_root)
+        # Copy animations
+        if aur_root.nvb.armaturecopyanims:
+            nvb_utils.copyAnims2Armature(amt, pb_root)
         return {'FINISHED'}
 
 
