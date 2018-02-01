@@ -118,9 +118,11 @@ class Node(object):
     def createObjectData(self, obj, options):
         """TODO: DOC."""
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
+        obj.nvb.restrot = obj.rotation_euler
         # TODO: skip if 1
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
+        obj.nvb.restloc = obj.location
         obj.nvb.wirecolor = self.wirecolor
         obj.nvb.imporder = self.nodeidx
 
@@ -175,7 +177,7 @@ class Node(object):
         asciiLines.append(s)
 
         scale = round(nvb_utils.getAuroraScale(obj), 3)
-        if (0.998 < scale < 1.002):
+        if not (0.998 < scale < 1.002):
             asciiLines.append('  scale ' + str(scale))
 
     @classmethod
@@ -672,8 +674,8 @@ class Trimesh(Node):
         # Check if the object is only a shadow mesh
         if not obj.nvb.render and obj.nvb.shadow:
             # Shadow mesh: Everything should be black, no texture, no uv
-            asciiLines.append('  diffuse 0.0 0.0 0.0')
-            asciiLines.append('  specular 0.0 0.0 0.0')
+            asciiLines.append('  diffuse 0.00 0.00 0.00')
+            asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap black')
         else:
             # Check if this object has a material assigned to it
@@ -707,8 +709,8 @@ class Trimesh(Node):
                     asciiLines.append('  alpha ' + str(alpha))
             else:
                 # No material, set some default values
-                asciiLines.append('  diffuse 1.0 1.0 1.0')
-                asciiLines.append('  specular 0.0 0.0 0.0')
+                asciiLines.append('  diffuse 1.00 1.00 1.00')
+                asciiLines.append('  specular 0.00 0.00 0.00')
                 asciiLines.append('  bitmap ' + nvb_def.null)
 
         return hasImgTexture

@@ -43,6 +43,7 @@ class Animation():
                                                node.parent,
                                                node.nodeidx)
             if objName and objName in bpy.data.objects:
+                node.createRestPose(bpy.data.objects[objName], newAnim)
                 node.create(bpy.data.objects[objName], newAnim, options)
 
     def loadAsciiAnimHeader(self, asciiBlock):
@@ -108,7 +109,7 @@ class Animation():
         animScene = bpy.context.scene
         animLength = nvb_utils.frame2nwtime(anim.frameEnd-anim.frameStart,
                                             animScene.render.fps)
-
+        print(animLength)
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('  length ' + str(round(animLength, 5)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
@@ -118,7 +119,7 @@ class Animation():
             asciiLines.append('  animroot ' + rootDummy.name)
 
         for event in anim.eventList:
-            eventTime = nvb_utils.frame2nwtime(anim.frameStart-event.frame,
+            eventTime = nvb_utils.frame2nwtime(event.frame-anim.frameStart,
                                                animScene.render.fps)
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
                               event.name)

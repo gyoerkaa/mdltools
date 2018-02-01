@@ -116,7 +116,10 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # Helper properties to store additional values. Cannot be edited.
     imporder = bpy.props.IntProperty(name='Original position in MDL',
                                      default=0)
-
+    restrot = bpy.props.FloatVectorProperty(name='Rest Pose Rotation',
+                                            default=(0.0, 0.0, 0.0))
+    restloc = bpy.props.FloatVectorProperty(name='Rest Pose Location',
+                                            default=(0.0, 0.0, 0.0))
     # For all emptys
     emptytype = bpy.props.EnumProperty(
                 name='Type',

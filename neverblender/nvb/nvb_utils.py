@@ -506,6 +506,7 @@ def setupMinimapRender(rootDummy,
 
 def addDefaultKeyframe(abase, frame=0):
     """Add an keyframe with the current location and rotation."""
+    return
     children = []
     getAllChildren(abase, children)
     # disregard rootdummy
@@ -538,6 +539,9 @@ def addDefaultKeyframe(abase, frame=0):
 
 def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
     """TODO: DOC."""
+    # Handle animations of the armature itself
+
+    # Handle animations/poses of the bones
     bones = amt.data.bones
     if not bones:
         return
@@ -557,6 +561,8 @@ def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
         amt.pose.bones[amt_bone.name].rotation_mode = 'XYZ'
         if amt_bone.name in bpy.data.objects:
             mdl_bone = bpy.data.objects[amt_bone.name]
+            # Gather rotation and location keyframe points
+            # Their coodrinates need to be adjusted for use with bones
             # Check for animations on this pseudo bone
             if mdl_bone.animation_data and mdl_bone.animation_data.action:
                 for mdl_fcu in mdl_bone.animation_data.action.fcurves:
@@ -575,11 +581,17 @@ def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
                         for i in range(len(amt_kfp)):
                             amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
                                             mdl_kfp[i].co[1] - val_offset
+                            amt_kfp[i].interpolation = 'LINEAR'
+                            amt_kfp[i].handle_left_type = 'AUTO_CLAMPED'
+                            amt_kfp[i].handle_right_type = 'AUTO_CLAMPED'
                         amt_fcu.update()
                     elif mdl_dp == 'rotation_euler':
                         for i in range(len(amt_kfp)):
                             amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
                                             mdl_kfp[i].co[1]
+                            amt_kfp[i].interpolation = 'LINEAR'
+                            amt_kfp[i].handle_left_type = 'AUTO_CLAMPED'
+                            amt_kfp[i].handle_right_type = 'AUTO_CLAMPED'
                         amt_fcu.update()
 
 

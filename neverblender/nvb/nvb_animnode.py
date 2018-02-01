@@ -283,6 +283,39 @@ class Animnode():
             curve.keyframe_points.insert(frameStart, self.alpha)
             curve.keyframe_points.insert(frameEnd, self.alpha)
 
+    def createRestPose(self, obj, anim):
+        """TODO: DOC."""
+        frame = anim.frameStart - 5
+        # Get animation data, create if needed.
+        animData = obj.animation_data
+        if not animData:
+            animData = obj.animation_data_create()
+        # Get action, create if needed.
+        action = animData.action
+        if not action:
+            action = bpy.data.actions.new(name=obj.name)
+            action.use_fake_user = True
+            animData.action = action
+        kfOptions = {'FAST'}
+        if True:  # (self.orientationkey) or (self.orientation is not None):
+            dp = 'rotation_euler'
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
+            rot = obj.nvb.restrot
+            curveX.keyframe_points.insert(frame, rot[0], kfOptions)
+            curveY.keyframe_points.insert(frame, rot[1], kfOptions)
+            curveZ.keyframe_points.insert(frame, rot[2], kfOptions)
+        if True:  # if (self.positionkey) or (self.position is not None):
+            dp = 'location'
+            curveX = Animnode.getCurve(action, dp, 0)
+            curveY = Animnode.getCurve(action, dp, 1)
+            curveZ = Animnode.getCurve(action, dp, 2)
+            loc = obj.nvb.restloc
+            curveX.keyframe_points.insert(frame, loc[0], kfOptions)
+            curveY.keyframe_points.insert(frame, loc[1], kfOptions)
+            curveZ.keyframe_points.insert(frame, loc[2], kfOptions)
+
     def createDataObject(self, obj, anim):
         """TODO: DOC."""
         # Add everything to a single action.
@@ -307,18 +340,24 @@ class Animnode():
             currEul = None
             prevEul = None
             """
-            curveX.keyframe_points.add(len(self.orientationkey))
-            curveY.keyframe_points.add(len(self.orientationkey))
-            curveZ.keyframe_points.add(len(self.orientationkey))
+            kfpX = curveX.keyframe_points
+            kfpY = curveY.keyframe_points
+            kfpZ = curveZ.keyframe_points
+            kfpX.add(len(self.orientationkey))
+            kfpY.add(len(self.orientationkey))
+            kfpZ.add(len(self.orientationkey))
             for i in range(len(self.orientationkey)):
                 key = self.orientationkey[i]
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 eul = nvb_utils.nwangle2euler(key[1:5])
                 currEul = Animnode.eulerFilter(eul, prevEul)
                 prevEul = currEul
-                curveX.keyframe_points[i].co = frame, currEul.x
-                curveY.keyframe_points[i].co = frame, currEul.x
-                curveZ.keyframe_points[i].co = frame, currEul.x
+                kfpX[i].co = frame, currEul.x
+                kfpY[i].co = frame, currEul.y
+                kfpZ[i].co = frame, currEul.z
+            curveX.update()
+            curveY.update()
+            curveZ.update()
             """
             for key in self.orientationkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
@@ -347,11 +386,29 @@ class Animnode():
             curveX = Animnode.getCurve(action, dp, 0)
             curveY = Animnode.getCurve(action, dp, 1)
             curveZ = Animnode.getCurve(action, dp, 2)
+            """
+            kfpX = curveX.keyframe_points
+            kfpY = curveY.keyframe_points
+            kfpZ = curveZ.keyframe_points
+            kfpX.add(len(self.positionkey))
+            kfpY.add(len(self.positionkey))
+            kfpZ.add(len(self.positionkey))
+            for i in range(len(self.positionkey)):
+                k = self.positionkey[i]
+                frame = frameStart + nvb_utils.nwtime2frame(k[0])
+                kfpX[i].co = frame, k[1]
+                kfpY[i].co = frame, k[2]
+                kfpZ[i].co = frame, k[3]
+            """
             for key in self.positionkey:
                 frame = frameStart + nvb_utils.nwtime2frame(key[0])
                 curveX.keyframe_points.insert(frame, key[1], kfOptions)
                 curveY.keyframe_points.insert(frame, key[2], kfOptions)
                 curveZ.keyframe_points.insert(frame, key[3], kfOptions)
+            curveX.update()
+            curveY.update()
+            curveZ.update()
+
         elif (self.position is not None):
             curveX = Animnode.getCurve(action, dp, 0)
             curveY = Animnode.getCurve(action, dp, 1)
@@ -657,6 +714,7 @@ class Animnode():
             return
         txtLines = txtBlock[nodeStart+len(obj.name):nodeEnd-1].splitlines()
         l_isNumber = nvb_utils.isNumber
+        render_fps = bpy.context.scene.render.fps
         for line in [l.strip().split() for l in txtLines]:
             try:
                 label = line[0].lower()
@@ -665,7 +723,7 @@ class Animnode():
             # Lines starting with numbers are keys
             if l_isNumber(label):
                 frame = float(label)
-                nwtime = round(nvb_utils.frame2nwtime(frame), 5)
+                nwtime = round(nvb_utils.frame2nwtime(frame, render_fps), 5)
                 values = [float(v) for v in line[1:]]
                 formatStr = '      {: >6.5f}' + \
                             ' '.join(['{: > 6.5f}']*len(values))
@@ -698,7 +756,7 @@ class Animnode():
 
         l_rnd = round  # For speed
         animStart = anim.frameStart
-
+        render_fps = bpy.context.scene.render.fps
         kname = 'orientationkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
@@ -715,7 +773,8 @@ class Animnode():
                     '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 asciiLines.append('    orientationkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                        render_fps), 5)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                     val = nvb_utils.euler2nwangle(eul)
                     s = formatStr.format(time, val[0], val[1], val[2], val[3])
@@ -734,7 +793,8 @@ class Animnode():
                     '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 asciiLines.append('    positionkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                        render_fps), 5)
                     s = formatStr.format(time, key[0], key[1], key[2])
                     asciiLines.append(s)
 
@@ -750,7 +810,8 @@ class Animnode():
                 formatStr = '      {: >6.5f} {: >6.5f}'
                 asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                        render_fps), 5)
                     s = formatStr.format(time, key[0])
                     asciiLines.append(s)
 
@@ -766,7 +827,8 @@ class Animnode():
                 formatStr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
                 asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                        render_fps), 5)
                     s = formatStr.format(time, key[0], key[1], key[2])
                     asciiLines.append(s)
 
@@ -776,7 +838,8 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >3.2f} {: >3.2f} {: >3.2f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                    render_fps), 5)
                 s = formatStr.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
@@ -786,7 +849,8 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >6.5f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                    render_fps), 5)
                 s = formatStr.format(time, key[0])
                 asciiLines.append(s)
 
@@ -796,7 +860,8 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >3.2f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart), 5)
+                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
+                                                    render_fps), 5)
                 s = formatStr.format(time, key[0])
                 asciiLines.append(s)
 

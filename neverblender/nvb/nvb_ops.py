@@ -122,6 +122,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
         if self.isPseudoBone(obj, strict):
             bone = amt.edit_bones.new(obj.name)
+            bone.roll = 0
             # Set head
             if pbone:
                 bone.parent = pbone
@@ -131,7 +132,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                                  math.pow(pbone.tail.z - bhead.z, 2))
                 if dist <= 0.01:
                     bhead = pbone.tail
-                    bone.use_connect = True
+                    # bone.use_connect = True
             bone.head = bhead
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
@@ -159,6 +160,9 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                         btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
 
             bone.tail = btail
+            # Align coordinate system to parent bone
+            # if pbone:
+            #     bone.align_roll(pbone.z_axis)
         for c in obj.children:
             self.generateBones(amt, c, strict, bone, bhead)
 
@@ -193,10 +197,13 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         # Create the bones
         for c in pb_root.children:
             self.generateBones(amt.data, c, strict)
-        bpy.ops.object.mode_set(mode='OBJECT')
         # Copy animations
+        bpy.ops.object.mode_set(mode='POSE')
         if aur_root.nvb.armaturecopyanims:
             nvb_utils.copyAnims2Armature(amt, pb_root)
+        # Update scene and objects
+        bpy.ops.object.mode_set(mode='OBJECT')
+        context.scene.update()
         return {'FINISHED'}
 
 
