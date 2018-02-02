@@ -213,10 +213,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                         min=16)
 
     # Armature generation
-    armaturecopyanims = bpy.props.BoolProperty(
-        name='Copy Animations',
-        description='Copy animations to the created armature',
-        default=True)
     armaturesource = bpy.props.EnumProperty(
         name='Armature Source',
         items=[('SELN',
@@ -225,6 +221,14 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 'Skinmeshes', 'Vertex groups from all skinmeshes', 1),
                ],
         default='SKIN')
+    armatureautoconnect = bpy.props.BoolProperty(
+        name='Auto Connect Bones',
+        description='Connect bones when possible',
+        default=True)
+    armaturecopyanims = bpy.props.BoolProperty(
+        name='Copy Animations',
+        description='Copy animations to the created armature',
+        default=True)
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

@@ -283,39 +283,6 @@ class Animnode():
             curve.keyframe_points.insert(frameStart, self.alpha)
             curve.keyframe_points.insert(frameEnd, self.alpha)
 
-    def createRestPose(self, obj, anim):
-        """TODO: DOC."""
-        frame = anim.frameStart - 5
-        # Get animation data, create if needed.
-        animData = obj.animation_data
-        if not animData:
-            animData = obj.animation_data_create()
-        # Get action, create if needed.
-        action = animData.action
-        if not action:
-            action = bpy.data.actions.new(name=obj.name)
-            action.use_fake_user = True
-            animData.action = action
-        kfOptions = {'FAST'}
-        if True:  # (self.orientationkey) or (self.orientation is not None):
-            dp = 'rotation_euler'
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            rot = obj.nvb.restrot
-            curveX.keyframe_points.insert(frame, rot[0], kfOptions)
-            curveY.keyframe_points.insert(frame, rot[1], kfOptions)
-            curveZ.keyframe_points.insert(frame, rot[2], kfOptions)
-        if True:  # if (self.positionkey) or (self.position is not None):
-            dp = 'location'
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            loc = obj.nvb.restloc
-            curveX.keyframe_points.insert(frame, loc[0], kfOptions)
-            curveY.keyframe_points.insert(frame, loc[1], kfOptions)
-            curveZ.keyframe_points.insert(frame, loc[2], kfOptions)
-
     def createDataObject(self, obj, anim):
         """TODO: DOC."""
         # Add everything to a single action.
@@ -331,42 +298,28 @@ class Animnode():
             action = bpy.data.actions.new(name=obj.name)
             action.use_fake_user = True
             animData.action = action
-        kfOptions = {'FAST'}
+
         dp = 'rotation_euler'
         if (self.orientationkey):
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            currEul = None
-            prevEul = None
-            """
-            kfpX = curveX.keyframe_points
-            kfpY = curveY.keyframe_points
-            kfpZ = curveZ.keyframe_points
-            kfpX.add(len(self.orientationkey))
-            kfpY.add(len(self.orientationkey))
-            kfpZ.add(len(self.orientationkey))
+            curves = [Animnode.getCurve(action, dp, ai) for ai in range(3)]
+            kfp = [curves[ci].keyframe_points for ci in range(3)]
+            nkfp = list(map(lambda x: len(x), kfp))
+            list(map(lambda x: x.add(len(self.orientationkey)), kfp))
+            curr_eul = 0
+            prev_eul = 0
             for i in range(len(self.orientationkey)):
-                key = self.orientationkey[i]
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                eul = nvb_utils.nwangle2euler(key[1:5])
-                currEul = Animnode.eulerFilter(eul, prevEul)
-                prevEul = currEul
-                kfpX[i].co = frame, currEul.x
-                kfpY[i].co = frame, currEul.y
-                kfpZ[i].co = frame, currEul.z
-            curveX.update()
-            curveY.update()
-            curveZ.update()
-            """
-            for key in self.orientationkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                eul = nvb_utils.nwangle2euler(key[1:5])
-                currEul = Animnode.eulerFilter(eul, prevEul)
-                prevEul = currEul
-                curveX.keyframe_points.insert(frame, currEul.x, kfOptions)
-                curveY.keyframe_points.insert(frame, currEul.y, kfOptions)
-                curveZ.keyframe_points.insert(frame, currEul.z, kfOptions)
+                frame = frameStart + \
+                    nvb_utils.nwtime2frame(self.orientationkey[i][0])
+                eul = nvb_utils.nwangle2euler(self.orientationkey[i][1:5])
+                curr_eul = Animnode.eulerFilter(eul, prev_eul)
+                prev_eul = curr_eul
+                for j in range(3):
+                    tp = kfp[j][nkfp[j]+i]
+                    tp.co = frame, curr_eul[j]
+                    tp.interpolation = 'LINEAR'
+                    tp.handle_left_type = 'AUTO_CLAMPED'
+                    tp.handle_right_type = 'AUTO_CLAMPED'
+            list(map(lambda x: x.update(), curves))
 
         elif self.orientation is not None:
             curveX = Animnode.getCurve(action, dp, 0)
@@ -383,31 +336,21 @@ class Animnode():
 
         dp = 'location'
         if (self.positionkey):
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            """
-            kfpX = curveX.keyframe_points
-            kfpY = curveY.keyframe_points
-            kfpZ = curveZ.keyframe_points
-            kfpX.add(len(self.positionkey))
-            kfpY.add(len(self.positionkey))
-            kfpZ.add(len(self.positionkey))
+            curves = [Animnode.getCurve(action, dp, ai) for ai in range(3)]
+            kfp = [curves[ci].keyframe_points for ci in range(3)]
+            nkfp = list(map(lambda x: len(x), kfp))
+            list(map(lambda x: x.add(len(self.positionkey)), kfp))
             for i in range(len(self.positionkey)):
-                k = self.positionkey[i]
-                frame = frameStart + nvb_utils.nwtime2frame(k[0])
-                kfpX[i].co = frame, k[1]
-                kfpY[i].co = frame, k[2]
-                kfpZ[i].co = frame, k[3]
-            """
-            for key in self.positionkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                curveX.keyframe_points.insert(frame, key[1], kfOptions)
-                curveY.keyframe_points.insert(frame, key[2], kfOptions)
-                curveZ.keyframe_points.insert(frame, key[3], kfOptions)
-            curveX.update()
-            curveY.update()
-            curveZ.update()
+                frame = frameStart + \
+                    nvb_utils.nwtime2frame(self.positionkey[i][0])
+                val = self.positionkey[i][1:4]
+                for j in range(3):
+                    tp = kfp[j][nkfp[j]+i]
+                    tp.co = frame, val[j]
+                    tp.interpolation = 'LINEAR'
+                    tp.handle_left_type = 'AUTO_CLAMPED'
+                    tp.handle_right_type = 'AUTO_CLAMPED'
+            list(map(lambda x: x.update(), curves))
 
         elif (self.position is not None):
             curveX = Animnode.getCurve(action, dp, 0)

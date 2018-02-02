@@ -66,6 +66,18 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
     pb_prefix = '?'
     pb_suffix = '?'
 
+    def can_connect(self, obj):
+        """Determnine whether the bone belonging to this object can be
+           connected to it's parent."""
+        # If location is animated the bone cannot be connected
+        if obj.animation_data:
+            action = obj.animation_data.action
+            if action:
+                for fcu in action.fcurves:
+                    if 'location' in fcu.data_path:
+                        return False
+        return True
+
     def setupPseudoBoneDetection(self, auroraRoot, strict=False):
         """TODO: doc."""
         # Get all names of skinmesh vertex groups which exist as object
@@ -132,7 +144,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                                  math.pow(pbone.tail.z - bhead.z, 2))
                 if dist <= 0.01:
                     bhead = pbone.tail
-                    # bone.use_connect = True
+                    if obj.nvb.armatureautoconnect and self.can_connect(obj):
+                        bone.use_connect = True
             bone.head = bhead
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
@@ -228,34 +241,42 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         txt.use_fake_user = True
         return txt.name
 
-    def cloneFrames(self, target, animStart, animEnd, cloneStart):
+    def cloneFrames(self, target, an_start, an_end, clone_start):
         """Clone the animations keyframes."""
         if target.animation_data and target.animation_data.action:
-            insertionOptions = {'FAST'}
+            # in_options = {'FAST'}
             action = target.animation_data.action
-            offset = cloneStart - animStart
-            for fcurve in action.fcurves:
+            offset = clone_start - an_start
+            for fc in action.fcurves:
                 # Get the keyframe points of the selected animation
-                kfp = [p for p in fcurve.keyframe_points
-                       if animStart <= p.co[0] <= animEnd]
+                vals = [(p.co[0] + offset, p.co[1]) for p in fc.keyframe_points
+                        if an_start <= p.co[0] <= an_end]
+                kfp = fc.keyframe_points
+                nkfp = len(kfp)
+                kfp.add(len(vals))
+                for i in range(len(vals)):
+                    kfp[nkfp+i].co = vals[i]
+                """
+                # Get the keyframe points of the selected animation
+                kfp = [(p.co[0] + offset, p.co[1]) for p in fc.keyframe_points
+                       if an_start <= p.co[0] <= an_end]
                 for p in kfp:
-                    frame = p.co[0] + offset
-                    fcurve.keyframe_points.insert(frame, p.co[1],
-                                                  insertionOptions)
+                    fc.keyframe_points.insert(p[0], p[1], in_options)
+                """
                 # For compatibility with older blender versions
                 try:
-                    fcurve.update()
+                    fc.update()
                 except AttributeError:
                     pass
 
     def execute(self, context):
         """Clone the animation."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
-        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
+        rootd = nvb_utils.findObjRootDummy(context.object)
+        anim = rootd.nvb.animList[rootd.nvb.animListIdx]
         animStart = anim.frameStart
         animEnd = anim.frameEnd
         # Adds a new animation to the end of the list
-        clone = nvb_utils.createAnimListItem(rootDummy)
+        clone = nvb_utils.createAnimListItem(rootd)
         # Copy data
         clone.frameEnd = clone.frameStart + (animEnd - animStart)
         clone.ttime = anim.ttime
@@ -265,13 +286,14 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         for e in anim.eventList:
             clonedEvent = clone.eventList.add()
             clonedEvent.frame = clone.frameStart + (e.frame - animStart)
+            clonedEvent.name = e.name
         # Copy emitter data
         rawascii = anim.rawascii
         if rawascii and (rawascii in bpy.data.texts):
             clone.rawascii = self.cloneEmitter(rawascii)
         # Copy keyframes
         objList = []
-        nvb_utils.getAllChildren(rootDummy, objList)
+        nvb_utils.getAllChildren(rootd, objList)
         for obj in objList:
             # Copy the objects animation
             self.cloneFrames(obj, animStart, animEnd, clone.frameStart)

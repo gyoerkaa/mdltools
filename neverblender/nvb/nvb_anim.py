@@ -18,9 +18,6 @@ class Animation():
         self.events = []
         self.nodes = []
 
-        self.frameStart = 0
-        self.frameEnd = 0
-
     def create(self, rootDummy, nodeNameResolver, options):
         """Create animations with a list of imported objects."""
         # Add new animation to list
@@ -43,7 +40,6 @@ class Animation():
                                                node.parent,
                                                node.nodeidx)
             if objName and objName in bpy.data.objects:
-                node.createRestPose(bpy.data.objects[objName], newAnim)
                 node.create(bpy.data.objects[objName], newAnim, options)
 
     def loadAsciiAnimHeader(self, asciiBlock):
@@ -109,7 +105,6 @@ class Animation():
         animScene = bpy.context.scene
         animLength = nvb_utils.frame2nwtime(anim.frameEnd-anim.frameStart,
                                             animScene.render.fps)
-        print(animLength)
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('  length ' + str(round(animLength, 5)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))

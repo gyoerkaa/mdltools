@@ -504,37 +504,45 @@ def setupMinimapRender(rootDummy,
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def addDefaultKeyframe(abase, frame=0):
-    """Add an keyframe with the current location and rotation."""
-    return
-    children = []
-    getAllChildren(abase, children)
-    # disregard rootdummy
-    if children[0] == abase:
-        del children[0]
-    for c in children:
-        if not c.animation_data:
-            c.animation_data_create()
-        action = c.animation_data.action
-        if not action:
-            action = bpy.data.actions.new(name=c.name)
-            action.use_fake_user = True
-            c.animation_data.action = action
-        # Rotation
-        dp = 'rotation_euler'
-        fcurve = action.fcurves.new(dp, 0)
-        fcurve.keyframe_points.insert(frame, c.rotation_euler.x)
-        fcurve = action.fcurves.new(dp, 1)
-        fcurve.keyframe_points.insert(frame, c.rotation_euler.y)
-        fcurve = action.fcurves.new(dp, 2)
-        fcurve.keyframe_points.insert(frame, c.rotation_euler.z)
-        dp = 'location'
-        fcurve = action.fcurves.new(dp, 0)
-        fcurve.keyframe_points.insert(frame, c.location.x)
-        fcurve = action.fcurves.new(dp, 1)
-        fcurve.keyframe_points.insert(frame, c.location.y)
-        fcurve = action.fcurves.new(dp, 2)
-        fcurve.keyframe_points.insert(frame, c.location.z)
+def createRestPose(obj, frame=1):
+    """TODO: DOC."""
+
+    def getCurve(action, dataPath, idx=0):
+        """TODO: DOC."""
+        for fc in action.fcurves:
+            if (fc.data_path == dataPath) and (fc.array_index == idx):
+                return fc
+        fc = action.fcurves.new(data_path=dataPath, index=idx)
+        return fc
+
+    # Get animation data, create if needed.
+    animData = obj.animation_data
+    if not animData:
+        animData = obj.animation_data_create()
+    # Get action, create if needed.
+    action = animData.action
+    if not action:
+        action = bpy.data.actions.new(name=obj.name)
+        action.use_fake_user = True
+        animData.action = action
+    kfOptions = {'FAST'}
+    dp_names = [fcu.data_path for fcu in action.fcurves]
+    if 'rotation_euler' in dp_names:
+        curveX = getCurve(action, 'rotation_euler', 0)
+        curveY = getCurve(action, 'rotation_euler', 1)
+        curveZ = getCurve(action, 'rotation_euler', 2)
+        rot = obj.nvb.restrot
+        curveX.keyframe_points.insert(frame, rot[0], kfOptions)
+        curveY.keyframe_points.insert(frame, rot[1], kfOptions)
+        curveZ.keyframe_points.insert(frame, rot[2], kfOptions)
+    if 'location' in dp_names:
+        curveX = getCurve(action, 'location', 0)
+        curveY = getCurve(action, 'location', 1)
+        curveZ = getCurve(action, 'location', 2)
+        loc = obj.nvb.restloc
+        curveX.keyframe_points.insert(frame, loc[0], kfOptions)
+        curveY.keyframe_points.insert(frame, loc[1], kfOptions)
+        curveZ.keyframe_points.insert(frame, loc[2], kfOptions)
 
 
 def copyAnims2Armature(amt, source, destructive=False, convertangles=False):

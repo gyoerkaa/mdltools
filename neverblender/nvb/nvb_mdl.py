@@ -359,18 +359,21 @@ class Mdl():
 
     def createAnimations(self, options):
         """TODO: DOC."""
-        rootDummy = nvb_utils.findRootDummy(bpy.context.object)
-        # Add an extra frame to the beginning representing the original
-        # location and rotation
-        # nvb_utils.addDefaultKeyframe(rootDummy)
+        rootd = nvb_utils.findRootDummy(bpy.context.object)
         # We will load the 'default' animation first, so it is at the front
         defaultAnims = [a for a in self.animations if a.name == 'default']
         for anim in defaultAnims:
-            anim.create(rootDummy, self.nodeNameResolver, options)
+            anim.create(rootd, self.nodeNameResolver, options)
 
         nonDefaultAnims = [a for a in self.animations if a.name != 'default']
         for anim in nonDefaultAnims:
-            anim.create(rootDummy, self.nodeNameResolver, options)
+            anim.create(rootd, self.nodeNameResolver, options)
+        # Create rest poses
+        children = []
+        nvb_utils.getAllChildren(rootd, children)
+        for anim in rootd.nvb.animList:
+            for c in children:
+                nvb_utils.createRestPose(c, anim.frameStart-5)
 
     def create(self, options):
         """TODO: DOC."""

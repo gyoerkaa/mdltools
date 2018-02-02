@@ -889,8 +889,9 @@ class Trimesh(Node):
             val = int(obj.nvb.inheritcolor)
             if val != 0:  # Skip if default value
                 asciiLines.append('  inheritcolor ' + str(val))
-            asciiLines.append('  transparencyhint ' +
-                              str(obj.nvb.transparencyhint))
+            val = obj.nvb.transparencyhint
+            if val != 0:  # Skip if default value
+                asciiLines.append('  transparencyhint ' + str(val))
             # These two are for tiles only
             if options.classification == nvb_def.Classification.TILE:
                 asciiLines.append('  rotatetexture ' +
