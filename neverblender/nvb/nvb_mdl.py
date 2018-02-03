@@ -38,7 +38,6 @@ class Mdl():
         # Animations
         self.animations = []
         # Resolve non-unique node names
-        self.nodeNameResolver = nvb_utils.NodeNameResolver()
         self.noderesolver = nvb_utils.NodeResolver()
 
     def getRootNode(self):
@@ -339,10 +338,6 @@ class Mdl():
                     self.noderesolver.create_obj(node.name,
                                                  node.nodeidx,
                                                  obj.name)
-                    self.nodeNameResolver.insertObj(node.name,
-                                                    node.parent,
-                                                    node.nodeidx,
-                                                    obj.name)
                 else:
                     print('INTERNAL ERROR')
 

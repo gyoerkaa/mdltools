@@ -320,7 +320,7 @@ class Trimesh(Node):
         self.shininess = 0
         self.bitmap = ''
         self.renderhints = []
-        self.textures = []
+        self.textures = ['', '', '']
         self.rotatetexture = 0
         self.verts = []  # list of vertices
         self.facelist = FaceList()
@@ -515,6 +515,69 @@ class Trimesh(Node):
                 return mat
         return None
 
+    def createMaterial2(self, matname, options):
+        """TODO: Doc."""
+
+        def createTexture(tname, iname, options):
+            """TODO: Doc."""
+            if tname in bpy.data.textures:
+                # Load the image for the texture
+                tex = bpy.data.textures[tname]
+            else:
+                tex = bpy.data.textures.new(tname, type='IMAGE')
+                if (iname in bpy.data.images):
+                    image = bpy.data.images[iname]
+                    tex.image = image
+                else:
+                    image = self.createImage(iname,
+                                             options.texturePath,
+                                             options.textureSearch)
+                    if image is not None:
+                        tex.image = image
+            return tex
+
+        material = None
+        # Get textures
+        tdiff_name = self.bitmap
+        tnorm_name = ''
+        tspec_name = ''
+        print('a')
+        if 'normalandspecmapped' in self.renderhints:
+            print('b')
+            if self.textures[0]:
+                tdiff_name = self.textures[0]
+            tnorm_name = self.textures[1]
+            tspec_name = self.textures[2]
+        # Look for similar materials to avoid duplicates
+        if options.materialMode == 'SIN':
+            material = nvb_utils.find_material()
+        # If no similar material was found, create a new one
+        if not material:
+            material = bpy.data.materials.new(matname)
+            material.diffuse_color = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color = self.specular
+            material.specular_intensity = 1.0
+            if tdiff_name:
+                tslot = material.texture_slots.add()
+                tslot.texture = createTexture(tdiff_name, tdiff_name, options)
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = True
+            if tnorm_name:
+                tslot = material.texture_slots.add()
+                tslot.texture = createTexture(tnorm_name, tnorm_name, options)
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = False
+                tslot.use_map_normal = True
+            if tspec_name:
+                tslot = material.texture_slots.add()
+                tslot.texture = createTexture(tspec_name, tspec_name, options)
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = False
+                tslot.use_map_color_spec = True
+                # tslot.use_map_hardness = True
+        return material
+
     def createMaterial(self, name, options):
         """TODO: Doc."""
         material = None
@@ -570,7 +633,7 @@ class Trimesh(Node):
 
         # Create material
         if options.materialMode != 'NON':
-            material = self.createMaterial(name, options)
+            material = self.createMaterial2(name, options)
             mesh.materials.append(material)
             # Create UV map
             if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:

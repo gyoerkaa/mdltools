@@ -9,8 +9,8 @@ from . import nvb_def
 
 
 class NodeResolver():
-    """Solves naming conflicts."""
-    """
+    """Solves naming conflicts.
+
     There may be several nodes with the same name in the mdl.
     However, Blender object names are unique, we need to fix this.
     """
@@ -58,6 +58,79 @@ class NodeResolver():
                 filtered.sort(key=lambda x: x[1])
                 return bpy.data.objects[filtered[-1][0]]
         return None
+
+
+def get_texture_slots(material):
+    """Get the diffuse, normal, and specular textures of this material."""
+    def is_diffuse(ts):
+        return (ts and
+                ts.use_map_color_diffuse and
+                not ts.use_map_normal and
+                not ts.use_map_color_spec)
+
+    def is_normal(ts):
+        return (ts and
+                not ts.use_map_color_diffuse and
+                ts.use_map_normal)
+
+    def is_spec(ts):
+        return (ts and
+                not ts.use_map_color_diffuse and
+                ts.use_map_color_spec)
+
+    ts_diff = [ts for ts in material.texture_slots if is_diffuse(ts)] + [None]
+    ts_norm = [ts for ts in material.texture_slots if is_normal(ts)] + [None]
+    ts_spec = [ts for ts in material.texture_slots if is_spec(ts)] + [None]
+    return ts_diff[0], ts_norm[0], ts_spec[0]
+
+
+def find_material(tdiff_name='', tnorm_name='', tspec_name='',
+                  col_diff=(-1.0, -1.0, -1.0), col_spec=(-1.0, -1.0, -1.0),
+                  alpha=-1.0):
+    """Find a material with similar values.
+
+    Compares the diffuse, specular and image values of the material
+    to the parameters.
+    """
+    def cmp_col(a, b, rel_tol=0.1):
+        """Compares two colors."""
+        def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        return (isclose(a[0], b[0], rel_tol) and
+                isclose(a[1], b[1], rel_tol) and
+                isclose(a[2], b[2], rel_tol))
+
+    def get_tslot_img(tslot):
+        """Compares two textures (i.e their image names)"""
+        tex = tslot.texture
+        if tex and tex.type == 'IMAGE':
+            return tex.image.name
+        return ''
+
+    for mat in bpy.data.materials:
+        eq = True
+        # Texture slots to check
+        tslot_diff, tslot_norm, tslot_spec = get_texture_slots(mat)
+        # Check diffuse texture
+        if tdiff_name:
+            if tslot_diff:
+                eq = eq and (tdiff_name == get_tslot_img(tslot_diff))
+                eq = eq and (alpha == tslot_diff.alpha_factor)
+        else:
+            eq = eq and (alpha == mat.alpha)
+        # Check normal texture
+        if tnorm_name and tslot_norm:
+                eq = eq and (tnorm_name == get_tslot_img(tslot_norm))
+        # Check specular texture
+        if tspec_name and tslot_spec:
+                eq = eq and (tspec_name == get_tslot_img(tslot_spec))
+        # Check diffuse and specular color
+        eq = eq and cmp_col(mat.diffuse_color, col_diff)
+        eq = eq and cmp_col(mat.specular_color, col_spec)
+        if eq:
+            return mat
+
+    return None
 
 
 def findEnd(asciiBlock):
