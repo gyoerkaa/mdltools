@@ -39,6 +39,7 @@ class Mdl():
         self.animations = []
         # Resolve non-unique node names
         self.nodeNameResolver = nvb_utils.NodeNameResolver()
+        self.noderesolver = nvb_utils.NodeResolver()
 
     def getRootNode(self):
         """TODO:DOC."""
@@ -306,40 +307,25 @@ class Mdl():
 
     def createObjectLinks(self, options):
         """Handle parenting and linking the objects to a scene."""
-        # We'll need this for objects with missing parents (or walkmeshes)
-        rootNode = self.getRootNode()
-        if rootNode:
-            rootObjName = self.nodeNameResolver.findObj(rootNode.name, '')
-            rootObj = bpy.data.objects[rootObjName]
-        # Loop over all imported nodes
-        # There may be several nodes with the same name in the mdl.
-        # However, Blender object names are unique, we need to fix this.
-        for node in self.nodes:
-            objName = self.nodeNameResolver.findObj(node.name,
-                                                    node.parent,
-                                                    node.nodeidx)
-            if objName:
-                obj = bpy.data.objects[objName]
-                if node.parent:
-                    if node.parent == '!':
-                        obj.parent = rootObj
-                        obj.matrix_parent_inverse = \
-                            obj.parent.matrix_world.inverted()
-                    else:
-                        # Using '?' to specify that the parent is unknown
-                        objParentName = self.nodeNameResolver.findObj(
-                                node.parent,
-                                '?',
-                                node.nodeidx)
-                        if objParentName:
-                            obj.parent = bpy.data.objects[objParentName]
+        node = self.getRootNode()
+        rootobj = None
+        if node:
+            rootobj = self.noderesolver.get_obj(node.name, node.nodeidx)
+            rootobj.nvb.supermodel = self.supermodel
+            rootobj.nvb.classification = self.classification
 
-                else:
-                    # Node without parent (empty string or 'null').
-                    # Treat as rootdummy.
-                    obj.nvb.supermodel = self.supermodel
-                    obj.nvb.classification = self.classification
-                options.scene.objects.link(obj)
+        for node in self.nodes:
+            obj = self.noderesolver.get_obj(node.name, node.nodeidx)
+            if obj == rootobj:
+                obj.parent = None
+            elif (not node.parent) or (node.parent == nvb_def.null):
+                # No parent was specified, set to aurora root
+                obj.parent = rootobj
+            else:
+                parentobj = self.noderesolver.get_obj_parent(node.parent,
+                                                             node.nodeidx)
+                obj.parent = parentobj
+            options.scene.objects.link(obj)
 
     def createObjects(self, options):
         """TODO: DOC."""
@@ -350,6 +336,9 @@ class Mdl():
                 obj = node.createObject(options)
                 # Save the imported objects for animation import
                 if obj:
+                    self.noderesolver.create_obj(node.name,
+                                                 node.nodeidx,
+                                                 obj.name)
                     self.nodeNameResolver.insertObj(node.name,
                                                     node.parent,
                                                     node.nodeidx,
@@ -360,14 +349,14 @@ class Mdl():
     def createAnimations(self, options):
         """TODO: DOC."""
         rootd = nvb_utils.findRootDummy(bpy.context.object)
-        # We will load the 'default' animation first, so it is at the front
-        defaultAnims = [a for a in self.animations if a.name == 'default']
-        for anim in defaultAnims:
-            anim.create(rootd, self.nodeNameResolver, options)
-
-        nonDefaultAnims = [a for a in self.animations if a.name != 'default']
-        for anim in nonDefaultAnims:
-            anim.create(rootd, self.nodeNameResolver, options)
+        # Load the 'default' animation first, so it is at the front
+        anims = [a for a in self.animations if a.name == 'default']
+        for a in anims:
+            a.create(rootd, self.noderesolver, options)
+        # Load the rest of the anims
+        anims = [a for a in self.animations if a.name != 'default']
+        for a in anims:
+            a.create(rootd, self.noderesolver, options)
         # Create rest poses
         children = []
         nvb_utils.getAllChildren(rootd, children)
@@ -380,9 +369,9 @@ class Mdl():
         if options.importGeometry:
             self.createObjects(options)
             self.createObjectLinks(options)
-
             if options.importAnimations:
                 self.createAnimations(options)
         else:
-            # Import animations only, there is no objectDB in this case
+            # Import animations only, there is no noderesolver in this case
+            # TODO: finish this
             pass

@@ -3,58 +3,61 @@
 import mathutils
 import bpy
 import os
-import collections
 import math
 
 from . import nvb_def
 
 
-class NodeNameResolver(collections.OrderedDict):
+class NodeResolver():
     """Solves naming conflicts."""
+    """
+    There may be several nodes with the same name in the mdl.
+    However, Blender object names are unique, we need to fix this.
+    """
 
-    def insertObj(self, nodeName, nodeParentName, nodeIdx, objName):
+    def __init__(self):
         """TODO: DOC."""
-        if nodeName in self:
-            self[nodeName].append((nodeParentName, nodeIdx, objName))
-        else:
-            self[nodeName] = [(nodeParentName, nodeIdx, objName)]
+        self.nodes = dict()
 
-    def findObj(self, nodeName, nodeParentName='', nodeIdx=-1):
-        """Find the name of the created object.
+    def create_obj(self, node_name, node_idx, obj_name):
+        """TODO: DOC."""
+        if node_name not in self.nodes:
+            self.nodes[node_name] = []
+        self.nodes[node_name].append((obj_name, node_idx))
 
-        If was only one node with that name the name of the imported object
-        will be returned. However, if there were multiple nodes with the same
-        names, we will return the best match:
-            - Same parents (use '?' as parameter if the parent is unknown)
-            - If the parent is unknown the closest node with the lowest ID will
-              be returned.
-        """
-        objName = ''
-        if nodeName in self:
-            if len(self[nodeName]) > 1:
-                # Multiple objects with the same name.
-                # This is bad, but that's why we're doing all this.
-                # 1. check for same parents
-                if (nodeParentName != '?') and (nodeParentName in self):
-                    matches = [m for m in self[nodeParentName] if
-                               nodeParentName == m[0]]
-                    if matches:
-                        objName = matches[0][2]  # Arbitrary decision
-                # 2. Use the nearest node with lowest position
-                if (nodeIdx >= 0) and not objName:
-                    mp = -1
-                    m = None
-                    for potentialMatch in self[nodeName]:
-                        if (potentialMatch[1] < nodeIdx) and \
-                           (potentialMatch[1] > mp):
-                            mp = potentialMatch[1]
-                            m = potentialMatch[2]
-                    objName = m
-            else:
-                # Only a single object with the name (ideal case)
-                objName = self[nodeName][0][2]
+    def get_obj(self, node_name, node_idx):
+        """TODO: DOC."""
+        if node_name not in self.nodes:
+            return None
+        matches = self.nodes[node_name]
+        if len(matches) == 1:
+            # Only one object was created using this node name
+            return bpy.data.objects[matches[0][0]]
+        elif len(matches) > 1:
+            # Return the node with the same index
+            filtered = list(filter(lambda x: x[1] == node_idx, matches))
+            filtered.sort(key=lambda x: x[1])
+            if filtered:
+                return bpy.data.objects[filtered[0][0]]
+        return None
 
-        return objName
+    def get_obj_parent(self, node_name, node_idx):
+        """TODO: DOC."""
+        if node_name not in self.nodes:
+            return None
+        matches = self.nodes[node_name]
+        if len(matches) == 1:
+            # Only one object was created using this node name
+            return bpy.data.objects[matches[0][0]]
+        elif len(matches) > 1:
+            # Get all nodes with lower indices
+            # (= located before this node in the MDL)
+            filtered = list(filter(lambda x: x[1] < node_idx, matches))
+            # Of these nodes, return the one with highest index
+            if filtered:
+                filtered.sort(key=lambda x: x[1])
+                return bpy.data.objects[filtered[-1][0]]
+        return None
 
 
 def findEnd(asciiBlock):
@@ -81,7 +84,7 @@ def getAuroraString(s):
     """Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):
         return ''
-    return s
+    return s.lower()
 
 
 def belongsToWalkmesh(obj, classification):

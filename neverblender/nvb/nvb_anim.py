@@ -18,7 +18,7 @@ class Animation():
         self.events = []
         self.nodes = []
 
-    def create(self, rootDummy, nodeNameResolver, options):
+    def create(self, rootDummy, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Add new animation to list
         newAnim = nvb_utils.createAnimListItem(rootDummy)
@@ -36,11 +36,9 @@ class Animation():
 
         # Load the animation into the objects/actions
         for node in self.nodes:
-            objName = nodeNameResolver.findObj(node.name,
-                                               node.parent,
-                                               node.nodeidx)
-            if objName and objName in bpy.data.objects:
-                node.create(bpy.data.objects[objName], newAnim, options)
+            obj = noderesolver.get_obj(node.name, node.nodeidx)
+            if obj:
+                node.create(obj, newAnim, options)
 
     def loadAsciiAnimHeader(self, asciiBlock):
         """TODO: DOC."""

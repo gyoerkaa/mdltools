@@ -119,7 +119,6 @@ class Node(object):
         """TODO: DOC."""
         nvb_utils.setObjectRotationAurora(obj, self.orientation)
         obj.nvb.restrot = obj.rotation_euler
-        # TODO: skip if 1
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.restloc = obj.location
@@ -320,6 +319,8 @@ class Trimesh(Node):
         self.specular = (0.0, 0.0, 0.0)
         self.shininess = 0
         self.bitmap = ''
+        self.renderhints = []
+        self.textures = []
         self.rotatetexture = 0
         self.verts = []  # list of vertices
         self.facelist = FaceList()
@@ -455,6 +456,14 @@ class Trimesh(Node):
                         pass
                 elif (label == 'bitmap'):
                     self.bitmap = nvb_utils.getAuroraString(line[1])
+                elif (label == 'renderhint'):
+                    self.renderhints.append(nvb_utils.getAuroraString(line[1]))
+                elif (label == 'texture0'):
+                    self.textures[0] = nvb_utils.getAuroraString(line[1])
+                elif (label == 'texture1'):
+                    self.textures[1] = nvb_utils.getAuroraString(line[1])
+                elif (label == 'texture2'):
+                    self.textures[2] = nvb_utils.getAuroraString(line[1])
                 elif (label == 'verts'):
                     if not self.verts:
                         numVals = l_int(line[1])
@@ -504,7 +513,6 @@ class Trimesh(Node):
             eq = eq and isclose_3f(mat.specular_color, self.specular)
             if eq:
                 return mat
-
         return None
 
     def createMaterial(self, name, options):
