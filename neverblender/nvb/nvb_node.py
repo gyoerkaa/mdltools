@@ -326,62 +326,6 @@ class Trimesh(Node):
         self.facelist = FaceList()
         self.tverts = []  # list of texture vertices
 
-    @staticmethod
-    def getAuroraAlpha(obj):
-        """Get the alpha value of material or texture.
-
-        This will return
-            1. texture_slot.alpha_factor when there is a texture
-            2. material.alpha when there is no texture
-            3. 1.0 when there is no material
-        """
-        mat = obj.active_material
-        if mat and mat.use_transparency:
-            tex = mat.active_texture
-            if tex:
-                tslotIdx = mat.active_texture_index
-                tslot = mat.texture_slots[tslotIdx]
-                return tslot.alpha_factor
-            else:
-                return mat.alpha
-        else:
-            return 1.0
-
-    def setMaterialAuroraAlpha(self, mat, alpha):
-        """Set the alpha value of material or texture.
-
-        This will set
-            1. texture_slot.alpha_factor when there is a texture
-            2. material.alpha there is no texture, but a material
-            3. Do nothing, when there is no material
-        """
-        mat.use_transparency = True
-        tex = mat.active_texture
-        if tex:
-            mat.alpha = 0.0
-            tslotIdx = mat.active_texture_index
-            tslot = mat.texture_slots[tslotIdx]
-            tslot.use_map_alpha = True
-            tslot.alpha_factor = alpha
-        else:
-            mat.alpha = alpha
-
-    def createImage(self, imgName, imgPath, imgSearch=False):
-        """TODO: Doc."""
-        image = \
-            bpy_extras.image_utils.load_image(imgName + '.tga',
-                                              imgPath,
-                                              recursive=imgSearch,
-                                              place_holder=False,
-                                              ncase_cmp=True)
-        if (image is None):
-            # print('Neverblender: WARNING - Could not load image ' + imgName)
-            image = bpy.data.images.new(imgName, 512, 512)
-        else:
-            image.name = imgName
-
-        return image
-
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
         Node.loadAscii(self, asciiLines, nodeidx)
@@ -480,80 +424,59 @@ class Trimesh(Node):
                         nvb_parse.f2(asciiLines[i+1:i+numVals+1],
                                      self.tverts)
 
-    def findMaterial(self, imageName=''):
-        """Find a material with similar values.
-
-        Compares the diffuse, specular and image values of the material
-        to the parameters.
-        """
-        def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
-        def isclose_3f(a, b, rel_tol=0.1):
-            return (isclose(a[0], b[0], rel_tol) and
-                    isclose(a[1], b[1], rel_tol) and
-                    isclose(a[2], b[2], rel_tol))
-
-        for mat in bpy.data.materials:
-            eq = False
-            if not imageName:
-                # No texture
-                eq = not mat.active_texture
-                eq = eq and (mat.alpha == self.alpha)
-            else:
-                # Has to have a texture
-                if mat.active_texture:
-                    if mat.active_texture.type == 'IMAGE':
-                        if mat.active_texture.image.name:
-                            eq = (mat.active_texture.image.name == imageName)
-                    active_txslot = mat.texture_slots[mat.active_texture_index]
-                    eq = eq and (active_txslot.alpha_factor == self.alpha)
-
-            eq = eq and isclose_3f(mat.diffuse_color, self.diffuse)
-            eq = eq and isclose_3f(mat.specular_color, self.specular)
-            if eq:
-                return mat
-        return None
-
-    def createMaterial2(self, matname, options):
+    def createMaterial(self, options, keepunique=False):
         """TODO: Doc."""
 
-        def createTexture(tname, iname, options):
+        def createTexture(tname, imgname, options):
             """TODO: Doc."""
             if tname in bpy.data.textures:
                 # Load the image for the texture
                 tex = bpy.data.textures[tname]
             else:
                 tex = bpy.data.textures.new(tname, type='IMAGE')
-                if (iname in bpy.data.images):
-                    image = bpy.data.images[iname]
+                if (imgname in bpy.data.images):
+                    image = bpy.data.images[imgname]
                     tex.image = image
                 else:
-                    image = self.createImage(iname,
-                                             options.texturePath,
-                                             options.textureSearch)
-                    if image is not None:
-                        tex.image = image
+                    image = bpy_extras.image_utils.load_image(
+                        imgname + '.tga',
+                        options.texturePath,
+                        recursive=options.textureSearch,
+                        place_holder=False,
+                        ncase_cmp=True)
+                    if image is None:
+                        image = bpy.data.images.new(imgname, 512, 512)
+                    image.name = imgname
+                    tex.image = image
             return tex
 
-        material = None
+        matname = self.bitmap
+        if not matname:
+            matname = self.name
         # Get textures
+        tnames = ['', '', '']
         tdiff_name = self.bitmap
+        tnames[0] = self.textures[0]
         tnorm_name = ''
         tspec_name = ''
-        print('a')
         if 'normalandspecmapped' in self.renderhints:
-            print('b')
+            # bitmap value takes precedence
             if self.textures[0]:
+                tnames[0] = self.textures[0]
                 tdiff_name = self.textures[0]
             tnorm_name = self.textures[1]
             tspec_name = self.textures[2]
         # Look for similar materials to avoid duplicates
-        if options.materialMode == 'SIN':
-            material = nvb_utils.find_material()
+        material = None
+        if options.materialMode == 'SIN' and not keepunique:
+            material = nvb_utils.find_material(
+                tdiff_name, tnorm_name, tspec_name,
+                self.diffuse, self.specular,
+                self.alpha)
         # If no similar material was found, create a new one
         if not material:
             material = bpy.data.materials.new(matname)
+            material.use_transparency = True
             material.diffuse_color = self.diffuse
             material.diffuse_intensity = 1.0
             material.specular_color = self.specular
@@ -563,6 +486,11 @@ class Trimesh(Node):
                 tslot.texture = createTexture(tdiff_name, tdiff_name, options)
                 tslot.texture_coords = 'UV'
                 tslot.use_map_color_diffuse = True
+                tslot.use_map_alpha = True
+                tslot.alpha_factor = self.alpha
+                material.alpha = 0.0
+            else:
+                material.alpha = self.alpha
             if tnorm_name:
                 tslot = material.texture_slots.add()
                 tslot.texture = createTexture(tnorm_name, tnorm_name, options)
@@ -578,49 +506,6 @@ class Trimesh(Node):
                 # tslot.use_map_hardness = True
         return material
 
-    def createMaterial(self, name, options):
-        """TODO: Doc."""
-        material = None
-        texName = self.bitmap.lower()
-        if options.materialMode == 'SIN':
-            # Avoid duplicate materials, search for similar ones.
-            material = self.findMaterial(texName)
-        if not material:
-            # No similar material found, create new one
-            material = bpy.data.materials.new(name)
-            material.diffuse_color = self.diffuse
-            material.diffuse_intensity = 1.0
-            material.specular_color = self.specular
-
-            if texName:
-                textureSlot = material.texture_slots.add()
-                # If a texture with the same name was already created treat
-                # them as if they were the same, i.e. just use the old one
-                if (texName in bpy.data.textures):
-                    textureSlot.texture = bpy.data.textures[texName]
-                else:
-                    textureSlot.texture = bpy.data.textures.new(texName,
-                                                                type='IMAGE')
-                textureSlot.texture_coords = 'UV'
-                textureSlot.use_map_color_diffuse = True
-
-                # Load the image for the texture, but check if it was
-                # already loaded before. If so, use that one.
-                imgName = self.bitmap
-                if (imgName in bpy.data.images):
-                    image = bpy.data.images[imgName]
-                    textureSlot.texture.image = image
-                else:
-                    image = self.createImage(imgName,
-                                             options.texturePath,
-                                             options.textureSearch)
-                    if image is not None:
-                        textureSlot.texture.image = image
-
-        self.setMaterialAuroraAlpha(material, self.alpha)
-
-        return material
-
     def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
@@ -633,7 +518,7 @@ class Trimesh(Node):
 
         # Create material
         if options.materialMode != 'NON':
-            material = self.createMaterial2(name, options)
+            material = self.createMaterial(options)
             mesh.materials.append(material)
             # Create UV map
             if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
@@ -741,8 +626,23 @@ class Trimesh(Node):
     @staticmethod
     def generateAsciiMaterial(obj, asciiLines):
         """TODO: Doc."""
+        def getImgName(tslot):
+            imgName = ''
+            tex = tslot.texture
+            if (tex.type == 'IMAGE') and (tex.image):
+                imgName = nvb_utils.getImageFilename(tex.image)
+            return imgName
+
+        def getAlpha(mat, tslot):
+            if mat and mat.use_transparency:
+                if tslot:
+                    return tslot.alpha_factor
+                else:
+                    return mat.alpha
+            else:
+                return 1.0
+
         hasImgTexture = False
-        # Check if the object is only a shadow mesh
         if not obj.nvb.render and obj.nvb.shadow:
             # Shadow mesh: Everything should be black, no texture, no uv
             asciiLines.append('  diffuse 0.00 0.00 0.00')
@@ -752,38 +652,39 @@ class Trimesh(Node):
             # Check if this object has a material assigned to it
             material = obj.active_material
             if material:
-                diff = material.diffuse_color
                 formatString = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(round(diff[0], 2),
-                                        round(diff[1], 2),
-                                        round(diff[2], 2))
+                s = formatString.format(round(material.diffuse_color[0], 2),
+                                        round(material.diffuse_color[1], 2),
+                                        round(material.diffuse_color[2], 2))
                 asciiLines.append(s)
 
-                spec = material.specular_color
                 formatString = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(round(spec[0], 2),
-                                        round(spec[1], 2),
-                                        round(spec[2], 2))
+                s = formatString.format(round(material.specular_color[0], 2),
+                                        round(material.specular_color[1], 2),
+                                        round(material.specular_color[2], 2))
                 asciiLines.append(s)
 
                 # Check if this material has a texture assigned
-                texture = material.active_texture
-                imgName = nvb_def.null
-                if texture:
-                    # Only image textures will be exported
-                    if (texture.type == 'IMAGE') and (texture.image):
-                        imgName = nvb_utils.getImageFilename(texture.image)
+                tslots = nvb_utils.get_texture_slots(material)
+                # Diffuse texture will always result in an bitmap entry
+                if tslots[0]:
+                    imgName = getImgName(tslots[0])
+                    if imgName:
+                        asciiLines.append('  bitmap ' + imgName)
                         hasImgTexture = True
-                asciiLines.append('  bitmap ' + imgName)
-                alpha = round(Trimesh.getAuroraAlpha(obj), 2)
-                if (alpha > 0.997):  # omit default value
-                    asciiLines.append('  alpha ' + str(alpha))
-            else:
-                # No material, set some default values
-                asciiLines.append('  diffuse 1.00 1.00 1.00')
-                asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap ' + nvb_def.null)
-
+                alpha = getAlpha(material, tslots[0])
+                if (alpha < 0.995):  # omit default value
+                    asciiLines.append('  alpha ' + str(round(alpha, 2)))
+                # Add renderhint if normal or specular maps were detected
+                if tslots[1] or tslots[2]:
+                    asciiLines.append('  renderhint NormalAndSpecMapped')
+                    for idx, ts in enumerate(tslots):
+                        if ts:
+                            imgName = getImgName(ts)
+                            if imgName:
+                                asciiLines.append('  texture' +
+                                                  str(idx) + ' ' + imgName)
+                                hasImgTexture = True
         return hasImgTexture
 
     @staticmethod
@@ -983,43 +884,9 @@ class Animmesh(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
-    def createMaterial(self, name, options):
+    def createMaterial(self, options, keepunique=False):
         """TODO: Doc."""
-        material = None
-        texName = self.bitmap.lower()
-
-        material = bpy.data.materials.new(name)
-        material.diffuse_color = self.diffuse
-        material.diffuse_intensity = 1.0
-        material.specular_color = self.specular
-
-        textureSlot = material.texture_slots.add()
-        # If a texture with the same name was already created treat
-        # them as if they were the same, i.e. just use the old one
-        if (texName in bpy.data.textures):
-            textureSlot.texture = bpy.data.textures[texName]
-        else:
-            textureSlot.texture = bpy.data.textures.new(texName,
-                                                        type='IMAGE')
-        textureSlot.texture_coords = 'UV'
-        textureSlot.use_map_color_diffuse = True
-
-        # Load the image for the texture, but check if it was
-        # already loaded before. If so, use that one.
-        imgName = self.bitmap
-        if (imgName in bpy.data.images):
-            image = bpy.data.images[imgName]
-            textureSlot.texture.image = image
-        else:
-            image = self.createImage(imgName,
-                                     options.texturePath,
-                                     options.textureSearch)
-            if image is not None:
-                textureSlot.texture.image = image
-
-        self.setMaterialAuroraAlpha(material, self.alpha)
-
-        return material
+        return Trimesh.createMaterial(self, options, True)
 
 
 class Danglymesh(Trimesh):

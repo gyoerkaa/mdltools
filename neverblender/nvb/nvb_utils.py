@@ -60,27 +60,25 @@ class NodeResolver():
         return None
 
 
-def get_texture_slots(material):
+def get_texture_slots(mat):
     """Get the diffuse, normal, and specular textures of this material."""
-    def is_diffuse(ts):
-        return (ts and
-                ts.use_map_color_diffuse and
+    def is_diff(ts):
+        return (ts.use_map_color_diffuse and
                 not ts.use_map_normal and
                 not ts.use_map_color_spec)
 
-    def is_normal(ts):
-        return (ts and
-                not ts.use_map_color_diffuse and
+    def is_norm(ts):
+        return (not ts.use_map_color_diffuse and
                 ts.use_map_normal)
 
     def is_spec(ts):
-        return (ts and
-                not ts.use_map_color_diffuse and
+        return (not ts.use_map_color_diffuse and
                 ts.use_map_color_spec)
-
-    ts_diff = [ts for ts in material.texture_slots if is_diffuse(ts)] + [None]
-    ts_norm = [ts for ts in material.texture_slots if is_normal(ts)] + [None]
-    ts_spec = [ts for ts in material.texture_slots if is_spec(ts)] + [None]
+    used_tslots = [ts for idx, ts in enumerate(mat.texture_slots)
+                   if ts and mat.use_textures[idx]]
+    ts_diff = [ts for ts in used_tslots if is_diff(ts)] + [None]
+    ts_norm = [ts for ts in used_tslots if is_norm(ts)] + [None]
+    ts_spec = [ts for ts in used_tslots if is_spec(ts)] + [None]
     return ts_diff[0], ts_norm[0], ts_spec[0]
 
 
@@ -108,15 +106,25 @@ def find_material(tdiff_name='', tnorm_name='', tspec_name='',
         return ''
 
     for mat in bpy.data.materials:
-        eq = True
+        eq = False
+        # Check diffuse and specular color
+        eq = col_diff and cmp_col(mat.diffuse_color, col_diff)
+        eq = eq and (col_spec and cmp_col(mat.specular_color, col_spec))
         # Texture slots to check
         tslot_diff, tslot_norm, tslot_spec = get_texture_slots(mat)
         # Check diffuse texture
         if tdiff_name:
+            # The texture we're looking for has to have a diffuse texture
             if tslot_diff:
                 eq = eq and (tdiff_name == get_tslot_img(tslot_diff))
                 eq = eq and (alpha == tslot_diff.alpha_factor)
+            else:
+                # This material doesn't have one
+                continue
         else:
+            # The texture we're looking for cannot have a diffuse texture
+            if tslot_diff:
+                continue
             eq = eq and (alpha == mat.alpha)
         # Check normal texture
         if tnorm_name and tslot_norm:
@@ -124,12 +132,8 @@ def find_material(tdiff_name='', tnorm_name='', tspec_name='',
         # Check specular texture
         if tspec_name and tslot_spec:
                 eq = eq and (tspec_name == get_tslot_img(tslot_spec))
-        # Check diffuse and specular color
-        eq = eq and cmp_col(mat.diffuse_color, col_diff)
-        eq = eq and cmp_col(mat.specular_color, col_spec)
         if eq:
             return mat
-
     return None
 
 
