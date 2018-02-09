@@ -321,11 +321,13 @@ class Trimesh(Node):
         self.shininess = 0
         self.bitmap = ''
         self.renderhints = []
-        self.textures = ['', '', '']
+        self.textures = ['', '', '', '']
         self.rotatetexture = 0
-        self.verts = []  # list of vertices
+        self.verts = []
         self.facelist = FaceList()
-        self.tverts = []  # list of texture vertices
+        self.tverts = []
+        self.tangents = []
+        self.normals = []
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
@@ -424,6 +426,16 @@ class Trimesh(Node):
                         numVals = l_int(line[1])
                         nvb_parse.f2(asciiLines[i+1:i+numVals+1],
                                      self.tverts)
+                elif (label == 'normals'):
+                    if not self.normals:
+                        numVals = l_int(line[1])
+                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
+                                     self.normals)
+                elif (label == 'tangents'):
+                    if not self.tangents:
+                        numVals = l_int(line[1])
+                        nvb_parse.f4(asciiLines[i+1:i+numVals+1],
+                                     self.tangents)
 
     def createMaterial(self, options, keepunique=False):
         """TODO: Doc."""
