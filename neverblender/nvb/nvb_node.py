@@ -4,6 +4,7 @@ import mathutils
 import bpy
 import bpy_extras.image_utils
 import bmesh
+import re
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_def
@@ -454,15 +455,15 @@ class Trimesh(Node):
         if not matname:
             matname = self.name
         # Get textures
-        tnames = ['', '', '']
+        # tnames = ['', '', '']
         tdiff_name = self.bitmap
-        tnames[0] = self.textures[0]
+        # tnames[0] = self.textures[0]
         tnorm_name = ''
         tspec_name = ''
         if 'normalandspecmapped' in self.renderhints:
-            # bitmap value takes precedence
+            # texture0 value takes precedence
             if self.textures[0]:
-                tnames[0] = self.textures[0]
+                # tnames[0] = self.textures[0]
                 tdiff_name = self.textures[0]
             tnorm_name = self.textures[1]
             tspec_name = self.textures[2]
@@ -1002,6 +1003,22 @@ class Skinmesh(Trimesh):
     def loadAsciiWeights(self, asciiLines):
         """TODO: Doc."""
         lfloat = float
+        pattern = '(?:\s|^)(\D+)\s+([-+]?\d*\.?\d+)(?=\s|$)'
+        for al in asciiLines:
+            # A line looks like this
+            # [group_name, vertex_weight, group_name, vertex_weight]
+            # We create a list looking like this:
+            # [[group_name, vertex_weight], [group_name, vertex_weight]]
+            line = ' '.join(al)
+            gw_pairs = []
+            matches = re.findall(pattern, line)
+            for m in matches:
+                gw_pairs.append([m[0], lfloat(m[1])])
+            self.weights.append(gw_pairs)
+
+    def loadAsciiWeights2(self, asciiLines):
+        """TODO: Doc."""
+        lfloat = float
         lchunker = nvb_utils.chunker
         for line in asciiLines:
             # A line looks like this
@@ -1010,7 +1027,11 @@ class Skinmesh(Trimesh):
             # [[group_name, vertex_weight], [group_name, vertex_weight]]
             memberships = []
             for chunk in lchunker(line, 2):
-                memberships.append([chunk[0], lfloat(chunk[1])])
+                try:
+                    sgm = [chunk[0], lfloat(chunk[1])]
+                    memberships.append(sgm)
+                except ValueError:
+                    continue
             self.weights.append(memberships)
 
     def loadAscii(self, asciiLines, nodeidx=-1):

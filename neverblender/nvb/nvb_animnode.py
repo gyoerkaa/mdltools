@@ -240,12 +240,14 @@ class Animnode():
                         self.rawdata.append([' '.join(line), []])
 
     @staticmethod
-    def getCurve(action, dataPath, idx=0):
+    def getCurve(action, data_path, index=0):
         """TODO: DOC."""
-        for fc in action.fcurves:
-            if (fc.data_path == dataPath) and (fc.array_index == idx):
-                return fc
-        fc = action.fcurves.new(data_path=dataPath, index=idx)
+        # for fc in action.fcurves:
+        #     if (fc.data_path == dataPath) and (fc.array_index == idx):
+        #         return fc
+        fc = action.fcurves.find(data_path, index)
+        if not fc:
+            fc = action.fcurves.new(data_path=data_path, index=index)
         return fc
 
     def createDataMaterial(self, mat, anim):
@@ -301,8 +303,8 @@ class Animnode():
 
         dp = 'rotation_euler'
         if (self.orientationkey):
-            curves = [Animnode.getCurve(action, dp, ai) for ai in range(3)]
-            kfp = [curves[ci].keyframe_points for ci in range(3)]
+            curves = [Animnode.getCurve(action, dp, i) for i in range(3)]
+            kfp = [curves[i].keyframe_points for i in range(3)]
             nkfp = list(map(lambda x: len(x), kfp))
             list(map(lambda x: x.add(len(self.orientationkey)), kfp))
             curr_eul = 0
@@ -336,8 +338,8 @@ class Animnode():
 
         dp = 'location'
         if (self.positionkey):
-            curves = [Animnode.getCurve(action, dp, ai) for ai in range(3)]
-            kfp = [curves[ci].keyframe_points for ci in range(3)]
+            curves = [Animnode.getCurve(action, dp, i) for i in range(3)]
+            kfp = [curves[i].keyframe_points for i in range(3)]
             nkfp = list(map(lambda x: len(x), kfp))
             list(map(lambda x: x.add(len(self.positionkey)), kfp))
             for i in range(len(self.positionkey)):

@@ -587,12 +587,11 @@ def setupMinimapRender(rootDummy,
 def createRestPose(obj, frame=1):
     """TODO: DOC."""
 
-    def getCurve(action, dataPath, idx=0):
+    def getCurve(fcurves, data_path, index=0):
         """TODO: DOC."""
-        for fc in action.fcurves:
-            if (fc.data_path == dataPath) and (fc.array_index == idx):
-                return fc
-        fc = action.fcurves.new(data_path=dataPath, index=idx)
+        fc = fcurves.find(data_path, index)
+        if not fc:
+            fc = fcurves.new(data_path=data_path, index=index)
         return fc
 
     # Get animation data, create if needed.
@@ -608,81 +607,149 @@ def createRestPose(obj, frame=1):
     kfOptions = {'FAST'}
     dp_names = [fcu.data_path for fcu in action.fcurves]
     if 'rotation_euler' in dp_names:
-        curveX = getCurve(action, 'rotation_euler', 0)
-        curveY = getCurve(action, 'rotation_euler', 1)
-        curveZ = getCurve(action, 'rotation_euler', 2)
+        curveX = getCurve(action.fcurves, 'rotation_euler', 0)
+        curveY = getCurve(action.fcurves, 'rotation_euler', 1)
+        curveZ = getCurve(action.fcurves, 'rotation_euler', 2)
         rot = obj.nvb.restrot
         curveX.keyframe_points.insert(frame, rot[0], kfOptions)
         curveY.keyframe_points.insert(frame, rot[1], kfOptions)
         curveZ.keyframe_points.insert(frame, rot[2], kfOptions)
     if 'location' in dp_names:
-        curveX = getCurve(action, 'location', 0)
-        curveY = getCurve(action, 'location', 1)
-        curveZ = getCurve(action, 'location', 2)
+        curveX = getCurve(action.fcurves, 'location', 0)
+        curveY = getCurve(action.fcurves, 'location', 1)
+        curveZ = getCurve(action.fcurves, 'location', 2)
         loc = obj.nvb.restloc
         curveX.keyframe_points.insert(frame, loc[0], kfOptions)
         curveY.keyframe_points.insert(frame, loc[1], kfOptions)
         curveZ.keyframe_points.insert(frame, loc[2], kfOptions)
 
 
-def copyAnims2Armature(amt, source, destructive=False, convertangles=False):
+def copyAnims2Armature(armature, source,
+                       destructive=False, convertangles=False):
     """TODO: DOC."""
-    # Handle animations of the armature itself
+    # Process animations of the armature itself
 
-    # Handle animations/poses of the bones
-    bones = amt.data.bones
+    # Process animations/poses of the bones
+    bones = armature.data.bones
     if not bones:
         return
     # Get or create animation data for this armature
-    if not amt.animation_data:
-        amt.animation_data_create()
+    if not armature.animation_data:
+        armature.animation_data_create()
     # Get or create action for the animation data
-    amt_action = amt.animation_data.action
+    amt_action = armature.animation_data.action
     if not amt_action:
-        amt_action = bpy.data.actions.new(name=amt.name)
+        amt_action = bpy.data.actions.new(name=armature.name)
         amt_action.use_fake_user = True
-        amt.animation_data.action = amt_action
-    frame_offset = 0
+        armature.animation_data.action = amt_action
+    for amt_bone in bones:
+        armature.pose.bones[amt_bone.name].rotation_mode = 'XYZ'
+        # Check wether there is an pseudo bone object with the same
+        # name as the bone
+        if amt_bone.name in bpy.data.objects:
+            psb_bone = bpy.data.objects[amt_bone.name]
+            # Gather rotation and location keyframe points
+            # Their coordinates need to be adjusted for use with bones
+            mat1 = psb_bone.matrix_world.decompose()[1]\
+                .to_matrix().inverted().to_4x4()
+            mat2 = amt_bone.matrix_local.decompose()[1]\
+                .to_matrix().to_4x4()
+            if psb_bone.animation_data and psb_bone.animation_data.action:
+                psb_all_fcu = psb_bone.animation_data.action.fcurves
+                """
+                psb_dp = 'rotation_quaternion'
+                psb_dp = rotation_axis_angle'
+                """
+                # Rotation Euler
+                psb_dp = 'rotation_euler'
+                psb_fcu = [psb_all_fcu.find(psb_dp, i) for i in range(3)]
+                if psb_fcu.count(None) < 3:
+                    amt_dp = 'pose.bones["' + amt_bone.name + '"].' + psb_dp
+                    # Get keyframes
+                    keyed_frames = list(set().union(
+                        *[[k.co[0] for k in psb_fcu[i].keyframe_points]
+                          for i in range(3)]))
+                    keyed_frames.sort()
+                    psb_kfp = [[f,
+                                (psb_fcu[0].evaluate(f),
+                                 psb_fcu[1].evaluate(f),
+                                 psb_fcu[2].evaluate(f))]
+                               for f in keyed_frames]
+                    # Adjust to bone coordinates
+                    for kfp in psb_kfp:
+                        ori = mathutils.Vector(kfp[1])
+                        kfp[1] = ori * mat1 * mat2
+                    # Add keyframes
+                    amt_fcu = [amt_action.fcurves.new(amt_dp, i)
+                               for i in range(3)]
+                    amt_kfp = [amt_fcu[i].keyframe_points for i in range(3)]
+                    list(map(lambda x: x.add(len(psb_kfp)), amt_kfp))
+                    for i in range(len(psb_kfp)):
+                        for j in range(3):
+                            p = amt_kfp[j][i]
+                            p.co = psb_kfp[i][0], psb_kfp[i][1][j]
+                            p.interpolation = 'LINEAR'
+                            p.handle_left_type = 'AUTO_CLAMPED'
+                            p.handle_right_type = 'AUTO_CLAMPED'
+                    list(map(lambda x: x.update(), amt_fcu))
+                # Location
+                psb_dp = 'location'
+                psb_fcu = [psb_all_fcu.find(psb_dp, i) for i in range(3)]
+                if psb_fcu.count(None) < 3:
+                    amt_dp = 'pose.bones["' + amt_bone.name + '"].' + psb_dp
+                    # Get keyframes
+                    keyed_frames = list(set().union(
+                        *[[k.co[0] for k in psb_fcu[i].keyframe_points]
+                          for i in range(3)]))
+                    keyed_frames.sort()
+                    psb_loc = psb_bone.location
+                    psb_kfp = [[f,
+                                (psb_fcu[0].evaluate(f) - psb_loc[0],
+                                 psb_fcu[1].evaluate(f) - psb_loc[1],
+                                 psb_fcu[2].evaluate(f) - psb_loc[2])]
+                               for f in keyed_frames]
+                    # Adjust to bone coordinates
+                    for kfp in psb_kfp:
+                        ori = mathutils.Vector(kfp[1])
+                        kfp[1] = ori * mat1 * mat2
+                    # Add keyframes
+                    amt_fcu = [amt_action.fcurves.new(amt_dp, i)
+                               for i in range(3)]
+                    amt_kfp = [amt_fcu[i].keyframe_points for i in range(3)]
+                    list(map(lambda x: x.add(len(psb_kfp)), amt_kfp))
+                    for i in range(len(psb_kfp)):
+                        for j in range(3):
+                            p = amt_kfp[j][i]
+                            p.co = psb_kfp[i][0], psb_kfp[i][1][j]
+                            p.interpolation = 'LINEAR'
+                            p.handle_left_type = 'AUTO_CLAMPED'
+                            p.handle_right_type = 'AUTO_CLAMPED'
+                    list(map(lambda x: x.update(), amt_fcu))
+
+
+def copyAnims2Mdl(armature, source,
+                  destructive=False, convertangles=False):
+    """TODO: DOC."""
+    # Process animations/poses of the bones
+    bones = armature.data.bones
+    if not bones:
+        return
+    # Get animation data for this armature
+    if not armature.animation_data:
+        return
+    # Get for the animation data
+    amt_action = armature.animation_data.action
+    if not amt_action:
+        return
     for amt_bone in bones:
         # Check wether there is an pseudo bone object with the same
         # name as the bone
-        amt.pose.bones[amt_bone.name].rotation_mode = 'XYZ'
         if amt_bone.name in bpy.data.objects:
-            mdl_bone = bpy.data.objects[amt_bone.name]
+            pass
+            # psb_bone = bpy.data.objects[amt_bone.name]
             # Gather rotation and location keyframe points
-            # Their coodrinates need to be adjusted for use with bones
-            # Check for animations on this pseudo bone
-            if mdl_bone.animation_data and mdl_bone.animation_data.action:
-                for mdl_fcu in mdl_bone.animation_data.action.fcurves:
-                    # Get Data path
-                    mdl_dp = mdl_fcu.data_path
-                    amt_dp = 'pose.bones["' + amt_bone.name + '"].' + mdl_dp
-                    # New fcurve
-                    amt_fcu = amt_action.fcurves.new(amt_dp,
-                                                     mdl_fcu.array_index)
-                    # Add keyframe points
-                    mdl_kfp = mdl_fcu.keyframe_points
-                    amt_fcu.keyframe_points.add(len(mdl_kfp))
-                    amt_kfp = amt_fcu.keyframe_points
-                    if mdl_dp == 'location':
-                        val_offset = mdl_bone.location[mdl_fcu.array_index]
-                        for i in range(len(amt_kfp)):
-                            amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
-                                            mdl_kfp[i].co[1] - val_offset
-                            amt_kfp[i].interpolation = 'LINEAR'
-                            amt_kfp[i].handle_left_type = 'AUTO_CLAMPED'
-                            amt_kfp[i].handle_right_type = 'AUTO_CLAMPED'
-                        amt_fcu.update()
-                    elif mdl_dp == 'rotation_euler':
-                        for i in range(len(amt_kfp)):
-                            amt_kfp[i].co = mdl_kfp[i].co[0] + frame_offset, \
-                                            mdl_kfp[i].co[1]
-                            amt_kfp[i].interpolation = 'LINEAR'
-                            amt_kfp[i].handle_left_type = 'AUTO_CLAMPED'
-                            amt_kfp[i].handle_right_type = 'AUTO_CLAMPED'
-                        amt_fcu.update()
-
-
-def copyAnims2Mdl(rootDummy, source, destructive=False):
-    """TODO: DOC."""
-    return True
+            # Their coordinates need to be adjusted for use with bones
+            # mat1 = psb_bone.matrix_world.decompose()[1]\
+            #     .to_matrix().inverted().to_4x4()
+            # mat2 = amt_bone.matrix_local.decompose()[1]\
+            #     .to_matrix().to_4x4()
