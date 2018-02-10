@@ -643,19 +643,16 @@ def copyAnims2Armature(armature, source,
         amt_action.use_fake_user = True
         armature.animation_data.action = amt_action
     for amt_bone in bones:
-        armature.pose.bones[amt_bone.name].rotation_mode = 'XYZ'
+        amt_posebone = armature.pose.bones[amt_bone.name]
+        amt_posebone.rotation_mode = 'XYZ'
         # Check wether there is an pseudo bone object with the same
         # name as the bone
         if amt_bone.name in bpy.data.objects:
             psb_bone = bpy.data.objects[amt_bone.name]
             # Gather rotation and location keyframe points
             # Their coordinates need to be adjusted for use with bones
-            mat1 = psb_bone.matrix_world.decompose()[1]\
-                .to_matrix().inverted().to_4x4()
             mat1 = psb_bone.matrix_world.inverted()
-            mat2 = amt_bone.matrix_local.decompose()[1]\
-                .to_matrix().to_4x4()
-            mat2 = amt_bone.matrix_local
+            mat2 = amt_posebone.matrix_local
             if psb_bone.animation_data and psb_bone.animation_data.action:
                 psb_all_fcu = psb_bone.animation_data.action.fcurves
                 """
@@ -678,9 +675,18 @@ def copyAnims2Armature(armature, source,
                                  psb_fcu[2].evaluate(f))]
                                for f in keyed_frames]
                     # Adjust to bone coordinates
+                    d = amt_posebone.rotation_euler
                     for kfp in psb_kfp:
-                        ori = mathutils.Vector(kfp[1])
-                        kfp[1] = ori * mat1 * mat2
+                        a = mathutils.Euler(kfp[1], 'XYZ').to_matrix().to_4x4()
+                        b = armature.convert_space(amt_posebone,
+                                                   a,
+                                                   'LOCAL_WITH_PARENT',
+                                                   'LOCAL')
+                        c = b.to_euler('XYZ', d)
+                        d = c
+                        kfp[1] = (c[0], c[1], c[2])
+                        # ori = mathutils.Vector(kfp[1])
+                        # kfp[1] = ori * mat1 * mat2
                     # Add keyframes
                     amt_fcu = [amt_action.fcurves.new(amt_dp, i)
                                for i in range(3)]
@@ -731,7 +737,7 @@ def copyAnims2Armature(armature, source,
 
 
 def copyAnims2Mdl(armature, source,
-                  destructive=False, convertangles=False):
+                  destructive=False, convertangles=False, prefix=''):
     """TODO: DOC."""
     # Process animations/poses of the bones
     bones = armature.data.bones
@@ -744,9 +750,17 @@ def copyAnims2Mdl(armature, source,
     amt_action = armature.animation_data.action
     if not amt_action:
         return
+    # Check if the bones can be created at all:
+    for amt_bone in bones:
+        # This bone already exists as object
+        if amt_bone.name in bpy.data.objects:
+            # TODO: Tell the user to rename bone/Object or
+            #       only transfer animations instead
+            return
     for amt_bone in bones:
         # Check wether there is an pseudo bone object with the same
         # name as the bone
+        amt_posebone = armature.pose.bones[amt_bone.name]
         if amt_bone.name in bpy.data.objects:
             pass
             # psb_bone = bpy.data.objects[amt_bone.name]

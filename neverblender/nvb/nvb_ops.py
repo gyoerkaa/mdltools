@@ -34,9 +34,14 @@ class NVB_OP_Armature_CopyAnims(bpy.types.Operator):
 
 
 class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
-    """Generate armature from skinmesh weights and mdl bones."""
+    """Generate pseudobone from blender armature."""
     bl_idname = 'nvb.armature_topseudo'
     bl_label = 'Generate MDL pseudo bones from Armature'
+
+    def create_bone_geometry(amt_bone, prefix=''):
+        """TODO: DOC."""
+        head_loc = amt_bone.head
+        tail_loc = amt_bone.tail
 
     def generateBones(self, armature):
         """TODO: doc."""
