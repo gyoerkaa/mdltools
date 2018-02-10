@@ -1012,7 +1012,7 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-    def loadAsciiWeights(self, asciiLines):
+    def loadAsciiWeights2(self, asciiLines):
         """TODO: Doc."""
         lfloat = float
         pattern = '(?:\s|^)(\D+)\s+([-+]?\d*\.?\d+)(?=\s|$)'
@@ -1025,10 +1025,10 @@ class Skinmesh(Trimesh):
             gw_pairs = []
             matches = re.findall(pattern, line)
             for m in matches:
-                gw_pairs.append([m[0], lfloat(m[1])])
+                gw_pairs.append([m[0].lower(), lfloat(m[1])])
             self.weights.append(gw_pairs)
 
-    def loadAsciiWeights2(self, asciiLines):
+    def loadAsciiWeights(self, asciiLines):
         """TODO: Doc."""
         lfloat = float
         lchunker = nvb_utils.chunker
@@ -1040,8 +1040,12 @@ class Skinmesh(Trimesh):
             memberships = []
             for chunk in lchunker(line, 2):
                 try:
-                    sgm = [chunk[0], lfloat(chunk[1])]
-                    memberships.append(sgm)
+                    n = chunk[0]
+                    v = chunk[1]
+                except IndexError:
+                    continue
+                try:
+                    memberships.append([n.lower(), lfloat(v)])
                 except ValueError:
                     continue
             self.weights.append(memberships)

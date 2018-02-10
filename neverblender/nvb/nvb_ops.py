@@ -60,7 +60,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
     bl_label = 'Generate Armature from MDL pseudo bones'
 
     # For detecting pseudo bones
-    mdl_skingroups = []
+    pb_skingroups = []
     pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
                  'ground', 'grnd', 'handconjure', 'headconjure']
     pb_prefix = '?'
@@ -78,19 +78,20 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                         return False
         return True
 
-    def setupPseudoBoneDetection(self, auroraRoot, strict=False):
+    def setupPseudoBoneDetection(self, aur_root, strict=False):
         """TODO: doc."""
         # Get all names of skinmesh vertex groups which exist as object
         children = []
-        nvb_utils.getAllChildren(auroraRoot, children)
+        nvb_utils.getAllChildren(aur_root, children)
+        cnames = [c.name for c in children]
         for c in children:
             if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
-                self.mdl_skingroups.extend([vg.name for vg in c.vertex_groups
-                                           if vg.name in bpy.data.objects])
-        self.pb_prefix = os.path.commonprefix(self.mdl_skingroups)
+                self.pb_skingroups.extend([vg.name for vg in c.vertex_groups
+                                           if vg.name in cnames])
+        self.pb_prefix = os.path.commonprefix(self.pb_skingroups)
         self.pb_prefix = self.pb_prefix if self.pb_prefix else '?'
         self.pb_suffix = \
-            os.path.commonprefix([n[::-1] for n in self.mdl_skingroups])
+            os.path.commonprefix([n[::-1] for n in self.pb_skingroups])
         self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
 
     def detectPseudoBonesRoot(self, auroraRoot, strict=False):
@@ -106,7 +107,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         oname = obj.name
         if strict:
             # Object is referred to in any vertex group of a skinmesh
-            if oname in self.mdl_skingroups:
+            if oname in self.pb_skingroups:
                 return True
             # Some objects like impact nodes never are pseudo bones
             if oname in self.pb_ignore:
@@ -119,7 +120,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             children = []
             nvb_utils.getAllChildren(obj, children)
             cn = [c.name for c in children]
-            return bool(set(cn) & set(self.mdl_skingroups))
+            return bool(set(cn) & set(self.pb_skingroups))
         else:
             return (oname.lower() not in self.pb_ignore) and \
                    (obj.nvb.meshtype != nvb_def.Meshtype.SKIN)
@@ -193,6 +194,8 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             # Get all vertex groups with a name that exists as object
             self.setupPseudoBoneDetection(aur_root)
             pb_root = self.detectPseudoBonesRoot(aur_root)
+            print(pb_root.name)
+            print(self.pb_skingroups)
             if not pb_root:
                 self.report({'INFO'}, 'Error: No Pseudo Bone root.')
                 return {'CANCELLED'}
@@ -1417,7 +1420,6 @@ class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
         if skingrName:
             if (skingrName not in obj.vertex_groups.keys()):
                 # Create the vertex group
-                # vertGroup = obj.vertex_groups.new(skingrName)
                 obj.vertex_groups.new(skingrName)
                 obj.nvb.skingroup_obj = ''
 

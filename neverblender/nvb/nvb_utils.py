@@ -652,8 +652,10 @@ def copyAnims2Armature(armature, source,
             # Their coordinates need to be adjusted for use with bones
             mat1 = psb_bone.matrix_world.decompose()[1]\
                 .to_matrix().inverted().to_4x4()
+            mat1 = psb_bone.matrix_world.inverted()
             mat2 = amt_bone.matrix_local.decompose()[1]\
                 .to_matrix().to_4x4()
+            mat2 = amt_bone.matrix_local
             if psb_bone.animation_data and psb_bone.animation_data.action:
                 psb_all_fcu = psb_bone.animation_data.action.fcurves
                 """
@@ -685,9 +687,10 @@ def copyAnims2Armature(armature, source,
                     amt_kfp = [amt_fcu[i].keyframe_points for i in range(3)]
                     list(map(lambda x: x.add(len(psb_kfp)), amt_kfp))
                     for i in range(len(psb_kfp)):
+                        eul = psb_kfp[i][1]
                         for j in range(3):
                             p = amt_kfp[j][i]
-                            p.co = psb_kfp[i][0], psb_kfp[i][1][j]
+                            p.co = psb_kfp[i][0], eul[j]
                             p.interpolation = 'LINEAR'
                             p.handle_left_type = 'AUTO_CLAMPED'
                             p.handle_right_type = 'AUTO_CLAMPED'
