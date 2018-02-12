@@ -40,8 +40,9 @@ class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
 
     def create_bone_geometry(amt_bone, prefix=''):
         """TODO: DOC."""
-        head_loc = amt_bone.head
-        tail_loc = amt_bone.tail
+        # head_loc = amt_bone.head
+        # tail_loc = amt_bone.tail
+        pass
 
     def generateBones(self, armature):
         """TODO: doc."""
@@ -1256,7 +1257,8 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     importGeometry = bpy.props.BoolProperty(
             name='Import Geometry',
             description='Disable if only animations are needed',
-            default=True)
+            default=True,
+            options={'HIDDEN'})  # Hidden for now, we'll handle this diffently
     importWalkmesh = bpy.props.BoolProperty(
             name='Import Walkmesh',
             description='Attempt to load placeable and door walkmeshes',
@@ -1264,6 +1266,10 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     importSmoothGroups = bpy.props.BoolProperty(
             name='Import Smooth Groups',
             description='Import smooth groups as sharp edges',
+            default=True)
+    importNormals = bpy.props.BoolProperty(
+            name='Import Normals',
+            description='Import normals from MDL if available',
             default=True)
     importAnimations = bpy.props.BoolProperty(
             name='Import Animations',
@@ -1273,16 +1279,16 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             name='Import Supermodel',
             description='Import animations from supermodel',
             default=False,
-            options={'HIDDEN'})
+            options={'HIDDEN'})  # Hidden for now, we'll handle this diffently
     materialMode = bpy.props.EnumProperty(
             name='Materials',
             items=(('NON', 'None',
                     'Don\'t create materials or import textures', 0),
-                   ('SIN', 'Single',
+                   ('SIN', 'Auto Merge',
                     'Create only one material per texture \
                      (shared between objects)', 1),
                    ('MUL', 'Multiple',
-                    'Always create a seperate material for each object', 2)),
+                    'Always create a seperate materials for each object', 2)),
             default='SIN')
     textureSearch = bpy.props.BoolProperty(
             name='Image Search',
@@ -1332,10 +1338,30 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             description='Generate smooth groups from sharp edges'
                         '(When disabled every face belongs to the same group)',
             default=True)
+    exportNormals = bpy.props.BoolProperty(
+            name='Export Normals and Tangents',
+            description='Add normals and tangents to MDL',
+            default=False)
+    exportTangents = bpy.props.BoolProperty(
+            name='Export Tangents',
+            description='Export tangents to MDL',
+            default=True)
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting',
             default=True)
+
+    def draw(self, context):
+        """Draw the export UI."""
+        layout = self.layout
+        layout.prop(self, 'exportAnimations')
+        layout.prop(self, 'exportWalkmesh')
+        layout.prop(self, 'exportSmoothGroups')
+        layout.prop(self, 'exportNormals')
+        # sub = layout.row()
+        # sub.enabled = self.exportNormals
+        # sub.prop(self, 'exportTangents')
+        layout.prop(self, 'applyModifiers')
 
     def execute(self, context):
         """TODO: DOC."""

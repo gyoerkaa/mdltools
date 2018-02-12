@@ -652,7 +652,7 @@ def copyAnims2Armature(armature, source,
             # Gather rotation and location keyframe points
             # Their coordinates need to be adjusted for use with bones
             mat1 = psb_bone.matrix_world.inverted()
-            mat2 = amt_posebone.matrix_local
+            mat2 = amt_bone.matrix_local
             if psb_bone.animation_data and psb_bone.animation_data.action:
                 psb_all_fcu = psb_bone.animation_data.action.fcurves
                 """
@@ -760,7 +760,7 @@ def copyAnims2Mdl(armature, source,
     for amt_bone in bones:
         # Check wether there is an pseudo bone object with the same
         # name as the bone
-        amt_posebone = armature.pose.bones[amt_bone.name]
+        # amt_posebone = armature.pose.bones[amt_bone.name]
         if amt_bone.name in bpy.data.objects:
             pass
             # psb_bone = bpy.data.objects[amt_bone.name]

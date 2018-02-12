@@ -13,6 +13,7 @@ def loadMdl(operator, context,
             importGeometry=True,
             importWalkmesh=True,
             importSmoothGroups=True,
+            importNormals=True,
             importAnimations=True,
             importSupermodel=False,
             materialMode='SIN',
@@ -23,6 +24,7 @@ def loadMdl(operator, context,
     options = nvb_def.ImportOptions()
     options.importGeometry = importGeometry
     options.importSmoothGroups = importSmoothGroups
+    options.importNormals = importNormals
     options.importAnimations = importAnimations
     options.importSupermodel = importSupermodel
 
@@ -70,12 +72,16 @@ def saveMdl(operator, context,
             exportAnimations=True,
             exportWalkmesh=True,
             exportSmoothGroups=True,
+            exportNormals=True,
+            exportTangents=True,
             applyModifiers=True):
     """Called from blender ui."""
     options = nvb_def.ExportOptions()
     options.exportAnim = exportAnimations
     options.exportWalkmesh = exportWalkmesh
     options.exportSmoothGroups = exportSmoothGroups
+    options.exportNormals = exportNormals
+    options.exportTangents = exportTangents
     options.applyModifiers = applyModifiers
 
     if bpy.ops.object.mode_set.poll():

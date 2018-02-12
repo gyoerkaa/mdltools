@@ -4,7 +4,7 @@ import mathutils
 import bpy
 import bpy_extras.image_utils
 import bmesh
-import re
+import array
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_def
@@ -169,11 +169,11 @@ class Node(object):
         asciiLines.append(s)
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
-        formatString = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
-        s = formatString.format(round(rot[0], 5),
-                                round(rot[1], 5),
-                                round(rot[2], 5),
-                                round(rot[3], 5))
+        formatStr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
+        s = formatStr.format(round(rot[0], 5),
+                             round(rot[1], 5),
+                             round(rot[2], 5),
+                             round(rot[3], 5))
         asciiLines.append(s)
 
         scale = round(nvb_utils.getAuroraScale(obj), 3)
@@ -507,6 +507,8 @@ class Trimesh(Node):
             if tnorm_name:
                 tslot = material.texture_slots.add()
                 tslot.texture = createTexture(tnorm_name, tnorm_name, options)
+                tslot.texture.use_normal_map = True
+                tslot.normal_map_space = 'TANGENT'
                 tslot.texture_coords = 'UV'
                 tslot.use_map_color_diffuse = False
                 tslot.use_map_normal = True
@@ -522,32 +524,34 @@ class Trimesh(Node):
     def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(name)
-        mesh.vertices.add(len(self.verts))
-        mesh.vertices.foreach_set('co', unpack_list(self.verts))
-        mesh.tessfaces.add(len(self.facelist.faces))
-        mesh.tessfaces.foreach_set('vertices_raw',
-                                   unpack_face_list(self.facelist.faces))
-
+        me = bpy.data.meshes.new(name)
+        me.vertices.add(len(self.verts))
+        me.vertices.foreach_set('co', unpack_list(self.verts))
+        if self.normals and options.importNormals:
+            me.vertices.foreach_set('normal', unpack_list(self.normals))
+        me.tessfaces.add(len(self.facelist.faces))
+        me.tessfaces.foreach_set('vertices_raw',
+                                 unpack_face_list(self.facelist.faces))
         # Create material
         if options.materialMode != 'NON':
             material = self.createMaterial(options)
-            mesh.materials.append(material)
+            me.materials.append(material)
             # Create UV map
-            if (len(self.tverts) > 0) and mesh.tessfaces and self.bitmap:
-                uv = mesh.tessface_uv_textures.new(name + '.uv')
-                mesh.tessface_uv_textures.active = uv
+            uv_tex = None
+            if (len(self.tverts) > 0) and me.tessfaces and self.bitmap:
+                uv_tex = me.tessface_uv_textures.new(name + '.uv')
+                me.tessface_uv_textures.active = uv_tex
                 # we need to save the order the tverts were created in blender
                 # for animmeshes/uv animations
                 tvert_neworder = []
                 # Create uv's
                 for i in range(len(self.facelist.uvIdx)):
                     # Get a tessface
-                    tessface = mesh.tessfaces[i]
+                    tessface = me.tessfaces[i]
                     # Apply material (there is only ever one)
                     tessface.material_index = 0
                     # Grab a uv for the face
-                    tessfaceUV = mesh.tessface_uv_textures[0].data[i]
+                    tessfaceUV = me.tessface_uv_textures[0].data[i]
                     # Get the indices of the 3 uv's for this face
                     uvIdx = self.facelist.uvIdx[i]
 
@@ -565,20 +569,22 @@ class Trimesh(Node):
                     tessfaceUV.uv3 = self.tverts[uvIdx[2]]
 
                     tvert_neworder.extend([uvIdx[0], uvIdx[1], uvIdx[2]])
-
                     # Apply texture to uv face
                     tessfaceUV.image = material.texture_slots[0].texture.image
-                if uv.name not in nvb_def.tvert_order:
-                    nvb_def.tvert_order[uv.name] = tvert_neworder
-                # Add the new uv map to texture slot (doesn't work properly)
-                # if material.active_texture:
-                #    ts = material.texture_slots[material.active_texture_index]
-                #    ts.uv_layer = uv.name
+                if uv_tex.name not in nvb_def.tvert_order:
+                    nvb_def.tvert_order[uv_tex.name] = tvert_neworder
+        if options.materialMode == 'MUL':
+            # Add the new uv map to all texture slots
+            if material and uv_tex:
+                for ts in material.texture_slots:
+                    if ts:
+                        ts.uv_layer = uv_tex.name
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
+            me.update()
+            me.show_edge_sharp = True
             bm = bmesh.new()
-            mesh.update()
-            bm.from_mesh(mesh)
+            bm.from_mesh(me)
             if hasattr(bm.edges, "ensure_lookup_table"):
                 bm.edges.ensure_lookup_table()
             # Mark edge as sharp if its faces belong to different smooth groups
@@ -588,13 +594,26 @@ class Trimesh(Node):
                    (self.facelist.shdgr[f[0].index] !=
                         self.facelist.shdgr[f[1].index]):
                     edgeIdx = e.index
-                    mesh.edges[edgeIdx].use_edge_sharp = True
+                    me.edges[edgeIdx].use_edge_sharp = True
             bm.free()
             del bm
-            mesh.show_edge_sharp = True
-
-        mesh.update()
-        return mesh
+        # Import custom normals
+        me.update()
+        if self.normals and me.loops and options.importNormals:
+            for l in me.loops:
+                l.normal[:] = self.normals[l.vertex_index]
+            me.validate(clean_customdata=False)
+            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
+            me.loops.foreach_get('normal', clnors)
+            me.create_normals_split()
+            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
+            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
+            me.use_auto_smooth = True
+            me.show_edge_sharp = True
+        else:
+            me.validate()
+        # me.update()
+        return me
 
     def createObjectData(self, obj, options):
         """TODO: Doc."""
@@ -665,16 +684,16 @@ class Trimesh(Node):
             # Check if this object has a material assigned to it
             material = obj.active_material
             if material:
-                formatString = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(round(material.diffuse_color[0], 2),
-                                        round(material.diffuse_color[1], 2),
-                                        round(material.diffuse_color[2], 2))
+                formatStr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatStr.format(round(material.diffuse_color[0], 2),
+                                     round(material.diffuse_color[1], 2),
+                                     round(material.diffuse_color[2], 2))
                 asciiLines.append(s)
 
-                formatString = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatString.format(round(material.specular_color[0], 2),
-                                        round(material.specular_color[1], 2),
-                                        round(material.specular_color[2], 2))
+                formatStr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
+                s = formatStr.format(round(material.specular_color[0], 2),
+                                     round(material.specular_color[1], 2),
+                                     round(material.specular_color[2], 2))
                 asciiLines.append(s)
 
                 # Check if this material has a texture assigned
@@ -712,10 +731,10 @@ class Trimesh(Node):
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
         """TODO: Doc."""
-        mesh = obj.to_mesh(bpy.context.scene,
-                           options.applyModifiers,
-                           options.meshConvert)
-        for p in mesh.polygons:
+        me = obj.to_mesh(bpy.context.scene,
+                         options.applyModifiers,
+                         options.meshConvert)
+        for p in me.polygons:
             p.use_smooth = True
 
         # Scaling fix
@@ -726,18 +745,18 @@ class Trimesh(Node):
                                          [0, scale[1], 0, 0],
                                          [0, 0, scale[2], 0],
                                          [0, 0, 0, 1]])
-        mesh.transform(scale_matrix)
+        me.transform(scale_matrix)
 
         # Triangulation (doing it with bmesh to retain edges marked as sharp)
         bm = bmesh.new()
-        bm.from_mesh(mesh)
+        bm.from_mesh(me)
         bmesh.ops.triangulate(bm, faces=bm.faces)
-        bm.to_mesh(mesh)
+        bm.to_mesh(me)
         bm.free()
         del bm
 
         # Recalculate tessfaces for export
-        mesh.calc_tessface()
+        me.calc_tessface()
 
         smoothGroups = []
         numSmoothGroups = 0
@@ -745,31 +764,93 @@ class Trimesh(Node):
            (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) or \
            (not options.exportSmoothGroups):
             # 0 = Do not use smoothgroups
-            smoothGroups = [0] * len(mesh.polygons)
+            smoothGroups = [0] * len(me.polygons)
             numSmoothGroups = 1
         elif (obj.nvb.smoothgroup == 'SING'):
             # All faces belong to smooth group 1
-            smoothGroups = [1] * len(mesh.polygons)
+            smoothGroups = [1] * len(me.polygons)
             numSmoothGroups = 1
         else:
-            (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
+            (smoothGroups, numSmoothGroups) = me.calc_smooth_groups()
 
         faceList = []  # List of triangle faces
         uvList = []  # List of uv indices
-
+        l_rnd = round
         # Add vertices
-        asciiLines.append('  verts ' + str(len(mesh.vertices)))
-        l_round = round
-        formatString = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-        for v in mesh.vertices:
-            s = formatString.format(l_round(v.co[0], 5),
-                                    l_round(v.co[1], 5),
-                                    l_round(v.co[2], 5))
+        asciiLines.append('  verts ' + str(len(me.vertices)))
+        formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        for v in me.vertices:
+            s = formatStr.format(l_rnd(v.co[0], 5),
+                                 l_rnd(v.co[1], 5),
+                                 l_rnd(v.co[2], 5))
             asciiLines.append(s)
-
+        # Add normals and tangents
+        uv_tex = me.uv_textures.active
+        if uv_tex:
+            me.calc_tangents(uv_tex.name)
+            oknormals = []
+            if options.exportNormals:
+                # Try vertex-per-face normals
+                for i in range(len(me.vertices)):
+                    # All normals for this vertex
+                    normals = \
+                        [l.normal for l in me.loops if l.vertex_index == i]
+                    s = set([str(n) for n in normals])
+                    if len(s) != 1:
+                        # Something is not right, cannot export this
+                        oknormals = []
+                        break
+                    oknormals.append(normals[0])
+                if oknormals:
+                    asciiLines.append('  normals ' + str(len(oknormals)))
+                    formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+                    for okn in oknormals:
+                        s = formatStr.format(*okn)
+                        asciiLines.append(s)
+                """
+                # Try vertex normals
+                for v in me.vertices:
+                    s = formatStr.format(l_rnd(v.normal[0], 5),
+                                         l_rnd(v.normal[1], 5),
+                                         l_rnd(v.normal[2], 5))
+                    asciiLines.append(s)
+                """
+            # Add tangents
+            if oknormals and options.exportTangents:
+                oktangents = []
+                #  Vertex-per-face tangents
+                for i in range(len(me.vertices)):
+                    # All tangents for this vertex
+                    tangents = \
+                        [[l.tangent, l.bitangent_sign]
+                         for l in me.loops if l.vertex_index == i]
+                    s = set([str(t[0]) for t in tangents])
+                    if len(s) != 1:
+                        # Something is not right, cannot export this
+                        oktangents = []
+                        break
+                    oktangents.append(tangents[0])
+                if oktangents:
+                    asciiLines.append('  tangents ' + str(len(oktangents)))
+                    formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 8.1f}'
+                    for okt in oktangents:
+                        s = formatStr.format(*okt[0], okt[1])
+                        asciiLines.append(s)
+                """
+                for face in me.polygons:
+                    # face loops and face vertices are in the same order
+                    for v_id, l_id in zip(face.vertices, face.loop_indices):
+                        # this is the loop:
+                        me.loops[l_id]
+                        # this is the vertex in the corner of the loop:
+                        me.vertices[v_id]
+                """
+                del oktangents
+            del oknormals
+            # me.free_normals_split()  #  Not necessary, mesh will be deleted
         # Add faces and corresponding tverts and shading groups
-        tessfaces = mesh.tessfaces
-        tessfaces_uvs = mesh.tessface_uv_textures.active
+        tessfaces = me.tessfaces
+        tessfaces_uvs = me.tessface_uv_textures.active
         compress_uvs = (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH)
         for i in range(len(tessfaces)):
             tface = tessfaces[i]
@@ -797,45 +878,43 @@ class Trimesh(Node):
             # Export UVs too
             asciiLines.append('  faces ' + str(len(faceList)))
 
-            vd = str(len(str(len(mesh.vertices))))  # Digits for vertices
+            vd = str(len(str(len(me.vertices))))  # Digits for vertices
             sd = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
             ud = str(len(str(len(uvList))))  # Digits for uv's
-            formatString = '    ' + \
-                           '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                           '{:' + sd + 'd}  ' + \
-                           '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
-                           '{:2d}'
+            formatStr = '    ' + \
+                        '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                        '{:' + sd + 'd}  ' + \
+                        '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
+                        '{:2d}'
             for f in faceList:
-                s = formatString.format(f[0], f[1], f[2],
-                                        f[3],
-                                        f[4], f[5], f[6],
-                                        f[7])
+                s = formatStr.format(f[0], f[1], f[2],
+                                     f[3],
+                                     f[4], f[5], f[6],
+                                     f[7])
                 asciiLines.append(s)
 
             if (len(uvList) > 0):
                 asciiLines.append('  tverts ' + str(len(uvList)))
-                formatString = '    {: 6.3f} {: 6.3f}  0'
+                formatStr = '    {: 6.3f} {: 6.3f}  0'
                 for uv in uvList:
-                    s = formatString.format(round(uv[0], 3), round(uv[1], 3))
+                    s = formatStr.format(round(uv[0], 3), round(uv[1], 3))
                     asciiLines.append(s)
         else:
             # No image texture, don't export UVs/tverts
             asciiLines.append('  faces ' + str(len(faceList)))
 
-            vd = str(len(str(len(mesh.vertices))))
+            vd = str(len(str(len(me.vertices))))
             sd = str(len(str(numSmoothGroups)))
-            formatString = '    ' + \
-                           '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                           '{:' + sd + 'd}  ' + \
-                           '0 0 0  ' + \
-                           '{:2d}'
+            formatStr = '    ' + \
+                        '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                        '{:' + sd + 'd}  ' + \
+                        '0 0 0  ' + \
+                        '{:2d}'
             for f in faceList:
-                s = formatString.format(f[0], f[1], f[2],
-                                        f[3],
-                                        f[7])
+                s = formatStr.format(f[0], f[1], f[2], f[3], f[7])
                 asciiLines.append(s)
 
-        bpy.data.meshes.remove(mesh)
+        bpy.data.meshes.remove(me)
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
@@ -1014,6 +1093,8 @@ class Skinmesh(Trimesh):
 
     def loadAsciiWeights2(self, asciiLines):
         """TODO: Doc."""
+        pass
+        """
         lfloat = float
         pattern = '(?:\s|^)(\D+)\s+([-+]?\d*\.?\d+)(?=\s|$)'
         for al in asciiLines:
@@ -1027,6 +1108,7 @@ class Skinmesh(Trimesh):
             for m in matches:
                 gw_pairs.append([m[0].lower(), lfloat(m[1])])
             self.weights.append(gw_pairs)
+        """
 
     def loadAsciiWeights(self, asciiLines):
         """TODO: Doc."""
@@ -1037,18 +1119,21 @@ class Skinmesh(Trimesh):
             # [group_name, vertex_weight, group_name, vertex_weight]
             # We create a list looking like this:
             # [[group_name, vertex_weight], [group_name, vertex_weight]]
-            memberships = []
+            name_weight_pairs = []
             for chunk in lchunker(line, 2):
                 try:
                     n = chunk[0]
-                    v = chunk[1]
+                    w = chunk[1]
                 except IndexError:
                     continue
                 try:
-                    memberships.append([n.lower(), lfloat(v)])
+                    n = n.lower()
+                    w = lfloat(w)
                 except ValueError:
                     continue
-            self.weights.append(memberships)
+                if not any(gwp[0] == n for gwp in name_weight_pairs):
+                    name_weight_pairs.append([n, w])
+            self.weights.append(name_weight_pairs)
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
@@ -1098,8 +1183,9 @@ class Skinmesh(Trimesh):
         for v in obj.data.vertices:
             weights = [[vg[g.group].name, lrnd(vg[g.group].weight(v.index), 3)]
                        for g in v.groups if g.group in skingroups]
-            asciiLines.append('  ' + ' '.join(['{} {:3.3f}'.format(w[0], w[1])
-                                              for w in weights]))
+            asciiLines.append('    ' +
+                              ' '.join(['{} {:3.3f}'.format(w[0], w[1])
+                                        for w in weights]))
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
@@ -1407,11 +1493,11 @@ class Light(Node):
                 for flare in obj.nvb.flareList:
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
+                formatStr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
                 for flare in obj.nvb.flareList:
-                    formatString = '    {: 3.2f} {: 3.2f} {: 3.2f}'
-                    s = formatString.format(round(flare.colorshift[0], 2),
-                                            round(flare.colorshift[1], 2),
-                                            round(flare.colorshift[2], 2))
+                    s = formatStr.format(round(flare.colorshift[0], 2),
+                                         round(flare.colorshift[1], 2),
+                                         round(flare.colorshift[2], 2))
                     asciiLines.append(s)
         asciiLines.append('  flareradius ' +
                           str(round(obj.nvb.flareradius, 1)))
@@ -1511,37 +1597,37 @@ class Aabb(Trimesh):
         aabbTree = []
         nvb_aabb.generateTree(aabbTree, faceList)
 
-        l_round = round
+        l_rnd = round
         if aabbTree:
             node = aabbTree.pop(0)
             asciiLines.append('  aabb  ' +
                               ' ' +
-                              str(l_round(node[0], 5)) +
+                              str(l_rnd(node[0], 5)) +
                               ' ' +
-                              str(l_round(node[1], 5)) +
+                              str(l_rnd(node[1], 5)) +
                               ' ' +
-                              str(l_round(node[2], 5)) +
+                              str(l_rnd(node[2], 5)) +
                               ' ' +
-                              str(l_round(node[3], 5)) +
+                              str(l_rnd(node[3], 5)) +
                               ' ' +
-                              str(l_round(node[4], 5)) +
+                              str(l_rnd(node[4], 5)) +
                               ' ' +
-                              str(l_round(node[5], 5)) +
+                              str(l_rnd(node[5], 5)) +
                               ' ' +
                               str(node[6]))
             for node in aabbTree:
                 asciiLines.append('    ' +
-                                  str(l_round(node[0], 5)) +
+                                  str(l_rnd(node[0], 5)) +
                                   ' ' +
-                                  str(l_round(node[1], 5)) +
+                                  str(l_rnd(node[1], 5)) +
                                   ' ' +
-                                  str(l_round(node[2], 5)) +
+                                  str(l_rnd(node[2], 5)) +
                                   ' ' +
-                                  str(l_round(node[3], 5)) +
+                                  str(l_rnd(node[3], 5)) +
                                   ' ' +
-                                  str(l_round(node[4], 5)) +
+                                  str(l_rnd(node[4], 5)) +
                                   ' ' +
-                                  str(l_round(node[5], 5)) +
+                                  str(l_rnd(node[5], 5)) +
                                   ' ' +
                                   str(node[6]))
 

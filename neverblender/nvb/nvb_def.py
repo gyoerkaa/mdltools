@@ -362,6 +362,7 @@ class ImportOptions():
     importSmoothGroups = True
     importAnimations = True
     importSupermodel = False
+    importNormals = True
     # Options for textures and materials
     materialMode = 'SIN'
     texturePath = ''
@@ -382,3 +383,5 @@ class ExportOptions():
     exportAnim = True
     exportWalkmesh = True
     exportSmoothGroups = True
+    exportNormals = False
+    exportTangents = True
