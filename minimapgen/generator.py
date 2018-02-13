@@ -142,6 +142,7 @@ def process_all():
                                       importGeometry=True,
                                       importWalkmesh=False,
                                       importSmoothGroups=False,
+                                      importNormals=False,
                                       importAnimations=False,
                                       importSupermodel=False,
                                       materialMode='MUL',

@@ -163,9 +163,7 @@ class Node(object):
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
-        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(round(loc[0], 5),
-                                                           round(loc[1], 5),
-                                                           round(loc[2], 5))
+        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc)
         asciiLines.append(s)
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
@@ -799,6 +797,8 @@ class Trimesh(Node):
                     if len(s) != 1:
                         # Something is not right, cannot export this
                         oknormals = []
+                        print('Neverblender: WARNING - Invalid normals ' +
+                              obj.name)
                         break
                     oknormals.append(normals[0])
                 if oknormals:
@@ -828,6 +828,8 @@ class Trimesh(Node):
                     if len(s) != 1:
                         # Something is not right, cannot export this
                         oktangents = []
+                        print('Neverblender: WARNING - Invalid tangents ' +
+                              obj.name)
                         break
                     oktangents.append(tangents[0])
                 if oktangents:
@@ -1466,7 +1468,7 @@ class Light(Node):
     def createObject(self, options):
         """TODO: Doc."""
         if options.minimapMode:
-            # We don't need lights in minimap mode
+            # We don't want lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Node.createObject(self, options)
         lamp = self.createLamp(self.name)
@@ -1693,12 +1695,12 @@ class Aabb(Trimesh):
     def createObject(self, options):
         """TODO: Doc."""
         if options.minimapMode:
-            # No walkmeshes in minimap mode and we don't need an empty as
-            # replacement either as AABB nodes never have children
-            return
-        mesh = self.createMesh(self.name, options)
-        obj = bpy.data.objects.new(self.name, mesh)
+            # We don't want walkmeshes in minimap mode
+            obj = bpy.data.objects.new(self.name, None)
+        else:
+            mesh = self.createMesh(self.name, options)
+            obj = bpy.data.objects.new(self.name, mesh)
+            obj.hide_render = True
+            self.createObjectData(obj, options)
         obj.nvb.imporder = self.nodeidx
-        obj.hide_render = True
-        self.createObjectData(obj, options)
         return obj

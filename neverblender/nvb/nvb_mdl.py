@@ -315,16 +315,20 @@ class Mdl():
 
         for node in self.nodes:
             obj = self.noderesolver.get_obj(node.name, node.nodeidx)
-            if obj == rootobj:
-                obj.parent = None
-            elif (not node.parent) or (node.parent == nvb_def.null):
-                # No parent was specified, set to aurora root
-                obj.parent = rootobj
+            if not obj:
+                print('Neverblender: WARNING - Invalid object ' +
+                      node.name)
             else:
-                parentobj = self.noderesolver.get_obj_parent(node.parent,
-                                                             node.nodeidx)
-                obj.parent = parentobj
-            options.scene.objects.link(obj)
+                if obj == rootobj:
+                    obj.parent = None
+                elif (not node.parent) or (node.parent == nvb_def.null):
+                    # No parent was specified, set to aurora root
+                    obj.parent = rootobj
+                else:
+                    parentobj = self.noderesolver.get_obj_parent(node.parent,
+                                                                 node.nodeidx)
+                    obj.parent = parentobj
+                options.scene.objects.link(obj)
 
     def createObjects(self, options):
         """TODO: DOC."""
@@ -339,7 +343,7 @@ class Mdl():
                                                  node.nodeidx,
                                                  obj.name)
                 else:
-                    print('INTERNAL ERROR')
+                    print('INTERNAL ERROR (node: ' + node.name + ')')
 
     def createAnimations(self, options):
         """TODO: DOC."""
