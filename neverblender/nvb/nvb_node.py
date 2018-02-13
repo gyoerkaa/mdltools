@@ -101,20 +101,13 @@ class Node(object):
                 elif (label == 'parent'):
                     self.parent = nvb_utils.getAuroraString(line[1])
                 elif (label == 'position'):
-                    self.position = (l_float(line[1]),
-                                     l_float(line[2]),
-                                     l_float(line[3]))
+                    self.position = tuple([float(v) for v in line[1:4]])
                 elif (label == 'orientation'):
-                    self.orientation = (l_float(line[1]),
-                                        l_float(line[2]),
-                                        l_float(line[3]),
-                                        l_float(line[4]))
+                    self.orientation = tuple([float(v) for v in line[1:5]])
                 elif (label == 'scale'):
                     self.scale = l_float(line[1])
                 elif (label == 'wirecolor'):
-                    self.wirecolor = (l_float(line[1]),
-                                      l_float(line[2]),
-                                      l_float(line[3]))
+                    self.wirecolor = tuple([float(v) for v in line[1:4]])
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -367,21 +360,13 @@ class Trimesh(Node):
                     self.transparencyhint = l_int(line[1])
                 elif ((label == 'selfillumcolor') or
                       (label == 'setfillumcolor')):
-                    self.selfillumcolor = (l_float(line[1]),
-                                           l_float(line[2]),
-                                           l_float(line[3]))
+                    self.selfillumcolor = tuple([float(v) for v in line[1:4]])
                 elif (label == 'ambient'):
-                    self.ambient = (l_float(line[1]),
-                                    l_float(line[2]),
-                                    l_float(line[3]))
+                    self.ambient = tuple([float(v) for v in line[1:4]])
                 elif (label == 'diffuse'):
-                    self.diffuse = (l_float(line[1]),
-                                    l_float(line[2]),
-                                    l_float(line[3]))
+                    self.diffuse = tuple([float(v) for v in line[1:4]])
                 elif (label == 'specular'):
-                    self.specular = (l_float(line[1]),
-                                     l_float(line[2]),
-                                     l_float(line[3]))
+                    self.specular = tuple([float(v) for v in line[1:4]])
                 elif (label == 'shininess'):
                     self.shininess = l_int(l_float(line[1]))
                 elif (label == 'center'):
@@ -1336,9 +1321,7 @@ class Light(Node):
                 elif (label == 'multiplier'):
                     self.multiplier = l_float(line[1])
                 elif (label == 'color'):
-                    self.color = (l_float(line[1]),
-                                  l_float(line[2]),
-                                  l_float(line[3]))
+                    self.color = tuple([float(v) for v in line[1:4]])
                 elif (label == 'ambientonly'):
                     self.ambientonly = l_int(line[1])
                 elif (label == 'ndynamictype'):
@@ -1456,12 +1439,9 @@ class Light(Node):
                 for flare in obj.nvb.flareList:
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
-                formatStr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
+                fstr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
                 for flare in obj.nvb.flareList:
-                    s = formatStr.format(round(flare.colorshift[0], 2),
-                                         round(flare.colorshift[1], 2),
-                                         round(flare.colorshift[2], 2))
-                    asciiLines.append(s)
+                    asciiLines.append(fstr.format(*(flare.colorshift)))
         asciiLines.append('  flareradius ' +
                           str(round(obj.nvb.flareradius, 1)))
 
@@ -1612,7 +1592,7 @@ class Aabb(Trimesh):
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
-        asciiLines.append('  shininess 0')
+        # asciiLines.append('  shininess 0')  # No shininess on wok
         asciiLines.append('  bitmap NULL')
         Trimesh.generateAsciiMesh(obj, asciiLines, options, False)
         Aabb.generateAsciiAABB(obj, asciiLines, options)

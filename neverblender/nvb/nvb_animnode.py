@@ -138,15 +138,10 @@ class Animnode():
                     self.parentName = nvb_utils.getAuroraString(line[1])
                 # Animations using a single value as key
                 elif label == 'position':
-                    self.position = (l_float(line[1]),
-                                     l_float(line[2]),
-                                     l_float(line[3]))
+                    self.position = tuple([float(v) for v in line[1:4]])
                     self.objdata = True
                 elif label == 'orientation':
-                    self.orientation = (l_float(line[1]),
-                                        l_float(line[2]),
-                                        l_float(line[3]),
-                                        l_float(line[4]))
+                    self.orientation = tuple([float(v) for v in line[1:5]])
                     self.objdata = True
                 elif label == 'scale':
                     self.scale = l_float(line[1])
