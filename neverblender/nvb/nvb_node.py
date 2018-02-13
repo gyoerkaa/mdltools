@@ -163,16 +163,11 @@ class Node(object):
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
         loc = transmat.to_translation()
-        s = '  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc)
-        asciiLines.append(s)
+        asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
 
         rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
-        formatStr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
-        s = formatStr.format(round(rot[0], 5),
-                             round(rot[1], 5),
-                             round(rot[2], 5),
-                             round(rot[3], 5))
-        asciiLines.append(s)
+        fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
+        asciiLines.append(fstr.format(*rot))
 
         scale = round(nvb_utils.getAuroraScale(obj), 3)
         if not (0.998 < scale < 1.002):
@@ -682,17 +677,10 @@ class Trimesh(Node):
             # Check if this object has a material assigned to it
             material = obj.active_material
             if material:
-                formatStr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatStr.format(round(material.diffuse_color[0], 2),
-                                     round(material.diffuse_color[1], 2),
-                                     round(material.diffuse_color[2], 2))
-                asciiLines.append(s)
-
-                formatStr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
-                s = formatStr.format(round(material.specular_color[0], 2),
-                                     round(material.specular_color[1], 2),
-                                     round(material.specular_color[2], 2))
-                asciiLines.append(s)
+                fstr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.append(fstr.format(*material.diffuse_color))
+                fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.append(fstr.format(*material.specular_color))
 
                 # Check if this material has a texture assigned
                 tslots = nvb_utils.get_texture_slots(material)
@@ -718,17 +706,16 @@ class Trimesh(Node):
         return hasImgTexture
 
     @staticmethod
-    def addUVToList(uv, uvList, compress=True):
-        """Helper function to avoid exporting mutiples of uv coordinates."""
-        if compress and (uv in uvList):
-            return uvList.index(uv)
-        else:
-            uvList.append(uv)
-            return (len(uvList)-1)
-
-    @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
         """TODO: Doc."""
+        def addUVToList(uv, uvList, compress=True):
+            """Helper function to keep uv coordinates unique."""
+            if compress and (uv in uvList):
+                return uvList.index(uv)
+            else:
+                uvList.append(uv)
+                return (len(uvList)-1)
+
         me = obj.to_mesh(bpy.context.scene,
                          options.applyModifiers,
                          options.meshConvert)
@@ -773,15 +760,10 @@ class Trimesh(Node):
 
         faceList = []  # List of triangle faces
         uvList = []  # List of uv indices
-        l_rnd = round
         # Add vertices
         asciiLines.append('  verts ' + str(len(me.vertices)))
-        formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-        for v in me.vertices:
-            s = formatStr.format(l_rnd(v.co[0], 5),
-                                 l_rnd(v.co[1], 5),
-                                 l_rnd(v.co[2], 5))
-            asciiLines.append(s)
+        fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
         # Add normals and tangents
         uv_tex = me.uv_textures.active
         if uv_tex:
@@ -803,10 +785,8 @@ class Trimesh(Node):
                     oknormals.append(normals[0])
                 if oknormals:
                     asciiLines.append('  normals ' + str(len(oknormals)))
-                    formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-                    for okn in oknormals:
-                        s = formatStr.format(*okn)
-                        asciiLines.append(s)
+                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+                    asciiLines.extend([fstr.format(*n) for n in oknormals])
                 """
                 # Try vertex normals
                 for v in me.vertices:
@@ -834,10 +814,9 @@ class Trimesh(Node):
                     oktangents.append(tangents[0])
                 if oktangents:
                     asciiLines.append('  tangents ' + str(len(oktangents)))
-                    formatStr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 8.1f}'
-                    for okt in oktangents:
-                        s = formatStr.format(*okt[0], okt[1])
-                        asciiLines.append(s)
+                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 8.1f}'
+                    asciiLines.extend([fstr.format(*t[0], t[1])
+                                      for t in oktangents])
                 """
                 for face in me.polygons:
                     # face loops and face vertices are in the same order
@@ -865,9 +844,9 @@ class Trimesh(Node):
             uv3 = 0
             if tessfaces_uvs:
                 uvFace = tessfaces_uvs.data[i]
-                uv1 = Trimesh.addUVToList(uvFace.uv1, uvList, compress_uvs)
-                uv2 = Trimesh.addUVToList(uvFace.uv2, uvList, compress_uvs)
-                uv3 = Trimesh.addUVToList(uvFace.uv3, uvList, compress_uvs)
+                uv1 = addUVToList(uvFace.uv1, uvList, compress_uvs)
+                uv2 = addUVToList(uvFace.uv2, uvList, compress_uvs)
+                uv3 = addUVToList(uvFace.uv3, uvList, compress_uvs)
 
             faceList.append([tface.vertices[0],
                              tface.vertices[1],
@@ -878,43 +857,32 @@ class Trimesh(Node):
 
         if hasImgTexture:
             # Export UVs too
-            asciiLines.append('  faces ' + str(len(faceList)))
-
             vd = str(len(str(len(me.vertices))))  # Digits for vertices
             sd = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
             ud = str(len(str(len(uvList))))  # Digits for uv's
-            formatStr = '    ' + \
-                        '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                        '{:' + sd + 'd}  ' + \
-                        '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
-                        '{:2d}'
-            for f in faceList:
-                s = formatStr.format(f[0], f[1], f[2],
-                                     f[3],
-                                     f[4], f[5], f[6],
-                                     f[7])
-                asciiLines.append(s)
+            asciiLines.append('  faces ' + str(len(faceList)))
+            fstr = '    ' + \
+                   '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                   '{:' + sd + 'd}  ' + \
+                   '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
+                   '{:2d}'
+            asciiLines.extend([fstr.format(*f) for f in faceList])
 
             if (len(uvList) > 0):
                 asciiLines.append('  tverts ' + str(len(uvList)))
-                formatStr = '    {: 6.3f} {: 6.3f}  0'
-                for uv in uvList:
-                    s = formatStr.format(round(uv[0], 3), round(uv[1], 3))
-                    asciiLines.append(s)
+                fstr = '    {: 6.3f} {: 6.3f}  0'
+                asciiLines.extend([fstr.format(uv[0], uv[1]) for uv in uvList])
         else:
             # No image texture, don't export UVs/tverts
-            asciiLines.append('  faces ' + str(len(faceList)))
-
             vd = str(len(str(len(me.vertices))))
             sd = str(len(str(numSmoothGroups)))
-            formatStr = '    ' + \
-                        '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                        '{:' + sd + 'd}  ' + \
-                        '0 0 0  ' + \
-                        '{:2d}'
-            for f in faceList:
-                s = formatStr.format(f[0], f[1], f[2], f[3], f[7])
-                asciiLines.append(s)
+            asciiLines.append('  faces ' + str(len(faceList)))
+            fstr = '    ' + \
+                   '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
+                   '{:' + sd + 'd}  ' + \
+                   '0 0 0  ' + \
+                   '{:2d}'
+            asciiLines.extend([fstr.format(*f[0:4], f[7]) for f in faceList])
 
         bpy.data.meshes.remove(me)
 
@@ -924,15 +892,11 @@ class Trimesh(Node):
         Node.generateAsciiData(obj, asciiLines, options)
 
         col = obj.nvb.wirecolor
-        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
-                                                            round(col[1], 2),
-                                                            round(col[2], 2))
+        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
         col = obj.nvb.ambientcolor
-        s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(round(col[0], 2),
-                                                          round(col[1], 2),
-                                                          round(col[2], 2))
+        s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
         hasImgTexture = Trimesh.generateAsciiMaterial(obj, asciiLines)
@@ -940,10 +904,7 @@ class Trimesh(Node):
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             col = obj.nvb.selfillumcolor
             if round(sum(col), 2) > 0.0:  # Skip if default value
-                s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'. \
-                    format(round(col[0], 2),
-                           round(col[1], 2),
-                           round(col[2], 2))
+                s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
                 asciiLines.append(s)
             # Skip if default value
             if not (obj.nvb.shadow and obj.nvb.render):
@@ -1636,22 +1597,18 @@ class Aabb(Trimesh):
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options):
         """TODO: Doc."""
+
         loc = obj.location
-        asciiLines.append('  position ' +
-                          str(round(loc[0], 5)) + ' ' +
-                          str(round(loc[1], 5)) + ' ' +
-                          str(round(loc[2], 5)))
+        asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
+
         rot = nvb_utils.getAuroraRotFromObject(obj)
-        asciiLines.append('  orientation ' +
-                          str(round(rot[0], 5)) + ' ' +
-                          str(round(rot[1], 5)) + ' ' +
-                          str(round(rot[2], 5)) + ' ' +
-                          str(round(rot[3], 5)))
-        color = obj.nvb.wirecolor
-        asciiLines.append('  wirecolor ' +
-                          str(round(color[0], 2)) + ' ' +
-                          str(round(color[1], 2)) + ' ' +
-                          str(round(color[2], 2)))
+        fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
+        asciiLines.append(fstr.format(*rot))
+
+        col = obj.nvb.wirecolor
+        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
+        asciiLines.append(s)
+
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')

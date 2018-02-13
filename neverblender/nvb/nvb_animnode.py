@@ -452,7 +452,7 @@ class Animnode():
                 curve.keyframe_points.insert(frameEnd, self.radius)
 
     def createDataRaw(self, obj, anim, options):
-        """Add imcompatible animations (usually emitters) as plain text."""
+        """Add incompatible animations (usually emitters) as plain text."""
         # Get or create the text object
         txt = None
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
@@ -699,82 +699,81 @@ class Animnode():
             if action:
                 Animnode.getKeysFromAction(action, anim, keyDict)
 
-        l_rnd = round  # For speed
         animStart = anim.frameStart
         render_fps = bpy.context.scene.render.fps
         kname = 'orientationkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
-                formatStr = '    ' + \
+                fstr = '    ' + \
                     'orientation {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 key = keyList.popitem()[1]
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
-                s = formatStr.format(val[0], val[1], val[2], val[3])
+                s = fstr.format(*val)
                 asciiLines.append(s)
             else:
                 formatStr = '      ' + \
                     '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 asciiLines.append('    orientationkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                        render_fps), 5)
+                    time = nvb_utils.frame2nwtime(frame - animStart,
+                                                  render_fps)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                     val = nvb_utils.euler2nwangle(eul)
-                    s = formatStr.format(time, val[0], val[1], val[2], val[3])
+                    s = formatStr.format(time, *val)
                     asciiLines.append(s)
 
         kname = 'positionkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
-                formatStr = '    position {: > 6.5f} {: > 6.5f} {: > 6.5f}'
+                fstr = '    position {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 key = keyList.popitem()[1]
-                s = formatStr.format(key[0], key[1], key[2])
+                s = fstr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
             else:
-                formatStr = '      ' + \
+                fstr = '      ' + \
                     '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 asciiLines.append('    positionkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                        render_fps), 5)
-                    s = formatStr.format(time, key[0], key[1], key[2])
+                    time = nvb_utils.frame2nwtime(frame - animStart,
+                                                  render_fps)
+                    s = fstr.format(time, key[0], key[1], key[2])
                     asciiLines.append(s)
 
         kname = 'scalekey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
-                formatStr = '    scale {: >6.5f}'
+                fstr = '    scale {: >6.5f}'
                 key = keyList.popitem()[1]
-                s = formatStr.format(key[0])
+                s = fstr.format(key[0])
                 asciiLines.append(s)
             else:
-                formatStr = '      {: >6.5f} {: >6.5f}'
+                fstr = '      {: >6.5f} {: >6.5f}'
                 asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                        render_fps), 5)
-                    s = formatStr.format(time, key[0])
+                    time = nvb_utils.frame2nwtime(frame - animStart,
+                                                  render_fps)
+                    s = fstr.format(time, key[0])
                     asciiLines.append(s)
 
         kname = 'selfillumcolorkey'
         if len(keyDict[kname]) > 0:
             keyList = keyDict[kname]
             if len(keyList) == 1:
-                formatStr = '    selfillumcolor {: >3.2f} {: >3.2f} {: >3.2f}'
+                fstr = '    selfillumcolor {: >3.2f} {: >3.2f} {: >3.2f}'
                 key = keyList.popitem()[1]
-                s = formatStr.format(key[0], key[1], key[2])
+                s = fstr.format(key[0], key[1], key[2])
                 asciiLines.append(s)
             else:
-                formatStr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
+                fstr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
                 asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
                 for frame, key in keyList.items():
-                    time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                        render_fps), 5)
-                    s = formatStr.format(time, key[0], key[1], key[2])
+                    time = nvb_utils.frame2nwtime(frame - animStart,
+                                                  render_fps)
+                    s = fstr.format(time, key[0], key[1], key[2])
                     asciiLines.append(s)
 
         kname = 'colorkey'
@@ -783,8 +782,7 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >3.2f} {: >3.2f} {: >3.2f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                    render_fps), 5)
+                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
                 s = formatStr.format(time, key[0], key[1], key[2])
                 asciiLines.append(s)
 
@@ -794,8 +792,7 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >6.5f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                    render_fps), 5)
+                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
                 s = formatStr.format(time, key[0])
                 asciiLines.append(s)
 
@@ -805,8 +802,7 @@ class Animnode():
             asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
             formatStr = '      {: >6.5f} {: >3.2f}'
             for frame, key in keyList.items():
-                time = l_rnd(nvb_utils.frame2nwtime(frame - animStart,
-                                                    render_fps), 5)
+                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
                 s = formatStr.format(time, key[0])
                 asciiLines.append(s)
 
