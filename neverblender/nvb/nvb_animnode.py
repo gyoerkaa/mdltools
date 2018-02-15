@@ -673,6 +673,63 @@ class Animnode():
                 asciiLines.append('    ' + ' '.join(line))
 
     @staticmethod
+    def getKeysFromMatAction(action, anim, exports):
+        """TODO: DOC."""
+        for fcurve in action.fcurves:
+            ai = fcurve.array_index
+            # Get the name from the data path
+            dp = fcurve.data_path
+            if dp.endswith('alpha_factor') or dp.endswith('alpha'):
+                nwname = 'alphakey'
+
+    @staticmethod
+    def getKeysFromObjAction(action, anim, exports):
+        """TODO: DOC."""
+        export_dp = {'rotation_euler', 'location', 'scale',
+                     'nvb.selfillumcolor',
+                     'color', 'distance'}
+        dp_dict = dict()
+        test12_dp = {'rotation_euler':     [[], 'orientationkey'],
+                     'location':           [[], 'positionkey'],
+                     'scale':              [[], 'scalekey'],
+                     'nvb.selfillumcolor': [[], 'selfillumcolorkey'],
+                     'color':              [[], 'colorkey'],
+                     'distance':           [[], 'radiuskey']}
+        for fcurve in action.fcurves:
+            # Get all compatible fcurves
+            dp = fcurve.data_path
+            ai = fcurve.array_index
+
+            if dp in export_dp:
+                nwname = export_dp[dp][1]
+
+    @staticmethod
+    def generateAsciiKeys2(obj, anim, asciiLines):
+        """TODO: DOC."""
+        exports = [['orientationkey', collections.OrderedDict()],
+                   ['positionkey', collections.OrderedDict()],
+                   ['scalekey', collections.OrderedDict()],
+                   ['selfillumcolorkey', collections.OrderedDict()],
+                   ['colorkey', collections.OrderedDict()],
+                   ['radiuskey', collections.OrderedDict()],
+                   ['alphakey', collections.OrderedDict()]]
+        # 1. Object animation data
+        if obj.animation_data:
+            action = obj.animation_data.action
+            if action:
+                Animnode.getKeysFromObjAction(action, anim, exports)
+        # 2. Material animation data
+        if obj.active_material and obj.active_material.animation_data:
+            action = obj.active_material.animation_data.action
+            if action:
+                Animnode.getKeysFromMatAction(action, anim, exports)
+
+        astart = anim.frameStart
+        rfps = bpy.context.scene.render.fps
+        for exp in exports:
+            keys = exp[1]
+
+    @staticmethod
     def generateAsciiKeys(obj, anim, asciiLines):
         """TODO: DOC."""
         keyDict = {'orientationkey': collections.OrderedDict(),
@@ -708,7 +765,7 @@ class Animnode():
                 s = fstr.format(*val)
                 asciiLines.append(s)
             else:
-                formatStr = '      ' + \
+                fstr = '      ' + \
                     '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
                 asciiLines.append('    orientationkey ' + str(len(keyList)))
                 for frame, key in keyList.items():
@@ -716,8 +773,7 @@ class Animnode():
                                                   render_fps)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                     val = nvb_utils.euler2nwangle(eul)
-                    s = formatStr.format(time, *val)
-                    asciiLines.append(s)
+                    asciiLines.append(time, *val)
 
         kname = 'positionkey'
         if len(keyDict[kname]) > 0:

@@ -49,7 +49,7 @@ class Node(object):
 
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
-        self.createdObj = ''  # Name of the corresponding object in blender
+        self.createdobj = ''  # Name of the corresponding object in blender
         self.nodeidx = -1  # Order in mdlfile (needs to be restored for export)
 
         self.name = name
@@ -122,7 +122,7 @@ class Node(object):
     def createObject(self, options):
         """Return an object for use in blender."""
         obj = bpy.data.objects.new(self.name, None)
-        self.createdObj = obj.name
+        self.createdobj = obj.name
         self.createObjectData(obj, options)
         return obj
 
