@@ -365,6 +365,8 @@ class ImportOptions():
     importNormals = True
     # Options for textures and materials
     materialMode = 'SIN'
+    materialAutoMerge = True
+    materialDefaultRoles = True
     texturePath = ''
     textureSearch = False
     # for minimap generator

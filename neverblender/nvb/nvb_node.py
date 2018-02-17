@@ -5,6 +5,7 @@ import bpy
 import bpy_extras.image_utils
 import bmesh
 import array
+import copy
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_def
@@ -364,13 +365,13 @@ class Trimesh(Node):
         self.shininess = 0
         self.bitmap = ''
         self.renderhints = []
-        self.textures = ['', '', '', '', '']
+        self.textures = []
         self.rotatetexture = 0
         self.verts = []
         self.facelist = FaceList()
         self.facedef = []
         self.tverts = []
-        self.uvlayers = [[] for _ in range(5)]
+        self.tverts2 = [[] for _ in range(5)]
         self.tangents = []
         self.normals = []
         self.colors = []
@@ -477,7 +478,7 @@ class Trimesh(Node):
             if not self.uvlayers[lid]:
                 vcnt = int(aline[1])
                 tmp = [next(itlines) for _ in range(vcnt)]
-                self.uvlayers[lid] = [tuple(map(float, v)) for v in tmp]
+                self.tverts2[lid] = [tuple(map(float, v)) for v in tmp]
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: Doc."""
@@ -586,6 +587,98 @@ class Trimesh(Node):
                         nvb_parse.f3(asciiLines[i+1:i+numVals+1],
                                      self.colors)
 
+    def createMaterial2(self, options, makeunique=False):
+        """TODO: Doc."""
+        def findMaterial(textures, diffuse, specular, alpha):
+            """TODO: Doc."""
+            return None
+
+        def createTexture(tname, imgname, options):
+            """TODO: Doc."""
+            if tname in bpy.data.textures:
+                # Load the image for the texture
+                tex = bpy.data.textures[tname]
+            else:
+                tex = bpy.data.textures.new(tname, type='IMAGE')
+                if (imgname in bpy.data.images):
+                    image = bpy.data.images[imgname]
+                    tex.image = image
+                else:
+                    image = bpy_extras.image_utils.load_image(
+                        imgname + '.tga',
+                        options.texturePath,
+                        recursive=options.textureSearch,
+                        place_holder=False,
+                        ncase_cmp=True)
+                    if image is None:
+                        image = bpy.data.images.new(imgname, 512, 512)
+                    image.name = imgname
+                    tex.image = image
+            return tex
+
+        # texture0 = bitmap, texture0 takes precedence
+        texlist = self.textures
+        if len(texlist) > 0:
+            if not texlist[0] and self.bitmap:
+                texlist[0] = self.bitmap
+        else:
+            if self.bitmap:
+                texlist.append(self.bitmap)
+        # Look for similar materials to avoid duplicates
+        material = None
+        if options.materialAutoMerge and not makeunique:
+            material = findMaterial(texlist,
+                                    self.diffuse, self.specular, self.alpha)
+        if not material:
+            matname = texlist[0] if texlist[0] else self.name
+            material = bpy.data.materials.new(matname)
+            material.use_transparency = True
+            material.diffuse_color = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color = self.specular
+            material.specular_intensity = 1.0
+            # Load all textures first
+            for mdltex in texlist:
+                tslot = material.texture_slots.add()
+                if mdltex:  # might be ''
+                    tslot = material.texture_slots.add()
+                    tslot.texture = createTexture(mdltex, mdltex, options)
+            # Set the default roles for texture slot:
+            # texture0 = diffuse
+            # texture1 = normal
+            # texture2 = specular
+            # texture3 = TBD
+            # others are generic
+            matalpha = self.alpha
+            if options.textureDefaultRoles:
+                # Diffuse in tslot 0
+                tslot = material.texture_slots[0]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = True
+                    tslot.use_map_alpha = True
+                    tslot.alpha_factor = self.alpha
+                    matalpha = 0.0  # alpha doesn't need to be in mat
+                # Normal in tslot 1
+                tslot = material.texture_slots[1]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = False
+                    tslot.use_map_normal = True
+                    tslot.normal_map_space = 'TANGENT'
+                    tslot.texture.use_normal_map = True
+                # Specular in tslot 2
+                tslot = material.texture_slots[2]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = False
+                    tslot.use_map_color_spec = True
+                # ??? in tslot 3
+                tslot = material.texture_slots[3]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+            material.alpha = matalpha
+
     def createMaterial(self, options, keepunique=False):
         """TODO: Doc."""
 
@@ -670,6 +763,73 @@ class Trimesh(Node):
                 # tslot.use_map_hardness = True
         return material
 
+    def createMesh2(self, name, options):
+        """TODO: Doc."""
+        def createUVmap(mesh, tverts, uvname, material=None):
+            """TODO: Doc."""
+            uvmap = None
+            if tverts and mesh.tessfaces:
+                uvmap = me.tessface_uv_textures.new(uvname)
+                # we need to save the order the tverts were created in blender
+                # for animmeshes/uv animations
+                me.tessface_uv_textures.active = uvmap
+                # EEEKADOODLE fix
+                flist = zip(self.facelist.faces, self.facelist.uvIdx)
+                cuvs = [(uv[1], uv[2], uv[0]) if v[2] == 0 else uv
+                        for uv, v in flist]
+                # Set uv's
+                timg = material.texture_slots[0].texture.image
+                for i in range(len(cuvs)):
+                    tessfaceUV = uvmap.data[i]
+                    tessfaceUV.uv1 = self.tverts[cuvs[i][0]]
+                    tessfaceUV.uv2 = self.tverts[cuvs[i][1]]
+                    tessfaceUV.uv3 = self.tverts[cuvs[i][2]]
+                    tessfaceUV.image = timg
+                # Save new order for uvs (for animesh animations)
+                if uvmap.name not in nvb_def.tvert_order:
+                    nvb_def.tvert_order[uvmap.name] = copy.deepcopy(cuvs)
+                # Set material for each face
+                me.tessfaces.foreach_set('material_index',
+                                         [0] * len(me.tessfaces))
+            return uvmap
+
+        def createVColors(mesh, vcolors, vcname):
+            """TODO: Doc."""
+            cmap = None
+            if vcolors:
+                cmap = mesh.vertex_colors.new(vcname)
+                # Get all loops for each vertex
+                vert_loop_map = {}
+                for l in mesh.loops:
+                    if l.vertex_index in vert_loop_map:
+                        vert_loop_map[l.vertex_index].append(l.index)
+                    else:
+                        vert_loop_map[l.vertex_index] = [l.index]
+                # Set color for each vertex (in every loop)
+                for vidx in vert_loop_map:
+                    for lidx in vert_loop_map[vidx]:
+                        cmap[lidx].color = vcolors[vidx]
+            return cmap
+
+        # Create the mesh itself
+        me = bpy.data.meshes.new(name)
+        # Create vertices
+        me.vertices.add(len(self.verts))
+        me.vertices.foreach_set('co', unpack_list(self.verts))
+        # Create per-Vertex normals
+        if self.normals and options.importNormals:
+            me.vertices.foreach_set('normal', unpack_list(self.normals))
+        # Create faces
+        faces = [fd[:3] for fd in self.facedef]
+        me.tessfaces.add(len(faces))
+        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(faces))
+        # Create material
+        for idx, tvs in enumerate(self.tverts2):
+            uvname = self.name + '.tvert.' + str(idx)
+            createUVmap(me, tvs, uvname)
+        # Create Vertex colors
+        createVColors(me, self.colors, 'colors')
+
     def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
@@ -688,44 +848,30 @@ class Trimesh(Node):
         if options.materialMode != 'NON':
             material = self.createMaterial(options)
             me.materials.append(material)
-            # Create UV map
+            # Create UV maps
             uv_tex = None
-            uv_name = 'name' + '.tverts'
+            uvname = name + '.tverts'
             if (len(self.tverts) > 0) and me.tessfaces and self.bitmap:
-                uv_tex = me.tessface_uv_textures.new(uv_name)
+                uv_tex = me.tessface_uv_textures.new(uvname)
                 me.tessface_uv_textures.active = uv_tex
-                # we need to save the order the tverts were created in blender
-                # for animmeshes/uv animations
-                tvert_neworder = []
-                # Create uv's
-                for i in range(len(self.facelist.uvIdx)):
-                    # Get a tessface
-                    tessface = me.tessfaces[i]
-                    # Apply material (there is only ever one)
-                    tessface.material_index = 0
-                    # Grab a uv for the face
-                    tessfaceUV = me.tessface_uv_textures[0].data[i]
-                    # Get the indices of the 3 uv's for this face
-                    uvIdx = self.facelist.uvIdx[i]
-
-                    # BEGIN EEEKADOODLE FIX
-                    # BUG: Evil eekadoodle problem where faces that have
-                    # vert index 0 at location 3 are shuffled.
-                    vertIdx = self.facelist.faces[i]
-                    if vertIdx[2] == 0:
-                        uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
-                    # END EEEKADOODLE FIX
-
-                    # Add uv coordinates to face
-                    tessfaceUV.uv1 = self.tverts[uvIdx[0]]
-                    tessfaceUV.uv2 = self.tverts[uvIdx[1]]
-                    tessfaceUV.uv3 = self.tverts[uvIdx[2]]
-
-                    tvert_neworder.extend([uvIdx[0], uvIdx[1], uvIdx[2]])
-                    # Apply texture to uv face
-                    tessfaceUV.image = material.texture_slots[0].texture.image
+                # EEEKADOODLE fix
+                flist = zip(self.facelist.faces, self.facelist.uvIdx)
+                cuvs = [(uv[1], uv[2], uv[0]) if v[2] == 0 else uv
+                        for uv, v in flist]
+                # Set uv's
+                timg = material.texture_slots[0].texture.image
+                for i in range(len(cuvs)):
+                    tessfaceUV = uv_tex.data[i]
+                    tessfaceUV.uv1 = self.tverts[cuvs[i][0]]
+                    tessfaceUV.uv2 = self.tverts[cuvs[i][1]]
+                    tessfaceUV.uv3 = self.tverts[cuvs[i][2]]
+                    tessfaceUV.image = timg
+                # Save new order for uvs (for animesh animations)
                 if uv_tex.name not in nvb_def.tvert_order:
-                    nvb_def.tvert_order[uv_tex.name] = tvert_neworder
+                    nvb_def.tvert_order[uv_tex.name] = copy.deepcopy(cuvs)
+                # Set material for each face
+                me.tessfaces.foreach_set('material_index',
+                                         [0] * len(me.tessfaces))
         if options.materialMode == 'MUL':
             # Add the new uv map to all texture slots
             if material and uv_tex:
