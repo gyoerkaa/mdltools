@@ -587,10 +587,47 @@ class Trimesh(Node):
                         nvb_parse.f3(asciiLines[i+1:i+numVals+1],
                                      self.colors)
 
-    def createMaterial2(self, options, makeunique=False):
+    def createMaterialFromMTL(self, options, makeunique=False):
         """TODO: Doc."""
-        def findMaterial(textures, diffuse, specular, alpha):
+        return None
+
+    def createMaterialFromMDL(self, options, makeunique=False):
+        """TODO: Doc."""
+        def findMaterial(textures, cdiff, cspec, alpha):
             """TODO: Doc."""
+            def cmp_col(a, b, rel_tol=0.1):
+                """Compares two colors."""
+                def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+                    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+                return (isclose(a[0], b[0], rel_tol) and
+                        isclose(a[1], b[1], rel_tol) and
+                        isclose(a[2], b[2], rel_tol))
+
+            def get_tslot_img(tslot):
+                """Compares two textures (i.e their image names)"""
+                if tslot:
+                    tex = tslot.texture
+                    if tex and tex.type == 'IMAGE':
+                        return tex.image.name
+                return ''
+
+            for mat in bpy.data.materials:
+                eq = False
+                # Check diffuse and specular color
+                eq = cmp_col(mat.diffuse_color, cdiff)
+                eq = eq and (cspec and cmp_col(mat.specular_color, cspec))
+                # Check texture names:
+                tstextures = list(map(get_tslot_img, mat.texture_slots))
+                matches = itertools.ziplongest(tstextures, textures,
+                                               fillvalue='')
+                for m in matches:
+                    eq = eq and (m[0] == m[1])
+                # Texture slot 0 is used we need to compare alpha values too
+                # (texture = diffuse)
+                if mat.texture_slots[0]:
+                    eq = eq and (alpha == mat.alpha)
+                if eq:
+                    return mat
             return None
 
         def createTexture(tname, imgname, options):
@@ -638,10 +675,9 @@ class Trimesh(Node):
             material.specular_color = self.specular
             material.specular_intensity = 1.0
             # Load all textures first
-            for mdltex in texlist:
-                tslot = material.texture_slots.add()
+            for idx, mdltex in enumerate(texlist):
                 if mdltex:  # might be ''
-                    tslot = material.texture_slots.add()
+                    tslot = material.texture_slots.create(idx)
                     tslot.texture = createTexture(mdltex, mdltex, options)
             # Set the default roles for texture slot:
             # texture0 = diffuse
@@ -678,6 +714,7 @@ class Trimesh(Node):
                 if tslot is not None:
                     tslot.texture_coords = 'UV'
             material.alpha = matalpha
+        return material
 
     def createMaterial(self, options, keepunique=False):
         """TODO: Doc."""
@@ -824,11 +861,60 @@ class Trimesh(Node):
         me.tessfaces.add(len(faces))
         me.tessfaces.foreach_set('vertices_raw', unpack_face_list(faces))
         # Create material
+        material = None
+        if options.materialMode != 'NON':
+            material = self.createMaterialFromMDL(options)
+            if material:
+                me.materials.append(material)
+        # Create uvmaps
         for idx, tvs in enumerate(self.tverts2):
             uvname = self.name + '.tvert.' + str(idx)
-            createUVmap(me, tvs, uvname)
+            createUVmap(me, tvs, uvname, material)
         # Create Vertex colors
         createVColors(me, self.colors, 'colors')
+        """
+        if options.materialMode == 'MUL':
+            # Add the new uv map to all texture slots
+            if material and uv_tex:
+                for ts in material.texture_slots:
+                    if ts:
+                        ts.uv_layer = uv_tex.name
+        """
+        # Import smooth groups as sharp edges
+        if options.importSmoothGroups:
+            me.update()
+            me.show_edge_sharp = True
+            bm = bmesh.new()
+            bm.from_mesh(me)
+            if hasattr(bm.edges, "ensure_lookup_table"):
+                bm.edges.ensure_lookup_table()
+            # Mark edge as sharp if its faces belong to different smooth groups
+            for e in bm.edges:
+                f = e.link_faces
+                if (len(f) > 1) and \
+                   (self.facelist.shdgr[f[0].index] !=
+                        self.facelist.shdgr[f[1].index]):
+                    edgeIdx = e.index
+                    me.edges[edgeIdx].use_edge_sharp = True
+            bm.free()
+            del bm
+        # Import custom normals
+        me.update()
+        if self.normals and me.loops and options.importNormals:
+            for l in me.loops:
+                l.normal[:] = self.normals[l.vertex_index]
+            me.validate(clean_customdata=False)
+            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
+            me.loops.foreach_get('normal', clnors)
+            me.create_normals_split()
+            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
+            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
+            me.use_auto_smooth = True
+            me.show_edge_sharp = True
+        else:
+            me.validate()
+        # me.update()
+        return me
 
     def createMesh(self, name, options):
         """TODO: Doc."""

@@ -100,9 +100,10 @@ def find_material(tdiff_name='', tnorm_name='', tspec_name='',
 
     def get_tslot_img(tslot):
         """Compares two textures (i.e their image names)"""
-        tex = tslot.texture
-        if tex and tex.type == 'IMAGE':
-            return tex.image.name
+        if tslot:
+            tex = tslot.texture
+            if tex and tex.type == 'IMAGE':
+                return tex.image.name
         return ''
 
     for mat in bpy.data.materials:
