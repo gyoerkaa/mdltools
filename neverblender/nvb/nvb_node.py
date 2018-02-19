@@ -587,7 +587,7 @@ class Trimesh(Node):
                 # Set color for each vertex (in every loop)
                 for vidx in vert_loop_map:
                     for lidx in vert_loop_map[vidx]:
-                        cmap[lidx].color = vcolors[vidx]
+                        cmap.data[lidx].color = vcolors[vidx]
             return cmap
 
         # Create the mesh itself
@@ -889,20 +889,26 @@ class Trimesh(Node):
                 uvList.append(uv)
                 return (len(uvList)-1)
 
-        def generateVColors(me, asciiLines):
+        def generateVColors(mesh, asciiLines):
             """Generate per-vert. vertex-colors from per-loop vertex-colors."""
-            color_map = me.vertex_colors.active
-            if color_map:
+            cmap = me.vertex_colors.active
+            if cmap:
                 # Per vertex vertex-color list
-                clist = [(1.0, 1.0, 1.0)] * len(me.vertices)
-                asciiLines.append('  colors ' + str(len(me.vertices)))
-                i = 0
-                for poly in me.polygons:
-                    for idx in poly.loop_indices:
-                        clist[i] = color_map.data[i].color
-                        i += 1
-                fstr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
-                asciiLines.extend([fstr.format(*c) for c in clist])
+                vcolors = [(1.0, 1.0, 1.0)] * len(mesh.vertices)
+                # Get all loops for each vertex
+                vert_loop_map = {}
+                for l in mesh.loops:
+                    if l.vertex_index in vert_loop_map:
+                        vert_loop_map[l.vertex_index].append(l.index)
+                    else:
+                        vert_loop_map[l.vertex_index] = [l.index]
+                # Get color for each vertex (in every loop)
+                for vidx in vert_loop_map:
+                    for lidx in vert_loop_map[vidx]:
+                        vcolors[vidx] = cmap.data[lidx].color
+                asciiLines.append('  colors ' + str(len(mesh.vertices)))
+                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+                asciiLines.extend([fstr.format(*vc) for vc in vcolors])
 
         me = obj.to_mesh(bpy.context.scene,
                          options.applyModifiers,
