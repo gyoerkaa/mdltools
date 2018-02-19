@@ -187,12 +187,11 @@ class Mdl():
 
         self.loadAsciiHeader(asciiBlock[:geomStart-1])
         # Import Geometry
-        if options.importGeometry:
-            if (animStart > 0):
-                # Animations present, skip them
-                self.loadAsciiGeometry(asciiBlock[geomStart:animStart])
-            else:
-                self.loadAsciiGeometry(asciiBlock[geomStart:])
+        if (animStart > 0):
+            # Animations present, exclude them for geometry loading
+            self.loadAsciiGeometry(asciiBlock[geomStart:animStart])
+        else:
+            self.loadAsciiGeometry(asciiBlock[geomStart:])
         # Import Animations
         if options.importAnimations and (animStart > 0):
             self.loadAsciiAnimations(asciiBlock[animStart:])
@@ -264,7 +263,7 @@ class Mdl():
         Mdl.generateAsciiGeometry(rootDummy, asciiLines, options)
         asciiLines.append('endmodelgeom ' + mdlName)
         # Animations
-        if options.exportAnim:
+        if options.exportAnimations:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
             Mdl.generateAsciiAnimations(rootDummy, asciiLines, options)
@@ -365,12 +364,7 @@ class Mdl():
 
     def create(self, options):
         """TODO: DOC."""
-        if options.importGeometry:
-            self.createObjects(options)
-            self.createObjectLinks(options)
-            if options.importAnimations:
-                self.createAnimations(options)
-        else:
-            # Import animations only, there is no noderesolver in this case
-            # TODO: finish this
-            pass
+        self.createObjects(options)
+        self.createObjectLinks(options)
+        if options.importAnimations:
+            self.createAnimations(options)

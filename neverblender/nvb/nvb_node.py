@@ -6,41 +6,13 @@ import bpy_extras.image_utils
 import bmesh
 import array
 import copy
+import itertools
+import os
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_aabb
-from . import nvb_parse
-
-
-class FaceList():
-    """TODO: DOC."""
-
-    def __init__(self):
-        """TODO: DOC."""
-        self.faces = []  # int 3-tuple, vertex indices
-        self.shdgr = []  # int, shading group for this face
-        self.uvIdx = []  # int 3-tuple, texture/uv vertex indices
-        self.matId = []  # int, material index
-
-    def __len__(self):
-        """TODO: DOC."""
-        return min(len(self.faces),
-                   len(self.shdgr),
-                   len(self.uvIdx),
-                   len(self.matId))
-
-
-class FlareList():
-    """TODO: DOC."""
-
-    def __init__(self):
-        """TODO: DOC."""
-        self.textures = []
-        self.sizes = []
-        self.positions = []
-        self.colorshifts = []
 
 
 class Node(object):
@@ -58,7 +30,7 @@ class Node(object):
         self.position = (0.0, 0.0, 0.0)
         self.orientation = (0.0, 0.0, 0.0, 0.0)
         self.scale = 1.0
-        self.wirecolor = (0.0, 0.0, 0.0)
+        self.wirecolor = (1.0, 1.0, 1.0)
 
     def __eq__(self, other):
         """TODO: DOC."""
@@ -83,7 +55,7 @@ class Node(object):
 
     def loadAsciiLine(self, itlines):
         """TODO: DOC."""
-        aline = ''
+        aline = None
         try:
             aline = next(itlines)
         except StopIteration:
@@ -111,7 +83,7 @@ class Node(object):
             self.wirecolor = tuple([float(v) for v in aline[1:4]])
         return aline
 
-    def loadAscii2(self, asciiLines, nodeidx=-1):
+    def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         self.nodeidx = nodeidx
         # list(map(self.loadAsciiLine, asciiLines))
@@ -119,35 +91,6 @@ class Node(object):
         lline = True
         while lline is not None:
             lline = self.loadAsciiLine(iterable)
-
-    def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: DOC."""
-        l_float = float
-        l_isNumber = nvb_utils.isNumber
-
-        self.nodeidx = nodeidx
-        for line in asciiLines:
-            try:
-                label = line[0].lower()
-            except (IndexError, AttributeError):
-                # Probably empty line or whatever, skip it
-                continue
-
-            if not l_isNumber(label):
-                if (label == 'node'):
-                    self.name = nvb_utils.getAuroraString(line[2])
-                elif (label == 'endnode'):
-                    return
-                elif (label == 'parent'):
-                    self.parent = nvb_utils.getAuroraString(line[1])
-                elif (label == 'position'):
-                    self.position = tuple([float(v) for v in line[1:4]])
-                elif (label == 'orientation'):
-                    self.orientation = tuple([float(v) for v in line[1:5]])
-                elif (label == 'scale'):
-                    self.scale = l_float(line[1])
-                elif (label == 'wirecolor'):
-                    self.wirecolor = tuple([float(v) for v in line[1:4]])
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -304,26 +247,6 @@ class Reference(Node):
                 pass
         return aline
 
-    def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, nodeidx)
-        l_isNumber = nvb_utils.isNumber
-
-        for line in asciiLines:
-            try:
-                label = line[0].lower()
-            except (IndexError, AttributeError):
-                # Probably empty line or whatever, skip it
-                continue
-            if not l_isNumber(label):
-                if (label == 'refmodel'):
-                    self.refmodel = nvb_utils.getAuroraString(line[1])
-                elif (label == 'reattachable'):
-                    try:
-                        self.reattachable = int(line[1])
-                    except (ValueError, IndexError):
-                        pass  # TODO: Print a warning or smth
-
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
@@ -365,27 +288,25 @@ class Trimesh(Node):
         self.shininess = 0
         self.bitmap = ''
         self.renderhints = []
-        self.textures = []
+        self.textures = ['']
         self.rotatetexture = 0
+        self.materialname = ''  # name for external mtr file
         self.verts = []
-        self.facelist = FaceList()
         self.facedef = []
-        self.tverts = []
-        self.tverts2 = [[] for _ in range(5)]
+        self.tverts = [[]]
         self.tangents = []
         self.normals = []
         self.colors = []
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        l_float = float
         aline = Node.loadAsciiLine(self, itlines)
         if not aline:
             return aline
         try:
             label = aline[0].lower()
         except (IndexError, AttributeError):
-            return  # Probably empty line, skip it
+            return aline  # Probably empty line, skip it
         if (label == 'tilefade'):
             self.tilefade = int(aline[1])
         elif (label == 'render'):
@@ -404,8 +325,10 @@ class Trimesh(Node):
             self.inheritcolor = int(aline[1])
         elif (label == 'rotatetexture'):
             self.rotatetexture = int(aline[1])
+        elif (label == 'materialname'):
+            self.materialname = aline[1]
         elif (label == 'alpha'):
-            self.alpha = l_float(aline[1])
+            self.alpha = float(aline[1])
         elif (label == 'transparencyhint'):
             self.transparencyhint = int(aline[1])
         elif ((label == 'selfillumcolor') or
@@ -418,174 +341,63 @@ class Trimesh(Node):
         elif (label == 'specular'):
             self.specular = tuple([float(v) for v in aline[1:4]])
         elif (label == 'shininess'):
-            self.shininess = int(l_float(aline[1]))
-        elif (label == 'center'):
-            # Unused ? Because we don't do anything with this
-            try:
-                self.center = (l_float(aline[1]),
-                               l_float(aline[2]),
-                               l_float(aline[3]))
-            except (ValueError, IndexError):
-                # Probably a 'undefined' string, cannot be converted
-                # We just let it slide and ignore it
-                pass
+            self.shininess = int(float(aline[1]))
         elif (label == 'bitmap'):
             self.bitmap = nvb_utils.getAuroraString(aline[1])
         elif (label == 'renderhint'):
             self.renderhints.append(nvb_utils.getAuroraString(aline[1]))
+        elif (label == 'bitmap'):
+            self.bitmap = nvb_utils.getAuroraString(aline[1])
+        elif (label == 'renderhint'):
+            self.renderhints.append(nvb_utils.getAuroraString(aline[1]))
+        elif (label == 'verts'):
+            if not self.verts:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.verts = [tuple(map(float, v)) for v in tmp]
+        elif (label == 'faces'):
+            if not self.facedef:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.facedef = [list(map(int, v)) for v in tmp]
+        elif (label == 'normals'):
+            if not self.normals:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.normals = [tuple(map(float, v)) for v in tmp]
+        elif (label == 'tangents'):
+            if not self.tangents:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.tangents = [tuple(map(float, v)) for v in tmp]
+        elif (label == 'colors'):
+            if not self.colors:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.colors = [tuple(map(float, v)) for v in tmp]
         elif (label.startswith('texture')):
             tid = 0
             # 'texture' has to be followed by a number
             if label[7:]:
-                tid = int(label[6:])
-                tcn = len(self.textures)
-                if tid > tcn:
-                    self.textures.extend([[] for _ in range(tcn-tid)])
+                tid = int(label[7:])
+                tcnt = len(self.textures)
+                if tid+1 > tcnt:
+                    self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
                     self.textures[tid] = \
                         nvb_utils.getAuroraString(aline[1])
-        elif (label == 'verts'):
-            if not self.verts:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.verts = [tuple(map(float, v)) for v in tmp]
-        elif (label == 'faces'):
-            if len(self.facelist) <= 0:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.facedef = [list(map(int, v)) for v in tmp]
-        elif (label == 'normals'):
-            if not self.normals:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.normals = [tuple(map(float, v)) for v in tmp]
-        elif (label == 'tangents'):
-            if not self.tangents:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.tangents = [tuple(map(float, v)) for v in tmp]
-        elif (label == 'colors'):
-            if not self.colors:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.colors = [tuple(map(float, v)) for v in tmp]
         elif (label.startswith('tverts')):
-            lid = 0
+            tvid = 0
             if label[6:]:  # might be '', which we interpret as = 0
-                lid = int(label[6:])
-            if lid > len(self.uvlayers):
-                self.uvlayers
-            if not self.uvlayers[lid]:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.tverts2[lid] = [tuple(map(float, v)) for v in tmp]
-
-    def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, nodeidx)
-
-        l_int = int
-        l_float = float
-        l_isNumber = nvb_utils.isNumber
-
-        # Re-Initialize values in case this method is called multiple times
-        self.verts = []
-        self.tverts = []
-        self.uvlayers = [[] for _ in range(5)]
-        self.colors = []
-        self.facelist = FaceList()
-
-        for i, line in enumerate(asciiLines):
-            try:
-                label = line[0].lower()
-            except (IndexError, AttributeError):
-                # Probably empty line or whatever, skip it
-                continue
-
-            if not l_isNumber(label):
-                if (label == 'tilefade'):
-                    self.tilefade = l_int(line[1])
-                elif (label == 'render'):
-                    try:
-                        self.render = l_int(line[1])
-                    except (ValueError, IndexError):
-                        pass
-                elif (label == 'shadow'):
-                    try:
-                        self.shadow = l_int(line[1])
-                    except (ValueError, IndexError):
-                        pass
-                elif (label == 'beaming'):
-                    self.beaming = l_int(line[1])
-                elif (label == 'inheritcolor '):
-                    self.inheritcolor = l_int(line[1])
-                elif (label == 'rotatetexture'):
-                    self.rotatetexture = l_int(line[1])
-                elif (label == 'alpha'):
-                    self.alpha = l_float(line[1])
-                elif (label == 'transparencyhint'):
-                    self.transparencyhint = l_int(line[1])
-                elif ((label == 'selfillumcolor') or
-                      (label == 'setfillumcolor')):
-                    self.selfillumcolor = tuple([float(v) for v in line[1:4]])
-                elif (label == 'ambient'):
-                    self.ambient = tuple([float(v) for v in line[1:4]])
-                elif (label == 'diffuse'):
-                    self.diffuse = tuple([float(v) for v in line[1:4]])
-                elif (label == 'specular'):
-                    self.specular = tuple([float(v) for v in line[1:4]])
-                elif (label == 'shininess'):
-                    self.shininess = l_int(l_float(line[1]))
-                elif (label == 'center'):
-                    # Unused ? Because we don't do anything with this
-                    try:
-                        self.center = (l_float(line[1]),
-                                       l_float(line[2]),
-                                       l_float(line[3]))
-                    except (ValueError, IndexError):
-                        # Probably a 'undefined' string, cannot be converted
-                        # We just let it slide and ignore it
-                        pass
-                elif (label == 'bitmap'):
-                    self.bitmap = nvb_utils.getAuroraString(line[1])
-                elif (label == 'renderhint'):
-                    self.renderhints.append(nvb_utils.getAuroraString(line[1]))
-                elif (label == 'texture0'):
-                    self.textures[0] = nvb_utils.getAuroraString(line[1])
-                elif (label == 'texture1'):
-                    self.textures[1] = nvb_utils.getAuroraString(line[1])
-                elif (label == 'texture2'):
-                    self.textures[2] = nvb_utils.getAuroraString(line[1])
-                elif (label == 'verts'):
-                    if not self.verts:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.verts)
-                elif (label == 'faces'):
-                    if len(self.facelist) <= 0:
-                        numVals = l_int(line[1])
-                        nvb_parse.faces(asciiLines[i+1:i+numVals+1],
-                                        self.facelist)
-                elif (label == 'tverts'):
-                    if not self.tverts:
-                        numVals = l_int(line[1])
-                        nvb_parse.f2(asciiLines[i+1:i+numVals+1],
-                                     self.tverts)
-                elif (label == 'normals'):
-                    if not self.normals:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.normals)
-                elif (label == 'tangents'):
-                    if not self.tangents:
-                        numVals = l_int(line[1])
-                        nvb_parse.f4(asciiLines[i+1:i+numVals+1],
-                                     self.tangents)
-                elif (label == 'colors'):
-                    if not self.colors:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.colors)
+                tvid = int(label[6:])
+                tvcnt = len(self.tverts)
+                if tvid+1 > tvcnt:
+                    self.tverts.extend([[] for _ in range(tvid-tvcnt+1)])
+            if not self.tverts[tvid]:
+                nvals = int(aline[1])
+                tmp = [next(itlines) for _ in range(nvals)]
+                self.tverts[tvid] = [(float(v[0]), float(v[1])) for v in tmp]
+        return aline
 
     def createMaterialFromMTL(self, options, makeunique=False):
         """TODO: Doc."""
@@ -593,38 +405,44 @@ class Trimesh(Node):
 
     def createMaterialFromMDL(self, options, makeunique=False):
         """TODO: Doc."""
-        def findMaterial(textures, cdiff, cspec, alpha):
+        def findMaterial(textures,
+                         cdiff=(1.0, 1.0, 1.0), cspec=(0.0, 0.0, 0.0),
+                         alpha=1.0):
             """TODO: Doc."""
             def cmp_col(a, b, rel_tol=0.1):
                 """Compares two colors."""
                 def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-                    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+                    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)),
+                                           abs_tol)
                 return (isclose(a[0], b[0], rel_tol) and
                         isclose(a[1], b[1], rel_tol) and
                         isclose(a[2], b[2], rel_tol))
 
             def get_tslot_img(tslot):
-                """Compares two textures (i.e their image names)"""
+                """Get the image texture from a texture slot."""
                 if tslot:
                     tex = tslot.texture
-                    if tex and tex.type == 'IMAGE':
+                    if tex and tex.type == 'IMAGE' and tex.image:
                         return tex.image.name
                 return ''
 
             for mat in bpy.data.materials:
-                eq = False
+                eq = True
                 # Check diffuse and specular color
-                eq = cmp_col(mat.diffuse_color, cdiff)
-                eq = eq and (cspec and cmp_col(mat.specular_color, cspec))
+                eq = eq and cmp_col(mat.diffuse_color, cdiff)
+                eq = eq and cmp_col(mat.specular_color, cspec)
                 # Check texture names:
                 tstextures = list(map(get_tslot_img, mat.texture_slots))
-                matches = itertools.ziplongest(tstextures, textures,
-                                               fillvalue='')
+                matches = []
+                matches = itertools.zip_longest(tstextures, textures,
+                                                fillvalue='')
                 for m in matches:
                     eq = eq and (m[0] == m[1])
                 # Texture slot 0 is used we need to compare alpha values too
                 # (texture = diffuse)
                 if mat.texture_slots[0]:
+                    eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
+                else:
                     eq = eq and (alpha == mat.alpha)
                 if eq:
                     return mat
@@ -641,9 +459,10 @@ class Trimesh(Node):
                     image = bpy.data.images[imgname]
                     tex.image = image
                 else:
+                    texpath = os.path.dirname(options.filepath)
                     image = bpy_extras.image_utils.load_image(
                         imgname + '.tga',
-                        options.texturePath,
+                        texpath,
                         recursive=options.textureSearch,
                         place_holder=False,
                         ncase_cmp=True)
@@ -667,7 +486,7 @@ class Trimesh(Node):
             material = findMaterial(texlist,
                                     self.diffuse, self.specular, self.alpha)
         if not material:
-            matname = texlist[0] if texlist[0] else self.name
+            matname = texlist[0].lower() if texlist[0] else self.name
             material = bpy.data.materials.new(matname)
             material.use_transparency = True
             material.diffuse_color = self.diffuse
@@ -692,6 +511,8 @@ class Trimesh(Node):
                 if tslot is not None:
                     tslot.texture_coords = 'UV'
                     tslot.use_map_color_diffuse = True
+                    tslot.use_map_normal = False
+                    tslot.use_map_color_spec = False
                     tslot.use_map_alpha = True
                     tslot.alpha_factor = self.alpha
                     matalpha = 0.0  # alpha doesn't need to be in mat
@@ -701,6 +522,7 @@ class Trimesh(Node):
                     tslot.texture_coords = 'UV'
                     tslot.use_map_color_diffuse = False
                     tslot.use_map_normal = True
+                    tslot.use_map_color_spec = False
                     tslot.normal_map_space = 'TANGENT'
                     tslot.texture.use_normal_map = True
                 # Specular in tslot 2
@@ -708,126 +530,46 @@ class Trimesh(Node):
                 if tslot is not None:
                     tslot.texture_coords = 'UV'
                     tslot.use_map_color_diffuse = False
+                    tslot.use_map_normal = False
                     tslot.use_map_color_spec = True
                 # ??? in tslot 3
                 tslot = material.texture_slots[3]
                 if tslot is not None:
                     tslot.texture_coords = 'UV'
             material.alpha = matalpha
+            material.specular_alpha = matalpha
         return material
 
-    def createMaterial(self, options, keepunique=False):
-        """TODO: Doc."""
-
-        def createTexture(tname, imgname, options):
-            """TODO: Doc."""
-            if tname in bpy.data.textures:
-                # Load the image for the texture
-                tex = bpy.data.textures[tname]
-            else:
-                tex = bpy.data.textures.new(tname, type='IMAGE')
-                if (imgname in bpy.data.images):
-                    image = bpy.data.images[imgname]
-                    tex.image = image
-                else:
-                    image = bpy_extras.image_utils.load_image(
-                        imgname + '.tga',
-                        options.texturePath,
-                        recursive=options.textureSearch,
-                        place_holder=False,
-                        ncase_cmp=True)
-                    if image is None:
-                        image = bpy.data.images.new(imgname, 512, 512)
-                    image.name = imgname
-                    tex.image = image
-            return tex
-
-        matname = self.bitmap
-        if not matname:
-            matname = self.name
-        # Get textures
-        # tnames = ['', '', '']
-        tdiff_name = self.bitmap
-        # tnames[0] = self.textures[0]
-        tnorm_name = ''
-        tspec_name = ''
-        if 'normalandspecmapped' in self.renderhints:
-            # texture0 value takes precedence
-            if self.textures[0]:
-                # tnames[0] = self.textures[0]
-                tdiff_name = self.textures[0]
-            tnorm_name = self.textures[1]
-            tspec_name = self.textures[2]
-        # Look for similar materials to avoid duplicates
-        material = None
-        if options.materialMode == 'SIN' and not keepunique:
-            material = nvb_utils.find_material(
-                tdiff_name, tnorm_name, tspec_name,
-                self.diffuse, self.specular,
-                self.alpha)
-        # If no similar material was found, create a new one
-        if not material:
-            material = bpy.data.materials.new(matname)
-            material.use_transparency = True
-            material.diffuse_color = self.diffuse
-            material.diffuse_intensity = 1.0
-            material.specular_color = self.specular
-            material.specular_intensity = 1.0
-            if tdiff_name:
-                tslot = material.texture_slots.add()
-                tslot.texture = createTexture(tdiff_name, tdiff_name, options)
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = True
-                tslot.use_map_alpha = True
-                tslot.alpha_factor = self.alpha
-                material.alpha = 0.0
-            else:
-                material.alpha = self.alpha
-            if tnorm_name:
-                tslot = material.texture_slots.add()
-                tslot.texture = createTexture(tnorm_name, tnorm_name, options)
-                tslot.texture.use_normal_map = True
-                tslot.normal_map_space = 'TANGENT'
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = False
-                tslot.use_map_normal = True
-            if tspec_name:
-                tslot = material.texture_slots.add()
-                tslot.texture = createTexture(tspec_name, tspec_name, options)
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = False
-                tslot.use_map_color_spec = True
-                # tslot.use_map_hardness = True
-        return material
-
-    def createMesh2(self, name, options):
+    def createMesh(self, name, options):
         """TODO: Doc."""
         def createUVmap(mesh, tverts, uvname, material=None):
             """TODO: Doc."""
             uvmap = None
+            timg = None
+            if material:
+                # Set material for each face
+                me.tessfaces.foreach_set('material_index',
+                                         [0] * len(me.tessfaces))
+                if material.texture_slots[0]:
+                    timg = material.texture_slots[0].texture.image
             if tverts and mesh.tessfaces:
                 uvmap = me.tessface_uv_textures.new(uvname)
                 # we need to save the order the tverts were created in blender
                 # for animmeshes/uv animations
                 me.tessface_uv_textures.active = uvmap
                 # EEEKADOODLE fix
-                flist = zip(self.facelist.faces, self.facelist.uvIdx)
-                cuvs = [(uv[1], uv[2], uv[0]) if v[2] == 0 else uv
-                        for uv, v in flist]
+                cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+                        for f in self.facedef]
                 # Set uv's
-                timg = material.texture_slots[0].texture.image
                 for i in range(len(cuvs)):
                     tessfaceUV = uvmap.data[i]
-                    tessfaceUV.uv1 = self.tverts[cuvs[i][0]]
-                    tessfaceUV.uv2 = self.tverts[cuvs[i][1]]
-                    tessfaceUV.uv3 = self.tverts[cuvs[i][2]]
+                    tessfaceUV.uv1 = tverts[cuvs[i][0]]
+                    tessfaceUV.uv2 = tverts[cuvs[i][1]]
+                    tessfaceUV.uv3 = tverts[cuvs[i][2]]
                     tessfaceUV.image = timg
                 # Save new order for uvs (for animesh animations)
                 if uvmap.name not in nvb_def.tvert_order:
                     nvb_def.tvert_order[uvmap.name] = copy.deepcopy(cuvs)
-                # Set material for each face
-                me.tessfaces.foreach_set('material_index',
-                                         [0] * len(me.tessfaces))
             return uvmap
 
         def createVColors(mesh, vcolors, vcname):
@@ -857,93 +599,44 @@ class Trimesh(Node):
         if self.normals and options.importNormals:
             me.vertices.foreach_set('normal', unpack_list(self.normals))
         # Create faces
-        faces = [fd[:3] for fd in self.facedef]
-        me.tessfaces.add(len(faces))
-        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(faces))
+        face_vids = [v[0:3] for v in self.facedef]
+        me.tessfaces.add(len(face_vids))
+        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
         # Create material
         material = None
-        if options.materialMode != 'NON':
+        if options.importMaterials:
             material = self.createMaterialFromMDL(options)
             if material:
                 me.materials.append(material)
         # Create uvmaps
-        for idx, tvs in enumerate(self.tverts2):
-            uvname = self.name + '.tvert.' + str(idx)
-            createUVmap(me, tvs, uvname, material)
-        # Create Vertex colors
-        createVColors(me, self.colors, 'colors')
+        # Iterate in reverse so the first uvmap can be set to active
+        uvmap = None
+        for idx, tvs in reversed(list(enumerate(self.tverts))):
+            if tvs:  # may be []
+                uvname = self.name + '.tvert.' + str(idx)
+                uvmap = createUVmap(me, tvs, uvname, material)
+        if uvmap:
+            me.uv_textures[uvmap.name].active = True
         """
-        if options.materialMode == 'MUL':
-            # Add the new uv map to all texture slots
-            if material and uv_tex:
-                for ts in material.texture_slots:
-                    if ts:
-                        ts.uv_layer = uv_tex.name
-        """
-        # Import smooth groups as sharp edges
-        if options.importSmoothGroups:
-            me.update()
-            me.show_edge_sharp = True
-            bm = bmesh.new()
-            bm.from_mesh(me)
-            if hasattr(bm.edges, "ensure_lookup_table"):
-                bm.edges.ensure_lookup_table()
-            # Mark edge as sharp if its faces belong to different smooth groups
-            for e in bm.edges:
-                f = e.link_faces
-                if (len(f) > 1) and \
-                   (self.facelist.shdgr[f[0].index] !=
-                        self.facelist.shdgr[f[1].index]):
-                    edgeIdx = e.index
-                    me.edges[edgeIdx].use_edge_sharp = True
-            bm.free()
-            del bm
-        # Import custom normals
-        me.update()
-        if self.normals and me.loops and options.importNormals:
-            for l in me.loops:
-                l.normal[:] = self.normals[l.vertex_index]
-            me.validate(clean_customdata=False)
-            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
-            me.loops.foreach_get('normal', clnors)
-            me.create_normals_split()
-            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
-            me.use_auto_smooth = True
-            me.show_edge_sharp = True
-        else:
-            me.validate()
-        # me.update()
-        return me
-
-    def createMesh(self, name, options):
-        """TODO: Doc."""
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
-        # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
-        # Create per-Vertex normals
-        if self.normals and options.importNormals:
-            me.vertices.foreach_set('normal', unpack_list(self.normals))
-        # Create faces
-        me.tessfaces.add(len(self.facelist.faces))
-        me.tessfaces.foreach_set('vertices_raw',
-                                 unpack_face_list(self.facelist.faces))
-        # Create material
-        if options.materialMode != 'NON':
-            material = self.createMaterial(options)
-            me.materials.append(material)
             # Create UV maps
             uv_tex = None
             uvname = name + '.tverts'
             if (len(self.tverts) > 0) and me.tessfaces and self.bitmap:
                 uv_tex = me.tessface_uv_textures.new(uvname)
                 me.tessface_uv_textures.active = uv_tex
+
+                # BEGIN EEEKADOODLE FIX
+                # BUG: Evil eekadoodle problem where faces that have
+                # vert index 0 at location 3 are shuffled.
+                # vertIdx = self.facelist.faces[i]
+                # if vertIdx[2] == 0:
+                #     uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
+                # END EEEKADOODLE FIX
+
                 # EEEKADOODLE fix
-                flist = zip(self.facelist.faces, self.facelist.uvIdx)
-                cuvs = [(uv[1], uv[2], uv[0]) if v[2] == 0 else uv
-                        for uv, v in flist]
+                # facelist element: [v1, v2, v3, sg, uv1, uv2, uv3, mi]
+                cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+                        for f in self.facedef]
                 # Set uv's
                 timg = material.texture_slots[0].texture.image
                 for i in range(len(cuvs)):
@@ -964,6 +657,7 @@ class Trimesh(Node):
                 for ts in material.texture_slots:
                     if ts:
                         ts.uv_layer = uv_tex.name
+        """
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
             me.update()
@@ -976,26 +670,14 @@ class Trimesh(Node):
             for e in bm.edges:
                 f = e.link_faces
                 if (len(f) > 1) and \
-                   (self.facelist.shdgr[f[0].index] !=
-                        self.facelist.shdgr[f[1].index]):
+                   (self.facedef[f[0].index][3] !=
+                        self.facedef[f[1].index][3]):
                     edgeIdx = e.index
                     me.edges[edgeIdx].use_edge_sharp = True
             bm.free()
             del bm
-        # Import vertex colors
-        if self.colors:
-            cmap = me.vertex_colors.new('colors')
-            # Get all loops for each vertex
-            vert_loop_map = {}
-            for l in me.loops:
-                if l.vertex_index in vert_loop_map:
-                    vert_loop_map[l.vertex_index].append(l.index)
-                else:
-                    vert_loop_map[l.vertex_index] = [l.index]
-            # Set color for each vertex (in every loop)
-            for vidx in vert_loop_map:
-                for lidx in vert_loop_map[vidx]:
-                    cmap[lidx].color = self.colors[vidx]
+        # Create Vertex colors
+        createVColors(me, self.colors, 'colors')
         # Import custom normals
         me.update()
         if self.normals and me.loops and options.importNormals:
@@ -1055,16 +737,73 @@ class Trimesh(Node):
         return obj
 
     @staticmethod
-    def generateAsciiMaterial(obj, asciiLines):
-        """TODO: Doc."""
-        def getImgName(tslot):
+    def getAsciiTextures(material, options):
+        """Write names and indices of textures to ascii."""
+        def get_img_name(tslot):
+            """Get the texture name for this texture slot."""
+            imgname = ''
+            tex = tslot.texture
+            if tex.type == 'IMAGE':
+                img = tex.image
+                if tex.image:
+                    # 1st try: Image filepath
+                    if img.filepath:
+                        imgname = \
+                            os.path.splitext(os.path.basename(img.filepath))[0]
+                    # 2nd try: Image name
+                    if not imgname:
+                        imgname = \
+                            os.path.splitext(os.path.basename(img.name))[0]
+            # Last resort: Texture name
+            if not imgname:
+                imgname = os.path.splitext(os.path.basename(tex.name))[0]
+            return imgname
+
+        # Generate a list of (texture_index, texture_name) tuples
+        # texture index = texture slot index
+        # texture name = either image filename, image name, texture
+        texList1 = [(idx, get_img_name(tslot), tslot.alpha_factor)
+                    for idx, tslot in enumerate(material.texture_slots)
+                    if tslot and material.use_textures[idx]]
+        if options.textureOrder == 'CON':
+            # Alter texture indices to be consecutive
+            texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
+            return texList2
+        return texList1
+
+    @staticmethod
+    def generateAsciiMTRMaterial(obj, asciiLines, options):
+        """Generates Ascii lines from an objects material for a MTR file."""
+        pass
+
+    @staticmethod
+    def generateAsciiMDLMaterial(obj, asciiLines, options):
+        """Generates Ascii lines from an objects material for a MDL file."""
+        def get_img_name(tslot):
             imgName = ''
             tex = tslot.texture
             if (tex.type == 'IMAGE') and (tex.image):
                 imgName = nvb_utils.getImageFilename(tex.image)
             return imgName
 
-        def getAlpha(mat, tslot):
+        def get_img_fname(img):
+            """Return the image name without the file extension."""
+            # Try getting the image name from the image source path
+            fname = os.path.splitext(os.path.basename(img.filepath))[0]
+            if (fname == ''):
+                # If that doesn't work, get it from the image name
+                fname = os.path.splitext(os.path.basename(img.name))[0]
+            return fname
+
+        def get_tslot_img(tslot):
+            """Get the image texture from a texture slot."""
+            if tslot:
+                tex = tslot.texture
+                if tex and tex.type == 'IMAGE':
+                    return tex.image
+            return None
+
+        def get_alpha(mat, tslot):
             if mat and mat.use_transparency:
                 if tslot:
                     return tslot.alpha_factor
@@ -1073,30 +812,57 @@ class Trimesh(Node):
             else:
                 return 1.0
 
-        hasImgTexture = False
-        if not obj.nvb.render and obj.nvb.shadow:
-            # Shadow mesh: Everything should be black, no texture, no uv
-            asciiLines.append('  diffuse 0.00 0.00 0.00')
-            asciiLines.append('  specular 0.00 0.00 0.00')
-            asciiLines.append('  bitmap black')
+        hasTexture = False
+        if not obj.nvb.render:
+            if obj.nvb.shadow:
+                # Shadow mesh: Everything should be black, no texture, no uv
+                asciiLines.append('  diffuse 0.00 0.00 0.00')
+                asciiLines.append('  specular 0.00 0.00 0.00')
+                asciiLines.append('  bitmap black')
+            else:
+                asciiLines.append('  diffuse 1.00 1.00 1.00')
+                asciiLines.append('  specular 0.00 0.00 0.00')
+                asciiLines.append('  bitmap NULL')
         else:
             # Check if this object has a material assigned to it
             material = obj.active_material
             if material:
+                # Write Color Values
                 fstr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
                 asciiLines.append(fstr.format(*material.diffuse_color))
                 fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
                 asciiLines.append(fstr.format(*material.specular_color))
-
+                # Get textures for this material
+                texList = Trimesh.getAsciiTextures(material, options)
+                # Write bitmap params (first texture = bitmap)
+                if len(texList) > 0:
+                    hasTexture = True
+                    asciiLines.append('  bitmap ' + texList[0][1])
+                # Write texture params (but a single texture = only bitmap)
+                if len(texList) > 1:
+                    asciiLines.append('  renderhint NormalAndSpecMapped')
+                    asciiLines.extend(['  texture' + str(i) + ' ' + n
+                                      for i, n, _ in texList])
+                # Alpha value:
+                # 1. Texture slots present: get alpha from 1st slot
+                # 2. No texture slot get alpha from material
+                alpha = 1.0
+                if material.use_transparency:
+                    if len(texList) > 0:
+                        _, _, alpha = texList[0]
+                    else:
+                        alpha = material.alpha
+                asciiLines.append('  alpha {: 3.2f}'.format(alpha))
+                """
                 # Check if this material has a texture assigned
                 tslots = nvb_utils.get_texture_slots(material)
                 # Diffuse texture will always result in an bitmap entry
                 if tslots[0]:
-                    imgName = getImgName(tslots[0])
+                    imgName = get_img_name(tslots[0])
                     if imgName:
                         asciiLines.append('  bitmap ' + imgName)
-                        hasImgTexture = True
-                alpha = getAlpha(material, tslots[0])
+                        hasTexture = True
+                alpha = get_alpha(material, tslots[0])
                 if (alpha < 0.995):  # omit default value
                     asciiLines.append('  alpha ' + str(round(alpha, 2)))
                 # Add renderhint if normal or specular maps were detected
@@ -1104,12 +870,13 @@ class Trimesh(Node):
                     asciiLines.append('  renderhint NormalAndSpecMapped')
                     for idx, ts in enumerate(tslots):
                         if ts:
-                            imgName = getImgName(ts)
+                            imgName = get_img_name(ts)
                             if imgName:
                                 asciiLines.append('  texture' +
                                                   str(idx) + ' ' + imgName)
-                                hasImgTexture = True
-        return hasImgTexture
+                                hasTexture = True
+                """
+        return hasTexture
 
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
@@ -1121,6 +888,21 @@ class Trimesh(Node):
             else:
                 uvList.append(uv)
                 return (len(uvList)-1)
+
+        def generateVColors(me, asciiLines):
+            """Generate per-vert. vertex-colors from per-loop vertex-colors."""
+            color_map = me.vertex_colors.active
+            if color_map:
+                # Per vertex vertex-color list
+                clist = [(1.0, 1.0, 1.0)] * len(me.vertices)
+                asciiLines.append('  colors ' + str(len(me.vertices)))
+                i = 0
+                for poly in me.polygons:
+                    for idx in poly.loop_indices:
+                        clist[i] = color_map.data[i].color
+                        i += 1
+                fstr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.extend([fstr.format(*c) for c in clist])
 
         me = obj.to_mesh(bpy.context.scene,
                          options.applyModifiers,
@@ -1164,8 +946,6 @@ class Trimesh(Node):
         else:
             (smoothGroups, numSmoothGroups) = me.calc_smooth_groups()
 
-        faceList = []  # List of triangle faces
-        uvList = []  # List of uv indices
         # Add vertices
         asciiLines.append('  verts ' + str(len(me.vertices)))
         fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
@@ -1201,8 +981,7 @@ class Trimesh(Node):
                                          l_rnd(v.normal[2], 5))
                     asciiLines.append(s)
                 """
-            # Add tangents
-            if oknormals and options.exportTangents:
+                # Add tangents
                 oktangents = []
                 #  Vertex-per-face tangents
                 for i in range(len(me.vertices)):
@@ -1220,7 +999,7 @@ class Trimesh(Node):
                     oktangents.append(tangents[0])
                 if oktangents:
                     asciiLines.append('  tangents ' + str(len(oktangents)))
-                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 8.1f}'
+                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.2f}'
                     asciiLines.extend([fstr.format(*t[0], t[1])
                                       for t in oktangents])
                 """
@@ -1236,6 +1015,8 @@ class Trimesh(Node):
             del oknormals
             # me.free_normals_split()  #  Not necessary, mesh will be deleted
         # Add faces, corresponding tverts and shading groups
+        faceList = []  # List of triangle faces
+        uvList = []  # List of uv indices
         tessfaces = me.tessfaces
         tessfaces_uvs = me.tessface_uv_textures.active
         compress_uvs = (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH)
@@ -1263,14 +1044,14 @@ class Trimesh(Node):
         # UV export
         if hasImgTexture:
             # Export UVs too
-            vd = str(len(str(len(me.vertices))))  # Digits for vertices
-            sd = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
-            ud = str(len(str(len(uvList))))  # Digits for uv's
+            vcnt = str(len(str(len(me.vertices))))  # Digits for vertices
+            scnt = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
+            ucnt = str(len(str(len(uvList))))  # Digits for uv's
             asciiLines.append('  faces ' + str(len(faceList)))
             fstr = '    ' + \
-                   '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                   '{:' + sd + 'd}  ' + \
-                   '{:' + ud + 'd} {:' + ud + 'd} {:' + ud + 'd}  ' + \
+                   '{:' + vcnt + 'd} {:' + vcnt + 'd} {:' + vcnt + 'd}  ' + \
+                   '{:' + scnt + 'd}  ' + \
+                   '{:' + ucnt + 'd} {:' + ucnt + 'd} {:' + ucnt + 'd}  ' + \
                    '{:2d}'
             asciiLines.extend([fstr.format(*f) for f in faceList])
 
@@ -1280,27 +1061,17 @@ class Trimesh(Node):
                 asciiLines.extend([fstr.format(uv[0], uv[1]) for uv in uvList])
         else:
             # No image texture, don't export UVs/tverts
-            vd = str(len(str(len(me.vertices))))
-            sd = str(len(str(numSmoothGroups)))
+            vcnt = str(len(str(len(me.vertices))))
+            scnt = str(len(str(numSmoothGroups)))
             asciiLines.append('  faces ' + str(len(faceList)))
             fstr = '    ' + \
-                   '{:' + vd + 'd} {:' + vd + 'd} {:' + vd + 'd}  ' + \
-                   '{:' + sd + 'd}  ' + \
+                   '{:' + vcnt + 'd} {:' + vcnt + 'd} {:' + vcnt + 'd}  ' + \
+                   '{:' + scnt + 'd}  ' + \
                    '0 0 0  ' + \
                    '{:2d}'
             asciiLines.extend([fstr.format(*f[0:4], f[7]) for f in faceList])
         # Vertex color
-        color_map = me.vertex_colors.active
-        if color_map:
-            clist = [(1.0, 1.0, 1.0)] * len(me.vertices)
-            asciiLines.append('  colors ' + str(len(me.vertices)))
-            i = 0
-            for poly in me.polygons:
-                for idx in poly.loop_indices:
-                    clist[i] = color_map.data[i].color
-                    i += 1
-            s = '    {: 3.2f} {: 3.2f} {: 3.2f}'
-            asciiLines.extend([fstr.format(*c) for c in clist])
+        generateVColors(me, asciiLines)
         bpy.data.meshes.remove(me)
 
     @classmethod
@@ -1316,7 +1087,8 @@ class Trimesh(Node):
         s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
-        hasImgTexture = Trimesh.generateAsciiMaterial(obj, asciiLines)
+        hasImgTexture = Trimesh.generateAsciiMDLMaterial(obj, asciiLines,
+                                                         options)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             col = obj.nvb.selfillumcolor
@@ -1356,8 +1128,9 @@ class Animmesh(Trimesh):
 
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
-    def createMaterial(self, options, keepunique=False):
+    def createMaterial(self, options, makeunique=False):
         """TODO: Doc."""
+        # Material is always unique
         return Trimesh.createMaterial(self, options, True)
 
 
@@ -1395,37 +1168,8 @@ class Danglymesh(Trimesh):
             if not self.constraints:
                 vcnt = int(aline[1])
                 tmp = [next(itlines) for _ in range(vcnt)]
-                self.constraints = [tuple(map(float, v)) for v in tmp]
+                self.constraints = [float(v[0]) for v in tmp]
         return aline
-
-    def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiLines, nodeidx)
-
-        # Re-initialize values, in case this member is called multiple times
-        self.constraints = []
-
-        l_int = int
-        l_float = float
-        l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiLines):
-            try:
-                label = line[0].lower()
-            except (IndexError, AttributeError):
-                # Probably empty line or whatever, skip it
-                continue
-            if not l_isNumber(label):
-                if (label == 'period'):
-                    self.period = l_float(line[1])
-                elif (label == 'tightness'):
-                    self.tightness = l_float(line[1])
-                elif (label == 'displacement'):
-                    self.displacement = l_float(line[1])
-                elif (label == 'constraints'):
-                    if not self.constraints:
-                        numVals = l_int(line[1])
-                        nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
-                                     self.constraints)
 
     def createConstraints(self, obj):
         """Create a vertex group for the object."""
@@ -1493,25 +1237,6 @@ class Skinmesh(Trimesh):
         self.meshtype = nvb_def.Meshtype.SKIN
         self.weights = []
 
-    def loadAsciiWeights2(self, asciiLines):
-        """TODO: Doc."""
-        pass
-        """
-        lfloat = float
-        pattern = '(?:\s|^)(\D+)\s+([-+]?\d*\.?\d+)(?=\s|$)'
-        for al in asciiLines:
-            # A line looks like this
-            # [group_name, vertex_weight, group_name, vertex_weight]
-            # We create a list looking like this:
-            # [[group_name, vertex_weight], [group_name, vertex_weight]]
-            line = ' '.join(al)
-            gw_pairs = []
-            matches = re.findall(pattern, line)
-            for m in matches:
-                gw_pairs.append([m[0].lower(), lfloat(m[1])])
-            self.weights.append(gw_pairs)
-        """
-
     def loadAsciiWeights(self, asciiLines):
         """TODO: Doc."""
         lfloat = float
@@ -1551,24 +1276,6 @@ class Skinmesh(Trimesh):
             tmp = [next(itlines) for _ in range(vcnt)]
             self.loadAsciiWeights(tmp)
         return aline
-
-    def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: Doc."""
-        Trimesh.loadAscii(self, asciiLines, nodeidx)
-        l_int = int
-        l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiLines):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-
-            if not l_isNumber(label):
-                if (label == 'weights'):
-                    numVals = l_int(line[1])
-                    self.loadAsciiWeights(asciiLines[idx+1:idx+numVals+1])
-                    break  # Only one relevant value, abort loop when found
 
     def createSkinGroups(self, obj):
         """TODO: Doc."""
@@ -1626,49 +1333,44 @@ class Emitter(Node):
         self.ysize = 2
         self.rawascii = ''
 
-    def loadAscii(self, asciiLines, nodeidx=-1):
+    def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        l_float = float
-        l_isNumber = nvb_utils.isNumber
-
-        self.nodeidx = nodeidx
-        for line in asciiLines:
-            try:
-                label = line[0].lower()
-            except IndexError:
-                continue  # Probably empty line, skip it
-
-            if not l_isNumber(label):
-                if (label == 'node'):
-                    self.name = nvb_utils.getAuroraString(line[2])
-                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
-                elif (label == 'endnode'):
-                    self.rawascii = self.rawascii + '\n' + ' '.join(line)
-                    return
-                elif (label == 'parent'):
-                    self.parent = nvb_utils.getAuroraString(line[1])
-                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
-                elif (label == 'position'):
-                    self.position = (l_float(line[1]),
-                                     l_float(line[2]),
-                                     l_float(line[3]))
-                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
-                elif (label == 'orientation'):
-                    self.orientation = (l_float(line[1]),
-                                        l_float(line[2]),
-                                        l_float(line[3]),
-                                        l_float(line[4]))
-                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
-                elif (label == 'scale'):
-                    self.scale = l_float(line[1])
-                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
-                elif (label == 'wirecolor'):
-                    self.wirecolor = (l_float(line[1]),
-                                      l_float(line[2]),
-                                      l_float(line[3]))
-                    self.rawascii = self.rawascii + '\n  #' + ' '.join(line)
-                else:
-                    self.rawascii = self.rawascii + '\n  ' + ' '.join(line)
+        aline = None
+        try:
+            aline = next(itlines)
+        except StopIteration:
+            return None
+        label = ''
+        try:
+            label = aline[0].lower()
+        except (IndexError, AttributeError):
+            return aline  # Probably empty line or comment
+        if nvb_utils.isNumber(label):
+            return aline
+        if (label == 'node'):
+            self.name = nvb_utils.getAuroraString(aline[2])
+            self.rawascii = self.rawascii + '\n' + ' '.join(aline)
+        elif (label == 'endnode'):
+            self.rawascii = self.rawascii + '\n' + ' '.join(aline)
+            return aline
+        elif (label == 'parent'):
+            self.parent = nvb_utils.getAuroraString(aline[1])
+            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
+        elif (label == 'position'):
+            self.position = tuple([float(v) for v in aline[1:4]])
+            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
+        elif (label == 'orientation'):
+            self.orientation = tuple([float(v) for v in aline[1:5]])
+            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
+        elif (label == 'scale'):
+            self.scale = float(aline[1])
+            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
+        elif (label == 'wirecolor'):
+            self.wirecolor = tuple([float(v) for v in aline[1:4]])
+            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
+        else:
+            self.rawascii = self.rawascii + '\n  ' + ' '.join(aline)
+        return aline
 
     def createTextEmitter(self, obj, options):
         """TODO: Doc."""
@@ -1763,83 +1465,105 @@ class Light(Node):
         self.fadinglight = 1
         self.lensflares = 0
         self.flareradius = 1.0
-        self.flareList = FlareList()
+        self.flareNumValues = [0, 0, 0, 0]
+        self.flareTextures = []
+        self.flareSizes = []
+        self.flarePositions = []
+        self.flareCShifts = []  # Flare color shifts
+
+    def loadAsciiLine(self, itlines):
+        """TODO: Doc."""
+        aline = Node.loadAsciiLine(self, itlines)
+        if not aline:
+            return aline
+        try:
+            label = aline[0].lower()
+        except (IndexError, AttributeError):
+            return aline  # Probably empty line, skip it
+        if (label == 'radius'):
+            self.radius = float(aline[1])
+        elif (label == 'shadow'):
+            self.shadow = int(aline[1])
+        elif (label == 'multiplier'):
+            self.multiplier = float(aline[1])
+        elif (label == 'color'):
+            self.color = tuple([float(v) for v in aline[1:4]])
+        elif (label == 'ambientonly'):
+            self.ambientonly = int(aline[1])
+        elif (label == 'ndynamictype'):
+            self.ndynamictype = int(aline[1])
+        elif (label == 'isdynamic'):
+            self.isdynamic = int(aline[1])
+        elif (label == 'affectdynamic'):
+            self.affectdynamic = int(aline[1])
+        elif (label == 'negativelight'):
+            self.negativelight = int(aline[1])
+        elif (label == 'lightpriority'):
+            self.lightpriority = int(aline[1])
+        elif (label == 'fadinglight'):
+            self.fadinglight = int(aline[1])
+        elif (label == 'lensflares'):
+            self.lensflares = int(aline[1])
+        elif (label == 'flareradius'):
+            self.flareradius = float(aline[1])
+        elif (label == 'texturenames'):
+            if not self.flareTextures:
+                vcnt = self.flareNumValues[0]
+                tmp = [next(itlines) for _ in range(vcnt)]
+                self.flareTextures = [v[0] for v in tmp]
+        elif (label == 'flaresizes'):
+            if not self.flareSizes:
+                vcnt = self.flareNumValues[1]
+                tmp = [next(itlines) for _ in range(vcnt)]
+                self.flareSizes = [float(v[0]) for v in tmp]
+        elif (label == 'flarepositions'):
+            if not self.flarePositions:
+                vcnt = self.flareNumValues[2]
+                tmp = [next(itlines) for _ in range(vcnt)]
+                self.flarePositions = [float(v[0]) for v in tmp]
+        elif (label == 'flarecolorshifts'):
+            if not self.flareCShifts:
+                vcnt = self.flareNumValues[3]
+                tmp = [next(itlines) for _ in range(vcnt)]
+                self.flareCShifts = [tuple(map(float, v)) for v in tmp]
+        return aline
+
+    def loadNumFlareValues(self, asciiLines):
+        """Get the number of values for flares."""
+        l_isNumber = nvb_utils.isNumber
+        for idx, aline in enumerate(asciiLines):
+            try:
+                label = aline[0].lower()
+            except (IndexError, AttributeError):
+                return aline  # Probably empty line or comment
+            if not nvb_utils.isNumber(label):
+                if (label == 'texturenames'):
+                    # Can't do anything here
+                    pass
+                elif (label == 'flaresizes'):
+                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                if not l_isNumber(v[0])), -1)
+                    self.flareNumValues[1] = vcnt
+                elif (label == 'flarepositions'):
+                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                if not l_isNumber(v[0])), -1)
+                    self.flareNumValues[2] = vcnt
+                elif (label == 'flarecolorshifts'):
+                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                if not l_isNumber(v[0])), -1)
+                    self.flareNumValues[3] = vcnt
+        self.flareNumValues[0] = min(self.flareNumValues[1:])
 
     def loadAscii(self, asciiLines, nodeidx=-1):
-        """TODO: Doc."""
-        Node.loadAscii(self, asciiLines, nodeidx)
-
-        flareTextureNamesStart = 0
-        numFlares = 0
-        numVals = 0
-
-        l_int = int
-        l_float = float
-        l_isNumber = nvb_utils.isNumber
-        for idx, line in enumerate(asciiLines):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                continue  # Probably empty line, skip it
-
-            if not l_isNumber(label):
-                if (label == 'radius'):
-                    self.radius = l_float(line[1])
-                elif (label == 'shadow'):
-                    self.shadow = l_int(line[1])
-                elif (label == 'multiplier'):
-                    self.multiplier = l_float(line[1])
-                elif (label == 'color'):
-                    self.color = tuple([float(v) for v in line[1:4]])
-                elif (label == 'ambientonly'):
-                    self.ambientonly = l_int(line[1])
-                elif (label == 'ndynamictype'):
-                    self.ndynamictype = l_int(line[1])
-                elif (label == 'isdynamic'):
-                    self.isdynamic = l_int(line[1])
-                elif (label == 'affectdynamic'):
-                    self.affectdynamic = l_int(line[1])
-                elif (label == 'negativelight'):
-                    self.negativelight = l_int(line[1])
-                elif (label == 'lightpriority'):
-                    self.lightpriority = l_int(line[1])
-                elif (label == 'fadinglight'):
-                    self.fadinglight = l_int(line[1])
-                elif (label == 'lensflares'):
-                    self.lensflares = l_int(line[1])
-                elif (label == 'flareradius'):
-                    self.flareradius = l_float(line[1])
-                elif (label == 'texturenames'):
-                    # List of names follows, but we don't necessarily know how
-                    # many flares there are
-                    # We 'll need to read them later. For now save the index
-                    flareTextureNamesStart = idx+1
-                elif (label == 'flaresizes'):
-                    # List of floats
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                    if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
-                                 self.flareList.sizes)
-                elif (label == 'flarepositions'):
-                    # List of floats
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                    if not l_isNumber(v[0])), -1)
-                    nvb_parse.f1(asciiLines[idx+1:idx+numVals+1],
-                                 self.flareList.positions)
-                elif (label == 'flarecolorshifts'):
-                    # List of float 3-tuples
-                    numVals = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                    if not l_isNumber(v[0])), -1)
-                    nvb_parse.f3(asciiLines[idx+1:idx+numVals+1],
-                                 self.flareList.colorshifts)
-
-        # Load flare texture names:
-        numFlares = min(len(self.flareList.sizes),
-                        min(len(self.flareList.colorshifts),
-                            len(self.flareList.positions)))
-        for i in range(numFlares):
-            texName = asciiLines[flareTextureNamesStart+i][0]
-            self.flareList.textures.append(texName)
+        """TODO: DOC."""
+        self.nodeidx = nodeidx
+        #  Need to do two runs. First one is to find the number of flares
+        lline = self.loadNumFlareValues(asciiLines)
+        # Second run to get the values
+        iterable = iter(asciiLines)
+        lline = True
+        while lline is not None:
+            lline = self.loadAsciiLine(iterable)
 
     def createLamp(self, name):
         """TODO: Doc."""
@@ -1866,15 +1590,16 @@ class Light(Node):
         obj.nvb.isdynamic = (self.isdynamic >= 1)  # or(self.ndynamictype >= 1)
         obj.nvb.affectdynamic = (self.affectdynamic >= 1)
 
-        if (self.flareradius > 0) or (self.lensflares >= 1):
+        # Create lensflares
+        numflares = min(self.flareNumValues)
+        if (self.flareradius > 0) or (numflares > 0):
             obj.nvb.lensflares = True
-            numFlares = len(self.flareList.textures)
-            for i in range(numFlares):
+            for i in range(numflares):
                 newItem = obj.nvb.flareList.add()
-                newItem.texture = self.flareList.textures[i]
-                newItem.colorshift = self.flareList.colorshifts[i]
-                newItem.size = self.flareList.sizes[i]
-                newItem.position = self.flareList.positions[i]
+                newItem.texture = self.flareTextures[i]
+                newItem.colorshift = self.flareCShifts[i]
+                newItem.size = self.flareSizes[i]
+                newItem.position = self.flarePositions[i]
 
         obj.nvb.flareradius = self.flareradius
 
@@ -2069,13 +1794,14 @@ class Aabb(Trimesh):
     def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(name)
-        mesh.vertices.add(len(self.verts))
-        mesh.vertices.foreach_set('co', unpack_list(self.verts))
-        mesh.tessfaces.add(len(self.facelist.faces))
-        mesh.tessfaces.foreach_set('vertices_raw',
-                                   unpack_face_list(self.facelist.faces))
-
+        me = bpy.data.meshes.new(name)
+        # Create vertices
+        me.vertices.add(len(self.verts))
+        me.vertices.foreach_set('co', unpack_list(self.verts))
+        # Create faces
+        face_vids = [v[0:3] for v in self.facedef]
+        me.tessfaces.add(len(face_vids))
+        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
         # Create materials
         for wokMat in nvb_def.wok_materials:
             matName = wokMat[0]
@@ -2089,14 +1815,13 @@ class Aabb(Trimesh):
                 material.diffuse_intensity = 1.0
                 material.specular_color = (0.0, 0.0, 0.0)
                 material.specular_intensity = wokMat[2]
-            mesh.materials.append(material)
+            me.materials.append(material)
 
         # Apply the walkmesh materials to each face
-        for idx, face in enumerate(mesh.tessfaces):
-            face.material_index = self.facelist.matId[idx]
-
-        mesh.update()
-        return mesh
+        me.tessfaces.foreach_set('material_index',
+                                 [f[7] for f in self.facedef])
+        me.update()
+        return me
 
     def createObject(self, options):
         """TODO: Doc."""

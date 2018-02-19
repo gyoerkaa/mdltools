@@ -548,7 +548,8 @@ class Animnode():
         # Check if the original uv/tvert order was saved
         if uvlayer.name not in nvb_def.tvert_order:
             return
-        tvert_order = nvb_def.tvert_order[uvlayer.name]
+        tvert_order = [v for sl in nvb_def.tvert_order[uvlayer.name]
+                       for v in sl]
         numTVerts = len(tvert_order)
         # Sanity check: Number of animated uvs/tverts has to be multiple of
         # the number of uvs
@@ -582,6 +583,7 @@ class Animnode():
         frameStart = anim.frameStart
         dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         # uvIdx = order in blender, tvertIdx = order in mdl
+        print(tvert_order)
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dp = dpPrefix + str(uvIdx) + '].uv'
             curveU = Animnode.getCurve(action, dp, 0)
@@ -676,15 +678,17 @@ class Animnode():
     def getKeysFromMatAction(action, anim, exports):
         """TODO: DOC."""
         for fcurve in action.fcurves:
-            ai = fcurve.array_index
+            # ai = fcurve.array_index
             # Get the name from the data path
             dp = fcurve.data_path
             if dp.endswith('alpha_factor') or dp.endswith('alpha'):
-                nwname = 'alphakey'
+                pass  # nwname = 'alphakey'
 
     @staticmethod
     def getKeysFromObjAction(action, anim, exports):
         """TODO: DOC."""
+        pass
+        """
         export_dp = {'rotation_euler', 'location', 'scale',
                      'nvb.selfillumcolor',
                      'color', 'distance'}
@@ -702,6 +706,7 @@ class Animnode():
 
             if dp in export_dp:
                 nwname = export_dp[dp][1]
+        """
 
     @staticmethod
     def generateAsciiKeys2(obj, anim, asciiLines):
@@ -724,10 +729,10 @@ class Animnode():
             if action:
                 Animnode.getKeysFromMatAction(action, anim, exports)
 
-        astart = anim.frameStart
-        rfps = bpy.context.scene.render.fps
+        # astart = anim.frameStart
+        # rfps = bpy.context.scene.render.fps
         for exp in exports:
-            keys = exp[1]
+            pass  # keys = exp[1]
 
     @staticmethod
     def generateAsciiKeys(obj, anim, asciiLines):
@@ -773,7 +778,8 @@ class Animnode():
                                                   render_fps)
                     eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                     val = nvb_utils.euler2nwangle(eul)
-                    asciiLines.append(time, *val)
+                    s = fstr.format(time, *val)
+                    asciiLines.append(s)
 
         kname = 'positionkey'
         if len(keyDict[kname]) > 0:

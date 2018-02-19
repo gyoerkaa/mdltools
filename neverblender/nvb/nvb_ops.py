@@ -1254,14 +1254,13 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(default='*.mdl',
                                            options={'HIDDEN'})
-    importGeometry = bpy.props.BoolProperty(
-            name='Import Geometry',
-            description='Disable if only animations are needed',
-            default=True,
-            options={'HIDDEN'})  # Hidden for now, we'll handle this diffently
+    importAnimations = bpy.props.BoolProperty(
+            name='Import Animations',
+            description='Import animation data if available',
+            default=True)
     importWalkmesh = bpy.props.BoolProperty(
             name='Import Walkmesh',
-            description='Attempt to load placeable and door walkmeshes',
+            description='Load placeable and door walkmeshes if available',
             default=True)
     importSmoothGroups = bpy.props.BoolProperty(
             name='Import Smooth Groups',
@@ -1271,31 +1270,31 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             name='Import Normals',
             description='Import normals from MDL if available',
             default=True)
-    importAnimations = bpy.props.BoolProperty(
-            name='Import Animations',
-            description='Import animations',
+    importMaterials = bpy.props.BoolProperty(
+            name='Import Materials',
+            description='Import materials and textures',
             default=True)
-    importSupermodel = bpy.props.BoolProperty(
-            name='Import Supermodel',
-            description='Import animations from supermodel',
-            default=False,
-            options={'HIDDEN'})  # Hidden for now, we'll handle this diffently
-    materialMode = bpy.props.EnumProperty(
-            name='Materials',
-            items=(('NON', 'None',
-                    'Don\'t create materials or import textures', 0),
-                   ('SIN', 'Auto Merge',
-                    'Create only one material per texture \
-                     (shared between objects)', 1),
-                   ('MUL', 'Multiple',
-                    'Always create a seperate materials for each object', 2)),
-            default='SIN')
+    # Sub-Options for Materials
+    materialUseMTR = bpy.props.BoolProperty(
+            name='Load MTR files',
+            description='Use external material file if available ' +
+                        '(will override material in MDL)',
+            default=True)
+    materialAutoMerge = bpy.props.BoolProperty(
+            name='Auto Merge Materials',
+            description='Merge Materials with same settings',
+            default=True)
+    textureDefaultRoles = bpy.props.BoolProperty(
+            name='Texture Default Roles',
+            description='Auto apply settings to create diffuse, normal ' +
+                        'and specular textures',
+            default=True)
     textureSearch = bpy.props.BoolProperty(
             name='Image Search',
-            description='Search for images in subdirectories'
-                        ' (Warning, may be slow)',
+            description='Search for images in subdirectories \
+                         (Warning: May be slow)',
             default=False)
-    # Hidden options, only used for batch minimap creation
+    # Hidden settings for batch processing
     minimapMode = bpy.props.BoolProperty(
             name='Minimap Mode',
             description='Ignore lights and fading objects',
@@ -1307,12 +1306,43 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default=False,
             options={'HIDDEN'})
 
+    def draw(self, context):
+        """Draw the export UI."""
+        layout = self.layout
+        # Misc Import Settings
+        box = layout.box()
+        box.prop(self, 'importAnimations')
+        box.prop(self, 'importWalkmesh')
+        box.prop(self, 'importSmoothGroups')
+        box.prop(self, 'importNormals')
+        # Material Import Settings
+        box = layout.box()
+        box.prop(self, 'importMaterials')
+        sub = box.column()
+        sub.enabled = self.importMaterials
+        sub.prop(self, 'materialUseMTR')
+        sub.prop(self, 'materialAutoMerge')
+        sub.prop(self, 'textureDefaultRoles')
+        sub.prop(self, 'textureSearch')
+
     def execute(self, context):
         """TODO: DOC."""
-        keywords = self.as_keywords(ignore=('filter_glob',
-                                            'check_existing',
-                                            ))
-        return nvb_io.loadMdl(self, context, **keywords)
+        options = nvb_def.ImportOptions()
+        options.filepath = self.filepath
+        # Misc Import Settings
+        options.importSmoothGroups = self.importSmoothGroups
+        options.importNormals = self.importNormals
+        options.importAnimations = self.importAnimations
+        options.importMaterials = self.importMaterials
+        # Material Import Settings
+        options.materialUseMTR = self.materialUseMTR
+        options.materialAutoMerge = self.materialAutoMerge
+        options.textureDefaultRoles = self.textureDefaultRoles
+        options.textureSearch = self.textureSearch
+        # Hidden settings for batch processing
+        options.minimapMode = self.minimapMode
+        options.minimapSkipFade = self.minimapSkipFade
+        return nvb_io.loadMdl(self, context, options)
 
 
 class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
@@ -1320,11 +1350,13 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
     bl_idname = 'nvb.mdlexport'
     bl_label = 'Export Aurora MDL'
+    bl_options = {'PRESET'}
 
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(
             default='*.mdl',
             options={'HIDDEN'})
+    # Misc Export Settings
     exportAnimations = bpy.props.BoolProperty(
             name='Export Animations',
             description='Export animations',
@@ -1342,10 +1374,48 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export Normals and Tangents',
             description='Add normals and tangents to MDL',
             default=False)
-    exportTangents = bpy.props.BoolProperty(
-            name='Export Tangents',
-            description='Export tangents to MDL',
+    # UV Map Export settings
+    uvmapAutoJoin = bpy.props.BoolProperty(
+            name='Auto Join UVs',
+            description='Join uv-vertices with identical coordinates',
             default=True)
+    uvmapMode = bpy.props.EnumProperty(
+            name='Mode',
+            items=(('0', 'Textured Meshes',
+                    'Add UV Maps only to textured and rendered meshes'),
+                   ('1', 'Rendered Meshes',
+                    'Add UV Maps only to rendered meshes'),
+                   ('2', 'Always',
+                    'Add UV Maps to all meshes'),
+                   ),
+            default='0',
+            )
+    uvmapOrder = bpy.props.EnumProperty(
+            name='Order',
+            items=(('ACT', 'Active Only',
+                    'Export active UVMap only'),
+                   ('AL0', 'Alphabetical',
+                    'Alphabetical orering'),
+                   ('AL1', 'Alphabetical (Active First)',
+                    'Alphabetical orering, active UVMap will be first'),
+                   ),
+            default='AL0',
+            )
+    # Material Export Settings
+    materialUseMTR = bpy.props.BoolProperty(
+            name='Create MTR file',
+            description='Write material data to external MTR file',
+            default=False)
+    textureOrder = bpy.props.EnumProperty(
+            name='Texture Order',
+            items=(('TSL', 'Texture Slot',
+                    'Texture index is texture slot index'),
+                   ('CON', 'Consecutive',
+                    'Consecutive numbering'),
+                   ),
+            default='TSL',
+            )
+    # Blender Setting to use
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting',
@@ -1354,21 +1424,49 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     def draw(self, context):
         """Draw the export UI."""
         layout = self.layout
-        layout.prop(self, 'exportAnimations')
-        layout.prop(self, 'exportWalkmesh')
-        layout.prop(self, 'exportSmoothGroups')
-        layout.prop(self, 'exportNormals')
-        # sub = layout.row()
-        # sub.enabled = self.exportNormals
-        # sub.prop(self, 'exportTangents')
-        layout.prop(self, 'applyModifiers')
+        # Misc Export Settings
+        box = layout.box()
+        box.prop(self, 'exportAnimations')
+        box.prop(self, 'exportWalkmesh')
+        box.prop(self, 'exportSmoothGroups')
+        box.prop(self, 'exportNormals')
+        # UV Map settings
+        box = layout.box()
+        box.label(text='UV Map Settings')
+        sub = box.column()
+        sub.prop(self, 'uvmapAutoJoin')
+        sub.prop(self, 'uvmapMode')
+        sub.prop(self, 'uvmapOrder')
+        # Material Export Settings
+        box = layout.box()
+        box.label(text='Material Settings')
+        sub = box.column()
+        sub.prop(self, 'materialUseMTR')
+        sub.prop(self, 'textureOrder')
+        # Blender settings
+        box = layout.box()
+        box.label(text='Blender Settings')
+        sub = box.column()
+        sub.prop(self, 'applyModifiers')
 
     def execute(self, context):
         """TODO: DOC."""
-        keywords = self.as_keywords(ignore=('filter_glob',
-                                            'check_existing',
-                                            ))
-        return nvb_io.saveMdl(self, context, **keywords)
+        options = nvb_def.ExportOptions()
+        options.filepath = self.filepath
+        options.applyModifiers = self.applyModifiers
+        # Misc Export Settings
+        options.exportAnimations = self.exportAnimations
+        options.exportWalkmesh = self.exportWalkmesh
+        options.exportSmoothGroups = self.exportSmoothGroups
+        options.exportNormals = self.exportNormals
+        # UV Map settings
+        options.uvmapAutoJoin = self.uvmapAutoJoin
+        options.uvmapMode = self.uvmapMode
+        options.uvmapOrder = self.uvmapOrder
+        # Material Export Settings
+        options.materialUseMTR = self.materialUseMTR
+        options.textureOrder = self.textureOrder
+        return nvb_io.saveMdl(self, context, options)
 
 
 class LoadWokMaterials(bpy.types.Operator):

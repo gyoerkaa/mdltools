@@ -355,21 +355,21 @@ class Lighttype():
 class ImportOptions():
     """TODO: DOC."""
 
+    filepath = ''
     mdlname = 'unnamed'
-    # Misc options
-    importGeometry = True
+    # What to import
+    importAnimations = True
     importWalkmesh = True
     importSmoothGroups = True
-    importAnimations = True
-    importSupermodel = False
     importNormals = True
-    # Options for textures and materials
-    materialMode = 'SIN'
+    importMaterials = True
+    # Additional options for textures and materials
+    materialUseMTR = True
     materialAutoMerge = True
-    materialDefaultRoles = True
+    textureDefaultRoles = True
     texturePath = ''
     textureSearch = False
-    # for minimap generator
+    # for batch processing
     minimapMode = False
     minimapSkipFade = False
 
@@ -377,13 +377,20 @@ class ImportOptions():
 class ExportOptions():
     """TODO: DOC."""
 
+    filepath = ''
     mdlname = 'unnamed'
     meshConvert = 'RENDER'
     applyModifiers = True
     classification = Classification.UNKNOWN
     # Misc options
-    exportAnim = True
+    exportAnimations = True
     exportWalkmesh = True
     exportSmoothGroups = True
     exportNormals = False
-    exportTangents = True
+    # Uvmap Settings
+    uvmapAutoJoin = True
+    uvmapMode = '0'
+    uvmapOrder = 'AL0'
+    # Additional options for textures and materials
+    materialUseMTR = True
+    textureOrder = 'TSL'

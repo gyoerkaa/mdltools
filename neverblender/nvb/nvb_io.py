@@ -8,45 +8,20 @@ from . import nvb_mdl
 from . import nvb_utils
 
 
-def loadMdl(operator, context,
-            filepath='',
-            importGeometry=True,
-            importWalkmesh=True,
-            importSmoothGroups=True,
-            importNormals=True,
-            importAnimations=True,
-            importSupermodel=False,
-            materialMode='SIN',
-            textureSearch=False,
-            minimapMode=False,
-            minimapSkipFade=False):
+def loadMdl(operator, context, options):
     """Called from blender ui."""
-    options = nvb_def.ImportOptions()
-    options.importGeometry = importGeometry
-    options.importSmoothGroups = importSmoothGroups
-    options.importNormals = importNormals
-    options.importAnimations = importAnimations
-    options.importSupermodel = importSupermodel
-
-    options.materialMode = materialMode
-    options.texturePath = os.path.dirname(filepath)
-    options.textureSearch = textureSearch
-
-    options.minimapMode = minimapMode
-    options.minimapSkipFade = minimapSkipFade
-
-    (mdlPath, mdlFilename) = os.path.split(filepath)
+    (mdlPath, mdlFilename) = os.path.split(options.filepath)
     options.mdlname = os.path.splitext(mdlFilename)[0]
     options.scene = bpy.context.scene
 
-    with open(os.fsencode(filepath), 'r') as mdlfile:
+    with open(os.fsencode(options.filepath), 'r') as mdlfile:
         # print('Neverblender: Loading ' + options.mdlname + ' ...')
         mdl = nvb_mdl.Mdl()
         asciiMdl = mdlfile.read()
         mdl.loadAscii(asciiMdl, options)
         # print('Neverblender: ... done')
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
-        if importWalkmesh:
+        if options.importWalkmesh:
             for wkmtype in ['pwk', 'dwk']:
                 wkmFilename = options.mdlname + '.' + wkmtype
                 wkmPath = os.fsencode(os.path.join(mdlPath, wkmFilename))
@@ -67,23 +42,8 @@ def loadMdl(operator, context,
     return {'FINISHED'}
 
 
-def saveMdl(operator, context,
-            filepath='',
-            exportAnimations=True,
-            exportWalkmesh=True,
-            exportSmoothGroups=True,
-            exportNormals=True,
-            exportTangents=True,
-            applyModifiers=True):
+def saveMdl(operator, context, options):
     """Called from blender ui."""
-    options = nvb_def.ExportOptions()
-    options.exportAnim = exportAnimations
-    options.exportWalkmesh = exportWalkmesh
-    options.exportSmoothGroups = exportSmoothGroups
-    options.exportNormals = exportNormals
-    options.exportTangents = exportTangents
-    options.applyModifiers = applyModifiers
-
     if bpy.ops.object.mode_set.poll():
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -94,7 +54,7 @@ def saveMdl(operator, context,
         options.classification = rootDummy.nvb.classification
         asciiLines = []
         nvb_mdl.Mdl.generateAscii(rootDummy, asciiLines, options)
-        with open(os.fsencode(filepath), 'w') as f:
+        with open(os.fsencode(options.filepath), 'w') as f:
             f.write('\n'.join(asciiLines))
         # print('Neverblender: ... done')
         if options.exportWalkmesh:
@@ -112,7 +72,7 @@ def saveMdl(operator, context,
             asciiLines = []
             nvb_mdl.Mdl.generateAsciiWalkmesh(rootDummy, asciiLines, options)
             if asciiLines:
-                wkmPath = os.path.splitext(filepath)[0] + wkmtype
+                wkmPath = os.path.splitext(options.filepath)[0] + wkmtype
                 with open(os.fsencode(wkmPath), 'w') as f:
                     f.write('\n'.join(asciiLines))
                 # print('Neverblender: ... done')

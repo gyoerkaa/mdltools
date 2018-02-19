@@ -282,9 +282,9 @@ def adjustRawAnimBounds(txtBlock, scaleFactor):
 def generateWalkmeshParent(rootDummy):
     """Create the name for the walkmesh rootdummy (append '_pwk')."""
     suffix = ''
-    if rootDummy.nvb.classification is nvb_def.Classification.DOOR:
+    if rootDummy.nvb.classification == nvb_def.Classification.DOOR:
         suffix = 'dwk'
-    elif rootDummy.nvb.classification is nvb_def.Classification.TILE:
+    elif rootDummy.nvb.classification == nvb_def.Classification.TILE:
         suffix = 'wok'
     else:
         suffix = 'pwk'
