@@ -353,44 +353,47 @@ class Lighttype():
 
 
 class ImportOptions():
-    """TODO: DOC."""
+    """Holds all import options."""
 
-    filepath = ''
-    mdlname = 'unnamed'
-    # What to import
-    importAnimations = True
-    importWalkmesh = True
-    importSmoothGroups = True
-    importNormals = True
-    importMaterials = True
-    # Additional options for textures and materials
-    materialUseMTR = True
-    materialAutoMerge = True
-    textureDefaultRoles = True
-    texturePath = ''
-    textureSearch = False
-    # for batch processing
-    minimapMode = False
-    minimapSkipFade = False
+    def __init__(self):
+        self.filepath = ''
+        self.mdlname = 'unnamed'
+        # What to import
+        self.importAnimations = True
+        self.importWalkmesh = True
+        self.importSmoothGroups = True
+        self.importNormals = True
+        self.importMaterials = True
+        # Additional options for textures and materials
+        self.materialUseMTR = True
+        self.materialAutoMerge = True
+        self.textureDefaultRoles = True
+        self.texturePath = ''
+        self.textureSearch = False
+        # for batch processing
+        self.minimapMode = False
+        self.minimapSkipFade = False
 
 
 class ExportOptions():
-    """TODO: DOC."""
+    """Holds all export options."""
 
-    filepath = ''
-    mdlname = 'unnamed'
-    meshConvert = 'RENDER'
-    applyModifiers = True
-    classification = Classification.UNKNOWN
-    # Misc options
-    exportAnimations = True
-    exportWalkmesh = True
-    exportSmoothGroups = True
-    exportNormals = False
-    # Uvmap Settings
-    uvmapAutoJoin = True
-    uvmapMode = '0'
-    uvmapOrder = 'AL0'
-    # Additional options for textures and materials
-    materialUseMTR = True
-    textureOrder = 'TSL'
+    def __init__(self):
+        """TODO: DOC."""
+        self.filepath = ''
+        self.mdlname = 'unnamed'
+        self.meshConvert = 'RENDER'
+        self.applyModifiers = True
+        self.classification = Classification.UNKNOWN
+        # Misc options
+        self.exportAnimations = True
+        self.exportWalkmesh = True
+        self.exportSmoothGroups = True
+        self.exportNormals = False
+        # UV Map Settings
+        self.uvmapAutoJoin = True
+        self.uvmapMode = 'REN'
+        self.uvmapOrder = 'AL0'
+        # Additional options for textures and materials
+        self.materialUseMTR = False
+        self.textureOrder = 'TSL'

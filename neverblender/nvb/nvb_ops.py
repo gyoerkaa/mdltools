@@ -1249,7 +1249,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     bl_idname = 'nvb.mdlimport'
     bl_label = 'Import Aurora MDL'
-    bl_options = {'UNDO'}
+    bl_options = {'UNDO', 'PRESET'}
 
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(default='*.mdl',
@@ -1381,30 +1381,33 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             default=True)
     uvmapMode = bpy.props.EnumProperty(
             name='Mode',
-            items=(('0', 'Textured Meshes',
+            description='Determines which meshes get uv maps',
+            items=(('TEX', 'Textured Meshes',
                     'Add UV Maps only to textured and rendered meshes'),
-                   ('1', 'Rendered Meshes',
+                   ('REN', 'Rendered Meshes',
                     'Add UV Maps only to rendered meshes'),
-                   ('2', 'Always',
+                   ('ALL', 'All',
                     'Add UV Maps to all meshes'),
                    ),
-            default='0',
+            default='REN',
             )
     uvmapOrder = bpy.props.EnumProperty(
             name='Order',
-            items=(('ACT', 'Active Only',
-                    'Export active UVMap only'),
-                   ('AL0', 'Alphabetical',
+            description='Determines ordering of uv maps in MDL',
+            items=(('AL0', 'Alphabetical',
                     'Alphabetical orering'),
                    ('AL1', 'Alphabetical (Active First)',
                     'Alphabetical orering, active UVMap will be first'),
+                   ('ACT', 'Active Only',
+                    'Export active UVMap only'),
                    ),
             default='AL0',
             )
     # Material Export Settings
     materialUseMTR = bpy.props.BoolProperty(
-            name='Create MTR file',
-            description='Write material data to external MTR file',
+            name='Reference MTR file',
+            description='Add a reference to MTR file ' +
+                        '(Filename will be the objects material name)',
             default=False)
     textureOrder = bpy.props.EnumProperty(
             name='Texture Order',

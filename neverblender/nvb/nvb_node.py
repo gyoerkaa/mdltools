@@ -6,7 +6,6 @@ import bpy_extras.image_utils
 import bmesh
 import array
 import copy
-import itertools
 import os
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 
@@ -399,54 +398,8 @@ class Trimesh(Node):
                 self.tverts[tvid] = [(float(v[0]), float(v[1])) for v in tmp]
         return aline
 
-    def createMaterialFromMTL(self, options, makeunique=False):
+    def createMaterial(self, options, makeunique=False):
         """TODO: Doc."""
-        return None
-
-    def createMaterialFromMDL(self, options, makeunique=False):
-        """TODO: Doc."""
-        def findMaterial(textures,
-                         cdiff=(1.0, 1.0, 1.0), cspec=(0.0, 0.0, 0.0),
-                         alpha=1.0):
-            """TODO: Doc."""
-            def cmp_col(a, b, rel_tol=0.1):
-                """Compares two colors."""
-                def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-                    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)),
-                                           abs_tol)
-                return (isclose(a[0], b[0], rel_tol) and
-                        isclose(a[1], b[1], rel_tol) and
-                        isclose(a[2], b[2], rel_tol))
-
-            def get_tslot_img(tslot):
-                """Get the image texture from a texture slot."""
-                if tslot:
-                    tex = tslot.texture
-                    if tex and tex.type == 'IMAGE' and tex.image:
-                        return tex.image.name
-                return ''
-
-            for mat in bpy.data.materials:
-                eq = True
-                # Check diffuse and specular color
-                eq = eq and cmp_col(mat.diffuse_color, cdiff)
-                eq = eq and cmp_col(mat.specular_color, cspec)
-                # Check texture names:
-                tstextures = list(map(get_tslot_img, mat.texture_slots))
-                matches = []
-                matches = itertools.zip_longest(tstextures, textures,
-                                                fillvalue='')
-                for m in matches:
-                    eq = eq and (m[0] == m[1])
-                # Texture slot 0 is used we need to compare alpha values too
-                # (texture = diffuse)
-                if mat.texture_slots[0]:
-                    eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
-                else:
-                    eq = eq and (alpha == mat.alpha)
-                if eq:
-                    return mat
-            return None
 
         def createTexture(tname, imgname, options):
             """TODO: Doc."""
@@ -483,8 +436,8 @@ class Trimesh(Node):
         # Look for similar materials to avoid duplicates
         material = None
         if options.materialAutoMerge and not makeunique:
-            material = findMaterial(texlist,
-                                    self.diffuse, self.specular, self.alpha)
+            material = nvb_utils.findMaterial(
+                texlist, self.diffuse, self.specular, self.alpha)
         if not material:
             matname = texlist[0].lower() if texlist[0] else self.name
             material = bpy.data.materials.new(matname)
@@ -605,7 +558,7 @@ class Trimesh(Node):
         # Create material
         material = None
         if options.importMaterials:
-            material = self.createMaterialFromMDL(options)
+            material = self.createMaterial(options)
             if material:
                 me.materials.append(material)
         # Create uvmaps
@@ -772,45 +725,8 @@ class Trimesh(Node):
         return texList1
 
     @staticmethod
-    def generateAsciiMTRMaterial(obj, asciiLines, options):
-        """Generates Ascii lines from an objects material for a MTR file."""
-        pass
-
-    @staticmethod
-    def generateAsciiMDLMaterial(obj, asciiLines, options):
-        """Generates Ascii lines from an objects material for a MDL file."""
-        def get_img_name(tslot):
-            imgName = ''
-            tex = tslot.texture
-            if (tex.type == 'IMAGE') and (tex.image):
-                imgName = nvb_utils.getImageFilename(tex.image)
-            return imgName
-
-        def get_img_fname(img):
-            """Return the image name without the file extension."""
-            # Try getting the image name from the image source path
-            fname = os.path.splitext(os.path.basename(img.filepath))[0]
-            if (fname == ''):
-                # If that doesn't work, get it from the image name
-                fname = os.path.splitext(os.path.basename(img.name))[0]
-            return fname
-
-        def get_tslot_img(tslot):
-            """Get the image texture from a texture slot."""
-            if tslot:
-                tex = tslot.texture
-                if tex and tex.type == 'IMAGE':
-                    return tex.image
-            return None
-
-        def get_alpha(mat, tslot):
-            if mat and mat.use_transparency:
-                if tslot:
-                    return tslot.alpha_factor
-                else:
-                    return mat.alpha
-            else:
-                return 1.0
+    def generateAsciiMaterial(obj, asciiLines, options):
+        """Write Ascii lines from the objects material for a MDL file."""
 
         hasTexture = False
         if not obj.nvb.render:
@@ -834,60 +750,101 @@ class Trimesh(Node):
                 asciiLines.append(fstr.format(*material.specular_color))
                 # Get textures for this material
                 texList = Trimesh.getAsciiTextures(material, options)
-                # Write bitmap params (first texture = bitmap)
+                # Write first texture as bitmap
                 if len(texList) > 0:
                     hasTexture = True
                     asciiLines.append('  bitmap ' + texList[0][1])
-                # Write texture params (but a single texture = only bitmap)
-                if len(texList) > 1:
-                    asciiLines.append('  renderhint NormalAndSpecMapped')
-                    asciiLines.extend(['  texture' + str(i) + ' ' + n
-                                      for i, n, _ in texList])
+                    # Write the rest of the textures as textureX
+                    if len(texList) > 1:
+                        asciiLines.append('  renderhint NormalAndSpecMapped')
+                        asciiLines.extend(['  texture' + str(i) + ' ' + n
+                                          for i, n, _ in texList[1:]])
+                if options.materialUseMTR:
+                    asciiLines.append('  materialname ' + material.name)
                 # Alpha value:
                 # 1. Texture slots present: get alpha from 1st slot
                 # 2. No texture slot get alpha from material
-                alpha = 1.0
                 if material.use_transparency:
+                    alpha = 1.0
                     if len(texList) > 0:
                         _, _, alpha = texList[0]
                     else:
                         alpha = material.alpha
-                asciiLines.append('  alpha {: 3.2f}'.format(alpha))
-                """
-                # Check if this material has a texture assigned
-                tslots = nvb_utils.get_texture_slots(material)
-                # Diffuse texture will always result in an bitmap entry
-                if tslots[0]:
-                    imgName = get_img_name(tslots[0])
-                    if imgName:
-                        asciiLines.append('  bitmap ' + imgName)
-                        hasTexture = True
-                alpha = get_alpha(material, tslots[0])
-                if (alpha < 0.995):  # omit default value
-                    asciiLines.append('  alpha ' + str(round(alpha, 2)))
-                # Add renderhint if normal or specular maps were detected
-                if tslots[1] or tslots[2]:
-                    asciiLines.append('  renderhint NormalAndSpecMapped')
-                    for idx, ts in enumerate(tslots):
-                        if ts:
-                            imgName = get_img_name(ts)
-                            if imgName:
-                                asciiLines.append('  texture' +
-                                                  str(idx) + ' ' + imgName)
-                                hasTexture = True
-                """
+                    # TODO: Skip if 1.0
+                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
         return hasTexture
 
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
         """TODO: Doc."""
-        def addUVToList(uv, uvList, compress=True):
-            """Helper function to keep uv coordinates unique."""
-            if compress and (uv in uvList):
+        def addUVToList(uv, uvList, doJoin=True):
+            """Helper to join uv coordinates with identical coordinates."""
+            if doJoin and (uv in uvList):
                 return uvList.index(uv)
             else:
                 uvList.append(uv)
                 return (len(uvList)-1)
+
+        def getSmoothGroups(obj, mesh, options):
+            smoothGroups = []
+            numSmoothGroups = 0
+            if (obj.nvb.smoothgroup == 'SEPR') or \
+               (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) or \
+               (not options.exportSmoothGroups):
+                # 0 = Do not use smoothgroups
+                smoothGroups = [0] * len(mesh.polygons)
+                numSmoothGroups = 1
+            elif (obj.nvb.smoothgroup == 'SING'):
+                # All faces belong to smooth group 1
+                smoothGroups = [1] * len(mesh.polygons)
+                numSmoothGroups = 1
+            else:
+                (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
+            return (smoothGroups, numSmoothGroups)
+
+        def getFaceUVs(faceData, uvMapData, join=True):
+            """Get a list of uvmap indices and uvmap coodinates."""
+            def joinUV(uv, coList):
+                """Helper to join uv coordinates with identical coordinates."""
+                if uv in coList:
+                    return coList.index(uv)
+                else:
+                    coList.append(uv)
+                    return (len(coList)-1)
+
+            def joinUV2(uvco, fvidx, uvlist):
+                """Add the uv coordinale to the list and return the index."""
+                listItem = [fvidx, uvco]
+                if listItem in uvlist:
+                    return uvlist.index(listItem)
+                else:
+                    uvlist.append(listItem)
+                    return (len(uvlist)-1)
+
+            finalFaceUVCos = []  # uv coordinates
+            finalFaceUVIds = []  # Per face uv indices
+            tmp = []
+            """
+            if tessfaces_uvs:
+                uvFace = tessfaces_uvs.data[i]
+                uv1 = addUVToList(uvFace.uv1, uvList, joinUVs)
+                uv2 = addUVToList(uvFace.uv2, uvList, joinUVs)
+                uv3 = addUVToList(uvFace.uv3, uvList, joinUVs)
+            """
+            # Pairs of tuples of vertex indices vX_idx and
+            # uv coordinates uvX_co
+            # [(v1_idx, v2_idx, v3,idx), (uv1_co, uv2_co, uv3_co)]
+            pairs = zip(faceData, [[d.uv1, d.uv2, d.uv3] for d in uvMapData])
+            if join:
+                for p in pairs:
+                    for j in range(3):
+                        idx = joinUV2(p[0][j], p[1][j], tmp)
+
+            else:
+                tmp = [(d.uv1, d.uv2, d.uv3) for d in uvMapData]
+                finalFaceUVCos = [uv for fuvs in tmp for uv in fuvs]
+                finalFaceUVIds = []
+            return finalFaceUVCos, finalFaceUVIds
 
         def generateVColors(mesh, asciiLines):
             """Generate per-vert. vertex-colors from per-loop vertex-colors."""
@@ -909,6 +866,69 @@ class Trimesh(Node):
                 asciiLines.append('  colors ' + str(len(mesh.vertices)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
                 asciiLines.extend([fstr.format(*vc) for vc in vcolors])
+
+        def generateNormals(mesh, asciiLines, uvmap):
+            """Generates normals and tangents."""
+            # Generate readable normals and tangents
+            mesh.calc_tangents(uvmap.name)
+            # Add normals
+            oknormals = []
+            # Try vertex-per-face normals
+            for i in range(len(mesh.vertices)):
+                # All normals for this vertex
+                normals = \
+                    [l.normal for l in mesh.loops if l.vertex_index == i]
+                s = set([str(n) for n in normals])
+                if len(s) != 1:
+                    # Something is not right, cannot export this
+                    oknormals = []
+                    print('Neverblender: WARNING - Invalid normals ' +
+                          obj.name)
+                    break
+                oknormals.append(normals[0])
+            if oknormals:
+                asciiLines.append('  normals ' + str(len(oknormals)))
+                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+                asciiLines.extend([fstr.format(*n) for n in oknormals])
+            """
+            # Try vertex normals
+            for v in mesh.vertices:
+                s = formatStr.format(l_rnd(v.normal[0], 5),
+                                     l_rnd(v.normal[1], 5),
+                                     l_rnd(v.normal[2], 5))
+                asciiLines.append(s)
+            """
+            # Add tangents
+            oktangents = []
+            #  Vertex-per-face tangents
+            for i in range(len(mesh.vertices)):
+                # All tangents for this vertex
+                tangents = \
+                    [[l.tangent, l.bitangent_sign]
+                     for l in mesh.loops if l.vertex_index == i]
+                s = set([str(t[0]) for t in tangents])
+                if len(s) != 1:
+                    # Something is not right, cannot export this
+                    oktangents = []
+                    print('Neverblender: WARNING - Invalid tangents ' +
+                          obj.name)
+                    break
+                oktangents.append(tangents[0])
+            if oktangents:
+                asciiLines.append('  tangents ' + str(len(oktangents)))
+                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.2f}'
+                asciiLines.extend([fstr.format(*t[0], t[1])
+                                  for t in oktangents])
+            """
+            for face in mesh.polygons:
+                # face loops and face vertices are in the same order
+                for v_id, l_id in zip(face.vertices, face.loop_indices):
+                    # this is the loop:
+                    mesh.loops[l_id]
+                    # this is the vertex in the corner of the loop:
+                    mesh.vertices[v_id]
+            """
+            # mesh.free_normals_split()
 
         me = obj.to_mesh(bpy.context.scene,
                          options.applyModifiers,
@@ -933,114 +953,91 @@ class Trimesh(Node):
         bm.to_mesh(me)
         bm.free()
         del bm
+        me.calc_tessface()  # Recalculate tessfaces after triangulation
 
-        # Recalculate tessfaces for export
-        me.calc_tessface()
-
-        smoothGroups = []
-        numSmoothGroups = 0
-        if (obj.nvb.smoothgroup == 'SEPR') or \
-           (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) or \
-           (not options.exportSmoothGroups):
-            # 0 = Do not use smoothgroups
-            smoothGroups = [0] * len(me.polygons)
-            numSmoothGroups = 1
-        elif (obj.nvb.smoothgroup == 'SING'):
-            # All faces belong to smooth group 1
-            smoothGroups = [1] * len(me.polygons)
-            numSmoothGroups = 1
-        else:
-            (smoothGroups, numSmoothGroups) = me.calc_smooth_groups()
-
+        # Generate Smoothgroups
+        faceSGrps, numSmoothGroups = getSmoothGroups(obj, me, options)
         # Add vertices
         asciiLines.append('  verts ' + str(len(me.vertices)))
         fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
         asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
         # Add normals and tangents
-        uv_tex = me.uv_textures.active
-        if uv_tex:
-            me.calc_tangents(uv_tex.name)
-            oknormals = []
-            if options.exportNormals:
-                # Try vertex-per-face normals
-                for i in range(len(me.vertices)):
-                    # All normals for this vertex
-                    normals = \
-                        [l.normal for l in me.loops if l.vertex_index == i]
-                    s = set([str(n) for n in normals])
-                    if len(s) != 1:
-                        # Something is not right, cannot export this
-                        oknormals = []
-                        print('Neverblender: WARNING - Invalid normals ' +
-                              obj.name)
-                        break
-                    oknormals.append(normals[0])
-                if oknormals:
-                    asciiLines.append('  normals ' + str(len(oknormals)))
-                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-                    asciiLines.extend([fstr.format(*n) for n in oknormals])
-                """
-                # Try vertex normals
-                for v in me.vertices:
-                    s = formatStr.format(l_rnd(v.normal[0], 5),
-                                         l_rnd(v.normal[1], 5),
-                                         l_rnd(v.normal[2], 5))
-                    asciiLines.append(s)
-                """
-                # Add tangents
-                oktangents = []
-                #  Vertex-per-face tangents
-                for i in range(len(me.vertices)):
-                    # All tangents for this vertex
-                    tangents = \
-                        [[l.tangent, l.bitangent_sign]
-                         for l in me.loops if l.vertex_index == i]
-                    s = set([str(t[0]) for t in tangents])
-                    if len(s) != 1:
-                        # Something is not right, cannot export this
-                        oktangents = []
-                        print('Neverblender: WARNING - Invalid tangents ' +
-                              obj.name)
-                        break
-                    oktangents.append(tangents[0])
-                if oktangents:
-                    asciiLines.append('  tangents ' + str(len(oktangents)))
-                    fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.2f}'
-                    asciiLines.extend([fstr.format(*t[0], t[1])
-                                      for t in oktangents])
-                """
-                for face in me.polygons:
-                    # face loops and face vertices are in the same order
-                    for v_id, l_id in zip(face.vertices, face.loop_indices):
-                        # this is the loop:
-                        me.loops[l_id]
-                        # this is the vertex in the corner of the loop:
-                        me.vertices[v_id]
-                """
-                del oktangents
-            del oknormals
-            # me.free_normals_split()  #  Not necessary, mesh will be deleted
+        uvmap = me.uv_textures.active
+        if uvmap and options.exportNormals:
+            generateNormals(me, asciiLines, uvmap)
+        # Face vertex indices and face materials
+        faceVertIds = [tuple(tf.vertices) for tf in me.tessfaces]
+        faceMatIds = [tf.material_index for tf in me.tessfaces]
+        # Per face uv indices and a list of their coordinates
+        faceTVerts = []  # Coords
+        faceTVertIds = []  # Indices per face, referencing faceTVerts
+        exportUVs = ((options.uvmapMode == 'ALL') or
+                     (options.uvmapMode == 'REN' and obj.nvb.render) or
+                     (options.uvmapMode == 'TEX' and hasImgTexture))
+        if exportUVs:
+            joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
+                       options.uvmapAutoJoin)
+            # Find out which UV maps to export and their order:
+            uvmapNames = []
+            if options.uvmapOrder == 'AL0':
+                # Export all, sort alphabetically
+                uvmapNames = [uvt.name for uvt in me.tessface_uv_textures]
+                uvmapNames.sort()
+            elif options.uvmapOrder == 'AL1':
+                # Export all, sort alphabetically, put active first
+                uvmapActiveName = me.tessface_uv_textures.active.name
+                uvmapNames = [uvt.name for uvt in me.tessface_uv_textures
+                              if not uvt.name == uvmapActiveName]
+                uvmapNames.sort()
+                uvmapNames.insert(0, me.tessface_uv_textures.active.name)
+            else:
+                # Export active uvmap only
+                uvmapNames.append(me.tessface_uv_textures.active.name)
+            # Generate the tverts for the faces
+            for uvmm in uvmapNames:
+                faceTVerts.append(getFaceUVs(faceVertIds,
+                                             me.tessface_uv_textures[uvmm],
+                                             joinUVs))
+        else:
+            faceTVertIds = [[0, 0, 0] for _ in range(len(me.tessfaces))]
+            faceTVerts = []
+        # Write faces to file
+        vdigs = str(len(str(len(me.vertices))))  # Digits for vertices
+        sdigs = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
+        udigs = str(len(str(len(faceTVertIds))))  # Digits for uv's
+        faces = zip(faceVertIds, faceMatIds)
+        asciiLines.append('  faces ' + str(len(faceVertIds)))
+        fstr = '    ' + \
+               '{:' + vdigs + 'd} {:' + vdigs + 'd} {:' + vdigs + 'd}  ' + \
+               '{:' + sdigs + 'd}  ' + \
+               '{:' + udigs + 'd} {:' + udigs + 'd} {:' + udigs + 'd}  ' + \
+               '{:2d}'
+        asciiLines.extend([fstr.format(*f) for f in faces])
+        # Write tverts to file (if any)
+        fstr = '    {: 6.3f} {: 6.3f}  0'
+        for idx, tvList in faceTVerts:
+            paramname = '  tverts' if idx == 0 else '  tverts' + str(idx)
+            asciiLines.append(paramname + str(len(tvList)))
+            asciiLines.extend([fstr.format(v[0], v[1]) for v in tvList])
+        """
         # Add faces, corresponding tverts and shading groups
         faceList = []  # List of triangle faces
         uvList = []  # List of uv indices
         tessfaces = me.tessfaces
         tessfaces_uvs = me.tessface_uv_textures.active
-        compress_uvs = (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH)
         for i in range(len(tessfaces)):
             tface = tessfaces[i]
-            smGroup = smoothGroups[i]
+            smGroup = faceSGrps[i]
             matIdx = tface.material_index
-
             # We triangulated, so faces are always triangles
             uv1 = 0
             uv2 = 0
             uv3 = 0
             if tessfaces_uvs:
                 uvFace = tessfaces_uvs.data[i]
-                uv1 = addUVToList(uvFace.uv1, uvList, compress_uvs)
-                uv2 = addUVToList(uvFace.uv2, uvList, compress_uvs)
-                uv3 = addUVToList(uvFace.uv3, uvList, compress_uvs)
-
+                uv1 = addUVToList(uvFace.uv1, uvList, joinUVs)
+                uv2 = addUVToList(uvFace.uv2, uvList, joinUVs)
+                uv3 = addUVToList(uvFace.uv3, uvList, joinUVs)
             faceList.append([tface.vertices[0],
                              tface.vertices[1],
                              tface.vertices[2],
@@ -1076,6 +1073,7 @@ class Trimesh(Node):
                    '0 0 0  ' + \
                    '{:2d}'
             asciiLines.extend([fstr.format(*f[0:4], f[7]) for f in faceList])
+        """
         # Vertex color
         generateVColors(me, asciiLines)
         bpy.data.meshes.remove(me)
@@ -1093,8 +1091,7 @@ class Trimesh(Node):
         s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
-        hasImgTexture = Trimesh.generateAsciiMDLMaterial(obj, asciiLines,
-                                                         options)
+        hasTexture = Trimesh.generateAsciiMaterial(obj, asciiLines, options)
         asciiLines.append('  shininess ' + str(obj.nvb.shininess))
         if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
             col = obj.nvb.selfillumcolor
@@ -1120,7 +1117,7 @@ class Trimesh(Node):
                                   str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, hasImgTexture)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options, hasTexture)
 
 
 class Animmesh(Trimesh):

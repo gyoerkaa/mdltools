@@ -4,6 +4,7 @@ import mathutils
 import bpy
 import os
 import math
+import itertools
 
 from . import nvb_def
 
@@ -60,79 +61,45 @@ class NodeResolver():
         return None
 
 
-def get_texture_slots(mat):
-    """Get the diffuse, normal, and specular textures of this material."""
-    def is_diff(ts):
-        return (ts.use_map_color_diffuse and
-                not ts.use_map_normal and
-                not ts.use_map_color_spec)
-
-    def is_norm(ts):
-        return (not ts.use_map_color_diffuse and
-                ts.use_map_normal)
-
-    def is_spec(ts):
-        return (not ts.use_map_color_diffuse and
-                ts.use_map_color_spec)
-    used_tslots = [ts for idx, ts in enumerate(mat.texture_slots)
-                   if ts and mat.use_textures[idx]]
-    ts_diff = [ts for ts in used_tslots if is_diff(ts)] + [None]
-    ts_norm = [ts for ts in used_tslots if is_norm(ts)] + [None]
-    ts_spec = [ts for ts in used_tslots if is_spec(ts)] + [None]
-    return ts_diff[0], ts_norm[0], ts_spec[0]
-
-
-def find_material(tdiff_name='', tnorm_name='', tspec_name='',
-                  col_diff=(-1.0, -1.0, -1.0), col_spec=(-1.0, -1.0, -1.0),
-                  alpha=-1.0):
-    """Find a material with similar values.
-
-    Compares the diffuse, specular and image values of the material
-    to the parameters.
-    """
+def findMaterial(textures,
+                 cdiff=(1.0, 1.0, 1.0), cspec=(0.0, 0.0, 0.0),
+                 alpha=1.0):
+    """TODO: Doc."""
     def cmp_col(a, b, rel_tol=0.1):
         """Compares two colors."""
         def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)),
+                                   abs_tol)
         return (isclose(a[0], b[0], rel_tol) and
                 isclose(a[1], b[1], rel_tol) and
                 isclose(a[2], b[2], rel_tol))
 
     def get_tslot_img(tslot):
-        """Compares two textures (i.e their image names)"""
+        """Get the image texture from a texture slot."""
         if tslot:
             tex = tslot.texture
-            if tex and tex.type == 'IMAGE':
+            if tex and tex.type == 'IMAGE' and tex.image:
                 return tex.image.name
         return ''
 
     for mat in bpy.data.materials:
-        eq = False
+        eq = True
         # Check diffuse and specular color
-        eq = col_diff and cmp_col(mat.diffuse_color, col_diff)
-        eq = eq and (col_spec and cmp_col(mat.specular_color, col_spec))
-        # Texture slots to check
-        tslot_diff, tslot_norm, tslot_spec = get_texture_slots(mat)
-        # Check diffuse texture
-        if tdiff_name:
-            # The texture we're looking for has to have a diffuse texture
-            if tslot_diff:
-                eq = eq and (tdiff_name == get_tslot_img(tslot_diff))
-                eq = eq and (alpha == tslot_diff.alpha_factor)
-            else:
-                # This material doesn't have one
-                continue
+        eq = eq and cmp_col(mat.diffuse_color, cdiff)
+        eq = eq and cmp_col(mat.specular_color, cspec)
+        # Check texture names:
+        tstextures = list(map(get_tslot_img, mat.texture_slots))
+        matches = []
+        matches = itertools.zip_longest(tstextures, textures,
+                                        fillvalue='')
+        for m in matches:
+            eq = eq and (m[0] == m[1])
+        # Texture slot 0 is used we need to compare alpha values too
+        # (texture = diffuse)
+        if mat.texture_slots[0]:
+            eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
         else:
-            # The texture we're looking for cannot have a diffuse texture
-            if tslot_diff:
-                continue
             eq = eq and (alpha == mat.alpha)
-        # Check normal texture
-        if tnorm_name and tslot_norm:
-                eq = eq and (tnorm_name == get_tslot_img(tslot_norm))
-        # Check specular texture
-        if tspec_name and tslot_spec:
-                eq = eq and (tspec_name == get_tslot_img(tslot_spec))
         if eq:
             return mat
     return None
