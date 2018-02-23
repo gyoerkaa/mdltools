@@ -21,24 +21,25 @@ class Animation():
     def create(self, rootDummy, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Add new animation to list
+        fps = options.scene.render.fps
         newAnim = nvb_utils.createAnimListItem(rootDummy)
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
         newAnim.frameEnd = newAnim.frameStart + \
-            nvb_utils.nwtime2frame(self.length)
+            nvb_utils.nwtime2frame(self.length, fps)
         # Add events for new animation
         for ev in self.events:
             newEvent = newAnim.eventList.add()
             newEvent.name = ev[1]
             newEvent.frame = newAnim.frameStart + \
-                nvb_utils.nwtime2frame(ev[0])
+                nvb_utils.nwtime2frame(ev[0], fps)
 
         # Load the animation into the objects/actions
         for node in self.nodes:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
             if obj:
-                node.create(obj, newAnim, options)
+                node.create(obj, newAnim, self.length, options)
 
     def loadAsciiAnimHeader(self, asciiBlock):
         """TODO: DOC."""

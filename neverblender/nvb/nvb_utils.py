@@ -4,6 +4,7 @@ import mathutils
 import bpy
 import os
 import math
+import collections
 import itertools
 
 from . import nvb_def
@@ -18,9 +19,9 @@ class NodeResolver():
 
     def __init__(self):
         """TODO: DOC."""
-        self.nodes = dict()
+        self.nodes = collections.OrderedDict()
 
-    def create_obj(self, node_name, node_idx, obj_name):
+    def insert_obj(self, node_name, node_idx, obj_name):
         """TODO: DOC."""
         if node_name not in self.nodes:
             self.nodes[node_name] = []
@@ -35,7 +36,7 @@ class NodeResolver():
             # Only one object was created using this node name
             return bpy.data.objects[matches[0][0]]
         elif len(matches) > 1:
-            # Return the node with the same index
+            # Return the node with the same index (position in the mdl)
             filtered = list(filter(lambda x: x[1] == node_idx, matches))
             filtered.sort(key=lambda x: x[1])
             if filtered:
@@ -105,6 +106,178 @@ def findMaterial(textures,
     return None
 
 
+def isMdlRoot(obj):
+    """Return true if object obj is a rootdummy."""
+    if not obj:
+        return False
+    return (obj.parent is None) and \
+           (obj.type == 'EMPTY') and \
+           (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
+
+
+def isWkmRoot(obj):
+    """Return true if object obj is a root object for walkmeshes."""
+    if not obj:
+        return False
+    return (obj.parent and
+            obj.type == 'EMPTY' and
+            (obj.nvb.emptytype == nvb_def.Emptytype.PWK or
+             obj.nvb.emptytype == nvb_def.Emptytype.DWK))
+
+
+def isAABB(obj):
+    """Return true if object obj is an aabb mesh."""
+    return obj.type == 'MESH' and obj.nvb.meshtype == nvb_def.Meshtype.AABB
+
+
+def findAABB(mdlRoot):
+    """Find an AABB mesh for this mdlroot."""
+    ol = [c for c in mdlRoot.children if isAABB(c)]
+    if len(ol) > 0:
+        return ol[0]
+    return None
+
+
+def findWkmRoot(mdlRoot, wkmtype):
+    """Find a walkmesh root."""
+    emptytype = nvb_def.Emptytype.PWK
+    if wkmtype == nvb_def.Walkmeshtype.DWK:
+        emptytype == nvb_def.Emptytype.DWK
+    ol = [c for c in mdlRoot.children
+          if c.type == 'EMPTY' and c.nvb.emptytype == emptytype]
+    if len(ol) > 0:
+        return ol[0]
+    return None
+
+
+def createPWKObjects(mdlroot, scene):
+    """Add necessary walkmesh objects to mdlRoot."""
+    def getPrefix(mdlroot):
+        basename = mdlroot.name
+        dpos = basename[::-1].find('_')
+        if dpos >= 0:
+            return basename[-1*dpos:]
+        return basename[-3:]
+
+    def getMdlBox(mdlroot):
+        """Ge the bounding box for all object in the mesh."""
+        verts = [(-0.5, -0.5, 0.0),
+                 (-0.5, -0.5, 2.0),
+                 (-0.5, 0.5, 0.0),
+                 (-0.5, 0.5, 2.0),
+                 (0.5, -0.5, 0.0),
+                 (0.5, -0.5, 2.0),
+                 (0.5, 0.5, 0.0),
+                 (0.5, 0.5, 2.0)]
+        faces = [[0, 1, 3, 2],
+                 [2, 3, 7, 6],
+                 [6, 7, 5, 4],
+                 [1, 0, 4, 5],
+                 [4, 0, 2, 6],
+                 [7, 3, 1, 5]]
+        return (verts, faces)
+
+    def createMesh(meshname, verts, faces):
+        """Get the default mesh for a generic door."""
+        mesh = bpy.data.meshes.new(meshname)
+        # Create Verts
+        mesh.vertices.add(len(verts))
+        mesh.vertices.foreach_set('co', [co for v in verts for co in v])
+        # Create Faces
+        mesh.tessfaces.add(len(faces))
+        mesh.tessfaces.foreach_set('vertices_raw',
+                                   [i for f in faces for i in f])
+        mesh.validate()
+        mesh.update()
+        return mesh
+
+    wkmroot = findWkmRoot(mdlroot, nvb_def.Walkmeshtype.PWK)
+    if not wkmroot:
+        # make a new one
+        wkmroot = bpy.data.objects.new(mdlroot.name + '_pwk', None)
+        wkmroot.parent = mdlroot
+        wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
+        scene.objects.link(wkmroot)
+    # Create a mesh
+    verts, faces = getMdlBox(mdlroot)
+    mesh = createMesh(mdlroot.name + '_wg', verts, faces)
+    obj = bpy.data.objects.new(mdlroot.name + '_wg', mesh)
+    obj.parent = wkmroot
+    scene.objects.link(obj)
+    # Create dummys
+    prefix = getPrefix(mdlroot)
+    dummyData = [['_pwk_use01', (0.0, -1.0, 0.0)],
+                 ['_pwk_use02', (0.0, +1.0, 0.0)]]  # optional
+    for dsuffix, dloc in dummyData:
+        obj = bpy.data.objects.new(prefix + dsuffix, None)
+        obj.location = dloc
+        obj.parent = wkmroot
+        scene.objects.link(obj)
+
+
+def createDWKObjects(mdlroot, scene):
+    """Add necessary walkmesh objects to mdlRoot."""
+    def createMesh(meshname):
+        """Get the default mesh for a generic door."""
+        verts = [2.0, -0.1, 0.0,
+                 0.0, -0.1, 0.0,
+                 2.0, -0.1, 3.0,
+                 0.0, -0.1, 3.0,
+                 2.0,  0.1, 0.0,
+                 0.0,  0.1, 0.0,
+                 2.0,  0.1, 3.0,
+                 0.0,  0.1, 3.0]
+        faces = [3, 7, 5, 1,
+                 7, 3, 2, 6,
+                 7, 6, 4, 5,
+                 2, 0, 4, 6,
+                 1, 0, 2, 3]
+        mesh = bpy.data.meshes.new(meshname)
+        # Create Verts
+        mesh.vertices.add(8)
+        mesh.vertices.foreach_set('co', verts)
+        # Create Faces
+        mesh.tessfaces.add(5)
+        mesh.tessfaces.foreach_set('vertices_raw', faces)
+        mesh.validate()
+        mesh.update()
+        return mesh
+
+    wkmroot = findWkmRoot(mdlroot, nvb_def.Walkmeshtype.DWK)
+    if not wkmroot:
+        # make a new one
+        wkmroot = bpy.data.objects.new(mdlroot.name + '_dwk', None)
+        wkmroot.parent = mdlroot
+        wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
+        scene.objects.link(wkmroot)
+    prefix = mdlroot.name[-2:]
+    # Create dummys
+    dummyData = [['_DWK_dp_open1_01', (0.2, -2.0, 0.0)],
+                 ['_DWK_dp_open2_01', (0.2, +2.0, 0.0)],
+                 ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
+                 ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)],
+                 ['_DWK_dp_open1_02', (0.2, -2.0, 0.0)],  # optional
+                 ['_DWK_dp_open2_02', (0.2, +2.0, 0.0)]]  # optional
+    for dsuffix, dloc in dummyData:
+        obj = bpy.data.objects.new(prefix + dsuffix, None)
+        obj.location = dloc
+        obj.parent = wkmroot
+        scene.objects.link(obj)
+    # Create meshes
+    meshData = [['_DWK_wg_closed', (0.0, 0.0, 0.0)],
+                ['_DWK_wg_open1', (0.0, 0.0, -1.3962633609771729)],
+                ['_DWK_wg_open2', (0.0, 0.0, 1.3962633609771729)]]
+    mloc = (-1.0, 0.0, 0.0)
+    for msuffix, mrot in meshData:
+        meshname = prefix + msuffix
+        mesh = createMesh(meshname)
+        obj = bpy.data.objects.new(meshname, mesh)
+        obj.location = mloc
+        obj.rotation_euler = mathutils.Euler(mrot)
+        obj.parent = wkmroot
+        scene.objects.link(obj)
+
+
 def findEnd(asciiBlock):
     """Find the end of a key list.
 
@@ -130,51 +303,6 @@ def getAuroraString(s):
     if (not s or s.lower() == nvb_def.null):
         return ''
     return s.lower()
-
-
-def belongsToWalkmesh(obj, classification):
-    """Check if this object belongs to a walkmesh."""
-    if not obj:
-        return False
-    if obj.type == 'EMPTY':
-        return nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)
-    elif obj.type == 'MESH':
-        if classification == nvb_def.Classification.TILE:
-            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
-                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB))
-        elif classification == nvb_def.Classification.DOOR:
-            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
-                    ((obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN1) or
-                     (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKOPEN2) or
-                     (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.DWKCLOSED)))
-        else:
-            return ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
-                    (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.PWK))
-    return False
-
-
-def belongsToMdl(obj, classification):
-    """Return true, if an object belongs in the mdl file."""
-    if not obj:
-        return False
-    if obj.type == 'EMPTY':
-        return not nvb_def.Dummytype.isWalkmesh(obj.nvb.dummytype)
-    elif obj.type == 'MESH':
-        return ((obj.nvb.meshtype != nvb_def.Meshtype.WALKMESH) or
-                ((obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) and
-                 (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB)))
-    elif obj.type == 'LAMP':
-        return True
-    return False
-
-
-def isRootDummy(obj):
-    """Return true, if an object is the rootdummy."""
-    if not obj:
-        return False
-    return (obj.parent is None) and \
-           (obj.type == 'EMPTY') and \
-           (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
 def readRawAnimData(txtBlock):
@@ -279,7 +407,7 @@ def generateWalkmeshName(obj, rootDummy):
 def findObjRootDummy(obj):
     """Return the rootdummy of this object."""
     while obj:
-        if isRootDummy(obj):
+        if isMdlRoot(obj):
             return obj
         obj = obj.parent
     return None
@@ -293,11 +421,11 @@ def findRootDummy(obj=None):
         return match
     # 2. Nothing was found, try checking the objects in the current scene
     if bpy.context.scene:
-        matches = [m for m in bpy.context.scene.objects if isRootDummy(m)]
+        matches = [m for m in bpy.context.scene.objects if isMdlRoot(m)]
         if matches:
             return matches[0]
     # 3. Still nothing, try checking all objects
-    matches = [m for m in bpy.data.objects if isRootDummy(m)]
+    matches = [m for m in bpy.data.objects if isMdlRoot(m)]
     if matches:
         return matches[0]
 
@@ -374,16 +502,9 @@ def getNodeType(obj):
     if objType == 'EMPTY':
         return obj.nvb.emptytype
     elif objType == 'MESH':
-        if obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH:
-            if obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB:
-                return nvb_def.Walkmeshtype.AABB
-            else:
-                return nvb_def.Meshtype.TRIMESH
-        else:
-            return obj.nvb.meshtype
+        return obj.nvb.meshtype
     elif objType == 'LAMP':
         return nvb_def.Nodetype.LIGHT
-
     return nvb_def.Nodetype.DUMMY
 
 
@@ -467,12 +588,12 @@ def getAuroraScale(obj):
     return 1.0
 
 
-def nwtime2frame(time, fps=nvb_def.anim_fps):
+def nwtime2frame(time, fps):
     """Convert key time to frame number."""
     return round(fps*time)
 
 
-def frame2nwtime(frame, fps=nvb_def.anim_fps):
+def frame2nwtime(frame, fps):
     """TODO: DOC."""
     return round(frame/fps, 7)
 

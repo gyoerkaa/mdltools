@@ -1,17 +1,15 @@
 """TODO: DOC."""
 
-# Null value for parents, textures, etc.
-null = 'null'
-# Where to start all animations
+# Frame at which to start all animations
 anim_globstart = 1
-# offset between two imported animations
+# Offset between two imported animations
 anim_offset = 60
-# Some presets
-anim_fps = 30
 # Save order of tverts for each objects {objectName:[p1, p2, ... pN]}
 tvert_order = dict()
-# Shapekey name
+# Shapekey name (for import)
 shapekeyname = 'aurora_animesh'
+# Null value for parents, textures, etc.
+null = 'null'
 # Predefined walkmesh materials
 wok_materials = [['wok_NotDefined',    (0.400, 0.400, 0.400), 0.0],
                  ['wok_Dirt',          (0.610, 0.235, 0.050), 0.0],
@@ -211,11 +209,11 @@ class Meshtype():
     TRIMESH = 'trimesh'
     DANGLYMESH = 'danglymesh'
     SKIN = 'skin'
-    WALKMESH = 'walkmesh'
+    AABB = 'aabb'
     EMITTER = 'emitter'
     ANIMMESH = 'animmesh'
 
-    ALL = {TRIMESH, DANGLYMESH, SKIN, WALKMESH, EMITTER, ANIMMESH}
+    ALL = {TRIMESH, DANGLYMESH, SKIN, AABB, EMITTER, ANIMMESH}
 
 
 class Emptytype():
@@ -224,35 +222,31 @@ class Emptytype():
     DUMMY = 'dummy'
     REFERENCE = 'reference'
     PATCH = 'patch'
+    PWK = 'pwk'
+    DWK = 'dwk'
 
-    ALL = {DUMMY, REFERENCE, PATCH}
+    ALL = {DUMMY, REFERENCE, PATCH, PWK, DWK}
 
 
 class Nodetype(Emptytype, Meshtype):
     """TODO: Doc."""
 
     LIGHT = 'light'
-    AABB = 'aabb'
 
-    ALL = {LIGHT, AABB} | Emptytype.ALL | Meshtype.ALL
+    ALL = {LIGHT} | Emptytype.ALL | Meshtype.ALL
 
 
 class Walkmeshtype():
     """TODO: Doc."""
 
-    AABB = 'aabb'
+    WOK = 'wok'
     PWK = 'pwk'
-    DWKOPEN1 = 'dwko1'
-    DWKOPEN2 = 'dwko2'
-    DWKCLOSED = 'dwkcl'
+    DWK = 'dwk'
 
-    suffix_list = [('wg_open1', DWKOPEN1),
-                   ('wg_open2', DWKOPEN2),
-                   ('wg_closed', DWKCLOSED)]
+    IMPORT = {PWK, DWK}
+    ALL = {WOK, PWK, DWK}
 
-    suffix_dwk = [(DWKOPEN1, 'wg_open1'),
-                  (DWKOPEN2, 'wg_open2'),
-                  (DWKCLOSED, 'wg_closed')]
+    suffix_list = ['wg_open1', 'wg_open2', 'wg_closed']
 
     @classmethod
     def generateSuffix(cls, obj, classification):
@@ -357,7 +351,10 @@ class ImportOptions():
 
     def __init__(self):
         self.filepath = ''
+        self.scene = None
         self.mdlname = 'unnamed'
+        self.customfps = True
+        self.fps = 30
         # What to import
         self.importAnimations = True
         self.importWalkmesh = True
@@ -381,9 +378,8 @@ class ExportOptions():
     def __init__(self):
         """TODO: DOC."""
         self.filepath = ''
+        self.scene = None
         self.mdlname = 'unnamed'
-        self.meshConvert = 'RENDER'
-        self.applyModifiers = True
         self.classification = Classification.UNKNOWN
         # Misc options
         self.exportAnimations = True
@@ -397,3 +393,6 @@ class ExportOptions():
         # Additional options for textures and materials
         self.materialUseMTR = False
         self.textureOrder = 'TSL'
+        # Blender Settings
+        self.applyModifiers = True
+        self.meshConvert = 'RENDER'

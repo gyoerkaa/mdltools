@@ -13,29 +13,9 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_OP_Armature_CopyAnims(bpy.types.Operator):
-    """Generate armature from skinmesh weights and mdl bones."""
-    bl_idname = 'nvb.armature_copyanims'
-    bl_label = 'Get anims from mdl'
-
-    def copyAnims(self, armature, obj):
-        """TODO: Doc."""
-        pass
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if no armature is selected."""
-        obj = context.object
-        return obj and (obj.type == 'ARMATURE')
-
-    def execute(self, context):
-        """Create the mdl bones"""
-        pass
-
-
-class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
+class NVB_OP_ArmatureToPseudo(bpy.types.Operator):
     """Generate pseudobone from blender armature."""
-    bl_idname = 'nvb.armature_topseudo'
+    bl_idname = 'nvb.helper_amt_topseudo'
     bl_label = 'Generate MDL pseudo bones from Armature'
 
     def create_bone_geometry(amt_bone, prefix=''):
@@ -59,10 +39,10 @@ class NVB_OP_Armature_ToPseudo(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
+class NVB_OP_ArmatureFromPseudo(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
-    bl_idname = 'nvb.armature_frompseudo'
+    bl_idname = 'nvb.helper_amt_frompseudo'
     bl_label = 'Generate Armature from MDL pseudo bones'
 
     # For detecting pseudo bones
@@ -151,7 +131,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
                                  math.pow(pbone.tail.z - bhead.z, 2))
                 if dist <= 0.01:
                     bhead = pbone.tail
-                    if obj.nvb.armatureautoconnect and self.can_connect(obj):
+                    if obj.nvb.helper_amt_connect and self.can_connect(obj):
                         bone.use_connect = True
             bone.head = bhead
             # Set tail
@@ -196,7 +176,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         """Create the armature"""
         aur_root = nvb_utils.findObjRootDummy(context.object)
         # Get source for armature
-        if aur_root.nvb.armaturesource == 'SKIN':
+        if aur_root.nvb.helper_amt_source == 'SKIN':
             # Get all vertex groups with a name that exists as object
             self.setupPseudoBoneDetection(aur_root)
             pb_root = self.detectPseudoBonesRoot(aur_root)
@@ -221,7 +201,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
             self.generateBones(amt.data, c, strict)
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
-        if aur_root.nvb.armaturecopyanims:
+        if aur_root.nvb.helper_amt_copyani:
             nvb_utils.copyAnims2Armature(amt, pb_root)
         # Update scene and objects
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -229,7 +209,7 @@ class NVB_OP_Armature_FromPseudo(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Clone(bpy.types.Operator):
+class NVB_OP_AnimClone(bpy.types.Operator):
     """Clone animation and add it to the animation list"""
 
     bl_idname = 'nvb.anim_clone'
@@ -1294,6 +1274,14 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description='Search for images in subdirectories \
                          (Warning: May be slow)',
             default=False)
+    # Blender Settings
+    customfps = bpy.props.BoolProperty(name='Use Custom fps',
+                                       description='Use custom fps value',
+                                       default=True)
+    fps = bpy.props.IntProperty(name='Custom fps',
+                                description='Custom fps value',
+                                default=30,
+                                min=1, max=60)
     # Hidden settings for batch processing
     minimapMode = bpy.props.BoolProperty(
             name='Minimap Mode',
@@ -1324,11 +1312,20 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         sub.prop(self, 'materialAutoMerge')
         sub.prop(self, 'textureDefaultRoles')
         sub.prop(self, 'textureSearch')
+        # Blender Settings
+        box = layout.box()
+        box.label(text='Blender Settings')
+        row = box.row(align=True)
+        row.prop(self, 'customfps', text='')
+        sub = row.row(align=True)
+        sub.enabled = self.customfps
+        sub.prop(self, 'fps', text='Scene Framerate')
 
     def execute(self, context):
         """TODO: DOC."""
         options = nvb_def.ImportOptions()
         options.filepath = self.filepath
+        options.scene = context.scene
         # Misc Import Settings
         options.importSmoothGroups = self.importSmoothGroups
         options.importNormals = self.importNormals
@@ -1342,6 +1339,9 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Hidden settings for batch processing
         options.minimapMode = self.minimapMode
         options.minimapSkipFade = self.minimapSkipFade
+        # Blender Settings
+        options.customfps = self.customfps
+        options.fps = self.fps
         return nvb_io.loadMdl(self, context, options)
 
 
@@ -1446,7 +1446,7 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         sub = box.column()
         sub.prop(self, 'materialUseMTR')
         sub.prop(self, 'textureOrder')
-        # Blender settings
+        # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
         sub = box.column()
@@ -1456,7 +1456,7 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         """TODO: DOC."""
         options = nvb_def.ExportOptions()
         options.filepath = self.filepath
-        options.applyModifiers = self.applyModifiers
+        options.scene = context.scene
         # Misc Export Settings
         options.exportAnimations = self.exportAnimations
         options.exportWalkmesh = self.exportWalkmesh
@@ -1469,6 +1469,8 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Material Export Settings
         options.materialUseMTR = self.materialUseMTR
         options.textureOrder = self.textureOrder
+        # Blender Settings
+        options.applyModifiers = self.applyModifiers
         return nvb_io.saveMdl(self, context, options)
 
 
@@ -1512,10 +1514,36 @@ class LoadWokMaterials(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
-    """TODO: DOC"""
+class NVB_OP_HelperWalkmesh(bpy.types.Operator):
+    """Helper to add missing walkmesh objects."""
 
-    bl_idname = "nvb.render_minimap"
+    bl_idname = "nvb.helper_wkm_setup"
+    bl_label = "Setup Walkmesh"
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        return (context.object is not None)
+
+    def execute(self, context):
+        """Create camera + lamp and Renders Minimap."""
+        mdlroot = nvb_utils.findObjRootDummy(context.object)
+        if not mdlroot:
+            return {'CANCELLED'}
+        scene = bpy.context.scene
+        wkmtype = mdlroot.nvb.helper_wkm_type
+        if wkmtype == nvb_def.Walkmeshtype.PWK:
+            nvb_utils.createPWKObjects(mdlroot, scene)
+        elif wkmtype == nvb_def.Walkmeshtype.DWK:
+            nvb_utils.createDWKObjects(mdlroot, scene)
+        self.report({'INFO'}, 'Created objects')
+        return {'FINISHED'}
+
+
+class NVB_OP_HelperMinimapSetup(bpy.types.Operator):
+    """Set up rendering for minimaps."""
+
+    bl_idname = "nvb.helper_minimap_setup"
     bl_label = "Render Minimap"
 
     @classmethod
@@ -1525,12 +1553,12 @@ class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
 
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
-        if not rootDummy:
+        mdlRoot = nvb_utils.findObjRootDummy(context.object)
+        if not mdlRoot:
             return {'CANCELLED'}
         scene = bpy.context.scene
 
-        nvb_utils.setupMinimapRender(rootDummy, scene)
+        nvb_utils.setupMinimapRender(mdlRoot, scene)
         bpy.ops.render.render(use_viewport=True)
         # bpy.ops.render.view_show()
 
@@ -1538,7 +1566,7 @@ class NVB_OBJECT_OT_RenderMinimap(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OBJECT_OT_SkingroupAdd(bpy.types.Operator):
+class NVB_OP_SkingroupAdd(bpy.types.Operator):
     """TODO: DOC"""
 
     bl_idname = "nvb.skingroup_add"

@@ -245,8 +245,9 @@ class Animnode():
             fc = action.fcurves.new(data_path=data_path, index=index)
         return fc
 
-    def createDataMaterial(self, mat, anim):
+    def createDataMaterial(self, mat, anim, options):
         """TODO: DOC."""
+        fps = bpy.context.scene.render.fps
         # Add everything to a single action.
         frameStart = anim.frameStart
         frameEnd = anim.frameEnd
@@ -274,14 +275,15 @@ class Animnode():
         curve = Animnode.getCurve(action, dp)
         if self.alphakey:
             for key in self.alphakey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
                 curve.keyframe_points.insert(frame, key[1])
         elif self.alpha is not None:
             curve.keyframe_points.insert(frameStart, self.alpha)
             curve.keyframe_points.insert(frameEnd, self.alpha)
 
-    def createDataObject(self, obj, anim):
+    def createDataObject(self, obj, anim, options):
         """TODO: DOC."""
+        fps = options.scene.render.fps
         # Add everything to a single action.
         frameStart = anim.frameStart
         frameEnd = anim.frameEnd
@@ -306,7 +308,7 @@ class Animnode():
             prev_eul = 0
             for i in range(len(self.orientationkey)):
                 frame = frameStart + \
-                    nvb_utils.nwtime2frame(self.orientationkey[i][0])
+                    nvb_utils.nwtime2frame(self.orientationkey[i][0], fps)
                 eul = nvb_utils.nwangle2euler(self.orientationkey[i][1:5])
                 curr_eul = Animnode.eulerFilter(eul, prev_eul)
                 prev_eul = curr_eul
@@ -339,7 +341,7 @@ class Animnode():
             list(map(lambda x: x.add(len(self.positionkey)), kfp))
             for i in range(len(self.positionkey)):
                 frame = frameStart + \
-                    nvb_utils.nwtime2frame(self.positionkey[i][0])
+                    nvb_utils.nwtime2frame(self.positionkey[i][0], fps)
                 val = self.positionkey[i][1:4]
                 for j in range(3):
                     tp = kfp[j][nkfp[j]+i]
@@ -367,7 +369,7 @@ class Animnode():
             curveY = Animnode.getCurve(action, dp, 1)
             curveZ = Animnode.getCurve(action, dp, 2)
             for key in self.scalekey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[1])
                 curveZ.keyframe_points.insert(frame, key[1])
@@ -389,13 +391,10 @@ class Animnode():
             curveG = Animnode.getCurve(action, dp, 1)
             curveB = Animnode.getCurve(action, dp, 2)
             for key in self.selfillumcolorkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[1])
-                curveG.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[2])
-                curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[3])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                curveR.keyframe_points.insert(frame, key[1])
+                curveG.keyframe_points.insert(frame, key[2])
+                curveB.keyframe_points.insert(frame, key[3])
         elif (self.selfillumcolor is not None):
             curveR = Animnode.getCurve(action, dp, 0)
             curveG = Animnode.getCurve(action, dp, 1)
@@ -414,13 +413,10 @@ class Animnode():
             curveG = Animnode.getCurve(action, dp, 1)
             curveB = Animnode.getCurve(action, dp, 2)
             for key in self.colorkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                curveR.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[1])
-                curveG.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[2])
-                curveB.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                              key[3])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                curveR.keyframe_points.insert(frame, key[1])
+                curveG.keyframe_points.insert(frame, key[2])
+                curveB.keyframe_points.insert(frame, key[3])
         elif self.color:
             curveR = Animnode.getCurve(action, dp, 0)
             curveG = Animnode.getCurve(action, dp, 1)
@@ -437,9 +433,8 @@ class Animnode():
         if self.radiuskey:
             curve = Animnode.getCurve(action, dp)
             for key in self.radiuskey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0])
-                curve.keyframe_points.insert(nvb_utils.nwtime2frame(key[0]),
-                                             key[1])
+                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                curve.keyframe_points.insert(frame, key[1])
         elif self.radius:
             curve = Animnode.getCurve(action, dp, 0)
             curve.keyframe_points.insert(frameStart, self.radius)
@@ -449,6 +444,7 @@ class Animnode():
     def createDataRaw(self, obj, anim, options):
         """Add incompatible animations (usually emitters) as plain text."""
         # Get or create the text object
+        fps = options.scene.render.fps
         txt = None
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
             txt = bpy.data.texts[anim.rawascii]
@@ -467,7 +463,7 @@ class Animnode():
                 for key in keyList:
                     nwtime = float(key[0])
                     values = [float(v) for v in key[1:]]
-                    frame = nvb_utils.nwtime2frame(nwtime)
+                    frame = nvb_utils.nwtime2frame(nwtime, fps)
                     formatStr = '    {: >4d}' + \
                                 ' '.join(['{: > 8.5f}']*len(values)) + '\n'
                     s = formatStr.format(frame, *values)
@@ -477,27 +473,26 @@ class Animnode():
                 txt.write('  ' + ' '.join(label) + '\n')
         txt.write('endnode\n')
 
-    def createDataShape(self, obj, anim, options):
+    def createDataShape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
+        fps = bpy.context.scene.render.fps
         if not obj.data:
             return
+        # Sanity check: Sample period can't be 0
+        if self.sampleperiod <= 0.00001:
+            return
+        # Sanity check: animation length has to be a multiple of
+        #               sampleperiod
+        if animlength % self.sampleperiod > 0.0:
+            return
+        numSamples = int(animlength / self.sampleperiod) + 1
+        # Sanity check: Number of animtverts = number verts * numSamples
         numVerts = len(obj.data.vertices)
-        # Sanity check: Number of animated verts should be a mupltiple of the
-        # number of verts
-        if (len(self.animverts) % numVerts > 0):
-            print("Neverblender: WARNING - Sample size mismatch (" +
-                  "animesh " + obj.name + ")")
+        if (len(self.animtverts) != numVerts * numSamples):
+            print("Neverblender: WARNING - animvert sample size mismatch: " +
+                  obj.name)
             return
-        numSamples = len(self.animverts) // numVerts
-        if numSamples == 1:
-            sampleDistance = 0
-        elif numSamples > 1:
-            sampleDistance = \
-                nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
-        else:
-            print("Neverblender: WARNING - No samples (" +
-                  "animesh " + obj.name + ")")
-            return
+        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod, fps)
         # Get the shape key name
         if obj.nvb.aurorashapekey:
             shapekeyname = obj.nvb.aurorashapekey
@@ -538,8 +533,9 @@ class Animnode():
                 curveY.keyframe_points.insert(frame, co[1], kfOptions)
                 curveZ.keyframe_points.insert(frame, co[2], kfOptions)
 
-    def createDataUV(self, obj, anim, options):
+    def createDataUV(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
+        fps = bpy.context.scene.render.fps
         if not obj.data:
             return
         if not obj.data.uv_layers.active:
@@ -550,23 +546,22 @@ class Animnode():
             return
         tvert_order = [v for sl in nvb_def.tvert_order[uvlayer.name]
                        for v in sl]
+        # Sanity check: Sample period can't be 0
+        if self.sampleperiod <= 0.00001:
+            return
+        # Sanity check: animation length has to be a multiple of
+        #               sampleperiod
+        if animlength % self.sampleperiod > 0.0:
+            return
+        numSamples = int(animlength / self.sampleperiod) + 1
+        # Sanity check: Number of animtverts = number tverts * numSamples
         numTVerts = len(tvert_order)
-        # Sanity check: Number of animated uvs/tverts has to be multiple of
-        # the number of uvs
-        if (len(self.animtverts) % numTVerts > 0):
-            print("Neverblender: WARNING - Sample size mismatch (" +
-                  "animesh " + obj.name + ")")
+        if (len(self.animtverts) != numTVerts * numSamples):
+            print("Neverblender: WARNING - animtvert sample size mismatch: " +
+                  obj.name)
             return
-        numSamples = len(self.animtverts) // numTVerts
-        if numSamples == 1:
-            sampleDistance = 0
-        elif numSamples > 1:
-            sampleDistance = \
-                nvb_utils.nwtime2frame(self.sampleperiod) // (numSamples-1)
-        else:
-            print("Neverblender: WARNING - No samples (" +
-                  "animesh " + obj.name + ")")
-            return
+        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod, fps)
+
         # Get animation data, create it if necessary
         animData = obj.data.animation_data
         if not animData:
@@ -583,7 +578,6 @@ class Animnode():
         frameStart = anim.frameStart
         dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
         # uvIdx = order in blender, tvertIdx = order in mdl
-        print(tvert_order)
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dp = dpPrefix + str(uvIdx) + '].uv'
             curveU = Animnode.getCurve(action, dp, 0)
@@ -594,16 +588,16 @@ class Animnode():
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
                 curveV.keyframe_points.insert(frame, co[1], kfOptions)
 
-    def create(self, obj, anim, options):
+    def create(self, obj, anim, animlength, options):
         """TODO:Doc."""
         if self.objdata:
-            self.createDataObject(obj, anim)
+            self.createDataObject(obj, anim, options)
         if self.matdata and obj.active_material:
-            self.createDataMaterial(obj.active_material, anim)
+            self.createDataMaterial(obj.active_material, anim, options)
         if self.uvdata:
-            self.createDataUV(obj, anim, options)
+            self.createDataUV(obj, anim, animlength, options)
         if self.shapedata:
-            self.createDataShape(obj, anim, options)
+            self.createDataShape(obj, anim, animlength, options)
         if self.rawdata and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
             self.createDataRaw(obj, anim, options)
@@ -909,26 +903,32 @@ class Animnode():
                                 values = copy.deepcopy(vertexList)
                             values[vertexIdx][axis] = p.co[1]
                             keys[frame] = values
-
+                # Misc data for export + sanity checks
+                numSamples = len(keys)
+                numVerts = len(vertexList)
+                numAnimVerts = sum([len(l) for f, l in keys.items()])
+                # Sanity checks
+                if numAnimVerts != numSamples * numVerts:
+                    print("Neverblender: " +
+                          "WARNING - animvert sample size mismatch: " +
+                          obj.name)
+                    return
+                animlength = nvb_utils.frame2nwtime(
+                    anim.frameEnd-anim.frameStart,
+                    bpy.context.scene.render.fps)
+                sampleperiod = animlength / (numSamples-1)
                 # Create ascii representation and add it to the output
-                sumKeys = sum([len(l) for f, l in keys.items()])
-                if (sumKeys % len(vertexList) == 0):
-                    asciiLines.append('    clipu 0.0')
-                    asciiLines.append('    clipv 0.0')
-                    asciiLines.append('    clipw 1.0')
-                    asciiLines.append('    cliph 1.0')
-                    samplePeriod = nvb_utils.frame2nwtime(
-                        samplingEnd-samplingStart,
-                        bpy.context.scene.render.fps)
-                    asciiLines.append('    sampleperiod ' +
-                                      str(round(samplePeriod, 5)))
-                    asciiLines.append('    animverts ' + str(sumKeys))
-                    for frame, key in keys.items():
-                        for val in key:
-                            formatStr = '      {: 6.3f} {: 6.3f} {: 6.3f}'
-                            s = formatStr.format(val[0], val[1], val[2])
-                            asciiLines.append(s)
-                    asciiLines.append('    endlist')
+                asciiLines.append('    clipu 0.0')
+                asciiLines.append('    clipv 0.0')
+                asciiLines.append('    clipw 1.0')
+                asciiLines.append('    cliph 1.0')
+                asciiLines.append('    sampleperiod ' +
+                                  str(round(sampleperiod, 5)))
+                asciiLines.append('    animverts ' + str(numAnimVerts))
+                for frame, key in keys.items():
+                    fstr = '      {: 6.3f} {: 6.3f} {: 6.3f}'
+                    asciiLines.extend([fstr.format(*v) for v in key])
+                asciiLines.append('    endlist')
 
     @staticmethod
     def generateAsciiAnimmeshUV(obj, anim, asciiLines):
@@ -974,25 +974,32 @@ class Animnode():
                                 values = copy.deepcopy(tessfaceUVList)
                             values[uvIdx][axis] = p.co[1]
                             keys[frame] = values
+                # Misc data for export
+                numSamples = len(keys)
+                numTVerts = len(tessfaceUVList)
+                numAnimTVerts = sum([len(l) for f, l in keys.items()])
+                # Sanity checks
+                if numAnimTVerts != numSamples * numTVerts:
+                    print("Neverblender: " +
+                          "WARNING - animvert sample size mismatch: " +
+                          obj.name)
+                    return
+                animlength = nvb_utils.frame2nwtime(
+                    anim.frameEnd-anim.frameStart,
+                    bpy.context.scene.render.fps)
+                sampleperiod = animlength / (numSamples-1)
                 # Create ascii representation and add it to the output
-                sumKeys = sum([len(l) for f, l in keys.items()])
-                if (sumKeys % len(tessfaceUVList) == 0):
-                    asciiLines.append('    clipu 0.0')
-                    asciiLines.append('    clipv 0.0')
-                    asciiLines.append('    clipw 1.0')
-                    asciiLines.append('    cliph 1.0')
-                    samplePeriod = nvb_utils.frame2nwtime(
-                        samplingEnd-samplingStart,
-                        bpy.context.scene.render.fps)
-                    asciiLines.append('    sampleperiod ' +
-                                      str(round(samplePeriod, 5)))
-                    asciiLines.append('    animtverts ' + str(sumKeys))
-                    for frame, key in keys.items():
-                        for val in key:
-                            formatStr = '      {: 6.3f} {: 6.3f}  0'
-                            s = formatStr.format(val[0], val[1])
-                            asciiLines.append(s)
-                    asciiLines.append('    endlist')
+                asciiLines.append('    clipu 0.0')
+                asciiLines.append('    clipv 0.0')
+                asciiLines.append('    clipw 1.0')
+                asciiLines.append('    cliph 1.0')
+                asciiLines.append('    sampleperiod ' +
+                                  str(round(sampleperiod, 5)))
+                asciiLines.append('    animtverts ' + str(numAnimTVerts))
+                for frame, key in keys.items():
+                    fstr = '      {: 6.3f} {: 6.3f}  0'
+                    asciiLines.extend([fstr.format(*v) for v in key])
+                asciiLines.append('    endlist')
 
     @staticmethod
     def generateAsciiAnimmeshData(obj, anim, asciiLines):

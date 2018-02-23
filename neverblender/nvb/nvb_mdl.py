@@ -34,22 +34,15 @@ class Mdl():
         self.animscale = 1.0
         self.classification = nvb_def.Classification.UNKNOWN
         # Geometry
-        self.nodes = []
+        self.mdlnodes = []
+        self.pwknodes = []
+        self.dwknodes = []
         # Animations
         self.animations = []
         # Resolve non-unique node names
         self.noderesolver = nvb_utils.NodeResolver()
 
-    def getRootNode(self):
-        """TODO:DOC."""
-        parentlessNodes = [n for n in self.nodes if ((not n.parent) and
-                           (n.nodetype == nvb_def.Nodetype.DUMMY))]
-        if parentlessNodes:
-            return parentlessNodes[0]
-        else:
-            return None
-
-    def loadAsciiHeader(self, asciiBlock):
+    def readAsciiHeader(self, asciiBlock):
         """TODO: DOC."""
         asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
         for line in asciiLines:
@@ -90,54 +83,26 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
-    def loadAsciiWalkmeshGeometry(self, asciiBlock):
+    def readAsciiWalkmesh(self, asciiBlock, wkmtype, options):
         """TODO: DOC."""
-        dlm = 'node '
-        nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
-        for idx, asciiNode in enumerate(nodeList):
-            asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
-            node = None
-            nodeType = ''
-            nodeName = 'UNNAMED'
-            # Read node type
-            try:
-                nodeType = asciiLines[0][1].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node type')
-            # Read node name
-            try:
-                nodeName = asciiLines[0][2].lower()
-            except (IndexError, AttributeError):
-                raise nvb_def.MalformedMdlFile('Unable to read node name')
-            # Create an object with that type and name
-            try:
-                node = Mdl.nodelookup[nodeType](nodeName)
-            except KeyError:
-                raise nvb_def.MalformedMdlFile('Invalid node type')
-            # Parse the rest and add to node list
-            node.loadAscii(asciiLines, idx)
-            # Set Walkmesh stuff
-            node.parent = '!'  # Always parent to rootdummy
-            if node.nodetype == nvb_def.Nodetype.TRIMESH:
-                node.meshtype = nvb_def.Meshtype.WALKMESH
-                node.walkmeshtype = nvb_def.Walkmeshtype.getType(node.name)
-            self.nodes.append(node)
-
-    def loadAsciiWalkmesh(self, asciiBlock, options):
-        """TODO: DOC."""
-        geomStart = asciiBlock.find('node ')  # Look for the first 'node'
         if options.importWalkmesh:
+            geomStart = asciiBlock.find('node ')  # Look for the first 'node'
             if (geomStart < 0):
                 # Something is wrong
-                print("Neverblender: WARNING: Unable to find walkmesh data")
+                # Most likely empty walkmesh file
+                print("Neverblender: WARNING: Unable to read walkmesh data")
                 return
-            self.loadAsciiWalkmeshGeometry(asciiBlock[geomStart:])
+            if wkmtype == 'pwk':
+                Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.pwknodes)
+            elif wkmtype == 'dwk':
+                Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.dwknodes)
 
-    def loadAsciiGeometry(self, asciiBlock):
+    @staticmethod
+    def readAsciiGeometry(asciiBlock, nodelist):
         """TODO: DOC."""
         dlm = 'node '
-        nodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
-        for idx, asciiNode in enumerate(nodeList):
+        asciiNodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
+        for idx, asciiNode in enumerate(asciiNodeList):
             asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
             node = None
             nodeType = ''
@@ -159,23 +124,23 @@ class Mdl():
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse the rest and add to node list
             node.loadAscii(asciiLines, idx)
-            self.nodes.append(node)
+            nodelist.append(node)
 
     @staticmethod
-    def loadAsciiAnimation(asciiBlock):
-        """Load a single animation from an ascii mdl block."""
+    def readAsciiAnimation(asciiBlock):
+        """Load a single animation from an ascii animation block."""
         anim = nvb_anim.Animation()
         anim.loadAscii(asciiBlock)
         return anim
 
-    def loadAsciiAnimations(self, asciiBlock):
+    def readAsciiAnimations(self, asciiBlock):
         """Load all animations from an ascii mdl block."""
         # Split into animations using 'newanim' as delimiter
         dlm = 'newanim '
         animList = [dlm+block for block in asciiBlock.split(dlm) if block]
-        self.animations = list(map(Mdl.loadAsciiAnimation, animList))
+        self.animations = list(map(Mdl.readAsciiAnimation, animList))
 
-    def loadAscii(self, asciiBlock, options):
+    def readAscii(self, asciiBlock, options):
         """Load an mdl from an ascii mfl file."""
         geomStart = asciiBlock.find('node ')  # Look for the first 'node'
         animStart = asciiBlock.find('newanim ')  # Look for the first 'newanim'
@@ -185,27 +150,29 @@ class Mdl():
         if (geomStart < 0):
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
 
-        self.loadAsciiHeader(asciiBlock[:geomStart-1])
+        self.readAsciiHeader(asciiBlock[:geomStart-1])
         # Import Geometry
         if (animStart > 0):
             # Animations present, exclude them for geometry loading
-            self.loadAsciiGeometry(asciiBlock[geomStart:animStart])
+            Mdl.readAsciiGeometry(asciiBlock[geomStart:animStart],
+                                  self.mdlnodes)
         else:
-            self.loadAsciiGeometry(asciiBlock[geomStart:])
+            Mdl.readAsciiGeometry(asciiBlock[geomStart:],
+                                  self.mdlnodes)
         # Import Animations
         if options.importAnimations and (animStart > 0):
-            self.loadAsciiAnimations(asciiBlock[animStart:])
+            self.readAsciiAnimations(asciiBlock[animStart:])
 
     @staticmethod
-    def generateAsciiHeader(rootDummy, asciiLines, options):
+    def generateAsciiHeader(mdlRoot, asciiLines, options):
         """TODO: DOC."""
         blendfile = os.path.basename(bpy.data.filepath)
         if not blendfile:
             blendfile = 'unknown'
-        mdlname = rootDummy.name
-        mdlclass = rootDummy.nvb.classification.upper()
-        mdlsuper = rootDummy.nvb.supermodel
-        mdlanimscale = rootDummy.nvb.animscale
+        mdlname = mdlRoot.name
+        mdlclass = mdlRoot.nvb.classification.upper()
+        mdlsuper = mdlRoot.nvb.supermodel
+        mdlanimscale = mdlRoot.nvb.animscale
 
         asciiLines.append('filedependancy ' + blendfile)
         asciiLines.append('newmodel ' + mdlname)
@@ -216,30 +183,31 @@ class Mdl():
     @staticmethod
     def generateAsciiGeometry(obj, asciiLines, options):
         """TODO: DOC."""
-        if nvb_utils.belongsToMdl(obj, options.classification):
-            nodeType = nvb_utils.getNodeType(obj)
-            try:
-                node = Mdl.nodelookup[nodeType]
-            except KeyError:
-                raise nvb_def.MalformedMdlFile('Invalid node type')
+        if nvb_utils.isWkmRoot(obj) or nvb_utils.isAABB(obj):
+            return
+        nodeType = nvb_utils.getNodeType(obj)
+        try:
+            node = Mdl.nodelookup[nodeType]
+        except KeyError:
+            raise nvb_def.MalformedMdlFile('Invalid node type')
 
-            node.generateAscii(obj, asciiLines, options)
-            # Sort children to restore original order before import
-            # (important for supermodels/animations to work)
-            children = [c for c in obj.children]
-            children.sort(key=lambda c: c.nvb.imporder)
-            for c in children:
-                Mdl.generateAsciiGeometry(c, asciiLines, options)
+        node.generateAscii(obj, asciiLines, options, False)
+        # Sort children to restore original order before import
+        # (important for supermodels/animations to work)
+        children = [c for c in obj.children]
+        children.sort(key=lambda c: c.nvb.imporder)
+        for c in children:
+            Mdl.generateAsciiGeometry(c, asciiLines, options)
 
     @staticmethod
-    def generateAsciiAnimations(rootDummy, asciiLines, options):
+    def generateAsciiAnimations(mdlRoot, asciiLines, options):
         """TODO: DOC."""
-        for anim in rootDummy.nvb.animList:
-            nvb_anim.Animation.generateAscii(rootDummy, anim,
+        for anim in mdlRoot.nvb.animList:
+            nvb_anim.Animation.generateAscii(mdlRoot, anim,
                                              asciiLines, options)
 
     @staticmethod
-    def generateAsciiMeta(rootDummy, asciiLines, options):
+    def generateAsciiMeta(mdlRoot, asciiLines, options):
         """Add creation time to a list of ascii lines."""
         currentTime = datetime.now()
         blendFileName = os.path.basename(bpy.data.filepath)
@@ -249,122 +217,174 @@ class Mdl():
                           currentTime.strftime('%A, %Y-%m-%d'))
 
     @staticmethod
-    def generateAscii(rootDummy, asciiLines, options):
+    def generateAscii(mdlRoot, asciiLines, options):
         """TODO: DOC."""
         # The Names of exported geometry nodes. We'll need this for skinmeshes
         # and animations
-        mdlName = rootDummy.name
-        # Creation time
-        Mdl.generateAsciiMeta(rootDummy, asciiLines, options)
+        mdlName = mdlRoot.name
+        # Creation time, etc
+        Mdl.generateAsciiMeta(mdlRoot, asciiLines, options)
         # Header
-        Mdl.generateAsciiHeader(rootDummy, asciiLines, options)
+        Mdl.generateAsciiHeader(mdlRoot, asciiLines, options)
         # Geometry
         asciiLines.append('beginmodelgeom ' + mdlName)
-        Mdl.generateAsciiGeometry(rootDummy, asciiLines, options)
+        Mdl.generateAsciiGeometry(mdlRoot, asciiLines, options)
         asciiLines.append('endmodelgeom ' + mdlName)
         # Animations
         if options.exportAnimations:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
-            Mdl.generateAsciiAnimations(rootDummy, asciiLines, options)
+            Mdl.generateAsciiAnimations(mdlRoot, asciiLines, options)
         # The End
         asciiLines.append('donemodel ' + mdlName)
         asciiLines.append('')
 
     @staticmethod
-    def getWalkmeshObjects(obj, wmo, options):
+    def generateAsciiWalkmesh(mdlRoot, asciiLines, wkmtype, options):
         """TODO: DOC."""
-        if nvb_utils.belongsToWalkmesh(obj, options.classification):
-            wmo.append(obj)
+        wkmObjects = []
+        if wkmtype == nvb_def.Walkmeshtype.WOK:
+            # Walkmesh for tiles: Append only AABB mesh
+            wok = nvb_utils.findAABB(mdlRoot)
+            if wok:
+                wkmObjects.append(wok)
+        else:
+            # Walkmesh for doors: Append all children of the walkmesh root
+            wkmRoot = nvb_utils.findWkmRoot(mdlRoot, wkmtype)
+            if wkmRoot:
+                wkmObjects = [c for c in wkmRoot.children]
+        # Abort if there is nothing to write
+        if not wkmObjects:
+            return
+        # Creation time
+        Mdl.generateAsciiMeta(mdlRoot, asciiLines, options)
+        # Write Data
+        for obj in wkmObjects:
+            nodeType = nvb_utils.getNodeType(obj)
+            try:
+                node = Mdl.nodelookup[nodeType]
+            except KeyError:
+                print("Neverblender: WARNING - Unable to get node type.")
+            else:
+                node.generateAscii(obj, asciiLines, options, True)
 
-        childList = []
-        for child in obj.children:
-            childList.append((child.nvb.imporder, child))
-        childList.sort(key=lambda tup: tup[0])
+    def createObjectLinks(self, nodelist, noderesolver, options):
+        """Handles parenting and linking of objects to a scene."""
+        def getRoot(obj):
+            """Return the root of  obj."""
+            while obj:
+                if obj.parent is None:
+                    return obj
+                obj = obj.parent
+            return None
 
-        for (imporder, child) in childList:
-            Mdl.getWalkmeshObjects(child, wmo, options)
-
-    @staticmethod
-    def generateAsciiWalkmesh(rootDummy, asciiLines, options):
-        """TODO: DOC."""
-        wmo = []
-        Mdl.getWalkmeshObjects(rootDummy, wmo, options)
-        if wmo:  # Only wirte something if there are any walkmesh objects
-            # Creation time
-            Mdl.generateAsciiMeta(rootDummy, asciiLines, options)
-            # Geometry
-            for obj in wmo:
-                nodeType = nvb_utils.getNodeType(obj)
-                try:
-                    node = Mdl.nodelookup[nodeType]
-                except KeyError:
-                    print("Neverblender: WARNING - Unable to get node type.")
+        obj = None
+        for node in nodelist:
+            obj = noderesolver.get_obj(node.name, node.nodeidx)
+            if obj:
+                if node.parent:  # obj == rootobj:
+                    parentobj = noderesolver.get_obj_parent(node.parent,
+                                                            node.nodeidx)
+                    obj.parent = parentobj
                 else:
-                    node.generateAsciiWalkmesh(obj, asciiLines, options)
-
-    def createObjectLinks(self, options):
-        """Handle parenting and linking the objects to a scene."""
-        node = self.getRootNode()
-        rootobj = None
-        if node:
-            rootobj = self.noderesolver.get_obj(node.name, node.nodeidx)
-            rootobj.nvb.supermodel = self.supermodel
-            rootobj.nvb.classification = self.classification
-
-        for node in self.nodes:
-            obj = self.noderesolver.get_obj(node.name, node.nodeidx)
-            if not obj:
+                    obj.parent = None
+                    obj.nvb.supermodel = self.supermodel
+                    obj.nvb.classification = self.classification
+                options.scene.objects.link(obj)
+            else:
                 print('Neverblender: WARNING - Invalid object ' +
                       node.name)
+        return getRoot(obj)
+
+    @staticmethod
+    def createObjects(nodelist, noderesolver, options):
+        """TODO: DOC."""
+        for node in nodelist:
+            # Creates a blender object for this node
+            obj = node.createObject(options)
+            # Save the imported objects for animation import
+            if obj:
+                noderesolver.insert_obj(node.name, node.nodeidx, obj.name)
             else:
-                if obj == rootobj:
-                    obj.parent = None
-                elif (not node.parent) or (node.parent == nvb_def.null):
-                    # No parent was specified, set to aurora root
-                    obj.parent = rootobj
-                else:
-                    parentobj = self.noderesolver.get_obj_parent(node.parent,
-                                                                 node.nodeidx)
-                    obj.parent = parentobj
-                options.scene.objects.link(obj)
+                print('Neverblender: WARNING - Invalid node: ' + node.name)
 
-    def createObjects(self, options):
+    @staticmethod
+    def createAnimations(animationlist, mdlroot, noderesolver, options):
         """TODO: DOC."""
-        options.scene.render.fps = nvb_def.anim_fps
-        if self.nodes:
-            for node in self.nodes:
-                # Creates a blender object for this node
-                obj = node.createObject(options)
-                # Save the imported objects for animation import
-                if obj:
-                    self.noderesolver.create_obj(node.name,
-                                                 node.nodeidx,
-                                                 obj.name)
-                else:
-                    print('INTERNAL ERROR (node: ' + node.name + ')')
-
-    def createAnimations(self, options):
-        """TODO: DOC."""
-        rootd = nvb_utils.findRootDummy(bpy.context.object)
         # Load the 'default' animation first, so it is at the front
-        anims = [a for a in self.animations if a.name == 'default']
+        anims = [a for a in animationlist if a.name == 'default']
         for a in anims:
-            a.create(rootd, self.noderesolver, options)
+            a.create(mdlroot, noderesolver, options)
         # Load the rest of the anims
-        anims = [a for a in self.animations if a.name != 'default']
+        anims = [a for a in animationlist if a.name != 'default']
         for a in anims:
-            a.create(rootd, self.noderesolver, options)
+            a.create(mdlroot, noderesolver, options)
         # Create rest poses
         children = []
-        nvb_utils.getAllChildren(rootd, children)
-        for anim in rootd.nvb.animList:
+        nvb_utils.getAllChildren(mdlroot, children)
+        for anim in mdlroot.nvb.animList:
             for c in children:
                 nvb_utils.createRestPose(c, anim.frameStart-5)
 
     def create(self, options):
         """TODO: DOC."""
-        self.createObjects(options)
-        self.createObjectLinks(options)
+        def insertWalkmeshRoot(mdlnodes, wkmnodes, wkmtype, options):
+            """Generate a root node as parent for all walkmesh objects."""
+            # Get root node
+            if wkmtype not in nvb_def.Walkmeshtype.IMPORT:
+                print('Neverblender: WARNING - Invalid walkmesh type: '
+                      + wkmtype)
+                return
+            # Generate name
+            parentNames = set([n.parent for n in wkmnodes])
+            rootName = ''
+            if len(parentNames) >= 1:
+                # All nodes in the walkmesh SHOULD have the same parent
+                rootName = next(iter(parentNames))
+                if len(parentNames) > 1:
+                    # Multiple parents (Walkmesh is technically invalid)
+                    # Try to solve the issue by re-parenting
+                    for node in wkmnodes:
+                        node.parent = rootName
+            else:
+                # This shouldn't happen really
+                rootName = options.mdlname + '_' + wkmtype
+                for node in wkmnodes:
+                    node.parent = rootName
+            wkmroot = nvb_node.Dummy(rootName)
+            if wkmtype == nvb_def.Walkmeshtype.DWK:
+                wkmroot.emptytype = nvb_def.Emptytype.DWK
+            else:
+                wkmroot.emptytype = nvb_def.Emptytype.PWK
+            wkmnodes.insert(0, wkmroot)
+
+        if options.customfps:
+            options.scene.render.fps = options.fps
+        # Create mdl objects
+        mdlresolver = nvb_utils.NodeResolver()
+        Mdl.createObjects(self.mdlnodes, mdlresolver, options)
+        mdlroot = self.createObjectLinks(self.mdlnodes, mdlresolver, options)
+        # Create pwk objects
+        if self.pwknodes:
+            wkmresolver = nvb_utils.NodeResolver()
+            insertWalkmeshRoot(self.mdlnodes, self.pwknodes,
+                               nvb_def.Walkmeshtype.PWK, options)
+            Mdl.createObjects(self.pwknodes, wkmresolver, options)
+            wkmroot = self.createObjectLinks(self.pwknodes, wkmresolver,
+                                             options)
+            wkmroot.parent = mdlroot
+            del wkmresolver
+        # Create dwk objects
+        if self.dwknodes:
+            wkmresolver = nvb_utils.NodeResolver()
+            insertWalkmeshRoot(self.mdlnodes, self.dwknodes,
+                               nvb_def.Walkmeshtype.DWK, options)
+            Mdl.createObjects(self.dwknodes, wkmresolver, options)
+            wkmroot = self.createObjectLinks(self.dwknodes, wkmresolver,
+                                             options)
+            wkmroot.parent = mdlroot
+            del wkmresolver
+        # Create animations
         if options.importAnimations:
-            self.createAnimations(options)
+            self.createAnimations(self.animations,
+                                  mdlroot, mdlresolver, options)

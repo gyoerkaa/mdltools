@@ -124,12 +124,20 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     emptytype = bpy.props.EnumProperty(
                 name='Type',
                 items=[(nvb_def.Emptytype.DUMMY,
-                        'Dummy', 'Simple dummy object', 0),
+                        'Dummy',
+                        'Simple dummy object', 0),
                        (nvb_def.Emptytype.REFERENCE,
-                        'Reference node', 'Used in spells. \
-                         Default value "fx_ref"', 1),
+                        'Reference node',
+                        'Used in spells. Default value "fx_ref"', 1),
                        (nvb_def.Emptytype.PATCH,
-                        'Patch node', 'Unknown purpose', 2)],
+                        'Patch node',
+                        'Unknown purpose', 2),
+                       (nvb_def.Emptytype.DWK,
+                        'DWK Root (Door  Walkmesh)',
+                        'All children are part of the walkmesh', 3),
+                       (nvb_def.Emptytype.PWK,
+                        'PWK Root (Placeable Walkmesh)',
+                        'All children are part of the walkmesh', 4)],
                 default=nvb_def.Emptytype.DUMMY)
     # For Aurora Root
     supermodel = bpy.props.StringProperty(
@@ -204,16 +212,24 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 name='Reattachable',
                 default=False)
 
-    # Minimap generation
+    # Minimap Helper
     minimapzoffset = bpy.props.FloatProperty(name='Minimap Z Offset',
                                              default=0.00,
                                              min=0.00)
     minimapsize = bpy.props.IntProperty(name='Size',
                                         default=32,
                                         min=16)
-
-    # Armature generation
-    armaturesource = bpy.props.EnumProperty(
+    # Walkmesh Helper
+    helper_wkm_type = bpy.props.EnumProperty(
+        name='Type',
+        items=[(nvb_def.Walkmeshtype.PWK,
+                'Placeable', 'Setup objects for placeables', 0),
+               (nvb_def.Walkmeshtype.DWK,
+                'Door', 'Setup objects for doors', 1),
+               ],
+        default=nvb_def.Walkmeshtype.PWK)
+    # Armature Helper
+    helper_amt_source = bpy.props.EnumProperty(
         name='Armature Source',
         items=[('SELN',
                 'Selection', 'Selected object and its children', 0),
@@ -221,11 +237,11 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 'Skinmeshes', 'Vertex groups from all skinmeshes', 1),
                ],
         default='SKIN')
-    armatureautoconnect = bpy.props.BoolProperty(
+    helper_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect Bones',
         description='Connect bones when possible',
         default=True)
-    armaturecopyanims = bpy.props.BoolProperty(
+    helper_amt_copyani = bpy.props.BoolProperty(
         name='Copy Animations',
         description='Copy animations to the created armature',
         default=True)
@@ -233,27 +249,19 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     # For mesh objects
     meshtype = bpy.props.EnumProperty(
                 name='Type',
-                items=[(nvb_def.Meshtype.TRIMESH, 'Trimesh', 'desc', 0),
-                       (nvb_def.Meshtype.DANGLYMESH, 'Danglymesh', 'desc', 1),
-                       (nvb_def.Meshtype.SKIN, 'Skinmesh', 'desc', 2),
-                       (nvb_def.Meshtype.WALKMESH, 'Walkmesh', 'desc', 3),
-                       (nvb_def.Meshtype.EMITTER, 'Emitter', 'desc', 4),
-                       (nvb_def.Meshtype.ANIMMESH, 'Animesh', 'desc', 5)],
+                items=[(nvb_def.Meshtype.TRIMESH, 'Trimesh',
+                       'Deafult type of Mesh', 0),
+                       (nvb_def.Meshtype.DANGLYMESH, 'Danglymesh',
+                       'desc', 1),
+                       (nvb_def.Meshtype.SKIN, 'Skinmesh',
+                       'desc', 2),
+                       (nvb_def.Meshtype.AABB, 'AABB',
+                       'Walkmesh for tilesets', 3),
+                       (nvb_def.Meshtype.EMITTER, 'Emitter',
+                       'desc', 4),
+                       (nvb_def.Meshtype.ANIMMESH, 'Animesh',
+                       'Mesh with animatable uv coordinates or vertices', 5)],
                 default=nvb_def.Meshtype.TRIMESH)
-    walkmeshtype = bpy.props.EnumProperty(
-                name='Type',
-                items=[(nvb_def.Walkmeshtype.PWK,
-                        'Placeable', 'Placeable walkmesh', 0),
-                       (nvb_def.Walkmeshtype.DWKOPEN1,
-                        'Door: Open 1', 'Door walkmesh for open state 1', 1),
-                       (nvb_def.Walkmeshtype.DWKOPEN2,
-                        'Door: Open 2', 'Door walkmesh for open state 2', 2),
-                       (nvb_def.Walkmeshtype.DWKCLOSED,
-                        'Door: Closed', 'Door walkmesh for closed state', 3),
-                       (nvb_def.Walkmeshtype.AABB,
-                        'Tileset', 'Walkmesh for tilesets', 4)
-                       ],
-                default=nvb_def.Walkmeshtype.PWK)
     smoothgroup = bpy.props.EnumProperty(
                 name='Smoothgroup',
                 items=[('SEPR',

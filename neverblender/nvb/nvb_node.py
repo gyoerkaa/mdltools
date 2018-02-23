@@ -130,7 +130,7 @@ class Node(object):
         return scaled
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: DOC."""
         # Rootdummy's get no data at all
         if obj.parent is None:
@@ -149,28 +149,14 @@ class Node(object):
             asciiLines.append('  scale ' + str(scale))
 
     @classmethod
-    def generateAscii(cls, obj, asciiLines, options):
+    def generateAscii(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
         asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
             asciiLines.append('  parent ' + nvb_def.null)
-        cls.generateAsciiData(obj, asciiLines, options)
-        asciiLines.append('endnode')
-
-    @classmethod
-    def generateAsciiWalkmesh(cls, obj, asciiLines, options):
-        """TODO: Doc."""
-        rootDummy = nvb_utils.findRootDummy(obj)
-        nodeName = obj.name
-        parentName = nvb_def.null
-        if rootDummy:
-            nodeName = nvb_utils.generateWalkmeshName(obj, rootDummy)
-            parentName = nvb_utils.generateWalkmeshParent(rootDummy)
-        asciiLines.append('node ' + cls.nodetype + ' ' + nodeName)
-        asciiLines.append('  parent ' + parentName)
-        cls.generateAsciiData(obj, asciiLines, options)
+        cls.generateAsciiData(obj, asciiLines, options, iswalkmesh)
         asciiLines.append('endnode')
 
 
@@ -194,7 +180,7 @@ class Dummy(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.emptytype = self.emptytype
-        obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
+        # obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
 
 
 class Patch(Node):
@@ -254,15 +240,17 @@ class Reference(Node):
         obj.nvb.reattachable = (self.reattachable >= 1)
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, options)
+        Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
+        if iswalkmesh:
+            return
         asciiLines.append('  refmodel ' + obj.nvb.refmodel)
         asciiLines.append('  reattachable ' + str(int(obj.nvb.reattachable)))
 
 
 class Trimesh(Node):
-    """TODO: Doc."""
+    """Default type of Mesh."""
 
     nodetype = nvb_def.Nodetype.TRIMESH
 
@@ -271,7 +259,6 @@ class Trimesh(Node):
         Node.__init__(self, name)
 
         self.meshtype = nvb_def.Meshtype.TRIMESH
-        self.walkmeshtype = nvb_def.Walkmeshtype.PWK  # Default values
         self.center = (0.0, 0.0, 0.0)  # Unused ?
         self.tilefade = 0
         self.render = 1
@@ -400,6 +387,9 @@ class Trimesh(Node):
 
     def createMaterial(self, options, makeunique=False):
         """TODO: Doc."""
+        def isDefaultMaterial():
+            isdefault = False
+            return isdefault
 
         def createTexture(tname, imgname, options):
             """TODO: Doc."""
@@ -425,6 +415,9 @@ class Trimesh(Node):
                     tex.image = image
             return tex
 
+        # If this material has no texture, no alpha and default values
+        if isDefaultMaterial():
+            return None
         # texture0 = bitmap, texture0 takes precedence
         texlist = self.textures
         if len(texlist) > 0:
@@ -654,7 +647,6 @@ class Trimesh(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
-        obj.nvb.walkmeshtype = self.walkmeshtype
         if self.tilefade == 1:
             obj.nvb.tilefade = nvb_def.Tilefade.FADE
         elif self.tilefade == 2:
@@ -727,18 +719,17 @@ class Trimesh(Node):
     @staticmethod
     def generateAsciiMaterial(obj, asciiLines, options):
         """Write Ascii lines from the objects material for a MDL file."""
-
         hasTexture = False
         if not obj.nvb.render:
             if obj.nvb.shadow:
                 # Shadow mesh: Everything should be black, no texture, no uv
                 asciiLines.append('  diffuse 0.00 0.00 0.00')
                 asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap black')
+                asciiLines.append('  bitmap NULL')
             else:
                 asciiLines.append('  diffuse 1.00 1.00 1.00')
                 asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap NULL')
+                asciiLines.append('  bitmap ' + nvb_def.null)
         else:
             # Check if this object has a material assigned to it
             material = obj.active_material
@@ -772,24 +763,21 @@ class Trimesh(Node):
                         alpha = material.alpha
                     # TODO: Skip if 1.0
                     asciiLines.append('  alpha {: 3.2f}'.format(alpha))
+            else:
+                asciiLines.append('  diffuse 1.00 1.00 1.00')
+                asciiLines.append('  specular 0.00 0.00 0.00')
+                asciiLines.append('  bitmap ' + nvb_def.null)
         return hasTexture
 
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
         """TODO: Doc."""
-        def addUVToList(uv, uvList, doJoin=True):
-            """Helper to join uv coordinates with identical coordinates."""
-            if doJoin and (uv in uvList):
-                return uvList.index(uv)
-            else:
-                uvList.append(uv)
-                return (len(uvList)-1)
 
         def getSmoothGroups(obj, mesh, options):
             smoothGroups = []
             numSmoothGroups = 0
             if (obj.nvb.smoothgroup == 'SEPR') or \
-               (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH) or \
+               (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.exportSmoothGroups):
                 # 0 = Do not use smoothgroups
                 smoothGroups = [0] * len(mesh.polygons)
@@ -800,19 +788,12 @@ class Trimesh(Node):
                 numSmoothGroups = 1
             else:
                 (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
-            return (smoothGroups, numSmoothGroups)
+            return smoothGroups
 
         def getFaceUVs(faceData, uvMapData, join=True):
             """Get a list of uvmap indices and uvmap coodinates."""
-            def joinUV(uv, coList):
-                """Helper to join uv coordinates with identical coordinates."""
-                if uv in coList:
-                    return coList.index(uv)
-                else:
-                    coList.append(uv)
-                    return (len(coList)-1)
 
-            def joinUV2(uvco, fvidx, uvlist):
+            def joinUV(uvco, fvidx, uvlist):
                 """Add the uv coordinale to the list and return the index."""
                 listItem = [fvidx, uvco]
                 if listItem in uvlist:
@@ -821,30 +802,33 @@ class Trimesh(Node):
                     uvlist.append(listItem)
                     return (len(uvlist)-1)
 
-            finalFaceUVCos = []  # uv coordinates
-            finalFaceUVIds = []  # Per face uv indices
-            tmp = []
-            """
-            if tessfaces_uvs:
-                uvFace = tessfaces_uvs.data[i]
-                uv1 = addUVToList(uvFace.uv1, uvList, joinUVs)
-                uv2 = addUVToList(uvFace.uv2, uvList, joinUVs)
-                uv3 = addUVToList(uvFace.uv3, uvList, joinUVs)
-            """
+            faceUVIdList = []  # Per face uv indices
+            faceUVCoList = []  # uv coordinates
             # Pairs of tuples of vertex indices vX_idx and
             # uv coordinates uvX_co
             # [(v1_idx, v2_idx, v3,idx), (uv1_co, uv2_co, uv3_co)]
             pairs = zip(faceData, [[d.uv1, d.uv2, d.uv3] for d in uvMapData])
             if join:
+                tmpList = []
                 for p in pairs:
-                    for j in range(3):
-                        idx = joinUV2(p[0][j], p[1][j], tmp)
-
+                    uvidx = [-1, -1, -1]
+                    for i in range(3):
+                        listItem = [p[0][i], p[1][i]]
+                        if listItem in tmpList:
+                            uvidx[i] = tmpList.index(listItem)
+                        else:
+                            tmpList.append(listItem)
+                            uvidx[i] = len(tmpList)-1
+                    faceUVIdList.append(uvidx)
+                faceUVCoList = [e[1] for e in tmpList]
             else:
-                tmp = [(d.uv1, d.uv2, d.uv3) for d in uvMapData]
-                finalFaceUVCos = [uv for fuvs in tmp for uv in fuvs]
-                finalFaceUVIds = []
-            return finalFaceUVCos, finalFaceUVIds
+                for p in pairs:
+                    uvidx = [-1, -1, -1]
+                    for i in range(3):
+                        faceUVCoList.append(p[1][i])
+                        uvidx[i] = len(faceUVCoList)-1
+                    faceUVIdList.append(uvidx)
+            return faceUVIdList, faceUVCoList
 
         def generateVColors(mesh, asciiLines):
             """Generate per-vert. vertex-colors from per-loop vertex-colors."""
@@ -956,7 +940,7 @@ class Trimesh(Node):
         me.calc_tessface()  # Recalculate tessfaces after triangulation
 
         # Generate Smoothgroups
-        faceSGrps, numSmoothGroups = getSmoothGroups(obj, me, options)
+        fcSGrps = getSmoothGroups(obj, me, options)
         # Add vertices
         asciiLines.append('  verts ' + str(len(me.vertices)))
         fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
@@ -966,11 +950,10 @@ class Trimesh(Node):
         if uvmap and options.exportNormals:
             generateNormals(me, asciiLines, uvmap)
         # Face vertex indices and face materials
-        faceVertIds = [tuple(tf.vertices) for tf in me.tessfaces]
-        faceMatIds = [tf.material_index for tf in me.tessfaces]
+        fcVertIds = [tuple(tf.vertices) for tf in me.tessfaces]
+        fcMatIds = [tf.material_index for tf in me.tessfaces]
         # Per face uv indices and a list of their coordinates
-        faceTVerts = []  # Coords
-        faceTVertIds = []  # Indices per face, referencing faceTVerts
+        fcUVData = []
         exportUVs = ((options.uvmapMode == 'ALL') or
                      (options.uvmapMode == 'REN' and obj.nvb.render) or
                      (options.uvmapMode == 'TEX' and hasImgTexture))
@@ -994,94 +977,52 @@ class Trimesh(Node):
                 # Export active uvmap only
                 uvmapNames.append(me.tessface_uv_textures.active.name)
             # Generate the tverts for the faces
-            for uvmm in uvmapNames:
-                faceTVerts.append(getFaceUVs(faceVertIds,
-                                             me.tessface_uv_textures[uvmm],
-                                             joinUVs))
+            for uvn in uvmapNames:
+                fcUVData.append(getFaceUVs(fcVertIds,
+                                           me.tessface_uv_textures[uvn].data,
+                                           joinUVs))
+            if not fcUVData:
+                fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
+                fcUVCoList = []
+                fcUVData.append([fcUVIdList, fcUVCoList])
         else:
-            faceTVertIds = [[0, 0, 0] for _ in range(len(me.tessfaces))]
-            faceTVerts = []
+            fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
+            fcUVCoList = []
+            fcUVData.append([fcUVIdList, fcUVCoList])
         # Write faces to file
-        vdigs = str(len(str(len(me.vertices))))  # Digits for vertices
-        sdigs = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
-        udigs = str(len(str(len(faceTVertIds))))  # Digits for uv's
-        faces = zip(faceVertIds, faceMatIds)
-        asciiLines.append('  faces ' + str(len(faceVertIds)))
+        vdigs = str(max(1, len(str(len(me.vertices)))))  # Digits for vertices
+        sdigs = str(max(1, len(str(len(fcSGrps)))))  # Digits for smoothgrps
+        udigs = str(max(1, len(str(len(fcUVData[0][1])))))  # Digits for UVs
+        mdigs = str(max(1, len(str(len(fcMatIds)))))
+        # faces = zip(faceVertIds, faceSGrps, faceUVData[0][0], faceMatIds)
+        faces = [[*fcVertIds[i], fcSGrps[i], *fcUVData[0][0][i], fcMatIds[i]]
+                 for i in range(len(fcVertIds))]
+        asciiLines.append('  faces ' + str(len(faces)))
         fstr = '    ' + \
                '{:' + vdigs + 'd} {:' + vdigs + 'd} {:' + vdigs + 'd}  ' + \
                '{:' + sdigs + 'd}  ' + \
                '{:' + udigs + 'd} {:' + udigs + 'd} {:' + udigs + 'd}  ' + \
-               '{:2d}'
+               '{:' + mdigs + 'd}'
         asciiLines.extend([fstr.format(*f) for f in faces])
         # Write tverts to file (if any)
         fstr = '    {: 6.3f} {: 6.3f}  0'
-        for idx, tvList in faceTVerts:
-            paramname = '  tverts' if idx == 0 else '  tverts' + str(idx)
-            asciiLines.append(paramname + str(len(tvList)))
-            asciiLines.extend([fstr.format(v[0], v[1]) for v in tvList])
-        """
-        # Add faces, corresponding tverts and shading groups
-        faceList = []  # List of triangle faces
-        uvList = []  # List of uv indices
-        tessfaces = me.tessfaces
-        tessfaces_uvs = me.tessface_uv_textures.active
-        for i in range(len(tessfaces)):
-            tface = tessfaces[i]
-            smGroup = faceSGrps[i]
-            matIdx = tface.material_index
-            # We triangulated, so faces are always triangles
-            uv1 = 0
-            uv2 = 0
-            uv3 = 0
-            if tessfaces_uvs:
-                uvFace = tessfaces_uvs.data[i]
-                uv1 = addUVToList(uvFace.uv1, uvList, joinUVs)
-                uv2 = addUVToList(uvFace.uv2, uvList, joinUVs)
-                uv3 = addUVToList(uvFace.uv3, uvList, joinUVs)
-            faceList.append([tface.vertices[0],
-                             tface.vertices[1],
-                             tface.vertices[2],
-                             smGroup,
-                             uv1, uv2, uv3,
-                             matIdx])
-        # UV export
-        if hasImgTexture:
-            # Export UVs too
-            vcnt = str(len(str(len(me.vertices))))  # Digits for vertices
-            scnt = str(len(str(numSmoothGroups)))  # Digits for smoothgroups
-            ucnt = str(len(str(len(uvList))))  # Digits for uv's
-            asciiLines.append('  faces ' + str(len(faceList)))
-            fstr = '    ' + \
-                   '{:' + vcnt + 'd} {:' + vcnt + 'd} {:' + vcnt + 'd}  ' + \
-                   '{:' + scnt + 'd}  ' + \
-                   '{:' + ucnt + 'd} {:' + ucnt + 'd} {:' + ucnt + 'd}  ' + \
-                   '{:2d}'
-            asciiLines.extend([fstr.format(*f) for f in faceList])
-
-            if (len(uvList) > 0):
-                asciiLines.append('  tverts ' + str(len(uvList)))
-                fstr = '    {: 6.3f} {: 6.3f}  0'
-                asciiLines.extend([fstr.format(uv[0], uv[1]) for uv in uvList])
-        else:
-            # No image texture, don't export UVs/tverts
-            vcnt = str(len(str(len(me.vertices))))
-            scnt = str(len(str(numSmoothGroups)))
-            asciiLines.append('  faces ' + str(len(faceList)))
-            fstr = '    ' + \
-                   '{:' + vcnt + 'd} {:' + vcnt + 'd} {:' + vcnt + 'd}  ' + \
-                   '{:' + scnt + 'd}  ' + \
-                   '0 0 0  ' + \
-                   '{:2d}'
-            asciiLines.extend([fstr.format(*f[0:4], f[7]) for f in faceList])
-        """
+        for idx, fuvd in enumerate(fcUVData):
+            if len(fuvd[1]) > 0:
+                if idx == 0:
+                    asciiLines.append('  tverts ' +
+                                      str(len(fuvd[1])))
+                else:
+                    asciiLines.append('  tverts' + str(idx) + ' ' +
+                                      str(len(fuvd[1])))
+                asciiLines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
         # Vertex color
         generateVColors(me, asciiLines)
         bpy.data.meshes.remove(me)
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, options)
+        Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         col = obj.nvb.wirecolor
         s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
@@ -1091,25 +1032,36 @@ class Trimesh(Node):
         s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
-        hasTexture = Trimesh.generateAsciiMaterial(obj, asciiLines, options)
-        asciiLines.append('  shininess ' + str(obj.nvb.shininess))
-        if obj.nvb.meshtype is not nvb_def.Meshtype.WALKMESH:
+        hastexture = False
+        if iswalkmesh:
+            asciiLines.append('  diffuse 1.00 1.00 1.00')
+            asciiLines.append('  specular 0.00 0.00 0.00')
+            asciiLines.append('  bitmap ' + nvb_def.null)
+        else:
+            hastexture = Trimesh.generateAsciiMaterial(obj, asciiLines,
+                                                       options)
+            # Shininess
+            asciiLines.append('  shininess ' + str(obj.nvb.shininess))
+            # Self illumination color
             col = obj.nvb.selfillumcolor
-            if round(sum(col), 2) > 0.0:  # Skip if default value
+            if round(sum(col), 2) > 0.0:  # Skip default value
                 s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
                 asciiLines.append(s)
-            # Skip if default value
-            if not (obj.nvb.shadow and obj.nvb.render):
+            # Render and Shadow
+            if not (obj.nvb.shadow and obj.nvb.render):  # Skip default value
                 asciiLines.append('  render ' + str(int(obj.nvb.render)))
                 asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
+            # Beaming
             val = int(obj.nvb.beaming)
-            if val != 0:  # Skip if default value
+            if val != 0:  # Skip default value
                 asciiLines.append('  beaming ' + str(val))
+            # INherit color from parent
             val = int(obj.nvb.inheritcolor)
-            if val != 0:  # Skip if default value
+            if val != 0:  # Skip default value
                 asciiLines.append('  inheritcolor ' + str(val))
+            # Transparency hint (rendering order)
             val = obj.nvb.transparencyhint
-            if val != 0:  # Skip if default value
+            if val != 0:  # Skip default value
                 asciiLines.append('  transparencyhint ' + str(val))
             # These two are for tiles only
             if options.classification == nvb_def.Classification.TILE:
@@ -1117,11 +1069,11 @@ class Trimesh(Node):
                                   str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, hasTexture)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options, hastexture)
 
 
 class Animmesh(Trimesh):
-    """TODO: Doc."""
+    """Mesh with animated UV coordinates of vertices."""
 
     nodetype = nvb_def.Nodetype.ANIMMESH
 
@@ -1217,10 +1169,11 @@ class Danglymesh(Trimesh):
         asciiLines.extend(['    {: 5.1f}'.format(w) for w in weights])
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, options)
-
+        Trimesh.generateAsciiData(obj, asciiLines, options, iswalkmesh)
+        if iswalkmesh:
+            return
         asciiLines.append('  period ' + str(round(obj.nvb.period, 3)))
         asciiLines.append('  tightness ' + str(round(obj.nvb.tightness, 3)))
         asciiLines.append('  displacement ' +
@@ -1315,10 +1268,11 @@ class Skinmesh(Trimesh):
                                         for w in weights]))
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Trimesh.generateAsciiData(obj, asciiLines, options)
-
+        Trimesh.generateAsciiData(obj, asciiLines, options, iswalkmesh)
+        if iswalkmesh:
+            return
         Skinmesh.generateAsciiWeights(obj, asciiLines, options)
 
 
@@ -1386,10 +1340,10 @@ class Emitter(Node):
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
-        mesh.vertices[0].co = (1.0,  1.0, 0.0)
-        mesh.vertices[1].co = (1.0, -1.0, 0.0)
-        mesh.vertices[2].co = (-1.0, -1.0, 0.0)
-        mesh.vertices[3].co = (-1.0,  1.0, 0.0)
+        mesh.vertices[0].co = (0.5,  0.5, 0.0)
+        mesh.vertices[1].co = (0.5, -0.5, 0.0)
+        mesh.vertices[2].co = (-0.5, -0.5, 0.0)
+        mesh.vertices[3].co = (-0.5,  0.5, 0.0)
         mesh.tessfaces.add(1)
         mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
 
@@ -1418,9 +1372,9 @@ class Emitter(Node):
         return obj
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, options)
+        Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         if obj.nvb.rawascii not in bpy.data.texts:
             print('Neverblender: WARNING - No emitter data for ' + obj.name)
@@ -1643,9 +1597,9 @@ class Light(Node):
                           str(round(obj.nvb.flareradius, 1)))
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        Node.generateAsciiData(obj, asciiLines, options)
+        Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         lamp = obj.data
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
@@ -1672,8 +1626,7 @@ class Aabb(Trimesh):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
 
-        self.meshtype = nvb_def.Meshtype.WALKMESH
-        self.walkmeshtype = nvb_def.Walkmeshtype.AABB
+        self.meshtype = nvb_def.Meshtype.AABB
 
     @staticmethod
     def generateAsciiAABB(obj, asciiLines, options):
@@ -1772,7 +1725,7 @@ class Aabb(Trimesh):
                                   str(node[6]))
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
 
         loc = obj.location
@@ -1791,7 +1744,7 @@ class Aabb(Trimesh):
         asciiLines.append('  specular 0.0 0.0 0.0')
         # asciiLines.append('  shininess 0')  # No shininess on wok
         asciiLines.append('  bitmap NULL')
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, False)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
     def createMesh(self, name, options):

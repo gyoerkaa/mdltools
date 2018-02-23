@@ -121,7 +121,10 @@ class NVB_PANEL_DUMMY(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.prop(obj.nvb, 'emptytype', text='Type')
+        box = row.box()
+        box.prop(obj.nvb, 'emptytype', text='Type')
+        row = box.row()
+        row.prop(obj.nvb, 'wirecolor')
         layout.separator()
 
         # Display properties depending on type of the empty
@@ -133,12 +136,10 @@ class NVB_PANEL_DUMMY(bpy.types.Panel):
             row.prop(obj.nvb, 'refmodel')
             row = box.row()
             row.prop(obj.nvb, 'reattachable')
-        else:
+        elif (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY):
             row = layout.row()
             box = row.box()
 
-            row = box.row()
-            row.prop(obj.nvb, 'wirecolor')
             row = box.row(align=True)
             row.prop(obj.nvb, 'dummytype')
             row.operator('nvb.dummy_generatename',
@@ -287,8 +288,10 @@ class NVB_PANEL_MESH(bpy.types.Panel):
         layout = self.layout
 
         row = layout.row()
-        row.prop(obj.nvb, 'meshtype', text='Type')
-
+        box = row.box()
+        box.prop(obj.nvb, 'meshtype', text='Type')
+        row = box.row()
+        row.prop(obj.nvb, 'wirecolor')
         layout.separator()
 
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
@@ -296,43 +299,32 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             box = row.box()
 
             row = box.row()
-            row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
-            row = box.row()
             row.prop_search(obj.nvb, 'rawascii',
                             bpy.data, 'texts',
-                            text='Data')
+                            text='Emitter Data')
 
         # Additional props for aabb walkmeshes
-        elif (obj.nvb.meshtype == nvb_def.Meshtype.WALKMESH):
+        elif obj.nvb.meshtype == nvb_def.Meshtype.AABB:
             row = layout.row()
             box = row.box()
-
             row = box.row()
-            row.prop(obj.nvb, 'walkmeshtype', text='Walkmeshtype')
-
-            if (obj.nvb.walkmeshtype == nvb_def.Walkmeshtype.AABB):
-                box.separator()
-                row = box.row()
-                row.operator('nvb.load_wok_mats',
-                             text='Load walkmesh materials', icon='NONE')
-                row = box.row()
-                row.label(text='(Warning: Removes current materials)')
+            row.operator('nvb.load_wok_mats',
+                         text='Setup Materials', icon='NONE')
+            row = box.row()
+            row.label(text='(Warning: Removes current materials)')
 
         else:  # Trimesh, danglymesh, skin
             row = layout.row()
             box = row.box()
+            box.label(text='Trimesh Properties')
 
-            row = box.row()
-            row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
             row = box.row()
             row.prop(obj.nvb, 'selfillumcolor', text='Selfillum. color')
             row = box.row()
             row.prop(obj.nvb, 'ambientcolor', text='Ambient')
 
-            row = box.row()
-            row.prop(obj.nvb, 'shininess', text='Shininess')
-            row = box.row()
-            row.prop(obj.nvb, 'tilefade', text='Tilefade')
+            box.prop(obj.nvb, 'shininess', text='Shininess')
+            box.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()
             col = split.column()
             col.prop(obj.nvb, 'render', text='Render')
@@ -342,8 +334,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             col.prop(obj.nvb, 'inheritcolor', text='Inherit Color')
             col.prop(obj.nvb, 'rotatetexture', text='Rotate Texture')
 
-            row = box.row()
-            row.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
+            box.prop(obj.nvb, 'transparencyhint', text='Transparency Hint')
             row = box.row()
             row.label(text='Smoothgroups')
             row.prop(obj.nvb, 'smoothgroup', text='Smooth Group', expand=True)
@@ -354,8 +345,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
                 row = layout.row()
                 box = row.box()
-                row = box.row()
-                row.label(text='Danglymesh Properties')
+                box.label(text='Danglymesh Properties')
                 row = box.row()
                 row.prop_search(obj.nvb, 'constraints',
                                 obj, 'vertex_groups',
@@ -373,8 +363,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
                 row = layout.row()
                 box = row.box()
-                row = box.row()
-                row.label(text='Skinmesh Properties')
+                box.label(text='Skinmesh Properties')
                 row = box.row()
                 row.label(text='Create vertex group: ')
                 row = box.row(align=True)
@@ -538,30 +527,39 @@ class NVB_PANEL_UTILS(bpy.types.Panel):
         layout = self.layout
         obj = nvb_utils.findObjRootDummy(context.object)
         if obj:
-            # Minimap Helper.
+            # Minimap Helper
             row = layout.row()
             box = row.box()
             box.label(text='Minimap Helper')
-            row = box.row()
-            row.prop(obj.nvb, 'minimapzoffset', text='z Offset')
-            row = box.row()
-            row.prop(obj.nvb, 'minimapsize', text='Minimap Size')
-            row = box.row()
-            row.operator('nvb.render_minimap',
+            box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
+            box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
+            box.operator('nvb.helper_minimap_setup',
                          text='Render Minimap',
-                         icon='NONE')
+                         icon='RENDER_STILL')
+            layout.separator()
             # Armature Helper
             row = layout.row()
             box = row.box()
             box.label(text='Armature Helper')
             row = box.row()
             row.label(text='Source: ')
-            row.prop(obj.nvb, 'armaturesource', text='Source', expand=True)
+            row.prop(obj.nvb, 'helper_amt_source', expand=True)
             row = box.row()
-            row.prop(obj.nvb, 'armatureautoconnect', text='Connect')
+            row.prop(obj.nvb, 'helper_amt_connect', text='Connect')
             row = box.row()
-            row.prop(obj.nvb, 'armaturecopyanims', text='Copy Animations')
-            row = box.row()
-            row.operator('nvb.armature_frompseudo',
+            row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
+            box.operator('nvb.helper_amt_frompseudo',
                          text='Generate Armature',
                          icon='BONE_DATA')
+            layout.separator()
+            # Walkmesh & Dummy Helper
+            row = layout.row()
+            box = row.box()
+            box.label(text='Walkmesh Helper')
+            row = box.row()
+            row.label(text='Type: ')
+            row.prop(obj.nvb, 'helper_wkm_type', expand=True)
+            box.operator('nvb.helper_wkm_setup',
+                         text='Generate Walkmesh',
+                         icon='OOPS')
+            layout.separator()
