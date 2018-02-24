@@ -183,7 +183,7 @@ class Mdl():
     @staticmethod
     def generateAsciiGeometry(obj, asciiLines, options):
         """TODO: DOC."""
-        if nvb_utils.isWkmRoot(obj) or nvb_utils.isAABB(obj):
+        if nvb_utils.isWkmRoot(obj):
             return
         nodeType = nvb_utils.getNodeType(obj)
         try:

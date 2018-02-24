@@ -13,7 +13,7 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_OP_ArmatureToPseudo(bpy.types.Operator):
+class NVB_OP_Helper_ArmatureToPseudo(bpy.types.Operator):
     """Generate pseudobone from blender armature."""
     bl_idname = 'nvb.helper_amt_topseudo'
     bl_label = 'Generate MDL pseudo bones from Armature'
@@ -39,7 +39,7 @@ class NVB_OP_ArmatureToPseudo(bpy.types.Operator):
         pass
 
 
-class NVB_OP_ArmatureFromPseudo(bpy.types.Operator):
+class NVB_OP_Helper_ArmatureFromPseudo(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
     bl_idname = 'nvb.helper_amt_frompseudo'
@@ -209,7 +209,7 @@ class NVB_OP_ArmatureFromPseudo(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_AnimClone(bpy.types.Operator):
+class NVB_OP_Anim_Clone(bpy.types.Operator):
     """Clone animation and add it to the animation list"""
 
     bl_idname = 'nvb.anim_clone'
@@ -968,7 +968,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_LightFlare_New(bpy.types.Operator):
+class NVB_OP_Lensflare_New(bpy.types.Operator):
     """Add a new item to the flare list"""
 
     bl_idname = 'nvb.lightflare_new'
@@ -976,13 +976,14 @@ class NVB_OP_LightFlare_New(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        if (context.object.type == 'LAMP'):
-            context.object.nvb.flareList.add()
+        obj = context.object
+        if (obj.type == 'LAMP'):
+            obj.data.nvb.flareList.add()
 
         return {'FINISHED'}
 
 
-class NVB_OP_LightFlare_Delete(bpy.types.Operator):
+class NVB_OP_Lensflare_Delete(bpy.types.Operator):
     """Delete the selected item from the flare list"""
 
     bl_idname = 'nvb.lightflare_delete'
@@ -991,12 +992,14 @@ class NVB_OP_LightFlare_Delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        return len(context.object.nvb.flareList) > 0
+        obj = context.object
+        return len(obj.data.nvb.flareList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        flareList = context.object.nvb.flareList
-        flareIdx = context.object.nvb.flareListIdx
+        obj = context.object
+        flareList = obj.data.nvb.flareList
+        flareIdx = obj.data.nvb.flareListIdx
 
         flareList.remove(flareIdx)
         if flareIdx > 0:
@@ -1005,7 +1008,7 @@ class NVB_OP_LightFlare_Delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_LightFlare_Move(bpy.types.Operator):
+class NVB_OP_Lensflare_Move(bpy.types.Operator):
     """Move an item in the flare list"""
 
     bl_idname = 'nvb.lightflare_move'
@@ -1017,14 +1020,15 @@ class NVB_OP_LightFlare_Move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """TODO: DOC."""
-        return len(context.object.nvb.flareList) > 0
+        obj = context.object
+        return len(obj.data.nvb.flareList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
         obj = context.object
-        flareList = obj.nvb.flareList
+        flareList = obj.data.nvb.flareList
 
-        currentIdx = obj.nvb.flareListIdx
+        currentIdx = obj.data.nvb.flareListIdx
         newIdx = 0
         maxIdx = len(flareList) - 1
         if self.direction == 'DOWN':
@@ -1036,7 +1040,7 @@ class NVB_OP_LightFlare_Move(bpy.types.Operator):
 
         newIdx = max(0, min(newIdx, maxIdx))
         flareList.move(currentIdx, newIdx)
-        obj.nvb.flareListIdx = newIdx
+        obj.data.nvb.flareListIdx = newIdx
         return {'FINISHED'}
 
 
@@ -1145,7 +1149,7 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
 
 
 class NVB_OP_LightGenerateName(bpy.types.Operator):
-    """Generate an appropriate name for the light"""
+    """Generate a name for the light based on type"""
 
     bl_idname = 'nvb.light_generatename'
     bl_label = 'Generate a name for the light'
@@ -1255,7 +1259,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description='Import materials and textures',
             default=True)
     # Sub-Options for Materials
-    materialUseMTR = bpy.props.BoolProperty(
+    materialLoadMTR = bpy.props.BoolProperty(
             name='Load MTR files',
             description='Use external material file if available ' +
                         '(will override material in MDL)',
@@ -1308,7 +1312,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'importMaterials')
         sub = box.column()
         sub.enabled = self.importMaterials
-        sub.prop(self, 'materialUseMTR')
+        sub.prop(self, 'materialLoadMTR')
         sub.prop(self, 'materialAutoMerge')
         sub.prop(self, 'textureDefaultRoles')
         sub.prop(self, 'textureSearch')
@@ -1332,7 +1336,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.importAnimations = self.importAnimations
         options.importMaterials = self.importMaterials
         # Material Import Settings
-        options.materialUseMTR = self.materialUseMTR
+        options.materialLoadMTR = self.materialLoadMTR
         options.materialAutoMerge = self.materialAutoMerge
         options.textureDefaultRoles = self.textureDefaultRoles
         options.textureSearch = self.textureSearch
@@ -1474,10 +1478,10 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         return nvb_io.saveMdl(self, context, options)
 
 
-class LoadWokMaterials(bpy.types.Operator):
+class NVB_OP_Helper_LoadWokMat(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
-    bl_idname = "nvb.load_wok_mats"
+    bl_idname = "nvb.helper_loadwokmat"
     bl_label = "Load walkmesh materials"
 
     def execute(self, context):
@@ -1514,7 +1518,7 @@ class LoadWokMaterials(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_HelperWalkmesh(bpy.types.Operator):
+class NVB_OP_Helper_Walkmesh(bpy.types.Operator):
     """Helper to add missing walkmesh objects."""
 
     bl_idname = "nvb.helper_wkm_setup"
@@ -1526,7 +1530,7 @@ class NVB_OP_HelperWalkmesh(bpy.types.Operator):
         return (context.object is not None)
 
     def execute(self, context):
-        """Create camera + lamp and Renders Minimap."""
+        """Create Walkmesh root and objects."""
         mdlroot = nvb_utils.findObjRootDummy(context.object)
         if not mdlroot:
             return {'CANCELLED'}
@@ -1540,7 +1544,7 @@ class NVB_OP_HelperWalkmesh(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_HelperMinimapSetup(bpy.types.Operator):
+class NVB_OP_Helper_MinimapSetup(bpy.types.Operator):
     """Set up rendering for minimaps."""
 
     bl_idname = "nvb.helper_minimap_setup"
@@ -1568,7 +1572,6 @@ class NVB_OP_HelperMinimapSetup(bpy.types.Operator):
 
 class NVB_OP_SkingroupAdd(bpy.types.Operator):
     """TODO: DOC"""
-
     bl_idname = "nvb.skingroup_add"
     bl_label = "Add new Skingroup"
 
@@ -1591,3 +1594,63 @@ class NVB_OP_SkingroupAdd(bpy.types.Operator):
         else:
             self.report({'INFO'}, 'Empty Name')
             return {'CANCELLED'}
+
+
+class NVB_OP_Mtr_Clear(bpy.types.Operator):
+    """Clear MTR."""
+    bl_idname = "nvb.mtr_clear"
+    bl_label = "Clear MTR"
+
+    def execute(self, context):
+        """TODO: DOC."""
+        pass
+        return{'FINISHED'}
+
+
+class NVB_OP_Mtr_Reload(bpy.types.Operator):
+    """Reload MTR. WARNING: Overwrites texture slots"""
+    bl_idname = "nvb.mtr_reload"
+    bl_label = "Reload MTR"
+
+    def execute(self, context):
+        """TODO: DOC."""
+        pass
+        return{'FINISHED'}
+
+
+class NVB_OP_Mtr_Open(bpy.types.Operator):
+    """Open material file."""
+    bl_idname = "nvb.mtr_open"
+    bl_label = "Open MTR"
+
+    filename_ext = '.mtr'
+    filter_glob = bpy.props.StringProperty(default='.mtr', options={'HIDDEN'})
+
+    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
+
+    def execute(self, context):
+        print("filepath= " + self.filepath)
+        return{'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        # Open browser, take reference to 'self'
+        # read the path to selected file,
+        # put path in declared string type data structure self.filepath
+
+        return {'RUNNING_MODAL'}
+
+
+class NVB_OP_Mtr_Sync(bpy.types.Operator):
+    """Sync text block with material."""
+    bl_idname = "nvb.mtr_sync"
+    bl_label = "Sync MTR"
+
+    dest = bpy.props.EnumProperty(items=(('2TXT', 'txt', ''),
+                                         ('2MAT', 'mat', '')))
+
+    def execute(self, context):
+        """TODO: DOC."""
+        pass
+        return{'FINISHED'}

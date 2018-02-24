@@ -5,7 +5,6 @@ import bpy
 import os
 import math
 import collections
-import itertools
 
 from . import nvb_def
 
@@ -60,50 +59,6 @@ class NodeResolver():
                 filtered.sort(key=lambda x: x[1])
                 return bpy.data.objects[filtered[-1][0]]
         return None
-
-
-def findMaterial(textures,
-                 cdiff=(1.0, 1.0, 1.0), cspec=(0.0, 0.0, 0.0),
-                 alpha=1.0):
-    """TODO: Doc."""
-    def cmp_col(a, b, rel_tol=0.1):
-        """Compares two colors."""
-        def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
-            return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)),
-                                   abs_tol)
-        return (isclose(a[0], b[0], rel_tol) and
-                isclose(a[1], b[1], rel_tol) and
-                isclose(a[2], b[2], rel_tol))
-
-    def get_tslot_img(tslot):
-        """Get the image texture from a texture slot."""
-        if tslot:
-            tex = tslot.texture
-            if tex and tex.type == 'IMAGE' and tex.image:
-                return tex.image.name
-        return ''
-
-    for mat in bpy.data.materials:
-        eq = True
-        # Check diffuse and specular color
-        eq = eq and cmp_col(mat.diffuse_color, cdiff)
-        eq = eq and cmp_col(mat.specular_color, cspec)
-        # Check texture names:
-        tstextures = list(map(get_tslot_img, mat.texture_slots))
-        matches = []
-        matches = itertools.zip_longest(tstextures, textures,
-                                        fillvalue='')
-        for m in matches:
-            eq = eq and (m[0] == m[1])
-        # Texture slot 0 is used we need to compare alpha values too
-        # (texture = diffuse)
-        if mat.texture_slots[0]:
-            eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
-        else:
-            eq = eq and (alpha == mat.alpha)
-        if eq:
-            return mat
-    return None
 
 
 def isMdlRoot(obj):

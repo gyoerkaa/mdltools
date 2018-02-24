@@ -4,20 +4,6 @@ import bpy
 from . import nvb_def
 
 
-def nvb_update_shadow_prop(self, context):
-    """Set the lamps shadow to match the aurora shadow property."""
-    obj = context.object
-    if obj and (obj.type == 'LAMP'):
-        try:
-            # Compatibility with old blender versions
-            if (obj.nvb.shadow):
-                obj.data.shadow_method = 'RAY_SHADOW'
-            else:
-                obj.data.shadow_method = 'NOSHADOW'
-        except ValueError:
-            pass
-
-
 class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
@@ -76,15 +62,64 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
         default=0)
 
 
+class NVB_PG_MATERIAL(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """
+    ambient_color = bpy.props.FloatVectorProperty(
+        name='Ambient',
+        description='Ambient color of the material',
+        subtype='COLOR_GAMMA',
+        default=(1.0, 1.0, 1.0),
+        min=0.0, max=1.0,
+        soft_min=0.0, soft_max=1.0)
+    ambient_intensity = bpy.props.FloatProperty(
+        subtype='FACTOR',
+        name='Intensity',
+        description='Amount of ambient color',
+        precision=3,
+        default=1.0,
+        min=0.0, max=1.0,
+        soft_min=0.0, soft_max=1.0)
+    usemtr = bpy.props.BoolProperty(name='Use MTR',
+                                    description='Use external MTR file',
+                                    default=False)
+    mtrname = bpy.props.StringProperty(name='Name',
+                                       description='Name of MTR file',
+                                       default='')
+    mtrsrc = bpy.props.EnumProperty(
+        name='Source',
+        items=[('TEXT',
+                'Text', 'From text block', 0),
+               ('FILE',
+                'File', 'From file', 1)],
+        default='FILE')
+    mtrtext = bpy.props.StringProperty(name='Text Block',
+                                       description='Blender Text Block',
+                                       default='')
+    mtrpath = bpy.props.StringProperty(name='Filepath',
+                                       description='Path to MTR file',
+                                       default='')
+    # For gui editing
+    shadervs = bpy.props.StringProperty(name='Vertex Shader',
+                                        description='Specify Vertex shader',
+                                        default='')
+    shaderfs = bpy.props.StringProperty(name='Fragment Shader',
+                                        description='Specify Fragment shader',
+                                        default='')
+
+
 class NVB_PG_FLARE(bpy.types.PropertyGroup):
     """Properties for a single flare in the flare list."""
-
     texture = bpy.props.StringProperty(name='Texture',
                                        description='Texture name',
                                        default=nvb_def.null)
     size = bpy.props.FloatProperty(name='Size',
                                    description='Flare size',
-                                   default=1)
+                                   default=1,
+                                   min=0)
     position = bpy.props.FloatProperty(name='Position',
                                        description='Flare position',
                                        default=1,
@@ -95,6 +130,48 @@ class NVB_PG_FLARE(bpy.types.PropertyGroup):
                                                default=(0.0, 0.0, 0.0),
                                                min=-1.0, max=1.0,
                                                soft_min=0.0, soft_max=1.0)
+
+
+class NVB_PG_LAMP(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """
+    shadow = bpy.props.BoolProperty(
+                name='Shadow',
+                description='Whether to cast shadows',
+                default=True)
+    ambientonly = bpy.props.BoolProperty(
+                name='Ambient Only',
+                description='Light will be ignored for shadow casting',
+                default=False)
+    lightpriority = bpy.props.IntProperty(
+                name='Lightpriority',
+                default=3, min=1, max=5)
+    fadinglight = bpy.props.BoolProperty(
+                name='Fading light',
+                default=False)
+    isdynamic = bpy.props.BoolProperty(
+                name='Is Dynamic',
+                default=False)
+    affectdynamic = bpy.props.BoolProperty(
+                name='Affect Dynamic',
+                description='Affect dynamic objects',
+                default=False)
+    negativelight = bpy.props.BoolProperty(
+                name='Negative Light',
+                default=False)
+    uselensflares = bpy.props.BoolProperty(
+                name='Lensflares',
+                default=False)
+    flareradius = bpy.props.FloatProperty(
+                name='Flare Radius',
+                default=0.0, min=0.0, max=100.0)
+    flareList = bpy.props.CollectionProperty(type=NVB_PG_FLARE)
+    flareListIdx = bpy.props.IntProperty(
+                name='Index for flare list',
+                default=0)
 
 
 class NVB_PG_OBJECT(bpy.types.PropertyGroup):
@@ -204,13 +281,11 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                                         default=0)
 
     # For reference emptys
-    refmodel = bpy.props.StringProperty(
-                name='Reference Model',
-                description='Name of another mdl file',
-                default='fx_ref')
-    reattachable = bpy.props.BoolProperty(
-                name='Reattachable',
-                default=False)
+    refmodel = bpy.props.StringProperty(name='Reference Model',
+                                        description='Name of MDL file',
+                                        default='fx_ref')
+    reattachable = bpy.props.BoolProperty(name='Reattachable',
+                                          default=False)
 
     # Minimap Helper
     minimapzoffset = bpy.props.FloatProperty(name='Minimap Z Offset',
@@ -276,8 +351,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
     shadow = bpy.props.BoolProperty(
                 name='Shadow',
                 description='Whether to cast shadows',
-                default=True,
-                update=nvb_update_shadow_prop)
+                default=True)
     render = bpy.props.BoolProperty(
                 name='Render',
                 description='Whether to render this object in the scene',
@@ -319,12 +393,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 default=(0.0, 0.0, 0.0),
                 min=0.0, max=1.0,
                 soft_min=0.0, soft_max=1.0)
-    ambientcolor = bpy.props.FloatVectorProperty(name='Ambientcolor',
-                                                 description='Ambient color',
-                                                 subtype='COLOR_GAMMA',
-                                                 default=(1.0, 1.0, 1.0),
-                                                 min=0.0, max=1.0,
-                                                 soft_min=0.0, soft_max=1.0)
     shininess = bpy.props.IntProperty(name='Shininess',
                                       description='Used with txi file',
                                       default=1, min=0, max=32)
@@ -359,43 +427,8 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Lighttype.MAIN1,
                         'Mainlight 1', 'For tiles (Editable in toolset)', 1),
                        (nvb_def.Lighttype.MAIN2,
-                        'Mainlight 2', 'For tiles (Editable in toolset)', 2),
-                       (nvb_def.Lighttype.SOURCE1,
-                        'Sourcelight 1', 'For tiles (Editable in toolset)', 3),
-                       (nvb_def.Lighttype.SOURCE2,
-                        'Sourcelight 2', 'For tiles (Editable in toolset)', 4)
-                       ],
+                        'Mainlight 2', 'For tiles (Editable in toolset)', 2)],
                 default=nvb_def.Lighttype.DEFAULT)
-    ambientonly = bpy.props.BoolProperty(
-                name='Ambient Only',
-                description='Light will be ignored for shadow casting',
-                default=False)
-    lightpriority = bpy.props.IntProperty(
-                name='Lightpriority',
-                default=3, min=1, max=5)
-    fadinglight = bpy.props.BoolProperty(
-                name='Fading light',
-                default=False)
-    isdynamic = bpy.props.BoolProperty(
-                name='Is Dynamic',
-                default=False)
-    affectdynamic = bpy.props.BoolProperty(
-                name='Affect Dynamic',
-                description='Affect dynamic objects',
-                default=False)
-    negativelight = bpy.props.BoolProperty(
-                name='Negative Light',
-                default=False)
-    lensflares = bpy.props.BoolProperty(
-                name='Lensflares',
-                default=False)
-    flareradius = bpy.props.FloatProperty(
-                name='Flare Radius',
-                default=0.0, min=0.0, max=100.0)
-    flareList = bpy.props.CollectionProperty(type=NVB_PG_FLARE)
-    flareListIdx = bpy.props.IntProperty(
-                name='Index for flare list',
-                default=0)
 
     # For emitters
     rawascii = bpy.props.StringProperty(

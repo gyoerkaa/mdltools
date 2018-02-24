@@ -79,7 +79,10 @@ def register():
 
     bpy.types.Object.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_OBJECT)
-
+    bpy.types.Material.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_MATERIAL)
+    bpy.types.Lamp.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_LAMP)
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
 

@@ -309,15 +309,11 @@ class Lighttype():
     ALL = {DEFAULT, MAIN1, MAIN2, SOURCE1, SOURCE2}
 
     suffix2type = [('ml1', MAIN1),
-                   ('ml2', MAIN2),
-                   ('???', SOURCE1),
-                   ('???', SOURCE2)]
+                   ('ml2', MAIN2)]
 
     type2suffix = {DEFAULT:   '',
                    MAIN1:     'ml1',
-                   MAIN2:     'ml2',
-                   SOURCE1:   '???',
-                   SOURCE2:   '???'}
+                   MAIN2:     'ml2'}
 
     @classmethod
     def getSuffix(cls, obj):
@@ -362,7 +358,7 @@ class ImportOptions():
         self.importNormals = True
         self.importMaterials = True
         # Additional options for textures and materials
-        self.materialUseMTR = True
+        self.materialLoadMTR = True
         self.materialAutoMerge = True
         self.textureDefaultRoles = True
         self.texturePath = ''
@@ -370,6 +366,7 @@ class ImportOptions():
         # for batch processing
         self.minimapMode = False
         self.minimapSkipFade = False
+        self.mtrdb = dict()
 
 
 class ExportOptions():

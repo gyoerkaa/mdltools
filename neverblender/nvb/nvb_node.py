@@ -1,17 +1,331 @@
 """TODO: DOC."""
 
+import math
+import array
+import copy
+import os
+import itertools
+# blender import
 import mathutils
 import bpy
 import bpy_extras.image_utils
 import bmesh
-import array
-import copy
-import os
 from bpy_extras.io_utils import unpack_list, unpack_face_list
-
+# custom imports
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_aabb
+
+
+class Material(object):
+    """TODO: DOC."""
+
+    def __init__(self, name='unnamed'):
+        """TODO: DOC."""
+        self.name = name
+        self.ambient = (1.0, 1.0, 1.0)
+        self.diffuse = (1.0, 1.0, 1.0)
+        self.specular = (0.0, 0.0, 0.0)
+        self.alpha = 1.0
+        self.bitmap = ''  # 'null' will be convertd to ''
+        self.textures = ['']
+        self.renderhints = set()
+        self.materialname = ''  # Name of external mtr file
+
+    @staticmethod
+    def colorisclose(a, b, tol=0.05):
+        return (math.isclose(a[0], b[0], abs_tol=tol) and
+                math.isclose(a[1], b[1], abs_tol=tol) and
+                math.isclose(a[2], b[2], abs_tol=tol))
+
+    @staticmethod
+    def findMaterial(textures, cdiff, cspec, alpha=1.0):
+        """TODO: Doc."""
+        def get_tslot_img(tslot):
+            """Get the image texture from a texture slot."""
+            if tslot:
+                tex = tslot.texture
+                if tex and tex.type == 'IMAGE' and tex.image:
+                    return tex.image.name
+            return ''
+
+        for mat in bpy.data.materials:
+            eq = True
+            # Check diffuse and specular color
+            eq = eq and Material.colorisclose(mat.diffuse_color, cdiff)
+            eq = eq and Material.colorisclose(mat.specular_color, cspec)
+            # Check texture names:
+            tstextures = list(map(get_tslot_img, mat.texture_slots))
+            matches = []
+            matches = itertools.zip_longest(tstextures, textures,
+                                            fillvalue='')
+            for m in matches:
+                eq = eq and (m[0] == m[1])
+            # Texture slot 0 is used we need to compare alpha values too
+            # (texture = diffuse)
+            if mat.texture_slots[0]:
+                eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
+            else:
+                eq = eq and (alpha == mat.alpha)
+            if eq:
+                return mat
+        return None
+
+    def isdefault(self):
+        """Return True if the material contains only default values"""
+        d = True
+        d = d and Material.colorisclose(self.ambient, (1.0, 1.0, 1.0))
+        d = d and Material.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
+        d = d and Material.colorisclose(self.specular, (0.0, 0.0, 0.0))
+        d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
+        d = d and self.bitmap == ''
+        d = d and self.textures.count('') == len(self.textures)
+        return d
+
+    def loadAsciiLine(self, aline):
+        """TODO: Doc."""
+        try:
+            label = aline[0].lower()
+        except (IndexError, AttributeError):
+            return aline  # Probably empty line or comment
+        if (label == 'ambient'):
+            self.ambient = tuple([float(v) for v in aline[1:4]])
+        elif (label == 'diffuse'):
+            self.diffuse = tuple([float(v) for v in aline[1:4]])
+        elif (label == 'specular'):
+            self.specular = tuple([float(v) for v in aline[1:4]])
+        elif (label == 'alpha'):
+            self.alpha = float(aline[1])
+        elif (label == 'materialname'):
+            self.materialname = nvb_utils.getAuroraString(aline[1])
+        elif (label == 'renderhint'):
+            self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
+        elif (label == 'bitmap'):
+            self.bitmap = nvb_utils.getAuroraString(aline[1])
+        elif (label.startswith('texture')):
+            tid = 0
+            # 'texture' has to be followed by a number
+            if label[7:]:
+                tid = int(label[7:])
+                tcnt = len(self.textures)
+                if tid+1 > tcnt:
+                    self.textures.extend(['' for _ in range(tid-tcnt+1)])
+                if not self.textures[tid]:
+                    self.textures[tid] = \
+                        nvb_utils.getAuroraString(aline[1])
+
+    def loadMTR(self, options):
+        """TODO: Doc."""
+        if not self.materialname:
+            return
+        if self.materialname in options.mtrdb:
+            # MTR was already loaded before
+            pass
+        else:
+            # Load MTR from file
+            pass
+
+    @staticmethod
+    def createTexture(tname, imgname, options):
+        """TODO: Doc."""
+        if tname in bpy.data.textures:
+            # Load the image for the texture
+            tex = bpy.data.textures[tname]
+        else:
+            tex = bpy.data.textures.new(tname, type='IMAGE')
+            if (imgname in bpy.data.images):
+                image = bpy.data.images[imgname]
+                tex.image = image
+            else:
+                texpath = os.path.dirname(options.filepath)
+                image = bpy_extras.image_utils.load_image(
+                    imgname + '.tga',
+                    texpath,
+                    recursive=options.textureSearch,
+                    place_holder=False,
+                    ncase_cmp=True)
+                if image is None:
+                    image = bpy.data.images.new(imgname, 512, 512)
+                image.name = imgname
+                tex.image = image
+        return tex
+
+    def create(self, options, makeunique=False):
+        """TODO: Doc."""
+        # Write values for MTR
+        if options.materialLoadMTR and self.materialname != '':
+            self.createFromMTR(options, makeunique)
+        else:
+            self.createFromMDL(options, makeunique)
+
+    def createFromMDL(self, options, makeunique):
+        """TODO: Doc."""
+        # If this material has no texture, no alpha and default values
+        if self.isdefault():
+            return None
+        # texture0 == bitmap, texture0 takes precedence
+        texlist = self.textures
+        if len(texlist) > 0:
+            if texlist[0] == '':
+                texlist[0] = self.bitmap
+        else:
+            if self.bitmap:
+                texlist.append(self.bitmap)
+        # Look for similar materials to avoid duplicates
+        material = None
+        if options.materialAutoMerge and not makeunique:
+            material = Material.findMaterial(
+                texlist, self.diffuse, self.specular, self.alpha)
+        if not material:
+            matname = texlist[0].lower() if texlist[0] else self.name
+            material = bpy.data.materials.new(matname)
+            material.use_transparency = True
+            material.diffuse_color = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color = self.specular
+            material.specular_intensity = 1.0
+            material.nvb.ambient_color = self.ambient
+            # Load all textures first
+            for idx, mdltex in enumerate(texlist):
+                if mdltex:  # might be ''
+                    tslot = material.texture_slots.create(idx)
+                    tslot.texture = Material.createTexture(mdltex, mdltex,
+                                                           options)
+            # Set the default roles for texture slot:
+            # texture0 = diffuse
+            # texture1 = normal
+            # texture2 = specular
+            # texture3 = TBD
+            # others are generic
+            matalpha = self.alpha
+            if options.textureDefaultRoles:
+                # Diffuse in tslot 0
+                tslot = material.texture_slots[0]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = True
+                    tslot.use_map_normal = False
+                    tslot.use_map_color_spec = False
+                    tslot.use_map_alpha = True
+                    tslot.alpha_factor = self.alpha
+                    matalpha = 0.0  # alpha doesn't need to be in mat
+                # Normal in tslot 1
+                tslot = material.texture_slots[1]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = False
+                    tslot.use_map_normal = True
+                    tslot.use_map_color_spec = False
+                    tslot.normal_map_space = 'TANGENT'
+                    tslot.texture.use_normal_map = True
+                # Specular in tslot 2
+                tslot = material.texture_slots[2]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+                    tslot.use_map_color_diffuse = False
+                    tslot.use_map_normal = False
+                    tslot.use_map_color_spec = True
+                # ??? in tslot 3
+                tslot = material.texture_slots[3]
+                if tslot is not None:
+                    tslot.texture_coords = 'UV'
+            if math.isclose(self.alpha, 1.0, rel_tol=0.03):
+                material.use_transparency = True
+            else:
+                material.use_transparency = False
+            material.alpha = matalpha
+            material.specular_alpha = matalpha
+        return material
+
+    @staticmethod
+    def generateDefaultValues(asciiLines):
+        """Write default material values to ascii."""
+        asciiLines.append('  ambient 1.00 1.00 1.00')
+        asciiLines.append('  diffuse 1.00 1.00 1.00')
+        asciiLines.append('  specular 0.00 0.00 0.00')
+        asciiLines.append('  bitmap ' + nvb_def.null)
+
+    @staticmethod
+    def getAsciiTextures(material, options):
+        """Write names and indices of textures to ascii."""
+        def get_img_name(tslot):
+            """Get the texture name for this texture slot."""
+            imgname = ''
+            tex = tslot.texture
+            if tex.type == 'IMAGE':
+                img = tex.image
+                if tex.image:
+                    # 1st try: Image filepath
+                    if img.filepath:
+                        imgname = \
+                            os.path.splitext(os.path.basename(img.filepath))[0]
+                    # 2nd try: Image name
+                    if not imgname:
+                        imgname = \
+                            os.path.splitext(os.path.basename(img.name))[0]
+            # Last resort: Texture name
+            if not imgname:
+                imgname = os.path.splitext(os.path.basename(tex.name))[0]
+            return imgname
+
+        # Generate a list of (texture_index, texture_name) tuples
+        # texture index = texture slot index
+        # texture name = either image filename, image name, texture
+        texList1 = [(idx, get_img_name(tslot), tslot.alpha_factor)
+                    for idx, tslot in enumerate(material.texture_slots)
+                    if tslot and material.use_textures[idx]]
+        if options.textureOrder == 'CON':
+            # Alter texture indices to be consecutive
+            texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
+            return texList2
+        return texList1
+
+    @staticmethod
+    def generateAscii(obj, asciiLines, options):
+        """Write Ascii lines from the objects material for a MDL file."""
+        istextured = False  # Return value
+        if not obj.nvb.render:
+            Material.generateDefaultValues(asciiLines)
+        else:
+            # Check if this object has a material assigned to it
+            material = obj.active_material
+            if material:
+                # Write Color Values
+                fstr = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.append(fstr.format(*material.nvb.ambient_color))
+                fstr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.append(fstr.format(*material.diffuse_color))
+                fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
+                asciiLines.append(fstr.format(*material.specular_color))
+                # Get textures for this material
+                texList = Material.getAsciiTextures(material, options)
+                # Write first texture as bitmap
+                if len(texList) > 0:
+                    istextured = True
+                    asciiLines.append('  bitmap ' + texList[0][1])
+                    # Write the rest of the textures as textureX
+                    if len(texList) > 1:
+                        asciiLines.append('  renderhint NormalAndSpecMapped')
+                        asciiLines.extend(['  texture' + str(i) + ' ' + n
+                                          for i, n, _ in texList[1:]])
+                if options.materialUseMTR:
+                    if material.usemtr:
+                        asciiLines.append('  materialname ' +
+                                          material.nvb.mtrname)
+                # Alpha value:
+                # 1. Texture slots present: get alpha from 1st slot
+                # 2. No texture slot get alpha from material
+                if material.use_transparency:
+                    alpha = 1.0
+                    if len(texList) > 0:
+                        _, _, alpha = texList[0]
+                    else:
+                        alpha = material.alpha
+                    # TODO: Skip if 1.0
+                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
+            else:
+                Material.generateDefaultValues(asciiLines)
+        return istextured
 
 
 class Node(object):
@@ -265,18 +579,11 @@ class Trimesh(Node):
         self.shadow = 1
         self.beaming = 0
         self.inheritcolor = 0  # Unused ?
-        self.alpha = 1.0
         self.transparencyhint = 0
         self.selfillumcolor = (0.0, 0.0, 0.0)
-        self.ambient = (1.0, 1.0, 1.0)
-        self.diffuse = (1.0, 1.0, 1.0)
-        self.specular = (0.0, 0.0, 0.0)
         self.shininess = 0
-        self.bitmap = ''
-        self.renderhints = []
-        self.textures = ['']
         self.rotatetexture = 0
-        self.materialname = ''  # name for external mtr file
+        self.nodematerial = Material()
         self.verts = []
         self.facedef = []
         self.tverts = [[]]
@@ -311,31 +618,13 @@ class Trimesh(Node):
             self.inheritcolor = int(aline[1])
         elif (label == 'rotatetexture'):
             self.rotatetexture = int(aline[1])
-        elif (label == 'materialname'):
-            self.materialname = aline[1]
-        elif (label == 'alpha'):
-            self.alpha = float(aline[1])
         elif (label == 'transparencyhint'):
             self.transparencyhint = int(aline[1])
         elif ((label == 'selfillumcolor') or
               (label == 'setfillumcolor')):
             self.selfillumcolor = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'ambient'):
-            self.ambient = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'diffuse'):
-            self.diffuse = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'specular'):
-            self.specular = tuple([float(v) for v in aline[1:4]])
         elif (label == 'shininess'):
             self.shininess = int(float(aline[1]))
-        elif (label == 'bitmap'):
-            self.bitmap = nvb_utils.getAuroraString(aline[1])
-        elif (label == 'renderhint'):
-            self.renderhints.append(nvb_utils.getAuroraString(aline[1]))
-        elif (label == 'bitmap'):
-            self.bitmap = nvb_utils.getAuroraString(aline[1])
-        elif (label == 'renderhint'):
-            self.renderhints.append(nvb_utils.getAuroraString(aline[1]))
         elif (label == 'verts'):
             if not self.verts:
                 nvals = int(aline[1])
@@ -361,17 +650,6 @@ class Trimesh(Node):
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
                 self.colors = [tuple(map(float, v)) for v in tmp]
-        elif (label.startswith('texture')):
-            tid = 0
-            # 'texture' has to be followed by a number
-            if label[7:]:
-                tid = int(label[7:])
-                tcnt = len(self.textures)
-                if tid+1 > tcnt:
-                    self.textures.extend(['' for _ in range(tid-tcnt+1)])
-                if not self.textures[tid]:
-                    self.textures[tid] = \
-                        nvb_utils.getAuroraString(aline[1])
         elif (label.startswith('tverts')):
             tvid = 0
             if label[6:]:  # might be '', which we interpret as = 0
@@ -383,108 +661,9 @@ class Trimesh(Node):
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
                 self.tverts[tvid] = [(float(v[0]), float(v[1])) for v in tmp]
-        return aline
-
-    def createMaterial(self, options, makeunique=False):
-        """TODO: Doc."""
-        def isDefaultMaterial():
-            isdefault = False
-            return isdefault
-
-        def createTexture(tname, imgname, options):
-            """TODO: Doc."""
-            if tname in bpy.data.textures:
-                # Load the image for the texture
-                tex = bpy.data.textures[tname]
-            else:
-                tex = bpy.data.textures.new(tname, type='IMAGE')
-                if (imgname in bpy.data.images):
-                    image = bpy.data.images[imgname]
-                    tex.image = image
-                else:
-                    texpath = os.path.dirname(options.filepath)
-                    image = bpy_extras.image_utils.load_image(
-                        imgname + '.tga',
-                        texpath,
-                        recursive=options.textureSearch,
-                        place_holder=False,
-                        ncase_cmp=True)
-                    if image is None:
-                        image = bpy.data.images.new(imgname, 512, 512)
-                    image.name = imgname
-                    tex.image = image
-            return tex
-
-        # If this material has no texture, no alpha and default values
-        if isDefaultMaterial():
-            return None
-        # texture0 = bitmap, texture0 takes precedence
-        texlist = self.textures
-        if len(texlist) > 0:
-            if not texlist[0] and self.bitmap:
-                texlist[0] = self.bitmap
         else:
-            if self.bitmap:
-                texlist.append(self.bitmap)
-        # Look for similar materials to avoid duplicates
-        material = None
-        if options.materialAutoMerge and not makeunique:
-            material = nvb_utils.findMaterial(
-                texlist, self.diffuse, self.specular, self.alpha)
-        if not material:
-            matname = texlist[0].lower() if texlist[0] else self.name
-            material = bpy.data.materials.new(matname)
-            material.use_transparency = True
-            material.diffuse_color = self.diffuse
-            material.diffuse_intensity = 1.0
-            material.specular_color = self.specular
-            material.specular_intensity = 1.0
-            # Load all textures first
-            for idx, mdltex in enumerate(texlist):
-                if mdltex:  # might be ''
-                    tslot = material.texture_slots.create(idx)
-                    tslot.texture = createTexture(mdltex, mdltex, options)
-            # Set the default roles for texture slot:
-            # texture0 = diffuse
-            # texture1 = normal
-            # texture2 = specular
-            # texture3 = TBD
-            # others are generic
-            matalpha = self.alpha
-            if options.textureDefaultRoles:
-                # Diffuse in tslot 0
-                tslot = material.texture_slots[0]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = True
-                    tslot.use_map_normal = False
-                    tslot.use_map_color_spec = False
-                    tslot.use_map_alpha = True
-                    tslot.alpha_factor = self.alpha
-                    matalpha = 0.0  # alpha doesn't need to be in mat
-                # Normal in tslot 1
-                tslot = material.texture_slots[1]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = False
-                    tslot.use_map_normal = True
-                    tslot.use_map_color_spec = False
-                    tslot.normal_map_space = 'TANGENT'
-                    tslot.texture.use_normal_map = True
-                # Specular in tslot 2
-                tslot = material.texture_slots[2]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = False
-                    tslot.use_map_normal = False
-                    tslot.use_map_color_spec = True
-                # ??? in tslot 3
-                tslot = material.texture_slots[3]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-            material.alpha = matalpha
-            material.specular_alpha = matalpha
-        return material
+            self.nodematerial.loadAsciiLine(aline)
+        return aline
 
     def createMesh(self, name, options):
         """TODO: Doc."""
@@ -551,7 +730,8 @@ class Trimesh(Node):
         # Create material
         material = None
         if options.importMaterials:
-            material = self.createMaterial(options)
+            material = self.nodematerial.create(options)
+            # material = self.createMaterial(options)
             if material:
                 me.materials.append(material)
         # Create uvmaps
@@ -563,47 +743,6 @@ class Trimesh(Node):
                 uvmap = createUVmap(me, tvs, uvname, material)
         if uvmap:
             me.uv_textures[uvmap.name].active = True
-        """
-            # Create UV maps
-            uv_tex = None
-            uvname = name + '.tverts'
-            if (len(self.tverts) > 0) and me.tessfaces and self.bitmap:
-                uv_tex = me.tessface_uv_textures.new(uvname)
-                me.tessface_uv_textures.active = uv_tex
-
-                # BEGIN EEEKADOODLE FIX
-                # BUG: Evil eekadoodle problem where faces that have
-                # vert index 0 at location 3 are shuffled.
-                # vertIdx = self.facelist.faces[i]
-                # if vertIdx[2] == 0:
-                #     uvIdx = uvIdx[1], uvIdx[2], uvIdx[0]
-                # END EEEKADOODLE FIX
-
-                # EEEKADOODLE fix
-                # facelist element: [v1, v2, v3, sg, uv1, uv2, uv3, mi]
-                cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                        for f in self.facedef]
-                # Set uv's
-                timg = material.texture_slots[0].texture.image
-                for i in range(len(cuvs)):
-                    tessfaceUV = uv_tex.data[i]
-                    tessfaceUV.uv1 = self.tverts[cuvs[i][0]]
-                    tessfaceUV.uv2 = self.tverts[cuvs[i][1]]
-                    tessfaceUV.uv3 = self.tverts[cuvs[i][2]]
-                    tessfaceUV.image = timg
-                # Save new order for uvs (for animesh animations)
-                if uv_tex.name not in nvb_def.tvert_order:
-                    nvb_def.tvert_order[uv_tex.name] = copy.deepcopy(cuvs)
-                # Set material for each face
-                me.tessfaces.foreach_set('material_index',
-                                         [0] * len(me.tessfaces))
-        if options.materialMode == 'MUL':
-            # Add the new uv map to all texture slots
-            if material and uv_tex:
-                for ts in material.texture_slots:
-                    if ts:
-                        ts.uv_layer = uv_tex.name
-        """
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
             me.update()
@@ -662,7 +801,6 @@ class Trimesh(Node):
         obj.nvb.rotatetexture = (self.rotatetexture >= 1)
         obj.nvb.transparencyhint = self.transparencyhint
         obj.nvb.selfillumcolor = self.selfillumcolor
-        obj.nvb.ambientcolor = self.ambient
         obj.nvb.shininess = self.shininess
 
     def createObject(self, options):
@@ -680,94 +818,6 @@ class Trimesh(Node):
         obj = bpy.data.objects.new(self.name, mesh)
         self.createObjectData(obj, options)
         return obj
-
-    @staticmethod
-    def getAsciiTextures(material, options):
-        """Write names and indices of textures to ascii."""
-        def get_img_name(tslot):
-            """Get the texture name for this texture slot."""
-            imgname = ''
-            tex = tslot.texture
-            if tex.type == 'IMAGE':
-                img = tex.image
-                if tex.image:
-                    # 1st try: Image filepath
-                    if img.filepath:
-                        imgname = \
-                            os.path.splitext(os.path.basename(img.filepath))[0]
-                    # 2nd try: Image name
-                    if not imgname:
-                        imgname = \
-                            os.path.splitext(os.path.basename(img.name))[0]
-            # Last resort: Texture name
-            if not imgname:
-                imgname = os.path.splitext(os.path.basename(tex.name))[0]
-            return imgname
-
-        # Generate a list of (texture_index, texture_name) tuples
-        # texture index = texture slot index
-        # texture name = either image filename, image name, texture
-        texList1 = [(idx, get_img_name(tslot), tslot.alpha_factor)
-                    for idx, tslot in enumerate(material.texture_slots)
-                    if tslot and material.use_textures[idx]]
-        if options.textureOrder == 'CON':
-            # Alter texture indices to be consecutive
-            texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
-            return texList2
-        return texList1
-
-    @staticmethod
-    def generateAsciiMaterial(obj, asciiLines, options):
-        """Write Ascii lines from the objects material for a MDL file."""
-        hasTexture = False
-        if not obj.nvb.render:
-            if obj.nvb.shadow:
-                # Shadow mesh: Everything should be black, no texture, no uv
-                asciiLines.append('  diffuse 0.00 0.00 0.00')
-                asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap NULL')
-            else:
-                asciiLines.append('  diffuse 1.00 1.00 1.00')
-                asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap ' + nvb_def.null)
-        else:
-            # Check if this object has a material assigned to it
-            material = obj.active_material
-            if material:
-                # Write Color Values
-                fstr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
-                asciiLines.append(fstr.format(*material.diffuse_color))
-                fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
-                asciiLines.append(fstr.format(*material.specular_color))
-                # Get textures for this material
-                texList = Trimesh.getAsciiTextures(material, options)
-                # Write first texture as bitmap
-                if len(texList) > 0:
-                    hasTexture = True
-                    asciiLines.append('  bitmap ' + texList[0][1])
-                    # Write the rest of the textures as textureX
-                    if len(texList) > 1:
-                        asciiLines.append('  renderhint NormalAndSpecMapped')
-                        asciiLines.extend(['  texture' + str(i) + ' ' + n
-                                          for i, n, _ in texList[1:]])
-                if options.materialUseMTR:
-                    asciiLines.append('  materialname ' + material.name)
-                # Alpha value:
-                # 1. Texture slots present: get alpha from 1st slot
-                # 2. No texture slot get alpha from material
-                if material.use_transparency:
-                    alpha = 1.0
-                    if len(texList) > 0:
-                        _, _, alpha = texList[0]
-                    else:
-                        alpha = material.alpha
-                    # TODO: Skip if 1.0
-                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
-            else:
-                asciiLines.append('  diffuse 1.00 1.00 1.00')
-                asciiLines.append('  specular 0.00 0.00 0.00')
-                asciiLines.append('  bitmap ' + nvb_def.null)
-        return hasTexture
 
     @staticmethod
     def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
@@ -994,7 +1044,7 @@ class Trimesh(Node):
         sdigs = str(max(1, len(str(len(fcSGrps)))))  # Digits for smoothgrps
         udigs = str(max(1, len(str(len(fcUVData[0][1])))))  # Digits for UVs
         mdigs = str(max(1, len(str(len(fcMatIds)))))
-        # faces = zip(faceVertIds, faceSGrps, faceUVData[0][0], faceMatIds)
+        # Zip face data
         faces = [[*fcVertIds[i], fcSGrps[i], *fcUVData[0][0][i], fcMatIds[i]]
                  for i in range(len(fcVertIds))]
         asciiLines.append('  faces ' + str(len(faces)))
@@ -1028,18 +1078,14 @@ class Trimesh(Node):
         s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
         asciiLines.append(s)
 
-        col = obj.nvb.ambientcolor
-        s = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
-        asciiLines.append(s)
-
         hastexture = False
         if iswalkmesh:
+            asciiLines.append('  ambient 1.00 1.00 1.00')
             asciiLines.append('  diffuse 1.00 1.00 1.00')
             asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap ' + nvb_def.null)
         else:
-            hastexture = Trimesh.generateAsciiMaterial(obj, asciiLines,
-                                                       options)
+            hastexture = Material.generateAscii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Self illumination color
@@ -1447,8 +1493,6 @@ class Light(Node):
             self.color = tuple([float(v) for v in aline[1:4]])
         elif (label == 'ambientonly'):
             self.ambientonly = int(aline[1])
-        elif (label == 'ndynamictype'):
-            self.ndynamictype = int(aline[1])
         elif (label == 'isdynamic'):
             self.isdynamic = int(aline[1])
         elif (label == 'affectdynamic'):
@@ -1538,27 +1582,27 @@ class Light(Node):
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
-
-        obj.nvb.ambientonly = (self.ambientonly >= 1)
         obj.nvb.lighttype = nvb_def.Lighttype.getType(self.name)
-        obj.nvb.shadow = (self.shadow >= 1)
-        obj.nvb.lightpriority = self.lightpriority
-        obj.nvb.fadinglight = (self.fadinglight >= 1)
-        obj.nvb.isdynamic = (self.isdynamic >= 1)  # or(self.ndynamictype >= 1)
-        obj.nvb.affectdynamic = (self.affectdynamic >= 1)
+
+        data = obj.data
+        data.nvb.ambientonly = (self.ambientonly >= 1)
+        data.nvb.shadow = (self.shadow >= 1)
+        data.nvb.lightpriority = self.lightpriority
+        data.nvb.fadinglight = (self.fadinglight >= 1)
+        data.nvb.isdynamic = (self.isdynamic >= 1)
+        data.nvb.affectdynamic = (self.affectdynamic >= 1)
 
         # Create lensflares
         numflares = min(self.flareNumValues)
         if (self.flareradius > 0) or (numflares > 0):
-            obj.nvb.lensflares = True
+            data.nvb.uselensflares = True
             for i in range(numflares):
-                newItem = obj.nvb.flareList.add()
+                newItem = data.nvb.flareList.add()
                 newItem.texture = self.flareTextures[i]
                 newItem.colorshift = self.flareCShifts[i]
                 newItem.size = self.flareSizes[i]
                 newItem.position = self.flarePositions[i]
-
-        obj.nvb.flareradius = self.flareradius
+        data.nvb.flareradius = self.flareradius
 
     def createObject(self, options):
         """TODO: Doc."""
@@ -1575,26 +1619,25 @@ class Light(Node):
     @staticmethod
     def generateAsciiFlares(obj, asciiLines):
         """TODO: Doc."""
-        if obj.nvb.lensflares:
-            asciiLines.append('  lensflares ' + str(int(obj.nvb.lensflares)))
-            if len(obj.nvb.flareList) > 0:
-
+        lamp = obj.data
+        if lamp.nvb.uselensflares:
+            asciiLines.append('  flareradius ' +
+                              str(round(lamp.nvb.flareradius, 1)))
+            if len(lamp.nvb.flareList) > 0:
                 # TODO: Clean this up
                 asciiLines.append('  texturenames zd')
-                for flare in obj.nvb.flareList:
+                for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + flare.texture)
                 asciiLines.append('  flarepositions zd')
-                for flare in obj.nvb.flareList:
+                for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + str(round(flare.position, 5)))
                 asciiLines.append('  flaresizes zd')
-                for flare in obj.nvb.flareList:
+                for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
                 fstr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
-                for flare in obj.nvb.flareList:
+                for flare in lamp.nvb.flareList:
                     asciiLines.append(fstr.format(*(flare.colorshift)))
-        asciiLines.append('  flareradius ' +
-                          str(round(obj.nvb.flareradius, 1)))
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -1602,18 +1645,17 @@ class Light(Node):
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         lamp = obj.data
+        asciiLines.append('  ambientonly ' + str(int(lamp.nvb.ambientonly)))
+        asciiLines.append('  isdynamic ' + str(int(lamp.nvb.isdynamic)))
+        asciiLines.append('  affectdynamic ' +
+                          str(int(lamp.nvb.affectdynamic)))
+        asciiLines.append('  shadow ' + str(int(lamp.nvb.shadow)))
+        asciiLines.append('  lightpriority ' + str(lamp.nvb.lightpriority))
+        asciiLines.append('  fadingLight ' + str(int(lamp.nvb.fadinglight)))
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
-        asciiLines.append('  color ' +
-                          str(round(lamp.color[0], 2)) + ' ' +
-                          str(round(lamp.color[1], 2)) + ' ' +
-                          str(round(lamp.color[2], 2)))
-        asciiLines.append('  ambientonly ' + str(int(obj.nvb.ambientonly)))
-        asciiLines.append('  nDynamicType ' + str(int(obj.nvb.isdynamic)))
-        asciiLines.append('  affectDynamic ' + str(int(obj.nvb.affectdynamic)))
-        asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
-        asciiLines.append('  lightpriority ' + str(obj.nvb.lightpriority))
-        asciiLines.append('  fadingLight ' + str(int(obj.nvb.fadinglight)))
+        fstr = '  color {: 3.2f} {: 3.2f} {: 3.2f}'
+        asciiLines.append(fstr.format(*lamp.color))
         Light.generateAsciiFlares(obj, asciiLines)
 
 

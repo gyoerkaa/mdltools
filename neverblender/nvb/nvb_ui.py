@@ -84,8 +84,7 @@ class NVB_PANEL_ROOTDUMMY(bpy.types.Panel):
         obj = nvb_utils.findObjRootDummy(context.object)
 
         row = layout.row()
-        box = row.box()
-        split = box.split()
+        split = row.split()
         col = split.column()
         col.label(text='Classification:')
         col.label(text='Supermodel:')
@@ -178,7 +177,172 @@ class NVB_PANEL_ARMATURE(bpy.types.Panel):
                      icon='BONE_DATA')
 
 
-class NVB_PANEL_LIGHT(bpy.types.Panel):
+class NVB_PANEL_MATERIAL(bpy.types.Panel):
+    bl_idname = 'nvb.propertypanel.material'
+    bl_label = 'Aurora Ambient'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return (context.object and context.material is not None)
+
+    def draw(self, context):
+        """TODO: DOC."""
+        mat = context.material
+        layout = self.layout
+
+        split = layout.split()
+
+        col = split.column()
+        col.prop(mat.nvb, 'ambient_color', text='')
+        sub = col.column()
+        sub.active = (not mat.use_shadeless)
+        sub.prop(mat.nvb, 'ambient_intensity', text='Intensity')
+
+        col = split.column()
+        # col.active = (not mat.use_shadeless)
+        # col.prop(mat, "diffuse_shader", text="")
+        # col.prop(mat, "use_diffuse_ramp", text="Ramp")
+
+
+class NVB_PANEL_MTRFILE(bpy.types.Panel):
+    bl_idname = 'nvb.propertypanel.mtrfile'
+    bl_label = 'Aurora MTR File'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'material'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return (context.object and context.material is not None)
+
+    def draw_header(self, context):
+        mat = context.material
+
+        self.layout.prop(mat.nvb, 'usemtr', text='')
+
+    def draw(self, context):
+        """TODO: DOC."""
+        mat = context.material
+        layout = self.layout
+
+        col = layout.column()
+        col.active = mat.nvb.usemtr
+
+        col.prop(mat.nvb, 'mtrname', text='Name')
+        row = col.row()
+        row.prop(mat.nvb, 'mtrsrc', expand=True)
+        col.separator()
+        if mat.nvb.mtrsrc == 'FILE':
+            row = col.row(align=True)
+            row.prop(mat.nvb, 'mtrpath', text='')
+            row.operator('nvb.mtr_open', icon='FILESEL', text='')
+            row.operator('nvb.mtr_sync', icon='EXPORT',
+                         text='').dest = '2MAT'
+        elif mat.nvb.mtrsrc == 'TEXT':
+            row = col.row(align=True)
+            row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
+            row.operator('nvb.mtr_sync', icon='IMPORT', text='').dest = '2TXT'
+            row.operator('nvb.mtr_sync', icon='EXPORT', text='').dest = '2MAT'
+
+
+class NVB_PANEL_DATA_LAMP(bpy.types.Panel):
+    """Property panel for additional light or lamp properties.
+
+    This holds all properties not supported by blender,
+    but used by the aurora engine. This is only available for LAMP objects.
+    It is located under the object panel in the properties window.
+    """
+
+    bl_idname = 'nvb.propertypanel.lamp'
+    bl_label = 'Aurora Light Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return (context.object and context.object.type == 'LAMP')
+
+    def draw(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        data = obj.data
+        layout = self.layout
+
+        layout.prop(data.nvb, 'lightpriority', text='Lightpriority')
+        split = layout.split()
+        col = split.column(align=True)
+        col.prop(data.nvb, 'ambientonly', text='Ambient Only')
+        col.prop(data.nvb, 'shadow', text='Shadows')
+        col = split.column(align=True)
+        col.prop(data.nvb, 'fadinglight', text='Fading')
+        col.prop(data.nvb, 'isdynamic', text='Is dynamic')
+        col.prop(data.nvb, 'affectdynamic', text='Affect dynamic')
+
+
+class NVB_PANEL_LENSFLARES(bpy.types.Panel):
+    """Property panel for additional light or lamp properties.
+
+    This holds all properties not supported by blender,
+    but used by the aurora engine. This is only available for LAMP objects.
+    It is located under the object panel in the properties window.
+    """
+
+    bl_idname = 'nvb.propertypanel.lampflare'
+    bl_label = 'Aurora Lensflares'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return (context.object and context.object.type == 'LAMP')
+
+    def draw(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        data = obj.data
+        layout = self.layout
+
+        # Lens flares
+        row = layout.row()
+        row.prop(data.nvb, 'uselensflares')
+        sub = row.row(align=True)
+        sub.active = data.nvb.uselensflares
+        sub.prop(data.nvb, 'flareradius', text='Radius')
+
+        row = layout.row()
+        row.active = data.nvb.uselensflares
+        row.template_list('NVB_UILIST_LENSFLARES', 'The_List',
+                          data.nvb, 'flareList',
+                          data.nvb, 'flareListIdx')
+        col = row.column(align=True)
+        col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
+        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')
+        col.separator()
+        col.operator('nvb.lightflare_move',
+                     icon='TRIA_UP', text='').direction = 'UP'
+        col.operator('nvb.lightflare_move',
+                     icon='TRIA_DOWN', text='').direction = 'DOWN'
+        if data.nvb.flareListIdx >= 0 and len(data.nvb.flareList) > 0:
+            item = data.nvb.flareList[data.nvb.flareListIdx]
+            sub = layout.column()
+            sub.active = data.nvb.uselensflares
+            sub.prop(item, 'texture')
+            sub.row().prop(item, 'colorshift')
+            row = sub.row()
+            row.prop(item, 'size')
+            row.prop(item, 'position')
+
+
+class NVB_PANEL_OBJECT_LAMP(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -187,7 +351,7 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
     """
 
     bl_idname = 'nvb.propertypanel.light'
-    bl_label = 'Aurora Light Properties'
+    bl_label = 'Aurora Object Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'object'
@@ -202,68 +366,17 @@ class NVB_PANEL_LIGHT(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        row = layout.row(align=True)
+        box = layout.box()
+        row = box.row(align=True)
         row.prop(obj.nvb, 'lighttype', text='Type')
         row.operator('nvb.light_generatename',
                      icon='SORTALPHA', text='')
-        layout.separator()
-
-        row = layout.row()
-        box = row.box()
-
         row = box.row()
         row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
-        row = box.row()
-        row.prop(obj.nvb, 'lightpriority', text='Priority')
-
-        split = box.split()
-        col = split.column(align=True)
-        col.prop(obj.nvb, 'ambientonly', text='Ambient Only')
-        col.prop(obj.nvb, 'shadow', text='Shadows')
-        col = split.column(align=True)
-        col.prop(obj.nvb, 'fadinglight', text='Fading')
-        col.prop(obj.nvb, 'isdynamic', text='Is dynamic')
-        col.prop(obj.nvb, 'affectdynamic', text='Affect dynamic')
-
         layout.separator()
 
-        # Lens flares
-        row = layout.row()
-        row.enabled = (obj.nvb.lighttype == nvb_def.Lighttype.DEFAULT)
-        box = row.box()
-        row = box.row()
-        row.prop(obj.nvb, 'lensflares')
-        sub = row.row(align=True)
-        sub.active = obj.nvb.lensflares
-        sub.prop(obj.nvb, 'flareradius', text='Radius')
-        row = box.row()
-        row.active = obj.nvb.lensflares
-        row.template_list('NVB_UILIST_LENSFLARES', 'The_List',
-                          obj.nvb, 'flareList',
-                          obj.nvb, 'flareListIdx')
-        col = row.column(align=True)
-        col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
-        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')
-        col.separator()
-        col.operator('nvb.lightflare_move',
-                     icon='TRIA_UP', text='').direction = 'UP'
-        col.operator('nvb.lightflare_move',
-                     icon='TRIA_DOWN', text='').direction = 'DOWN'
-        if obj.nvb.flareListIdx >= 0 and len(obj.nvb.flareList) > 0:
-            item = obj.nvb.flareList[obj.nvb.flareListIdx]
-            row = box.row()
-            row.active = obj.nvb.lensflares
-            row.prop(item, 'texture')
-            row = box.row()
-            row.active = obj.nvb.lensflares
-            row.prop(item, 'colorshift')
-            row = box.row()
-            row.active = obj.nvb.lensflares
-            row.prop(item, 'size')
-            row.prop(item, 'position')
 
-
-class NVB_PANEL_MESH(bpy.types.Panel):
+class NVB_PANEL_OBJECT_MESH(bpy.types.Panel):
     """Property panel for additional mesh properties.
 
     This holds all properties not supported by blender,
@@ -308,7 +421,7 @@ class NVB_PANEL_MESH(bpy.types.Panel):
             row = layout.row()
             box = row.box()
             row = box.row()
-            row.operator('nvb.load_wok_mats',
+            row.operator('nvb.helper_loadwokmat',
                          text='Setup Materials', icon='NONE')
             row = box.row()
             row.label(text='(Warning: Removes current materials)')
@@ -320,9 +433,6 @@ class NVB_PANEL_MESH(bpy.types.Panel):
 
             row = box.row()
             row.prop(obj.nvb, 'selfillumcolor', text='Selfillum. color')
-            row = box.row()
-            row.prop(obj.nvb, 'ambientcolor', text='Ambient')
-
             box.prop(obj.nvb, 'shininess', text='Shininess')
             box.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()
