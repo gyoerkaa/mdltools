@@ -1596,10 +1596,10 @@ class NVB_OP_SkingroupAdd(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class NVB_OP_Mtr_Clear(bpy.types.Operator):
-    """Clear MTR."""
-    bl_idname = "nvb.mtr_clear"
-    bl_label = "Clear MTR"
+class NVB_OP_Mtr_Embed(bpy.types.Operator):
+    """Embed the MTR file into the blend file by creating a Text block."""
+    bl_idname = "nvb.mtr_embed"
+    bl_label = "Embed MTR"
 
     def execute(self, context):
         """TODO: DOC."""
@@ -1607,10 +1607,10 @@ class NVB_OP_Mtr_Clear(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_OP_Mtr_Reload(bpy.types.Operator):
-    """Reload MTR. WARNING: Overwrites texture slots"""
-    bl_idname = "nvb.mtr_reload"
-    bl_label = "Reload MTR"
+class NVB_OP_Mtr_Generate(bpy.types.Operator):
+    """Generate a new Text Block containing from the current material."""
+    bl_idname = "nvb.mtr_generate"
+    bl_label = "Generate MTR"
 
     def execute(self, context):
         """TODO: DOC."""
@@ -1642,13 +1642,10 @@ class NVB_OP_Mtr_Open(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class NVB_OP_Mtr_Sync(bpy.types.Operator):
-    """Sync text block with material."""
-    bl_idname = "nvb.mtr_sync"
-    bl_label = "Sync MTR"
-
-    dest = bpy.props.EnumProperty(items=(('2TXT', 'txt', ''),
-                                         ('2MAT', 'mat', '')))
+class NVB_OP_Mtr_Reload(bpy.types.Operator):
+    """Reload MTR, update current material."""
+    bl_idname = "nvb.mtr_reload"
+    bl_label = "Reload MTR"
 
     def execute(self, context):
         """TODO: DOC."""

@@ -87,7 +87,7 @@ class NVB_PG_MATERIAL(bpy.types.PropertyGroup):
                                     description='Use external MTR file',
                                     default=False)
     mtrname = bpy.props.StringProperty(name='Name',
-                                       description='Name of MTR file',
+                                       description='Data name',
                                        default='')
     mtrsrc = bpy.props.EnumProperty(
         name='Source',
@@ -239,6 +239,10 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                         'Item', 'Items or placeables', 6)
                        ],
                 default=nvb_def.Classification.UNKNOWN)
+    animscale = bpy.props.FloatProperty(
+                name='Animationscale',
+                description='Animation scale for all animations',
+                default=1.00, min=0.0)
     dummytype = bpy.props.EnumProperty(
                 name='Type',
                 items=[(nvb_def.Dummytype.DEFAULT,
@@ -271,10 +275,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                         'DWK: Closed 2nd', '2nd node for door "Use"', 13)
                        ],
                 default=nvb_def.Dummytype.DEFAULT)
-    animscale = bpy.props.FloatProperty(
-                name='Animationscale',
-                description='Animation scale for all animations',
-                default=1.00, min=0.0)
     # Animation Data (for being able to seperate them)
     animList = bpy.props.CollectionProperty(type=NVB_PG_ANIM)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
@@ -347,7 +347,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                         'Auto', 'Generate groups from sharp edges', 2)
                        ],
                 default='AUTO')
-
     shadow = bpy.props.BoolProperty(
                 name='Shadow',
                 description='Whether to cast shadows',
@@ -356,7 +355,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 name='Render',
                 description='Whether to render this object in the scene',
                 default=True)
-
     tilefade = bpy.props.EnumProperty(
                 name='Tilefade',
                 items=[(nvb_def.Tilefade.NONE,
@@ -412,13 +410,11 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                 name='Danglegroup',
                 description='Name of the vertex group to use for the weights',
                 default='')
-
     # For skingroups
     skingroup_obj = bpy.props.StringProperty(
                 name='Bone',
                 description='Name of the bone to create the skingroup for',
                 default='')
-
     # For lamps
     lighttype = bpy.props.EnumProperty(
                 name='Type',
@@ -429,7 +425,6 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        (nvb_def.Lighttype.MAIN2,
                         'Mainlight 2', 'For tiles (Editable in toolset)', 2)],
                 default=nvb_def.Lighttype.DEFAULT)
-
     # For emitters
     rawascii = bpy.props.StringProperty(
         name='Text node',

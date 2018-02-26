@@ -233,21 +233,21 @@ class NVB_PANEL_MTRFILE(bpy.types.Panel):
         col = layout.column()
         col.active = mat.nvb.usemtr
 
-        col.prop(mat.nvb, 'mtrname', text='Name')
-        row = col.row()
-        row.prop(mat.nvb, 'mtrsrc', expand=True)
+        col.prop(mat.nvb, 'mtrname')
+        col.separator()
+        col.prop(mat.nvb, 'mtrsrc')
         col.separator()
         if mat.nvb.mtrsrc == 'FILE':
             row = col.row(align=True)
+            row.operator('nvb.mtr_embed', icon='UGLYPACKAGE', text='')
             row.prop(mat.nvb, 'mtrpath', text='')
             row.operator('nvb.mtr_open', icon='FILESEL', text='')
-            row.operator('nvb.mtr_sync', icon='EXPORT',
-                         text='').dest = '2MAT'
+            row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
         elif mat.nvb.mtrsrc == 'TEXT':
             row = col.row(align=True)
             row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
-            row.operator('nvb.mtr_sync', icon='IMPORT', text='').dest = '2TXT'
-            row.operator('nvb.mtr_sync', icon='EXPORT', text='').dest = '2MAT'
+            row.operator('nvb.mtr_generate', icon='IMPORT', text='')
+            row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
 
 
 class NVB_PANEL_DATA_LAMP(bpy.types.Panel):
