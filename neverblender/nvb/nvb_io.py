@@ -15,8 +15,8 @@ def loadMdl(operator, context, options):
 
     with open(os.fsencode(options.filepath), 'r') as mdlfile:
         mdl = nvb_mdl.Mdl()
-        asciiMdl = mdlfile.read()
-        mdl.readAscii(asciiMdl, options)
+        asciiData = mdlfile.read()
+        mdl.readAscii(asciiData, options)
         # Try to load walkmeshes ... pwk (placeable) and dwk (door)
         if options.importWalkmesh:
             for wkmtype in nvb_def.Walkmeshtype.IMPORT:
@@ -27,8 +27,8 @@ def loadMdl(operator, context, options):
                 except IOError:
                     pass  # There is no such file
                 else:
-                    asciiWkm = wkmFile.read()
-                    mdl.readAsciiWalkmesh(asciiWkm, wkmtype, options)
+                    asciiData = wkmFile.read()
+                    mdl.readAsciiWalkmesh(asciiData, wkmtype, options)
                     wkmFile.close()
         mdl.create(options)
 

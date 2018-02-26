@@ -202,7 +202,7 @@ class NVB_PT_material(bpy.types.Panel):
         sub.active = (not mat.use_shadeless)
         sub.prop(mat.nvb, 'ambient_intensity', text='Intensity')
 
-        col = split.column()
+        # col = split.column()
         # col.active = (not mat.use_shadeless)
         # col.prop(mat, "diffuse_shader", text="")
         # col.prop(mat, "use_diffuse_ramp", text="Ramp")
@@ -248,6 +248,10 @@ class NVB_PT_mtr(bpy.types.Panel):
             row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
             row.operator('nvb.mtr_generate', icon='IMPORT', text='')
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
+        col.separator()
+        box = col.box()
+        box.prop(mat.nvb, 'shadervs')
+        box.prop(mat.nvb, 'shaderfs')
 
 
 class NVB_PT_lamp_data(bpy.types.Panel):

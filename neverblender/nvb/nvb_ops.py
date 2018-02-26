@@ -11,6 +11,7 @@ import mathutils
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_io
+from . import nvb_node
 
 
 class NVB_OT_helper_amt2psd(bpy.types.Operator):
@@ -1102,7 +1103,7 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
         if eventIdx > 0:
             eventIdx = eventIdx - 1
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class NVB_OT_animevent_move(bpy.types.Operator):
@@ -1413,6 +1414,7 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             description='Add a reference to MTR file ' +
                         '(Filename will be the objects material name)',
             default=False)
+    """
     textureOrder = bpy.props.EnumProperty(
             name='Texture Order',
             items=(('TSL', 'Texture Slot',
@@ -1422,6 +1424,7 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ),
             default='TSL',
             )
+    """
     # Blender Setting to use
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
@@ -1449,7 +1452,7 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.label(text='Material Settings')
         sub = box.column()
         sub.prop(self, 'materialUseMTR')
-        sub.prop(self, 'textureOrder')
+        # sub.prop(self, 'textureOrder')
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
@@ -1472,7 +1475,7 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.uvmapOrder = self.uvmapOrder
         # Material Export Settings
         options.materialUseMTR = self.materialUseMTR
-        options.textureOrder = self.textureOrder
+        # options.textureOrder = self.textureOrder
         # Blender Settings
         options.applyModifiers = self.applyModifiers
         return nvb_io.saveMdl(self, context, options)
@@ -1587,7 +1590,7 @@ class NVB_OT_helper_genskgr(bpy.types.Operator):
                 obj.nvb.skingroup_obj = ''
 
                 self.report({'INFO'}, 'Created vertex group ' + skingrName)
-                return{'FINISHED'}
+                return {'FINISHED'}
             else:
                 self.report({'INFO'}, 'Duplicate Name')
                 return {'CANCELLED'}
@@ -1603,8 +1606,16 @@ class NVB_OT_mtr_embed(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        pass
-        return{'FINISHED'}
+        material = context.material
+        if not material:
+            self.report({'ERROR'}, 'Error: No material.')
+            return {'CANCELLED'}
+        # Get the previously stored filepath
+        if not material.nvb.mtrpath:
+            self.report({'ERROR'}, 'Error: No path to file.')
+            return {'CANCELLED'}
+        bpy.ops.text.open(filepath=material.nvb.mtrpath, internal=True)
+        return {'FINISHED'}
 
 
 class NVB_OT_mtr_generate(bpy.types.Operator):
@@ -1614,8 +1625,18 @@ class NVB_OT_mtr_generate(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        pass
-        return{'FINISHED'}
+        material = context.material
+        if not material:
+            self.report({'ERROR'}, 'Error: No material.')
+            return {'CANCELLED'}
+        mtr = nvb_node.Mtr()
+        options = nvb_def.ExportOptions()
+        asciiLines = mtr.generateAscii(material, options)
+        txt = bpy.data.texts.new(material.name + '.mtr')
+        txt.write('\n'.join(asciiLines))
+        # Report
+        self.report({'INFO'}, 'Created ' + txt.name)
+        return {'FINISHED'}
 
 
 class NVB_OT_mtr_open(bpy.types.Operator):
@@ -1624,13 +1645,39 @@ class NVB_OT_mtr_open(bpy.types.Operator):
     bl_label = "Open MTR"
 
     filename_ext = '.mtr'
-    filter_glob = bpy.props.StringProperty(default='.mtr', options={'HIDDEN'})
+    filter_glob = bpy.props.StringProperty(default='*.mtr', options={'HIDDEN'})
 
     filepath = bpy.props.StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
-        print("filepath= " + self.filepath)
-        return{'FINISHED'}
+        if not self.filepath:
+            self.report({'ERROR'}, 'Error: No path to file.')
+            return {'CANCELLED'}
+        material = context.material
+        if not material:
+            self.report({'ERROR'}, 'Error: No material.')
+            return {'CANCELLED'}
+        mtrpath, mtrfilename = os.path.split(self.filepath)
+        mtrname = os.path.splitext(mtrfilename)[0]
+        # Add to custom properties
+        material.nvb.mtrpath = self.filepath
+        material.nvb.mtrname = mtrname
+        # Load mtr
+        mtr = nvb_node.Mtr(mtrname)
+        mtr.loadFile(self.filepath)
+        if not mtr or not mtr.isvalid():
+            self.report({'ERROR'}, 'Error: Invalid file.')
+            return {'CANCELLED'}
+        # Add the rest of the properties
+        for idx, tex in enumerate(mtr.textures):
+            print(tex)
+        if 'customshadervs' in mtr.customshaders:
+            material.nvb.shadervs = mtr.customshaders['customshadervs']
+        if 'customshaderfs' in mtr.customshaders:
+            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
+        # Report
+        self.report({'INFO'}, 'Loaded ' + mtrfilename)
+        return {'FINISHED'}
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -1647,7 +1694,60 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
     bl_idname = "nvb.mtr_reload"
     bl_label = "Reload MTR"
 
+    def reloadFile(self, material):
+        """Reload mtr file from disk."""
+        # Get the previously stored filepath
+        if not material.nvb.mtrpath:
+            self.report({'ERROR'}, 'Error: No path to file.')
+            return {'CANCELLED'}
+        # Load mtr
+        mtr = nvb_node.Mtr()
+        mtr.loadFile(material.nvb.mtrpath)
+        if not mtr or not mtr.isvalid():
+            self.report({'ERROR'}, 'Error: No data.')
+            return {'CANCELLED'}
+        # Add the rest of the properties
+        for idx, tex in enumerate(mtr.textures):
+            print(tex)
+        if 'customshadervs' in mtr.customshaders:
+            material.nvb.shadervs = mtr.customshaders['customshadervs']
+        if 'customshaderfs' in mtr.customshaders:
+            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
+        # Report
+        _, mtrfilename = os.path.split(material.nvb.mtrpath)
+        self.report({'INFO'}, 'Reloaded ' + mtrfilename)
+        return {'FINISHED'}
+
+    def reloadTextBlock(self, material):
+        if not material.nvb.mtrtext:
+            self.report({'ERROR'}, 'Error: No text block.')
+            return {'CANCELLED'}
+        if material.nvb.mtrtext not in bpy.data.texts:
+            self.report({'ERROR'}, 'Error: Text block does not exist.')
+            return {'CANCELLED'}
+        txtBlock = bpy.data.texts[material.nvb.mtrtext]
+        mtr = nvb_node.Mtr(txtBlock)
+        mtr.loadFile(material.nvb.mtrpath)
+        if not mtr or not mtr.isvalid():
+            self.report({'ERROR'}, 'Error: No data.')
+            return {'CANCELLED'}
+        # Add the rest of the properties
+        for idx, tex in enumerate(mtr.textures):
+            print(tex)
+        if 'customshadervs' in mtr.customshaders:
+            material.nvb.shadervs = mtr.customshaders['customshadervs']
+        if 'customshaderfs' in mtr.customshaders:
+            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
+        self.report({'INFO'}, 'Reloaded ' + txtBlock.name)
+        return {'FINISHED'}
+
     def execute(self, context):
         """TODO: DOC."""
-        pass
-        return{'FINISHED'}
+        material = context.material
+        if not material:
+            self.report({'ERROR'}, 'Error: No material.')
+            return {'CANCELLED'}
+        if material.nvb.mtrsrc == 'FILE':
+            return self.reloadFile(material)
+        elif material.nvb.mtrsrc == 'TEXT':
+            return self.reloadTextBlock(material)

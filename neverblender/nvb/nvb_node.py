@@ -17,51 +17,83 @@ from . import nvb_utils
 from . import nvb_aabb
 
 
-class MTR(object):
-    """TODO: DOC."""
+class Mtr(object):
+    """A material read from an mtr file."""
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
+        self.valid = False
+
         self.name = name
         self.ambient = (1.0, 1.0, 1.0)
         self.diffuse = (1.0, 1.0, 1.0)
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
         self.textures = ['']
-        self.customshaders = ['']
+        self.customshaders = dict()
         self.renderhints = set()
         self.parameters = dict()
 
-    def loadAscii(self, asciiLines, nodeidx=-1):
+    def isvalid(self):
+        return self.valid
+
+    def loadFile(self, filepath):
+        """Load contents of a mtr file."""
+        try:
+            mtrFile = open(filepath, 'r')
+        except IOError:
+            self.valid = False
+            return
+        else:
+            self.valid = True
+            asciiData = mtrFile.read()
+            self.loadAscii(asciiData)
+            mtrFile.close()
+
+    def loadTextBlock(self, textBlock):
+        """Load content of a blender text block."""
+        if not textBlock:
+            return
+        # txtLines = [l.split() for l in textBlock.as_string().split('\n')]
+        asciiData = textBlock.as_string()
+        self.loadAscii(asciiData)
+
+    def loadAscii(self, asciiData):
         """TODO: DOC."""
-        self.nodeidx = nodeidx
+        asciiLines = [l.strip().split() for l in asciiData.splitlines()]
         # list(map(self.loadAsciiLine, asciiLines))
         iterable = iter(asciiLines)
         lline = True
         while lline is not None:
             lline = self.loadAsciiLine(iterable)
 
-    def loadAsciiLine(self, aline):
+    def loadAsciiLine(self, itlines):
         """TODO: Doc."""
+        aline = None
+        try:
+            aline = next(itlines)
+        except StopIteration:
+            return None
+        label = ''
         try:
             label = aline[0].lower()
         except (IndexError, AttributeError):
             return aline  # Probably empty line or comment
-        if (label == 'ambient'):
+        if label == 'ambient':
             self.ambient = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'diffuse'):
+        elif label == 'diffuse':
             self.diffuse = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'specular'):
+        elif label == 'specular':
             self.specular = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'alpha'):
+        elif label == 'alpha':
             self.alpha = float(aline[1])
-        elif (label == 'renderhint'):
+        elif label == 'renderhint':
             self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
-        elif (label == 'parameter'):
+        elif label == 'parameter':
             pvalues = aline[3:]
             self.parameters[aline[2]] == (aline[1], pvalues)
-        elif (label.startswith('customshader')):
-            self.customshaders.append([aline[0], aline[1]])
-        elif (label.startswith('texture')):
+        elif label.startswith('customshader'):
+            self.customshaders[label] = aline[1]
+        elif label.startswith('texture'):
             tid = 0
             # 'texture' has to be followed by a number
             if label[7:]:
@@ -71,11 +103,26 @@ class MTR(object):
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
                     self.textures[tid] = \
-                        nvb_utils.getAuroraString(aline[1])
+                        nvb_utils.getAuroraTexture(aline[1])
+        return aline
+
+    @staticmethod
+    def generateAscii(material, options):
+        """Generate a mtr file as asciilines."""
+        asciiLines = []
+        if material.nvb.shadervs:
+            asciiLines.append('customshaderVS ' + material.nvb.shadervs)
+        if material.nvb.shaderfs:
+            asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
+        texList = NodeMaterial.getAsciiTextures(material, options)
+        if len(texList) > 0:
+            asciiLines.extend(['texture' + str(i) + ' ' + n
+                               for i, n, _ in texList[1:]])
+        return asciiLines
 
 
-class Material(object):
-    """TODO: DOC."""
+class NodeMaterial(object):
+    """A material read from an mdl node."""
 
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
@@ -88,6 +135,8 @@ class Material(object):
         self.textures = ['']  # texture[0] overwrites bitmap
         self.renderhints = set()
         self.materialname = ''  # Name of external mtr file
+        self.customshaderVS = ''
+        self.customshaderFS = ''
 
     @staticmethod
     def colorisclose(a, b, tol=0.05):
@@ -109,8 +158,8 @@ class Material(object):
         for mat in bpy.data.materials:
             eq = True
             # Check diffuse and specular color
-            eq = eq and Material.colorisclose(mat.diffuse_color, cdiff)
-            eq = eq and Material.colorisclose(mat.specular_color, cspec)
+            eq = eq and NodeMaterial.colorisclose(mat.diffuse_color, cdiff)
+            eq = eq and NodeMaterial.colorisclose(mat.specular_color, cspec)
             # Check texture names:
             tstextures = list(map(get_tslot_img, mat.texture_slots))
             matches = []
@@ -134,9 +183,9 @@ class Material(object):
     def isdefault(self):
         """Return True if the material contains only default values"""
         d = True
-        d = d and Material.colorisclose(self.ambient, (1.0, 1.0, 1.0))
-        d = d and Material.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
-        d = d and Material.colorisclose(self.specular, (0.0, 0.0, 0.0))
+        d = d and NodeMaterial.colorisclose(self.ambient, (1.0, 1.0, 1.0))
+        d = d and NodeMaterial.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
+        d = d and NodeMaterial.colorisclose(self.specular, (0.0, 0.0, 0.0))
         d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
         d = d and self.bitmap == ''
         d = d and self.textures.count('') == len(self.textures)
@@ -175,22 +224,40 @@ class Material(object):
                     self.textures[tid] = \
                         nvb_utils.getAuroraString(aline[1])
 
-    @staticmethod
-    def loadMTR(self, material, mtrpath, options):
-        """TODO: Doc."""
+    def loadMTR(self, options):
+        """Loads contents of a mtr file into the this material."""
         if not self.materialname:
             return
+        mtrMat = None
         if self.materialname in options.mtrdb:
             # MTR was already loaded before
-            pass
+            mtrMat = options.mtrdb[self.materialname]
         else:
             # Load MTR from file
-            pass
-
-    @staticmethod
-    def loadMTRfile(self, mtrpath):
-        """TODO: Doc."""
-        pass
+            mdlPath, _ = os.path.split(options.filepath)
+            mtrFilename = self.name + '.mtr'
+            mtrPath = os.fsencode(os.path.join(mdlPath, mtrFilename))
+            mtrMat = Mtr()
+            mtrMat.loadFile(mtrPath)
+            options.mtrdb[self.materialname] = mtrMat
+        # Load values into self
+        if mtrMat and mtrMat.isvalid():  # Abort if no file was read
+            # If there are any textures: in the mtr load them into self
+            if mtrMat.textures:
+                # TODO: Decide between two options
+                # A. Selecetive loading, override only present texture
+                l1 = len(self.textures)
+                l2 = len(mtrMat.textures)
+                if l1 < l2:
+                    self.textures.extend(['' for _ in range(l2-l1+1)])
+                for tidx, texname in enumerate(mtrMat.textures):
+                    self.textures
+                # B. Override all if only a single texture is present
+                # self.textures = mtrMat.textures
+            if 'customshadervs' in mtrMat.customshaders:
+                self.customshaderVS = mtrMat.customshaders['customshadervs']
+            if 'customshaderfs' in mtrMat.customshaders:
+                self.customshaderFS = mtrMat.customshaders['customshaderfs']
 
     @staticmethod
     def createTexture(tname, imgname, options):
@@ -216,14 +283,6 @@ class Material(object):
                 image.name = imgname
                 tex.image = image
         return tex
-
-    def create(self, options, makeunique=False):
-        """TODO: Doc."""
-        # Write values for MTR
-        if options.materialLoadMTR and self.materialname != '':
-            return self.createFromMTR(options, makeunique)
-        else:
-            return self.createFromMDL(options, makeunique)
 
     def applyTextureRoles(self, material, options):
         """TODO: Doc."""
@@ -267,8 +326,11 @@ class Material(object):
         material.alpha = matalpha
         material.specular_alpha = matalpha
 
-    def createFromMDL(self, options, makeunique):
-        """TODO: Doc."""
+    def create(self, options, makeunique=False):
+        """Creates a blender material with the stored values."""
+        # Load mtr values intro this material
+        if options.materialLoadMTR and self.materialname != '':
+            self.loadMTR(options)
         # If this material has no texture, no alpha and default values
         if self.isdefault():
             return None
@@ -283,7 +345,7 @@ class Material(object):
         # Look for similar materials to avoid duplicates
         material = None
         if options.materialAutoMerge and not makeunique:
-            material = Material.findMaterial(
+            material = NodeMaterial.findMaterial(
                 texlist, self.materialname,
                 self.diffuse, self.specular, self.alpha)
         if not material:
@@ -295,12 +357,14 @@ class Material(object):
             material.specular_color = self.specular
             material.specular_intensity = 1.0
             material.nvb.ambient_color = self.ambient
+            material.nvb.shadervs = self.customshaderVS
+            material.nvb.shaderfs = self.customshaderFS
             # Load all textures
             for idx, mdltex in enumerate(texlist):
                 if mdltex:  # might be ''
                     tslot = material.texture_slots.create(idx)
-                    tslot.texture = Material.createTexture(mdltex, mdltex,
-                                                           options)
+                    tslot.texture = NodeMaterial.createTexture(mdltex, mdltex,
+                                                               options)
             # Set the default roles for texture slots:
             self.applyTextureRoles(material, options)
         return material
@@ -353,7 +417,7 @@ class Material(object):
         """Write Ascii lines from the objects material for a MDL file."""
         istextured = False  # Return value
         if not obj.nvb.render:
-            Material.generateDefaultValues(asciiLines)
+            NodeMaterial.generateDefaultValues(asciiLines)
         else:
             # Check if this object has a material assigned to it
             material = obj.active_material
@@ -366,7 +430,7 @@ class Material(object):
                 fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
                 asciiLines.append(fstr.format(*material.specular_color))
                 # Get textures for this material
-                texList = Material.getAsciiTextures(material, options)
+                texList = NodeMaterial.getAsciiTextures(material, options)
                 # Write first texture as bitmap
                 if len(texList) > 0:
                     istextured = True
@@ -392,7 +456,7 @@ class Material(object):
                     # TODO: Skip if 1.0
                     asciiLines.append('  alpha {: 3.2f}'.format(alpha))
             else:
-                Material.generateDefaultValues(asciiLines)
+                NodeMaterial.generateDefaultValues(asciiLines)
         return istextured
 
 
@@ -651,7 +715,7 @@ class Trimesh(Node):
         self.selfillumcolor = (0.0, 0.0, 0.0)
         self.shininess = 0
         self.rotatetexture = 0
-        self.material = Material()
+        self.material = NodeMaterial()
         self.verts = []
         self.facedef = []
         self.tverts = [[]]
@@ -1236,7 +1300,7 @@ class Trimesh(Node):
             asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap ' + nvb_def.null)
         else:
-            hastexture = Material.generateAscii(obj, asciiLines, options)
+            hastexture = NodeMaterial.generateAscii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Self illumination color

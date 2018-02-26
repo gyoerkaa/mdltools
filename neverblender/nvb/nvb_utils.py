@@ -361,6 +361,13 @@ def isNumber(s):
         return True
 
 
+def getAuroraTexture(s):
+    """Convert to lower case. Convert null to nvb_def.null."""
+    if (not s or s.lower() == nvb_def.null):
+        return nvb_def.null
+    return s.lower()
+
+
 def getAuroraString(s):
     """Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):

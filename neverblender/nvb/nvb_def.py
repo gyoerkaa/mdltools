@@ -349,8 +349,7 @@ class ImportOptions():
         self.filepath = ''
         self.scene = None
         self.mdlname = 'unnamed'
-        self.customfps = True
-        self.fps = 30
+        self.mtrdb = dict()
         # What to import
         self.importAnimations = True
         self.importWalkmesh = True
@@ -363,10 +362,12 @@ class ImportOptions():
         self.textureDefaultRoles = True
         self.texturePath = ''
         self.textureSearch = False
+        # Blender Settings
+        self.customfps = True
+        self.fps = 30
         # for batch processing
         self.minimapMode = False
         self.minimapSkipFade = False
-        self.mtrdb = dict()
 
 
 class ExportOptions():
