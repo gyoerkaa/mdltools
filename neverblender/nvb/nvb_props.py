@@ -4,7 +4,7 @@ import bpy
 from . import nvb_def
 
 
-class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
+class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
     name = bpy.props.StringProperty(
@@ -18,7 +18,7 @@ class NVB_PG_ANIMEVENT(bpy.types.PropertyGroup):
                 default=1)
 
 
-class NVB_PG_ANIM(bpy.types.PropertyGroup):
+class NVB_PG_anim(bpy.types.PropertyGroup):
     """Properties for a single animation in the animation list."""
 
     name = bpy.props.StringProperty(
@@ -56,13 +56,13 @@ class NVB_PG_ANIM(bpy.types.PropertyGroup):
                 default=0,
                 min=0)
 
-    eventList = bpy.props.CollectionProperty(type=NVB_PG_ANIMEVENT)
+    eventList = bpy.props.CollectionProperty(type=NVB_PG_animevent)
     eventListIdx = bpy.props.IntProperty(
         name='Index for event List',
         default=0)
 
 
-class NVB_PG_MATERIAL(bpy.types.PropertyGroup):
+class NVB_PG_material(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
     This class defines all additional properties needed by the mdl file
@@ -111,7 +111,7 @@ class NVB_PG_MATERIAL(bpy.types.PropertyGroup):
                                         default='')
 
 
-class NVB_PG_FLARE(bpy.types.PropertyGroup):
+class NVB_PG_flare(bpy.types.PropertyGroup):
     """Properties for a single flare in the flare list."""
     texture = bpy.props.StringProperty(name='Texture',
                                        description='Texture name',
@@ -132,7 +132,7 @@ class NVB_PG_FLARE(bpy.types.PropertyGroup):
                                                soft_min=0.0, soft_max=1.0)
 
 
-class NVB_PG_LAMP(bpy.types.PropertyGroup):
+class NVB_PG_lamp(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
     This class defines all additional properties needed by the mdl file
@@ -168,13 +168,13 @@ class NVB_PG_LAMP(bpy.types.PropertyGroup):
     flareradius = bpy.props.FloatProperty(
                 name='Flare Radius',
                 default=0.0, min=0.0, max=100.0)
-    flareList = bpy.props.CollectionProperty(type=NVB_PG_FLARE)
+    flareList = bpy.props.CollectionProperty(type=NVB_PG_flare)
     flareListIdx = bpy.props.IntProperty(
                 name='Index for flare list',
                 default=0)
 
 
-class NVB_PG_OBJECT(bpy.types.PropertyGroup):
+class NVB_PG_object(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
     This class defines all additional properties needed by the mdl file
@@ -276,7 +276,7 @@ class NVB_PG_OBJECT(bpy.types.PropertyGroup):
                        ],
                 default=nvb_def.Dummytype.DEFAULT)
     # Animation Data (for being able to seperate them)
-    animList = bpy.props.CollectionProperty(type=NVB_PG_ANIM)
+    animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
                                         default=0)
 

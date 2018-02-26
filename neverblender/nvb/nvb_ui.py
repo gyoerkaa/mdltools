@@ -250,7 +250,7 @@ class NVB_PT_mtr(bpy.types.Panel):
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
 
 
-class NVB_PT_data_lamp(bpy.types.Panel):
+class NVB_PT_lamp_data(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -342,7 +342,7 @@ class NVB_PT_lensflares(bpy.types.Panel):
             row.prop(item, 'position')
 
 
-class NVB_PT_object_lamp(bpy.types.Panel):
+class NVB_PT_lamp_object(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -376,7 +376,7 @@ class NVB_PT_object_lamp(bpy.types.Panel):
         layout.separator()
 
 
-class NVB_PT_object_mesh(bpy.types.Panel):
+class NVB_PT_mesh_object(bpy.types.Panel):
     """Property panel for additional mesh properties.
 
     This holds all properties not supported by blender,
