@@ -542,9 +542,9 @@ class Animnode():
             return
         uvlayer = obj.data.uv_layers.active
         # Check if the original uv/tvert order was saved
-        if uvlayer.name not in nvb_def.tvert_order:
+        if obj.data.name not in nvb_def.tvert_order:
             return
-        tvert_order = [v for sl in nvb_def.tvert_order[uvlayer.name]
+        tvert_order = [v for sl in nvb_def.tvert_order[obj.data.name]
                        for v in sl]
         # Sanity check: Sample period can't be 0
         if self.sampleperiod <= 0.00001:

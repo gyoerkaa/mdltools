@@ -225,6 +225,48 @@ class Material(object):
         else:
             return self.createFromMDL(options, makeunique)
 
+    def applyTextureRoles(self, material, options):
+        """TODO: Doc."""
+        matalpha = self.alpha
+        if options.textureDefaultRoles:
+            # Diffuse in tslot 0
+            tslot = material.texture_slots[0]
+            if tslot is not None:
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = True
+                tslot.use_map_normal = False
+                tslot.use_map_color_spec = False
+                tslot.use_map_alpha = True
+                tslot.alpha_factor = self.alpha
+                matalpha = 0.0  # alpha doesn't need to be in mat
+            # Normal in tslot 1
+            tslot = material.texture_slots[1]
+            if tslot is not None:
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = False
+                tslot.use_map_normal = True
+                tslot.use_map_color_spec = False
+                tslot.normal_map_space = 'TANGENT'
+                tslot.texture.use_normal_map = True
+            # Specular in tslot 2
+            tslot = material.texture_slots[2]
+            if tslot is not None:
+                tslot.texture_coords = 'UV'
+                tslot.use_map_color_diffuse = False
+                tslot.use_map_normal = False
+                tslot.use_map_color_spec = True
+            # ??? in tslot 3
+            tslot = material.texture_slots[3]
+            if tslot is not None:
+                tslot.texture_coords = 'UV'
+            # Other slots are generic
+        if math.isclose(self.alpha, 1.0, rel_tol=0.03):
+            material.use_transparency = True
+        else:
+            material.use_transparency = False
+        material.alpha = matalpha
+        material.specular_alpha = matalpha
+
     def createFromMDL(self, options, makeunique):
         """TODO: Doc."""
         # If this material has no texture, no alpha and default values
@@ -253,56 +295,14 @@ class Material(object):
             material.specular_color = self.specular
             material.specular_intensity = 1.0
             material.nvb.ambient_color = self.ambient
-            # Load all textures first
+            # Load all textures
             for idx, mdltex in enumerate(texlist):
                 if mdltex:  # might be ''
                     tslot = material.texture_slots.create(idx)
                     tslot.texture = Material.createTexture(mdltex, mdltex,
                                                            options)
-            # Set the default roles for texture slot:
-            # texture0 = diffuse
-            # texture1 = normal
-            # texture2 = specular
-            # texture3 = TBD
-            # others are generic
-            matalpha = self.alpha
-            if options.textureDefaultRoles:
-                # Diffuse in tslot 0
-                tslot = material.texture_slots[0]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = True
-                    tslot.use_map_normal = False
-                    tslot.use_map_color_spec = False
-                    tslot.use_map_alpha = True
-                    tslot.alpha_factor = self.alpha
-                    matalpha = 0.0  # alpha doesn't need to be in mat
-                # Normal in tslot 1
-                tslot = material.texture_slots[1]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = False
-                    tslot.use_map_normal = True
-                    tslot.use_map_color_spec = False
-                    tslot.normal_map_space = 'TANGENT'
-                    tslot.texture.use_normal_map = True
-                # Specular in tslot 2
-                tslot = material.texture_slots[2]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-                    tslot.use_map_color_diffuse = False
-                    tslot.use_map_normal = False
-                    tslot.use_map_color_spec = True
-                # ??? in tslot 3
-                tslot = material.texture_slots[3]
-                if tslot is not None:
-                    tslot.texture_coords = 'UV'
-            if math.isclose(self.alpha, 1.0, rel_tol=0.03):
-                material.use_transparency = True
-            else:
-                material.use_transparency = False
-            material.alpha = matalpha
-            material.specular_alpha = matalpha
+            # Set the default roles for texture slots:
+            self.applyTextureRoles(material, options)
         return material
 
     @staticmethod
@@ -826,15 +826,17 @@ class Trimesh(Node):
             me.vertices.foreach_set('normal', unpack_list(self.normals))
         # Create material
         material = None
-        img = None
+        matimg = None
         if options.importMaterials:
             material = self.material.create(options)
             if material:
-                img = material.texture_slots[0].texture.image
                 me.materials.append(material)
                 # Set material idx (always 0, only a single material)
                 me.polygons.foreach_set('material_index',
                                         [0] * len(me.polygons))
+                tslot0 = material.texture_slots[0]
+                if tslot0 and tslot0.texture:
+                    matimg = tslot0.texture.image
         # Create uvmaps
         # EEEKADOODLE fix
         eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
@@ -847,7 +849,7 @@ class Trimesh(Node):
             if tvs:  # may be []
                 uvname = me.name + '.tvert' + str(idx)
                 uvlayers.append(Trimesh.createUVlayer(me, tvs, eeka_faceuvs,
-                                                      uvname, img))
+                                                      uvname, matimg))
         # if len(uvmaps) > 0 and uvmaps[0] is not None:
         #     me.uv_textures[uvmaps[0].name].active = True  # blender2.8 error!
         # Import smooth groups as sharp edges
