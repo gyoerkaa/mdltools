@@ -841,9 +841,10 @@ class Trimesh(Node):
         # EEEKADOODLE fix
         eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
                         for f in self.facedef]
-        # Save fixed uvs (for animesh animations)
-        if me.name not in nvb_def.tvert_order:
-            nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
+        # Save fixed uvs for animeshes
+        if self.nodetype == nvb_def.Nodetype.ANIMMESH:
+            if me.name not in nvb_def.tvert_order:
+                nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
         uvlayers = []
         for idx, tvs in enumerate(self.tverts):
             if tvs:  # may be []
@@ -1219,9 +1220,9 @@ class Trimesh(Node):
             fcUVData.append([fcUVIdList, fcUVCoList])
         # Write faces to file
         vdigs = str(max(1, len(str(len(me.vertices)))))  # Digits for vertices
-        sdigs = str(max(1, len(str(len(fcSGrps)))))  # Digits for smoothgrps
+        sdigs = str(max(1, len(str(max(fcSGrps)))))  # Digits for smoothgrps
         udigs = str(max(1, len(str(len(fcUVData[0][1])))))  # Digits for UVs
-        mdigs = str(max(1, len(str(len(fcMatIds)))))
+        mdigs = str(max(1, len(str(max(fcMatIds)))))
         # Zip face data
         faces = [[*fcVertIds[i], fcSGrps[i], *fcUVData[0][0][i], fcMatIds[i]]
                  for i in range(len(fcVertIds))]
@@ -1910,39 +1911,16 @@ class Aabb(Trimesh):
         aabbTree = []
         nvb_aabb.generateTree(aabbTree, faceList)
 
-        l_rnd = round
+        # l_rnd = round
         if aabbTree:
-            node = aabbTree.pop(0)
-            asciiLines.append('  aabb  ' +
-                              ' ' +
-                              str(l_rnd(node[0], 5)) +
-                              ' ' +
-                              str(l_rnd(node[1], 5)) +
-                              ' ' +
-                              str(l_rnd(node[2], 5)) +
-                              ' ' +
-                              str(l_rnd(node[3], 5)) +
-                              ' ' +
-                              str(l_rnd(node[4], 5)) +
-                              ' ' +
-                              str(l_rnd(node[5], 5)) +
-                              ' ' +
-                              str(node[6]))
-            for node in aabbTree:
-                asciiLines.append('    ' +
-                                  str(l_rnd(node[0], 5)) +
-                                  ' ' +
-                                  str(l_rnd(node[1], 5)) +
-                                  ' ' +
-                                  str(l_rnd(node[2], 5)) +
-                                  ' ' +
-                                  str(l_rnd(node[3], 5)) +
-                                  ' ' +
-                                  str(l_rnd(node[4], 5)) +
-                                  ' ' +
-                                  str(l_rnd(node[5], 5)) +
-                                  ' ' +
-                                  str(node[6]))
+            fstr = '  aabb ' + \
+                   '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
+                   '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
+            asciiLines.append(fstr.format(*aabbTree.pop(0)))
+            fstr = '       ' + \
+                   '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
+                   '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
+            asciiLines.extend([fstr.format(*bb) for bb in aabbTree])
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -1962,8 +1940,7 @@ class Aabb(Trimesh):
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
-        # asciiLines.append('  shininess 0')  # No shininess on wok
-        asciiLines.append('  bitmap NULL')
+        asciiLines.append('  bitmap ' + nvb_def.null)
         Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
@@ -1975,9 +1952,13 @@ class Aabb(Trimesh):
         me.vertices.add(len(self.verts))
         me.vertices.foreach_set('co', unpack_list(self.verts))
         # Create faces
-        face_vids = [v[0:3] for v in self.facedef]
-        me.tessfaces.add(len(face_vids))
-        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
+        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
+        face_cnt = len(face_vids)
+        me.polygons.add(face_cnt)
+        me.loops.add(face_cnt * 3)
+        me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
+        me.polygons.foreach_set('loop_total', (3,) * face_cnt)
+        me.loops.foreach_set('vertex_index', unpack_list(face_vids))
         # Create materials
         for wokMat in nvb_def.wok_materials:
             matName = wokMat[0]
@@ -1990,7 +1971,7 @@ class Aabb(Trimesh):
                 material.diffuse_color = wokMat[1]
                 material.diffuse_intensity = 1.0
                 material.specular_color = (0.0, 0.0, 0.0)
-                material.specular_intensity = wokMat[2]
+                material.specular_intensity = 0.0
             me.materials.append(material)
         me.update()
         # Apply the walkmesh materials to each face
