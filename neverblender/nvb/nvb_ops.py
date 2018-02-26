@@ -15,7 +15,7 @@ from . import nvb_io
 
 class NVB_OT_helper_amt2psd(bpy.types.Operator):
     """Generate pseudobone from blender armature."""
-    bl_idname = 'nvb.helper_amt_topseudo'
+    bl_idname = 'nvb.helper_amt2psd'
     bl_label = 'Generate MDL pseudo bones from Armature'
 
     def create_bone_geometry(amt_bone, prefix=''):
@@ -42,7 +42,7 @@ class NVB_OT_helper_amt2psd(bpy.types.Operator):
 class NVB_OT_helper_psd2amt(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
-    bl_idname = 'nvb.helper_amt_frompseudo'
+    bl_idname = 'nvb.helper_amt_psd2amt'
     bl_label = 'Generate Armature from MDL pseudo bones'
 
     # For detecting pseudo bones
@@ -1481,7 +1481,7 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 class NVB_OT_helper_genwok(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
-    bl_idname = "nvb.helper_loadwokmat"
+    bl_idname = "nvb.helper_genwok"
     bl_label = "Load walkmesh materials"
 
     def execute(self, context):
@@ -1518,11 +1518,11 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_helper_genobjects(bpy.types.Operator):
-    """Helper to add missing walkmesh objects."""
+class NVB_OT_helper_node_setup(bpy.types.Operator):
+    """Helper to add missing walkmesh objects and Dummys."""
 
-    bl_idname = "nvb.helper_wkm_setup"
-    bl_label = "Setup Walkmesh"
+    bl_idname = "nvb.helper_node_setup"
+    bl_label = "Setup Nodes"
 
     @classmethod
     def poll(self, context):
@@ -1535,7 +1535,7 @@ class NVB_OT_helper_genobjects(bpy.types.Operator):
         if not mdlroot:
             return {'CANCELLED'}
         scene = bpy.context.scene
-        wkmtype = mdlroot.nvb.helper_wkm_type
+        wkmtype = mdlroot.nvb.helper_node_mdltype
         if wkmtype == nvb_def.Walkmeshtype.PWK:
             nvb_utils.createPWKObjects(mdlroot, scene)
         elif wkmtype == nvb_def.Walkmeshtype.DWK:

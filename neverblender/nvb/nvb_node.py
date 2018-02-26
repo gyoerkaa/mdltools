@@ -1392,15 +1392,18 @@ class Skinmesh(Trimesh):
 
     def loadAsciiWeights(self, asciiLines):
         """TODO: Doc."""
+        def chunker(seq, size):
+            """TODO: DOC."""
+            return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
         lfloat = float
-        lchunker = nvb_utils.chunker
         for line in asciiLines:
             # A line looks like this
             # [group_name, vertex_weight, group_name, vertex_weight]
             # We create a list looking like this:
             # [[group_name, vertex_weight], [group_name, vertex_weight]]
             name_weight_pairs = []
-            for chunk in lchunker(line, 2):
+            for chunk in chunker(line, 2):
                 try:
                     n = chunk[0]
                     w = chunk[1]

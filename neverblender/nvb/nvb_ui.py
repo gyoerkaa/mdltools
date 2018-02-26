@@ -172,7 +172,7 @@ class NVB_PT_armature(bpy.types.Panel):
         row = layout.row()
         box = row.box()
         row = box.row()
-        row.operator('nvb.armature_topseudo',
+        row.operator('nvb.helper_amt2psd',
                      text='Generate Pseudo Bones',
                      icon='BONE_DATA')
 
@@ -421,7 +421,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             row = layout.row()
             box = row.box()
             row = box.row()
-            row.operator('nvb.helper_loadwokmat',
+            row.operator('nvb.helper_genwok',
                          text='Setup Materials', icon='NONE')
             row = box.row()
             row.label(text='(Warning: Removes current materials)')
@@ -658,18 +658,18 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(obj.nvb, 'helper_amt_connect', text='Connect')
             row = box.row()
             row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-            box.operator('nvb.helper_amt_frompseudo',
+            box.operator('nvb.helper_amt_psd2amt',
                          text='Generate Armature',
                          icon='BONE_DATA')
             layout.separator()
             # Walkmesh & Dummy Helper
             row = layout.row()
             box = row.box()
-            box.label(text='Walkmesh Helper')
+            box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(obj.nvb, 'helper_wkm_type', expand=True)
-            box.operator('nvb.helper_wkm_setup',
-                         text='Generate Walkmesh',
+            row.prop(obj.nvb, 'helper_node_mdltype', expand=True)
+            box.operator('nvb.helper_node_setup',
+                         text='Generate Objects',
                          icon='OOPS')
             layout.separator()

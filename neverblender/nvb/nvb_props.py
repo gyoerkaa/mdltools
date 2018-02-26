@@ -294,13 +294,15 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     minimapsize = bpy.props.IntProperty(name='Size',
                                         default=32,
                                         min=16)
-    # Walkmesh Helper
-    helper_wkm_type = bpy.props.EnumProperty(
+    # Object & Dummy Helper
+    helper_node_mdltype = bpy.props.EnumProperty(
         name='Type',
         items=[(nvb_def.Walkmeshtype.PWK,
                 'Placeable', 'Setup objects for placeables', 0),
                (nvb_def.Walkmeshtype.DWK,
                 'Door', 'Setup objects for doors', 1),
+               # (nvb_def.Walkmeshtype.TILE,
+               # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK)
     # Armature Helper
