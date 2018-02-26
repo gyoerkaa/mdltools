@@ -13,7 +13,7 @@ from . import nvb_utils
 from . import nvb_io
 
 
-class NVB_OP_Helper_ArmatureToPseudo(bpy.types.Operator):
+class NVB_OT_helper_amt2psd(bpy.types.Operator):
     """Generate pseudobone from blender armature."""
     bl_idname = 'nvb.helper_amt_topseudo'
     bl_label = 'Generate MDL pseudo bones from Armature'
@@ -39,7 +39,7 @@ class NVB_OP_Helper_ArmatureToPseudo(bpy.types.Operator):
         pass
 
 
-class NVB_OP_Helper_ArmatureFromPseudo(bpy.types.Operator):
+class NVB_OT_helper_psd2amt(bpy.types.Operator):
     """Generate armature from skinmesh weights and mdl bones."""
 
     bl_idname = 'nvb.helper_amt_frompseudo'
@@ -209,7 +209,7 @@ class NVB_OP_Helper_ArmatureFromPseudo(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Clone(bpy.types.Operator):
+class NVB_OT_anim_clone(bpy.types.Operator):
     """Clone animation and add it to the animation list"""
 
     bl_idname = 'nvb.anim_clone'
@@ -297,7 +297,7 @@ class NVB_OP_Anim_Clone(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Scale(bpy.types.Operator):
+class NVB_OT_anim_scale(bpy.types.Operator):
     """Open a dialog to scale a single animation"""
 
     bl_idname = 'nvb.anim_scale'
@@ -468,7 +468,7 @@ class NVB_OP_Anim_Scale(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class NVB_OP_Anim_Crop(bpy.types.Operator):
+class NVB_OT_anim_crop(bpy.types.Operator):
     """Open a dialog to crop a single animation"""
 
     bl_idname = 'nvb.anim_crop'
@@ -625,7 +625,7 @@ class NVB_OP_Anim_Crop(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class NVB_OP_Anim_Pad(bpy.types.Operator):
+class NVB_OT_anim_pad(bpy.types.Operator):
     """Open a dialog to pad a single animation"""
 
     bl_idname = 'nvb.anim_pad'
@@ -744,7 +744,7 @@ class NVB_OP_Anim_Pad(bpy.types.Operator):
         return wm.invoke_props_dialog(self)
 
 
-class NVB_OP_Anim_Focus(bpy.types.Operator):
+class NVB_OT_anim_focus(bpy.types.Operator):
     """Set the Start and end frames of the timeline"""
 
     bl_idname = 'nvb.anim_focus'
@@ -767,7 +767,7 @@ class NVB_OP_Anim_Focus(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_New(bpy.types.Operator):
+class NVB_OT_anim_new(bpy.types.Operator):
     """Add a new animation to the animation list"""
 
     bl_idname = 'nvb.anim_new'
@@ -787,7 +787,7 @@ class NVB_OP_Anim_New(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Delete(bpy.types.Operator):
+class NVB_OT_anim_delete(bpy.types.Operator):
     """Delete the selected animation and its keyframes"""
 
     bl_idname = 'nvb.anim_delete'
@@ -845,7 +845,7 @@ class NVB_OP_Anim_Delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Moveback(bpy.types.Operator):
+class NVB_OT_anim_moveback(bpy.types.Operator):
     """Move an animation and its keyframes to the end of the animation list"""
 
     bl_idname = 'nvb.anim_moveback'
@@ -928,7 +928,7 @@ class NVB_OP_Anim_Moveback(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Anim_Move(bpy.types.Operator):
+class NVB_OT_anim_move(bpy.types.Operator):
     """Move an item in the animation list, without affecting keyframes"""
 
     bl_idname = 'nvb.anim_move'
@@ -968,7 +968,7 @@ class NVB_OP_Anim_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Lensflare_New(bpy.types.Operator):
+class NVB_OT_lensflare_new(bpy.types.Operator):
     """Add a new item to the flare list"""
 
     bl_idname = 'nvb.lightflare_new'
@@ -983,7 +983,7 @@ class NVB_OP_Lensflare_New(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Lensflare_Delete(bpy.types.Operator):
+class NVB_OT_lensflare_delete(bpy.types.Operator):
     """Delete the selected item from the flare list"""
 
     bl_idname = 'nvb.lightflare_delete'
@@ -1008,7 +1008,7 @@ class NVB_OP_Lensflare_Delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Lensflare_Move(bpy.types.Operator):
+class NVB_OT_lensflare_move(bpy.types.Operator):
     """Move an item in the flare list"""
 
     bl_idname = 'nvb.lightflare_move'
@@ -1044,7 +1044,7 @@ class NVB_OP_Lensflare_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_AnimEvent_New(bpy.types.Operator):
+class NVB_OT_animevent_new(bpy.types.Operator):
     """Add a new item to the event list"""
 
     bl_idname = 'nvb.animevent_new'
@@ -1073,7 +1073,7 @@ class NVB_OP_AnimEvent_New(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_AnimEvent_Delete(bpy.types.Operator):
+class NVB_OT_animevent_delete(bpy.types.Operator):
     """Delete the selected item from the event list"""
 
     bl_idname = 'nvb.animevent_delete'
@@ -1105,7 +1105,7 @@ class NVB_OP_AnimEvent_Delete(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_OP_AnimEvent_Move(bpy.types.Operator):
+class NVB_OT_animevent_move(bpy.types.Operator):
     """Move an item in the event list"""
 
     bl_idname = 'nvb.animevent_move'
@@ -1148,7 +1148,7 @@ class NVB_OP_AnimEvent_Move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_LightGenerateName(bpy.types.Operator):
+class NVB_OT_light_genname(bpy.types.Operator):
     """Generate a name for the light based on type"""
 
     bl_idname = 'nvb.light_generatename'
@@ -1187,7 +1187,7 @@ class NVB_OP_LightGenerateName(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OP_DummyGenerateName(bpy.types.Operator):
+class NVB_OT_dummy_genname(bpy.types.Operator):
     """Generate an appropriate name for the dummy"""
 
     bl_idname = 'nvb.dummy_generatename'
@@ -1228,7 +1228,7 @@ class NVB_OP_DummyGenerateName(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlimport'
@@ -1349,7 +1349,7 @@ class NVB_OP_Import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return nvb_io.loadMdl(self, context, options)
 
 
-class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     """Export Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlexport'
@@ -1478,7 +1478,7 @@ class NVB_OP_Export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         return nvb_io.saveMdl(self, context, options)
 
 
-class NVB_OP_Helper_LoadWokMat(bpy.types.Operator):
+class NVB_OT_helper_genwok(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
     bl_idname = "nvb.helper_loadwokmat"
@@ -1518,7 +1518,7 @@ class NVB_OP_Helper_LoadWokMat(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Helper_Walkmesh(bpy.types.Operator):
+class NVB_OT_helper_genobjects(bpy.types.Operator):
     """Helper to add missing walkmesh objects."""
 
     bl_idname = "nvb.helper_wkm_setup"
@@ -1544,7 +1544,7 @@ class NVB_OP_Helper_Walkmesh(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_Helper_MinimapSetup(bpy.types.Operator):
+class NVB_OT_helper_mmsetup(bpy.types.Operator):
     """Set up rendering for minimaps."""
 
     bl_idname = "nvb.helper_minimap_setup"
@@ -1570,7 +1570,7 @@ class NVB_OP_Helper_MinimapSetup(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OP_SkingroupAdd(bpy.types.Operator):
+class NVB_OT_helper_genskgr(bpy.types.Operator):
     """TODO: DOC"""
     bl_idname = "nvb.skingroup_add"
     bl_label = "Add new Skingroup"
@@ -1596,7 +1596,7 @@ class NVB_OP_SkingroupAdd(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class NVB_OP_Mtr_Embed(bpy.types.Operator):
+class NVB_OT_mtr_embed(bpy.types.Operator):
     """Embed the MTR file into the blend file by creating a Text block."""
     bl_idname = "nvb.mtr_embed"
     bl_label = "Embed MTR"
@@ -1607,7 +1607,7 @@ class NVB_OP_Mtr_Embed(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_OP_Mtr_Generate(bpy.types.Operator):
+class NVB_OT_mtr_generate(bpy.types.Operator):
     """Generate a new Text Block containing from the current material."""
     bl_idname = "nvb.mtr_generate"
     bl_label = "Generate MTR"
@@ -1618,7 +1618,7 @@ class NVB_OP_Mtr_Generate(bpy.types.Operator):
         return{'FINISHED'}
 
 
-class NVB_OP_Mtr_Open(bpy.types.Operator):
+class NVB_OT_mtr_open(bpy.types.Operator):
     """Open material file."""
     bl_idname = "nvb.mtr_open"
     bl_label = "Open MTR"
@@ -1642,7 +1642,7 @@ class NVB_OP_Mtr_Open(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
-class NVB_OP_Mtr_Reload(bpy.types.Operator):
+class NVB_OT_mtr_reload(bpy.types.Operator):
     """Reload MTR, update current material."""
     bl_idname = "nvb.mtr_reload"
     bl_label = "Reload MTR"

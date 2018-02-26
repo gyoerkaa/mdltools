@@ -65,12 +65,12 @@ import bpy
 
 def menu_func_export(self, context):
     """TODO:Doc."""
-    self.layout.operator(nvb_ops.NVB_OP_Export.bl_idname, text="Aurora (.mdl)")
+    self.layout.operator(nvb_ops.NVB_OT_export.bl_idname, text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
     """TODO:Doc."""
-    self.layout.operator(nvb_ops.NVB_OP_Import.bl_idname, text="Aurora (.mdl)")
+    self.layout.operator(nvb_ops.NVB_OT_import.bl_idname, text="Aurora (.mdl)")
 
 
 def register():

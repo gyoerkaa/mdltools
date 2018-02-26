@@ -734,40 +734,6 @@ class Trimesh(Node):
         return aline
 
     @staticmethod
-    def createUVmapOLD(mesh, tverts, facetvs, uvname, material=None):
-        """TODO: Doc."""
-        uvmap = None
-        timg = None
-        if material:
-            # Set material for each face
-            mesh.tessfaces.foreach_set('material_index',
-                                       [0] * len(mesh.tessfaces))
-            if material.texture_slots[0]:
-                timg = material.texture_slots[0].texture.image
-        if tverts and mesh.tessfaces:
-            uvmap = mesh.tessface_uv_textures.new(uvname)
-            # we need to save the order the tverts were created in blender
-            # for animmeshes/uv animations
-            mesh.tessface_uv_textures.active = uvmap
-            # EEEKADOODLE fix
-            cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                    for f in facetvs]
-            # Set uv's
-            for i in range(len(cuvs)):
-                tessfaceUV = uvmap.data[i]
-                tessfaceUV.uv1 = tverts[cuvs[i][0]]
-                tessfaceUV.uv2 = tverts[cuvs[i][1]]
-                tessfaceUV.uv3 = tverts[cuvs[i][2]]
-                tessfaceUV.image = timg  # blender 2.8 error!
-            # Save new order for uvs (for animesh animations)
-            if uvmap.name not in nvb_def.tvert_order:
-                nvb_def.tvert_order[uvmap.name] = copy.deepcopy(cuvs)
-        # For blender 2.8:
-        # for uvf in mesh.data.uv_textures.active.data:
-        #     uvf.image = timg
-        return uvmap
-
-    @staticmethod
     def createUVlayer(mesh, uvcoords, faceuvs, uvname, uvimg=None):
         """TODO: Doc."""
         uvlay = None
@@ -820,10 +786,10 @@ class Trimesh(Node):
         me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
         me.polygons.foreach_set('loop_total', (3,) * face_cnt)
         me.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        me.update()
         # Create per-Vertex normals
         if self.normals and options.importNormals:
             me.vertices.foreach_set('normal', unpack_list(self.normals))
+            me.create_normals_split()
         # Create material
         material = None
         matimg = None
@@ -841,6 +807,7 @@ class Trimesh(Node):
         # EEEKADOODLE fix
         eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
                         for f in self.facedef]
+        # eeka_faceuvs = [(f[4], f[5], f[6]) for f in self.facedef]
         # Save fixed uvs for animeshes
         if self.nodetype == nvb_def.Nodetype.ANIMMESH:
             if me.name not in nvb_def.tvert_order:
@@ -881,19 +848,16 @@ class Trimesh(Node):
             me.validate(clean_customdata=False)
             clnors = array.array('f', [0.0] * (len(me.loops) * 3))
             me.loops.foreach_get('normal', clnors)
-            me.create_normals_split()
             me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
             me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
             me.use_auto_smooth = True
             me.show_edge_sharp = True
         else:
             me.validate()
-        # me.update()
         return me
 
     def createMeshOLD(self, name, options):
         """TODO: Doc."""
-
         # Create the mesh itself
         me = bpy.data.meshes.new(name)
         # Create vertices
@@ -908,18 +872,32 @@ class Trimesh(Node):
         me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
         # Create material
         material = None
+        matimg = None
         if options.importMaterials:
             material = self.material.create(options)
             if material:
                 me.materials.append(material)
+                # Set material idx (always 0, only a single material)
+                me.polygons.foreach_set('material_index',
+                                        [0] * len(me.polygons))
+                tslot0 = material.texture_slots[0]
+                if tslot0 and tslot0.texture:
+                    matimg = tslot0.texture.image
         # Create uvmaps
         # Iterate in reverse so the first uvmap can be set to active
         uvmap = None
+        # EEEKADOODLE fix
+        eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+                        for f in self.facedef]
+        # Save fixed uvs for animeshes
+        if self.nodetype == nvb_def.Nodetype.ANIMMESH:
+            if me.name not in nvb_def.tvert_order:
+                nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
         for idx, tvs in reversed(list(enumerate(self.tverts))):
             if tvs:  # may be []
-                uvname = self.name + '.tvert.' + str(idx)
-                uvmap = Trimesh.createUVmap(me, tvs, self.facedef,
-                                            uvname, material)
+                uvname = me.name + '.tvert' + str(idx)
+                uvmap = Trimesh.createUVlayer(me, tvs, eeka_faceuvs,
+                                              uvname, matimg)
         if uvmap:
             me.uv_textures[uvmap.name].active = True  # blender 2.8 error!
         # Import smooth groups as sharp edges
@@ -1011,7 +989,8 @@ class Trimesh(Node):
                 # 0 = Do not use smoothgroups
                 smoothGroups = [0] * len(mesh.polygons)
                 numSmoothGroups = 1
-            elif (obj.nvb.smoothgroup == 'SING'):
+            elif (obj.nvb.smoothgroup == 'SING') or \
+                 (options.exportNormals):
                 # All faces belong to smooth group 1
                 smoothGroups = [1] * len(mesh.polygons)
                 numSmoothGroups = 1
@@ -1119,13 +1098,6 @@ class Trimesh(Node):
                 tangents = \
                     [[l.tangent, l.bitangent_sign]
                      for l in mesh.loops if l.vertex_index == i]
-                s = set([str(t[0]) for t in tangents])
-                if len(s) != 1:
-                    # Something is not right, cannot export this
-                    oktangents = []
-                    print('Neverblender: WARNING - Invalid tangents ' +
-                          obj.name)
-                    break
                 oktangents.append(tangents[0])
             if oktangents:
                 asciiLines.append('  tangents ' + str(len(oktangents)))

@@ -6,7 +6,7 @@ from . import nvb_def
 from . import nvb_utils
 
 
-class NVB_UILIST_LENSFLARES(bpy.types.UIList):
+class NVB_UL_LENSFLARES(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
@@ -23,7 +23,7 @@ class NVB_UILIST_LENSFLARES(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
-class NVB_UILIST_ANIMS(bpy.types.UIList):
+class NVB_UL_ANIMS(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
@@ -39,7 +39,7 @@ class NVB_UILIST_ANIMS(bpy.types.UIList):
             layout.label('', icon=icon)
 
 
-class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
+class NVB_UL_ANIMEVENTS(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
@@ -56,7 +56,7 @@ class NVB_UILIST_ANIMEVENTS(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
-class NVB_PANEL_ROOTDUMMY(bpy.types.Panel):
+class NVB_PT_ROOTDUMMY(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
     This is only available for EMPTY objects without a parent.
@@ -95,7 +95,7 @@ class NVB_PANEL_ROOTDUMMY(bpy.types.Panel):
         col.prop(obj.nvb, 'animscale', text='')
 
 
-class NVB_PANEL_DUMMY(bpy.types.Panel):
+class NVB_PT_DUMMY(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
     This is only available for EMPTY objects with a parent.
@@ -145,7 +145,7 @@ class NVB_PANEL_DUMMY(bpy.types.Panel):
                          icon='SORTALPHA', text='')
 
 
-class NVB_PANEL_ARMATURE(bpy.types.Panel):
+class NVB_PT_ARMATURE(bpy.types.Panel):
     """Property panel for armature properties.
 
     Tools for auto-generating armatures from a models skinmesh and copying
@@ -177,7 +177,7 @@ class NVB_PANEL_ARMATURE(bpy.types.Panel):
                      icon='BONE_DATA')
 
 
-class NVB_PANEL_MATERIAL(bpy.types.Panel):
+class NVB_PT_MATERIAL(bpy.types.Panel):
     bl_idname = 'nvb.propertypanel.material'
     bl_label = 'Aurora Ambient'
     bl_space_type = 'PROPERTIES'
@@ -208,7 +208,7 @@ class NVB_PANEL_MATERIAL(bpy.types.Panel):
         # col.prop(mat, "use_diffuse_ramp", text="Ramp")
 
 
-class NVB_PANEL_MTRFILE(bpy.types.Panel):
+class NVB_PT_MTRFILE(bpy.types.Panel):
     bl_idname = 'nvb.propertypanel.mtrfile'
     bl_label = 'Aurora MTR File'
     bl_space_type = 'PROPERTIES'
@@ -250,7 +250,7 @@ class NVB_PANEL_MTRFILE(bpy.types.Panel):
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
 
 
-class NVB_PANEL_DATA_LAMP(bpy.types.Panel):
+class NVB_PT_DATA_LAMP(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -286,7 +286,7 @@ class NVB_PANEL_DATA_LAMP(bpy.types.Panel):
         col.prop(data.nvb, 'affectdynamic', text='Affect dynamic')
 
 
-class NVB_PANEL_LENSFLARES(bpy.types.Panel):
+class NVB_PT_LENSFLARES(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -342,7 +342,7 @@ class NVB_PANEL_LENSFLARES(bpy.types.Panel):
             row.prop(item, 'position')
 
 
-class NVB_PANEL_OBJECT_LAMP(bpy.types.Panel):
+class NVB_PT_OBJECT_LAMP(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -376,7 +376,7 @@ class NVB_PANEL_OBJECT_LAMP(bpy.types.Panel):
         layout.separator()
 
 
-class NVB_PANEL_OBJECT_MESH(bpy.types.Panel):
+class NVB_PT_OBJECT_MESH(bpy.types.Panel):
     """Property panel for additional mesh properties.
 
     This holds all properties not supported by blender,
@@ -517,7 +517,7 @@ class NVB_MENU_ANIMLIST_SPECIALS(bpy.types.Menu):
                         icon='NODETREE')
 
 
-class NVB_PANEL_ANIMLIST(bpy.types.Panel):
+class NVB_PT_ANIMLIST(bpy.types.Panel):
     """Property panel for animationslist.
 
     Property panel for additional properties needed for the mdl file
@@ -612,7 +612,7 @@ class NVB_PANEL_ANIMLIST(bpy.types.Panel):
                 layout.separator()
 
 
-class NVB_PANEL_UTILS(bpy.types.Panel):
+class NVB_PT_UTILS(bpy.types.Panel):
     """Property panel for minimap render.
 
     Property panel with utilities to render minimaps
