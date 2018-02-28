@@ -1229,7 +1229,7 @@ class NVB_OT_dummy_genname(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
+class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlimport'
@@ -1241,11 +1241,11 @@ class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                                            options={'HIDDEN'})
     importAnimations = bpy.props.BoolProperty(
             name='Import Animations',
-            description='Import animation data if available',
+            description='Import animation data',
             default=True)
     importWalkmesh = bpy.props.BoolProperty(
             name='Import Walkmesh',
-            description='Load placeable and door walkmeshes if available',
+            description='Load placeable and door walkmeshes',
             default=True)
     importSmoothGroups = bpy.props.BoolProperty(
             name='Import Smooth Groups',
@@ -1253,7 +1253,7 @@ class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             default=True)
     importNormals = bpy.props.BoolProperty(
             name='Import Normals',
-            description='Import normals from MDL if available',
+            description='Import normals from MDL',
             default=True)
     importMaterials = bpy.props.BoolProperty(
             name='Import Materials',
@@ -1262,12 +1262,12 @@ class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     # Sub-Options for Materials
     materialLoadMTR = bpy.props.BoolProperty(
             name='Load MTR files',
-            description='Use external material file if available ' +
-                        '(will override material in MDL)',
+            description='Load external material files ' +
+                        '(will overwride material in MDL)',
             default=True)
     materialAutoMerge = bpy.props.BoolProperty(
             name='Auto Merge Materials',
-            description='Merge Materials with same settings',
+            description='Merge materials with same settings',
             default=True)
     textureDefaultRoles = bpy.props.BoolProperty(
             name='Texture Default Roles',
@@ -1350,7 +1350,7 @@ class NVB_OT_import(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         return nvb_io.loadMdl(self, context, options)
 
 
-class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
+class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     """Export Aurora Engine model (.mdl)"""
 
     bl_idname = 'nvb.mdlexport'
@@ -1414,17 +1414,6 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             description='Add a reference to MTR file ' +
                         '(Filename will be the objects material name)',
             default=False)
-    """
-    textureOrder = bpy.props.EnumProperty(
-            name='Texture Order',
-            items=(('TSL', 'Texture Slot',
-                    'Texture index is texture slot index'),
-                   ('CON', 'Consecutive',
-                    'Consecutive numbering'),
-                   ),
-            default='TSL',
-            )
-    """
     # Blender Setting to use
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
@@ -1452,7 +1441,6 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.label(text='Material Settings')
         sub = box.column()
         sub.prop(self, 'materialUseMTR')
-        # sub.prop(self, 'textureOrder')
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
@@ -1475,7 +1463,6 @@ class NVB_OT_export(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.uvmapOrder = self.uvmapOrder
         # Material Export Settings
         options.materialUseMTR = self.materialUseMTR
-        # options.textureOrder = self.textureOrder
         # Blender Settings
         options.applyModifiers = self.applyModifiers
         return nvb_io.saveMdl(self, context, options)
@@ -1489,33 +1476,15 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
 
     def execute(self, context):
         """Delete all current materials and add walkmesh materials."""
-        selected_object = context.object
-        if (selected_object) and (selected_object.type == 'MESH'):
-            object_mesh = selected_object.data
-
-            # Remove all current material slots
-            for i in range(len(selected_object.material_slots)):
+        obj = context.object
+        if obj and (obj.type == 'MESH'):
+            # Remove all material slots
+            for i in range(len(obj.material_slots)):
                 bpy.ops.object.material_slot_remove()
-
-            # Create materials
-            for matDef in nvb_def.wok_materials:
-                matName = matDef[0]
-
-                # Walkmesh materials should be shared across multiple
-                # walkmeshes, as they always identical
-                if matName in bpy.data.materials.keys():
-                    mat = bpy.data.materials[matName]
-                else:
-                    mat = bpy.data.materials.new(matName)
-
-                    mat.diffuse_color = matDef[1]
-                    mat.diffuse_intensity = 1.0
-                    mat.specular_color = (0.0, 0.0, 0.0)
-                    mat.specular_intensity = matDef[2]
-
-                object_mesh.materials.append(mat)
+            # Add wok materials
+            nvb_utils.createWOKMaterials(obj.data)
         else:
-            self.report({'INFO'}, 'A mesh must be selected')
+            self.report({'ERROR'}, 'A mesh must be selected.')
             return {'CANCELLED'}
 
         return {'FINISHED'}
@@ -1630,12 +1599,23 @@ class NVB_OT_mtr_generate(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No material.')
             return {'CANCELLED'}
         mtr = nvb_node.Mtr()
-        options = nvb_def.ExportOptions()
-        asciiLines = mtr.generateAscii(material, options)
-        txt = bpy.data.texts.new(material.name + '.mtr')
-        txt.write('\n'.join(asciiLines))
+        # Either change existing or create new text block
+        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
+            txtBlock = bpy.data.texts[material.nvb.mtrtext]
+            mtr.loadTextBlock(txtBlock)
+        else:
+            if material.nvb.mtrname:
+                txtname = material.nvb.mtrname + '.mtr'
+            else:
+                txtname = material.name + '.mtr'
+            txtBlock = bpy.data.texts.new(txtname)
+            material.nvb.mtrtext = txtBlock.name
+        exportOptions = nvb_def.ExportOptions()
+        asciiLines = mtr.generateAscii(material, exportOptions)
+        txtBlock.clear()
+        txtBlock.write('\n'.join(asciiLines))
         # Report
-        self.report({'INFO'}, 'Created ' + txt.name)
+        self.report({'INFO'}, 'Created ' + txtBlock.name)
         return {'FINISHED'}
 
 
@@ -1664,13 +1644,20 @@ class NVB_OT_mtr_open(bpy.types.Operator):
         material.nvb.mtrname = mtrname
         # Load mtr
         mtr = nvb_node.Mtr(mtrname)
-        mtr.loadFile(self.filepath)
+        mtr.loadFile(material.nvb.mtrpath)
         if not mtr or not mtr.isvalid():
             self.report({'ERROR'}, 'Error: Invalid file.')
             return {'CANCELLED'}
-        # Add the rest of the properties
-        for idx, tex in enumerate(mtr.textures):
-            print(tex)
+        # Add textures
+        options = nvb_def.ImportOptions()
+        options.filepath = material.nvb.mtrpath
+        for idx, tname in enumerate(mtr.textures):
+            if tname:  # might be ''
+                tslot = material.texture_slots[idx]
+                if not tslot:
+                    tslot = material.texture_slots.create(idx)
+                tslot.texture = nvb_node.NodeMaterial.createTexture(
+                    tname, tname, options)
         if 'customshadervs' in mtr.customshaders:
             material.nvb.shadervs = mtr.customshaders['customshadervs']
         if 'customshaderfs' in mtr.customshaders:
@@ -1707,8 +1694,16 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
         # Add the rest of the properties
-        for idx, tex in enumerate(mtr.textures):
-            print(tex)
+        # Add textures
+        importOptions = nvb_def.ImportOptions()
+        importOptions.filepath = material.nvb.mtrpath
+        for idx, tname in enumerate(mtr.textures):
+            if tname:  # might be ''
+                tslot = material.texture_slots[idx]
+                if not tslot:
+                    tslot = material.texture_slots.create(idx)
+                tslot.texture = nvb_node.NodeMaterial.createTexture(
+                    tname, tname, importOptions)
         if 'customshadervs' in mtr.customshaders:
             material.nvb.shadervs = mtr.customshaders['customshadervs']
         if 'customshaderfs' in mtr.customshaders:
@@ -1726,14 +1721,22 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: Text block does not exist.')
             return {'CANCELLED'}
         txtBlock = bpy.data.texts[material.nvb.mtrtext]
-        mtr = nvb_node.Mtr(txtBlock)
-        mtr.loadFile(material.nvb.mtrpath)
+        mtr = nvb_node.Mtr()
+        mtr.loadTextBlock(txtBlock)
         if not mtr or not mtr.isvalid():
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
+        # Update name
         # Add the rest of the properties
-        for idx, tex in enumerate(mtr.textures):
-            print(tex)
+        importOptions = nvb_def.ImportOptions()
+        importOptions.filepath = material.nvb.mtrpath
+        for idx, tname in enumerate(mtr.textures):
+            if tname:  # might be ''
+                tslot = material.texture_slots[idx]
+                if not tslot:
+                    tslot = material.texture_slots.create(idx)
+                tslot.texture = nvb_node.NodeMaterial.createTexture(
+                    tname, tname, importOptions)
         if 'customshadervs' in mtr.customshaders:
             material.nvb.shadervs = mtr.customshaders['customshadervs']
         if 'customshaderfs' in mtr.customshaders:

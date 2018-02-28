@@ -69,8 +69,36 @@ def isMdlRoot(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
+def findObjMdlRoot(obj):
+    """Return the objects mdlroot."""
+    while obj:
+        if isMdlRoot(obj):
+            return obj
+        obj = obj.parent
+    return None
+
+
+def findMdlRoot(obj=None, scene=None):
+    """Return any mdlroot in the scene."""
+    # 1. Check the object and its parents
+    match = findObjMdlRoot(obj)
+    if match:
+        return match
+    # 2. Nothing was found, try checking the objects in the scene
+    if scene:
+        matches = [m for m in scene.objects if isMdlRoot(m)]
+        if matches:
+            return matches[0]
+    # 3. Still nothing, try checking all objects
+    matches = [m for m in bpy.data.objects if isMdlRoot(m)]
+    if matches:
+        return matches[0]
+
+    return None
+
+
 def findObjRootDummy(obj):
-    """Return the rootdummy of this object."""
+    """Deprecated: Return the rootdummy of this object."""
     while obj:
         if isMdlRoot(obj):
             return obj
@@ -79,7 +107,7 @@ def findObjRootDummy(obj):
 
 
 def findRootDummy(obj=None):
-    """Return any rootdummy in any scene."""
+    """Deprecated: Return any rootdummy in any scene."""
     # 1. Check the object and its parents
     match = findObjRootDummy(obj)
     if match:
@@ -132,9 +160,51 @@ def findWkmRoot(mdlRoot, wkmtype):
     return None
 
 
+def createWOKMaterials(mesh):
+    """Adds walkmesh materials to the object."""
+    # Add walkmesh materials
+    for matname, matcolor in nvb_def.wok_materials:
+        # Walkmesh materials are always shared between walkmeshes
+        if matname in bpy.data.materials.keys():
+            mat = bpy.data.materials[matname]
+        else:
+            mat = bpy.data.materials.new(matname)
+            mat.diffuse_color = matcolor
+            mat.diffuse_intensity = 1.0
+            mat.specular_color = (0.0, 0.0, 0.0)
+            mat.specular_intensity = 0.0
+        mesh.materials.append(mat)
+
+
 def createWOKObjects(mdlroot, scene, walkmeshonly=False):
     """Adds necessary (walkmesh) objects to mdlRoot."""
-    pass
+    def createWOKPlane(meshname):
+        """Ge the bounding box for all object in the mesh."""
+        verts = [(+5.0,  5.0, 0.0),
+                 (+5.0, -5.0, 0.0),
+                 (-5.0, +5.0, 0.0),
+                 (-5.0, +5.0, 0.0)]
+        faces = [1, 0, 2, 3]
+        mesh = bpy.data.meshes.new(meshname)
+        # Create Verts
+        mesh.vertices.add(4)
+        mesh.vertices.foreach_set('co', verts)
+        # Create Faces
+        mesh.tessfaces.add(1)
+        mesh.tessfaces.foreach_set('vertices_raw', faces)
+        mesh.validate()
+        mesh.update()
+        return mesh
+
+    # Add a plane for the wok
+    objname = mdlroot.name + '_wok'
+    mesh = createWOKPlane(objname)
+    createWOKMaterials(mesh)
+    obj = bpy.data.objects.new(objname, mesh)
+    obj.nvb.meshtype = nvb_def.Meshtype.AABB
+    obj.location = (0.0, 0.0, 0.0)
+    obj.parent = mdlroot
+    scene.objects.link(obj)
 
 
 def createPWKObjects(mdlroot, scene, walkmeshonly=False):
@@ -146,7 +216,7 @@ def createPWKObjects(mdlroot, scene, walkmeshonly=False):
             return basename[-1*dpos:]
         return basename[-3:]
 
-    def getMdlBox(mdlroot):
+    def getMDLBox(mdlroot):
         """Ge the bounding box for all object in the mesh."""
         verts = [(-0.5, -0.5, 0.0),
                  (-0.5, -0.5, 2.0),
@@ -193,7 +263,7 @@ def createPWKObjects(mdlroot, scene, walkmeshonly=False):
     # Create a mesh
     objname = mdlroot.name + '_wg'
     if objname not in objList:
-        verts, faces = getMdlBox(mdlroot)
+        verts, faces = getMDLBox(mdlroot)
         mesh = createPWKMesh(objname, verts, faces)
         obj = bpy.data.objects.new(objname, mesh)
         obj.parent = wkmroot
@@ -255,14 +325,14 @@ def createDWKObjects(mdlroot, scene, walkmeshonly=False):
         mesh.update()
         return mesh
 
-    def createSAMMesh(samname):
+    def createSAMMesh(meshname):
         """Generate the default SAM mesh for a generic door."""
         verts = [-1.0, 0.0, 0.0,
                  +1.0, 0.0, 0.0,
                  -1.0, 0.0, 3.0,
                  +1.0, 0.0, 3.0]
         faces = [1, 0, 2, 3]
-        mesh = bpy.data.meshes.new(samname)
+        mesh = bpy.data.meshes.new(meshname)
         # Create Verts
         mesh.vertices.add(4)
         mesh.vertices.foreach_set('co', verts)

@@ -1,10 +1,7 @@
 import os
 import sys
-import re
 
 import bpy
-import bgl
-import blf
 
 import neverblender
 
@@ -13,9 +10,9 @@ import neverblender
 minimap_size = 32
 z_offset = 10.0
 light_color = (1.0, 1.0, 1.0)
-skip_fading = False
-input_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'in')
-output_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'out')
+opt_skip_fading = False
+opt_in_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'in')
+opt_out_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'out')
 
 
 # Some globals
@@ -32,7 +29,7 @@ def log(message):
     print(message)
     try:
         logfile.write(message + '\n')
-    except:
+    except IOError:
         pass
 
 
@@ -42,10 +39,10 @@ def load_settings():
     '''
     global minimap_size
     global z_offset
-    global skip_fading
+    global opt_skip_fading
     global light_color
-    global input_path
-    global output_path
+    global opt_in_path
+    global opt_out_path
 
     log('##### Begin Options #####')
 
@@ -54,19 +51,22 @@ def load_settings():
         if (words[0] == 'nvb_msize'):
             try:
                 minimap_size = int(words[1])
-            except:
-                log('WARNING: Could not read MINIMAP_SIZE. Using Default value.')
+            except (IndexError, AttributeError):
+                log('WARNING: Could not read MINIMAP_SIZE. ' +
+                    'Using Default value.')
         if (words[0] == 'nvb_zoff'):
             try:
                 z_offset = float(words[1])
-            except:
-                log('WARNING: Could not read Z_OFFSET. Using Default value.')
+            except (IndexError, AttributeError):
+                log('WARNING: Could not read Z_OFFSET. ' +
+                    'Using Default value.')
 
         elif (words[0] == 'nvb_impfade'):
             try:
-                skip_fading = (int(words[1]) < 1)
-            except:
-                log('WARNING: Could not read IMPORT_FADING_OBJ. Using Default value.')
+                opt_skip_fading = (int(words[1]) < 1)
+            except (IndexError, AttributeError):
+                log('WARNING: Could not read IMPORT_FADING_OBJ. ' +
+                    'Using Default value.')
 
         elif (words[0] == 'nvb_lcolor'):
             cval_string = words[1].split(',')
@@ -74,8 +74,9 @@ def load_settings():
                 cval = [float(cval_string[0]),
                         float(cval_string[1]),
                         float(cval_string[2])]
-            except:
-                log('WARNING: Could not read LIGHT_COLOR. Using Default value.')
+            except (IndexError, AttributeError):
+                log('WARNING: Could not read LIGHT_COLOR. ' +
+                    'Using Default value.')
 
             # Make sure the light colors are in [0.0,1.0]
             for i in range(3):
@@ -86,21 +87,25 @@ def load_settings():
             light_color = tuple(cval)
 
         elif (words[0] == 'nvb_input'):
-            input_path = words[1]
+            opt_in_path = words[1]
 
         elif (words[0] == 'nvb_output'):
-            output_path = words[1]
+            opt_out_path = words[1]
 
     log('Minimap Size: ' + str(minimap_size))
     log('Z-Offset: ' + str(z_offset))
-    if skip_fading:
+    if opt_skip_fading:
         log('Fading Objects: Ignore')
     else:
         log('Fading Objects:  Import')
-    log('Light color: (' + str(cval[0]) + ', ' + str(cval[1]) + ', ' + str(cval[2]) + ')')
-    log('Input path:  ' + input_path)
-    log('Output path: ' + output_path)
+    log('Light color: (' +
+        str(cval[0]) + ', ' +
+        str(cval[1]) + ', ' +
+        str(cval[2]) + ')')
+    log('Input path:  ' + opt_in_path)
+    log('Output path: ' + opt_out_path)
     log('##### End Options #####')
+
 
 def process_files():
     '''
@@ -110,7 +115,7 @@ def process_files():
     log('##### Processing #####')
 
     found_set = False
-    for filename in os.listdir(input_path):
+    for filename in os.listdir(opt_in_path):
         if filename.endswith('.set'):
             found_set = True
             process_set(filename)
@@ -127,28 +132,31 @@ def process_all():
     try:
         bpy.ops.wm.open_mainfile(filepath=empty_path,
                                  load_ui=False)
-    except:
+    except IOError:
         log('ERROR: Unable to load empty.blend')
         return
 
-    for filename in os.listdir(input_path):
+    for filename in os.listdir(opt_in_path):
         if filename.endswith('.mdl'):
             log('Processing ' + filename)
 
             # Import mdl file
-            mdlfile = os.fsencode(os.path.join(input_path, filename))
+            mdlfile = os.fsencode(os.path.join(opt_in_path, filename))
             try:
                 bpy.ops.nvb.mdlimport(filepath=mdlfile,
-                                      importGeometry=True,
+                                      filter_glob='*.mdl',
+                                      importAnimations=False,
                                       importWalkmesh=False,
                                       importSmoothGroups=False,
                                       importNormals=False,
-                                      importAnimations=False,
-                                      importSupermodel=False,
-                                      materialMode='MUL',
+                                      importMaterials=True,
+                                      materialLoadMTR=True,
+                                      materialAutoMerge=False,
+                                      textureDefaultRoles=True,
                                       textureSearch=False,
+                                      customfps=True, fps=30,
                                       minimapMode=True,
-                                      minimapSkipFade=skip_fading)
+                                      minimapSkipFade=opt_skip_fading)
             except RuntimeError as ex:
                 error_report = '\n'.join(ex.args)
                 log('    ERROR: ' + error_report)
@@ -157,7 +165,7 @@ def process_all():
             # Get aurora root
             mdlRoot = None
             for obj in bpy.data.objects:
-                if neverblender.nvb.nvb_utils.isRootDummy(obj):
+                if neverblender.nvb.nvb_utils.isMdlRoot(obj):
                     mdlRoot = obj
                     break
 
@@ -165,10 +173,14 @@ def process_all():
             if mdlRoot:
                 filename = 'mi_' + mdlRoot.name
                 scene = bpy.context.scene
-                scene.render.filepath = os.fsencode(os.path.join(output_path, filename))
+                scene.render.filepath = os.fsencode(os.path.join(opt_out_path,
+                                                                 filename))
                 mdlRoot.nvb.minimapsize = minimap_size
                 mdlRoot.nvb.minimapzoffset = z_offset
-                neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot, scene, light_color, 'SKY')
+                neverblender.nvb.nvb_utils.setupMinimapRender(mdlRoot,
+                                                              scene,
+                                                              light_color,
+                                                              'SKY')
                 bpy.ops.render.render(animation=False, write_still=True)
                 log('    Rendered to ' + filename)
             else:
@@ -184,10 +196,10 @@ def process_set(setfile_name):
     Single tiles are rendered regularly
     '''
     log('Processing set file: ' + setfile_name)
-    tiles = []
+    # tiles = []
     groups = []
 
-    filepath = os.fsencode(os.path.join(input_path, setfile_name))
+    filepath = os.fsencode(os.path.join(opt_in_path, setfile_name))
     with open(filepath, 'r') as fp:
         contents = fp.read()
 

@@ -38,19 +38,19 @@ class Mtr(object):
 
     def loadFile(self, filepath):
         """Load contents of a mtr file."""
+        self.valid = False
         try:
             mtrFile = open(filepath, 'r')
         except IOError:
-            self.valid = False
             return
         else:
-            self.valid = True
             asciiData = mtrFile.read()
             self.loadAscii(asciiData)
             mtrFile.close()
 
     def loadTextBlock(self, textBlock):
         """Load content of a blender text block."""
+        self.valid = False
         if not textBlock:
             return
         # txtLines = [l.split() for l in textBlock.as_string().split('\n')]
@@ -89,11 +89,18 @@ class Mtr(object):
         elif label == 'renderhint':
             self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
         elif label == 'parameter':
-            pvalues = aline[3:]
-            self.parameters[aline[2]] == (aline[1], pvalues)
+            # 'parameter' 'float' 'myParam' '1.0'
+            self.valid = True
+            try:
+                self.parameters[aline[2]] = (aline[1], aline[3:])
+            except IndexError:
+                # Bad parameter, skip it
+                pass
         elif label.startswith('customshader'):
+            self.valid = True
             self.customshaders[label] = aline[1]
         elif label.startswith('texture'):
+            self.valid = True
             tid = 0
             # 'texture' has to be followed by a number
             if label[7:]:
@@ -106,18 +113,32 @@ class Mtr(object):
                         nvb_utils.getAuroraTexture(aline[1])
         return aline
 
-    @staticmethod
-    def generateAscii(material, options):
+    def generateAscii(self, material, options):
         """Generate a mtr file as asciilines."""
         asciiLines = []
+        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
+            txtBlock = bpy.data.texts[material.nvb.mtrtext]
+            self.loadTextBlock(txtBlock)
+        # Add custom shaders
+        asciiLines.append('// Shaders')
         if material.nvb.shadervs:
             asciiLines.append('customshaderVS ' + material.nvb.shadervs)
         if material.nvb.shaderfs:
             asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
+        asciiLines.append('')
+        asciiLines.append('// Textures')
+        # Add list of textures
         texList = NodeMaterial.getAsciiTextures(material, options)
         if len(texList) > 0:
             asciiLines.extend(['texture' + str(i) + ' ' + n
-                               for i, n, _ in texList[1:]])
+                               for i, n, _ in texList])
+            asciiLines.append('')
+            asciiLines.append('// Parameters')
+            for pname, pvalues in self.parameters.items():
+                asciiLines.append('parameter ' +
+                                  pvalues[0] +
+                                  ' ' + pname + ' ' +
+                                  ' '.join(pvalues[1]))
         return asciiLines
 
 
@@ -284,9 +305,10 @@ class NodeMaterial(object):
                 tex.image = image
         return tex
 
-    def applyTextureRoles(self, material, options):
-        """TODO: Doc."""
-        matalpha = self.alpha
+    @staticmethod
+    def applyTextureRoles(material, alpha, options):
+        """Apply settings to material and texture slots for default shader."""
+        matalpha = alpha
         if options.textureDefaultRoles:
             # Diffuse in tslot 0
             tslot = material.texture_slots[0]
@@ -296,7 +318,7 @@ class NodeMaterial(object):
                 tslot.use_map_normal = False
                 tslot.use_map_color_spec = False
                 tslot.use_map_alpha = True
-                tslot.alpha_factor = self.alpha
+                tslot.alpha_factor = alpha
                 matalpha = 0.0  # alpha doesn't need to be in mat
             # Normal in tslot 1
             tslot = material.texture_slots[1]
@@ -319,10 +341,7 @@ class NodeMaterial(object):
             if tslot is not None:
                 tslot.texture_coords = 'UV'
             # Other slots are generic
-        if math.isclose(self.alpha, 1.0, rel_tol=0.03):
-            material.use_transparency = True
-        else:
-            material.use_transparency = False
+        material.use_transparency = True
         material.alpha = matalpha
         material.specular_alpha = matalpha
 
@@ -366,7 +385,7 @@ class NodeMaterial(object):
                     tslot.texture = NodeMaterial.createTexture(mdltex, mdltex,
                                                                options)
             # Set the default roles for texture slots:
-            self.applyTextureRoles(material, options)
+            NodeMaterial.applyTextureRoles(material, self.alpha, options)
         return material
 
     @staticmethod
@@ -397,7 +416,7 @@ class NodeMaterial(object):
                             os.path.splitext(os.path.basename(img.name))[0]
             # Last resort: Texture name
             if not imgname:
-                imgname = os.path.splitext(os.path.basename(tex.name))[0]
+                imgname = tex.name
             return imgname
 
         # Generate a list of (texture_index, texture_name) tuples
@@ -406,10 +425,9 @@ class NodeMaterial(object):
         texList1 = [(idx, get_img_name(tslot), tslot.alpha_factor)
                     for idx, tslot in enumerate(material.texture_slots)
                     if tslot and material.use_textures[idx]]
-        if options.textureOrder == 'CON':
-            # Alter texture indices to be consecutive
-            texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
-            return texList2
+        # Alter texture indices to be consecutive
+        # texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
+        # return texList2
         return texList1
 
     @staticmethod
@@ -435,15 +453,20 @@ class NodeMaterial(object):
                 if len(texList) > 0:
                     istextured = True
                     asciiLines.append('  bitmap ' + texList[0][1])
-                    # Write the rest of the textures as textureX
+                    # Add renderhint
                     if len(texList) > 1:
                         asciiLines.append('  renderhint NormalAndSpecMapped')
+                else:
+                    asciiLines.append('  bitmap ' + nvb_def.null)
+                # Either add material reference or textures
+                if options.materialUseMTR and material.nvb.usemtr:
+                    asciiLines.append('  materialname ' +
+                                      material.nvb.mtrname)
+                else:
+                    # Write the rest of the textures as textureX
+                    if len(texList) > 1:
                         asciiLines.extend(['  texture' + str(i) + ' ' + n
                                           for i, n, _ in texList[1:]])
-                if options.materialUseMTR:
-                    if material.usemtr:
-                        asciiLines.append('  materialname ' +
-                                          material.nvb.mtrname)
                 # Alpha value:
                 # 1. Texture slots present: get alpha from 1st slot
                 # 2. No texture slot get alpha from material
@@ -453,8 +476,9 @@ class NodeMaterial(object):
                         _, _, alpha = texList[0]
                     else:
                         alpha = material.alpha
-                    # TODO: Skip if 1.0
-                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
+                    # Skip if 1.0
+                    if not math.isclose(alpha, 1.0, rel_tol=0.01):
+                        asciiLines.append('  alpha {: 3.2f}'.format(alpha))
             else:
                 NodeMaterial.generateDefaultValues(asciiLines)
         return istextured
@@ -746,7 +770,7 @@ class Trimesh(Node):
                 pass
         elif (label == 'beaming'):
             self.beaming = int(aline[1])
-        elif (label == 'inheritcolor '):
+        elif (label == 'inheritcolor'):
             self.inheritcolor = int(aline[1])
         elif (label == 'rotatetexture'):
             self.rotatetexture = int(aline[1])
@@ -798,7 +822,7 @@ class Trimesh(Node):
         return aline
 
     @staticmethod
-    def createUVlayer(mesh, uvcoords, faceuvs, uvname, uvimg=None):
+    def createUVlayer2(mesh, uvcoords, faceuvs, uvname, uvimg=None):
         """TODO: Doc."""
         uvlay = None
         if uvcoords and mesh.polygons:
@@ -814,6 +838,26 @@ class Trimesh(Node):
         # for uvf in mesh.data.uv_textures.active.data:
         #     uvf.image = timg
         return uvlay
+
+    def createUVlayer(mesh, tverts, faceuvs, uvname, uvimg=None):
+        """TODO: Doc."""
+        uvmap = None
+        if tverts and mesh.tessfaces:
+            uvmap = mesh.tessface_uv_textures.new(uvname)
+            # we need to save the order the tverts were created in blender
+            # for animmeshes/uv animations
+            mesh.tessface_uv_textures.active = uvmap
+            # EEEKADOODLE fix
+            # cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+            #         for f in self.facedef]
+            # Set uv's
+            for i in range(len(faceuvs)):
+                tessfaceUV = uvmap.data[i]
+                tessfaceUV.uv1 = tverts[faceuvs[i][0]]
+                tessfaceUV.uv2 = tverts[faceuvs[i][1]]
+                tessfaceUV.uv3 = tverts[faceuvs[i][2]]
+                tessfaceUV.image = uvimg
+        return uvmap
 
     @staticmethod
     def createVColors(mesh, vcolors, vcname):
@@ -834,7 +878,7 @@ class Trimesh(Node):
                     cmap.data[lidx].color = vcolors[vidx]
         return cmap
 
-    def createMesh(self, name, options):
+    def createMesh2(self, name, options):
         """TODO: Doc."""
 
         # Create the mesh itself
@@ -880,8 +924,8 @@ class Trimesh(Node):
         for idx, tvs in enumerate(self.tverts):
             if tvs:  # may be []
                 uvname = me.name + '.tvert' + str(idx)
-                uvlayers.append(Trimesh.createUVlayer(me, tvs, eeka_faceuvs,
-                                                      uvname, matimg))
+                uvlayers.append(Trimesh.createUVlayer2(me, tvs, eeka_faceuvs,
+                                                       uvname, matimg))
         # if len(uvmaps) > 0 and uvmaps[0] is not None:
         #     me.uv_textures[uvmaps[0].name].active = True  # blender2.8 error!
         # Import smooth groups as sharp edges
@@ -920,7 +964,7 @@ class Trimesh(Node):
             me.validate()
         return me
 
-    def createMeshOLD(self, name, options):
+    def createMesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
         me = bpy.data.meshes.new(name)
@@ -942,14 +986,12 @@ class Trimesh(Node):
             if material:
                 me.materials.append(material)
                 # Set material idx (always 0, only a single material)
-                me.polygons.foreach_set('material_index',
-                                        [0] * len(me.polygons))
+                me.tessfaces.foreach_set('material_index',
+                                         [0] * len(me.tessfaces))
                 tslot0 = material.texture_slots[0]
                 if tslot0 and tslot0.texture:
                     matimg = tslot0.texture.image
         # Create uvmaps
-        # Iterate in reverse so the first uvmap can be set to active
-        uvmap = None
         # EEEKADOODLE fix
         eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
                         for f in self.facedef]
@@ -957,6 +999,8 @@ class Trimesh(Node):
         if self.nodetype == nvb_def.Nodetype.ANIMMESH:
             if me.name not in nvb_def.tvert_order:
                 nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
+        # Iterate in reverse so the first uvmap can be set to active
+        uvmap = None
         for idx, tvs in reversed(list(enumerate(self.tverts))):
             if tvs:  # may be []
                 uvname = me.name + '.tvert' + str(idx)
@@ -1159,13 +1203,12 @@ class Trimesh(Node):
             #  Vertex-per-face tangents
             for i in range(len(mesh.vertices)):
                 # All tangents for this vertex
-                tangents = \
-                    [[l.tangent, l.bitangent_sign]
-                     for l in mesh.loops if l.vertex_index == i]
+                tangents = [[l.tangent, l.bitangent_sign]
+                            for l in mesh.loops if l.vertex_index == i]
                 oktangents.append(tangents[0])
             if oktangents:
                 asciiLines.append('  tangents ' + str(len(oktangents)))
-                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.2f}'
+                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
                 asciiLines.extend([fstr.format(*t[0], t[1])
                                   for t in oktangents])
             """
@@ -1179,7 +1222,7 @@ class Trimesh(Node):
             """
             # mesh.free_normals_split()
 
-        me = obj.to_mesh(bpy.context.scene,
+        me = obj.to_mesh(options.scene,
                          options.applyModifiers,
                          options.meshConvert)
         for p in me.polygons:
@@ -1803,24 +1846,25 @@ class Light(Node):
         obj.nvb.lighttype = nvb_def.Lighttype.getType(self.name)
 
         data = obj.data
-        data.nvb.ambientonly = (self.ambientonly >= 1)
-        data.nvb.shadow = (self.shadow >= 1)
-        data.nvb.lightpriority = self.lightpriority
-        data.nvb.fadinglight = (self.fadinglight >= 1)
-        data.nvb.isdynamic = (self.isdynamic >= 1)
-        data.nvb.affectdynamic = (self.affectdynamic >= 1)
+        if data:  # might be None in batch mode
+            data.nvb.ambientonly = (self.ambientonly >= 1)
+            data.nvb.shadow = (self.shadow >= 1)
+            data.nvb.lightpriority = self.lightpriority
+            data.nvb.fadinglight = (self.fadinglight >= 1)
+            data.nvb.isdynamic = (self.isdynamic >= 1)
+            data.nvb.affectdynamic = (self.affectdynamic >= 1)
 
-        # Create lensflares
-        numflares = min(self.flareNumValues)
-        if (self.flareradius > 0) or (numflares > 0):
-            data.nvb.uselensflares = True
-            for i in range(numflares):
-                newItem = data.nvb.flareList.add()
-                newItem.texture = self.flareTextures[i]
-                newItem.colorshift = self.flareCShifts[i]
-                newItem.size = self.flareSizes[i]
-                newItem.position = self.flarePositions[i]
-        data.nvb.flareradius = self.flareradius
+            # Create lensflares
+            numflares = min(self.flareNumValues)
+            if (self.flareradius > 0) or (numflares > 0):
+                data.nvb.uselensflares = True
+                for i in range(numflares):
+                    newItem = data.nvb.flareList.add()
+                    newItem.texture = self.flareTextures[i]
+                    newItem.colorshift = self.flareCShifts[i]
+                    newItem.size = self.flareSizes[i]
+                    newItem.position = self.flarePositions[i]
+            data.nvb.flareradius = self.flareradius
 
     def createObject(self, options):
         """TODO: Doc."""
@@ -1891,7 +1935,7 @@ class Aabb(Trimesh):
     @staticmethod
     def generateAsciiAABB(obj, asciiLines, options):
         """TODO: Doc."""
-        walkmesh = obj.to_mesh(bpy.context.scene,
+        walkmesh = obj.to_mesh(options.scene,
                                options.applyModifiers,
                                options.meshConvert)
 
@@ -1998,6 +2042,8 @@ class Aabb(Trimesh):
         me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
         me.polygons.foreach_set('loop_total', (3,) * face_cnt)
         me.loops.foreach_set('vertex_index', unpack_list(face_vids))
+        nvb_utils.createWOKMaterials(me)
+        """
         # Create materials
         for wokMat in nvb_def.wok_materials:
             matName = wokMat[0]
@@ -2012,6 +2058,7 @@ class Aabb(Trimesh):
                 material.specular_color = (0.0, 0.0, 0.0)
                 material.specular_intensity = 0.0
             me.materials.append(material)
+        """
         me.update()
         # Apply the walkmesh materials to each face
         me.polygons.foreach_set('material_index',

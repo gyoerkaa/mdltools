@@ -1,7 +1,5 @@
 """TODO: DOC."""
 
-import bpy
-
 from . import nvb_utils
 from . import nvb_animnode
 
@@ -83,16 +81,16 @@ class Animation():
             print('Neverblender - WARNING: Failed to load an animation.')
 
     @staticmethod
-    def generateAsciiNodes(obj, anim, asciiLines):
+    def generateAsciiNodes(obj, anim, asciiLines, options):
         """TODO: Doc."""
-        nvb_animnode.Animnode.generateAscii(obj, anim, asciiLines)
+        nvb_animnode.Animnode.generateAscii(obj, anim, asciiLines, options)
 
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)
         children = [c for c in obj.children]
         children.sort(key=lambda c: c.nvb.imporder)
         for c in children:
-            Animation.generateAsciiNodes(c, anim, asciiLines)
+            Animation.generateAsciiNodes(c, anim, asciiLines, options)
 
     @staticmethod
     def generateAscii(rootDummy, anim, asciiLines, options):
@@ -101,9 +99,8 @@ class Animation():
             # Don't export mute animations
             return
 
-        animScene = bpy.context.scene
         animLength = nvb_utils.frame2nwtime(anim.frameEnd-anim.frameStart,
-                                            animScene.render.fps)
+                                            options.scene.render.fps)
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('  length ' + str(round(animLength, 5)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
@@ -114,11 +111,11 @@ class Animation():
 
         for event in anim.eventList:
             eventTime = nvb_utils.frame2nwtime(event.frame-anim.frameStart,
-                                               animScene.render.fps)
+                                               options.scene.render.fps)
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
                               event.name)
 
-        Animation.generateAsciiNodes(rootDummy, anim, asciiLines)
+        Animation.generateAsciiNodes(rootDummy, anim, asciiLines, options)
 
         asciiLines.append('doneanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('')

@@ -390,7 +390,6 @@ class ExportOptions():
         self.uvmapOrder = 'AL0'
         # Additional options for textures and materials
         self.materialUseMTR = False
-        self.textureOrder = 'TSL'
         # Blender Settings
         self.applyModifiers = True
         self.meshConvert = 'RENDER'

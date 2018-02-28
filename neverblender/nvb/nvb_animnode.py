@@ -44,10 +44,6 @@ class Animnode():
         self.sampleperiod = 0.0
         self.animtverts = []
         self.animverts = []
-        self.clipu = 0.0
-        self.clipv = 0.0
-        self.clipw = 0.0
-        self.cliph = 0.0
 
         self.objdata = False  # Object animations present (loc, rot, scale ...)
         self.matdata = False  # Material animations present
@@ -158,14 +154,6 @@ class Animnode():
                     pass  # Not needed (?)
                 elif label == 'sampleperiod':
                     self.sampleperiod = l_float(line[1])
-                elif label == 'clipu':
-                    self.clipu = l_float(line[1])
-                elif label == 'clipv':
-                    self.clipv = l_float(line[1])
-                elif label == 'clipw':
-                    self.clipw = l_float(line[1])
-                elif label == 'cliph':
-                    self.cliph = l_float(line[1])
                 elif label == 'animverts':
                     if not self.animverts:
                         numVals = l_int(line[1])
@@ -247,7 +235,7 @@ class Animnode():
 
     def createDataMaterial(self, mat, anim, options):
         """TODO: DOC."""
-        fps = bpy.context.scene.render.fps
+        fps = options.scene.render.fps
         # Add everything to a single action.
         frameStart = anim.frameStart
         frameEnd = anim.frameEnd
@@ -475,7 +463,7 @@ class Animnode():
 
     def createDataShape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
-        fps = bpy.context.scene.render.fps
+        fps = options.scene.render.fps
         if not obj.data:
             return
         # Sanity check: Sample period can't be 0
@@ -486,9 +474,12 @@ class Animnode():
         if animlength % self.sampleperiod > 0.0:
             return
         numSamples = int(animlength / self.sampleperiod) + 1
+        print(numSamples)
         # Sanity check: Number of animtverts = number verts * numSamples
         numVerts = len(obj.data.vertices)
-        if (len(self.animtverts) != numVerts * numSamples):
+        print(numVerts)
+        print(len(self.animverts))
+        if (len(self.animverts) != numVerts * numSamples):
             print("Neverblender: WARNING - animvert sample size mismatch: " +
                   obj.name)
             return
@@ -498,6 +489,8 @@ class Animnode():
             shapekeyname = obj.nvb.aurorashapekey
         else:
             shapekeyname = nvb_def.shapekeyname
+        # Create a basis shapekey
+        obj.shape_key_add(name='basis', from_mix=False)
         # Get or create the shape key to hold the animation
         if obj.data.shape_keys and \
            shapekeyname in obj.data.shape_keys.key_blocks:
@@ -505,6 +498,8 @@ class Animnode():
         else:
             keyBlock = obj.shape_key_add(name=shapekeyname,
                                          from_mix=False)
+            keyBlock.value = 1.0
+            obj.active_shape_key_index = 1
             obj.nvb.aurorashapekey = keyBlock.name
         # Get animation data, create it if necessary
         animData = obj.data.shape_keys.animation_data
@@ -535,7 +530,7 @@ class Animnode():
 
     def createDataUV(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
-        fps = bpy.context.scene.render.fps
+        fps = options.scene.render.fps
         if not obj.data:
             return
         if not obj.data.uv_layers.active:
@@ -637,7 +632,7 @@ class Animnode():
                 keys[frame] = values
 
     @staticmethod
-    def generateAsciiRawData(obj, anim, asciiLines):
+    def generateAsciiRawData(obj, anim, asciiLines, options):
         """TODO: DOC."""
         if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
             return
@@ -650,7 +645,7 @@ class Animnode():
             return
         txtLines = txtBlock[nodeStart+len(obj.name):nodeEnd-1].splitlines()
         l_isNumber = nvb_utils.isNumber
-        render_fps = bpy.context.scene.render.fps
+        fps = options.scene.render.fps
         for line in [l.strip().split() for l in txtLines]:
             try:
                 label = line[0].lower()
@@ -659,7 +654,7 @@ class Animnode():
             # Lines starting with numbers are keys
             if l_isNumber(label):
                 frame = float(label)
-                nwtime = round(nvb_utils.frame2nwtime(frame, render_fps), 5)
+                nwtime = round(nvb_utils.frame2nwtime(frame, fps), 5)
                 values = [float(v) for v in line[1:]]
                 formatStr = '      {: >6.5f}' + \
                             ' '.join(['{: > 6.5f}']*len(values))
@@ -724,12 +719,12 @@ class Animnode():
                 Animnode.getKeysFromMatAction(action, anim, exports)
 
         # astart = anim.frameStart
-        # rfps = bpy.context.scene.render.fps
+        # rfps = options.scene.render.fps
         for exp in exports:
             pass  # keys = exp[1]
 
     @staticmethod
-    def generateAsciiKeys(obj, anim, asciiLines):
+    def generateAsciiKeys(obj, anim, asciiLines, options):
         """TODO: DOC."""
         keyDict = {'orientationkey': collections.OrderedDict(),
                    'positionkey': collections.OrderedDict(),
@@ -749,116 +744,104 @@ class Animnode():
             action = obj.active_material.animation_data.action
             if action:
                 Animnode.getKeysFromAction(action, anim, keyDict)
-
+        # Cache values for speed
         animStart = anim.frameStart
-        render_fps = bpy.context.scene.render.fps
-        kname = 'orientationkey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            if len(keyList) == 1:
-                fstr = '    ' + \
-                    'orientation {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-                key = keyList.popitem()[1]
+        fps = options.scene.render.fps
+        # Rotation
+        keyList = keyDict['orientationkey']
+        if len(keyList) == 1:
+            fstr = '    ' + \
+                'orientation {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
+            key = keyList.popitem()[1]
+            eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
+            val = nvb_utils.euler2nwangle(eul)
+            asciiLines.append(fstr.format(*val))
+        elif len(keyList) > 1:
+            asciiLines.append('    orientationkey ' + str(len(keyList)))
+            fstr = '      ' + \
+                '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
+            for frame, key in keyList.items():
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
                 eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
                 val = nvb_utils.euler2nwangle(eul)
-                s = fstr.format(*val)
-                asciiLines.append(s)
-            else:
-                fstr = '      ' + \
-                    '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-                asciiLines.append('    orientationkey ' + str(len(keyList)))
-                for frame, key in keyList.items():
-                    time = nvb_utils.frame2nwtime(frame - animStart,
-                                                  render_fps)
-                    eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
-                    val = nvb_utils.euler2nwangle(eul)
-                    s = fstr.format(time, *val)
-                    asciiLines.append(s)
-
-        kname = 'positionkey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            if len(keyList) == 1:
-                fstr = '    position {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-                key = keyList.popitem()[1]
-                s = fstr.format(key[0], key[1], key[2])
-                asciiLines.append(s)
-            else:
-                fstr = '      ' + \
-                    '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-                asciiLines.append('    positionkey ' + str(len(keyList)))
-                for frame, key in keyList.items():
-                    time = nvb_utils.frame2nwtime(frame - animStart,
-                                                  render_fps)
-                    s = fstr.format(time, key[0], key[1], key[2])
-                    asciiLines.append(s)
-
-        kname = 'scalekey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            if len(keyList) == 1:
-                fstr = '    scale {: >6.5f}'
-                key = keyList.popitem()[1]
-                s = fstr.format(key[0])
-                asciiLines.append(s)
-            else:
-                fstr = '      {: >6.5f} {: >6.5f}'
-                asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-                for frame, key in keyList.items():
-                    time = nvb_utils.frame2nwtime(frame - animStart,
-                                                  render_fps)
-                    s = fstr.format(time, key[0])
-                    asciiLines.append(s)
-
-        kname = 'selfillumcolorkey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            if len(keyList) == 1:
-                fstr = '    selfillumcolor {: >3.2f} {: >3.2f} {: >3.2f}'
-                key = keyList.popitem()[1]
-                s = fstr.format(key[0], key[1], key[2])
-                asciiLines.append(s)
-            else:
-                fstr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
-                asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-                for frame, key in keyList.items():
-                    time = nvb_utils.frame2nwtime(frame - animStart,
-                                                  render_fps)
-                    s = fstr.format(time, key[0], key[1], key[2])
-                    asciiLines.append(s)
-
-        kname = 'colorkey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-            formatStr = '      {: >6.5f} {: >3.2f} {: >3.2f} {: >3.2f}'
+                asciiLines.append(fstr.format(time, *val))
+        # Location
+        keyList = keyDict['positionkey']
+        if len(keyList) == 1:
+            fstr = '    position {: > 6.5f} {: > 6.5f} {: > 6.5f}'
+            key = keyList.popitem()[1]
+            s = fstr.format(key[0], key[1], key[2])
+            asciiLines.append(s)
+        elif len(keyList) > 1:
+            asciiLines.append('    positionkey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
             for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
-                s = formatStr.format(time, key[0], key[1], key[2])
-                asciiLines.append(s)
-
-        kname = 'radiuskey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-            formatStr = '      {: >6.5f} {: >6.5f}'
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
+        # Scale
+        keyList = keyDict['scalekey']
+        if len(keyList) == 1:
+            fstr = '    scale {: >6.5f}'
+            key = keyList.popitem()[1]
+            asciiLines.append(fstr.format(key[0]))
+        elif len(keyList) > 1:
+            asciiLines.append('    scalekey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: >6.5f}'
             for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
-                s = formatStr.format(time, key[0])
-                asciiLines.append(s)
-
-        kname = 'alphakey'
-        if len(keyDict[kname]) > 0:
-            keyList = keyDict[kname]
-            asciiLines.append('    ' + kname + ' ' + str(len(keyList)))
-            formatStr = '      {: >6.5f} {: >3.2f}'
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0]))
+        # Self illumination color
+        keyList = keyDict['selfillumcolorkey']
+        if len(keyList) == 1:
+            fstr = '    selfillumcolor {: >3.2f} {: >3.2f} {: >3.2f}'
+            key = keyList.popitem()[1]
+            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+        elif len(keyList) > 1:
+            asciiLines.append('    selfillumcolorkey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
             for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, render_fps)
-                s = formatStr.format(time, key[0])
-                asciiLines.append(s)
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
+        # Lamp color
+        keyList = keyDict['colorkey']
+        if len(keyList) == 1:
+            fstr = '    color {: >3.2f} {: >3.2f} {: >3.2f}'
+            key = keyList.popitem()[1]
+            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+        elif len(keyList) > 1:
+            asciiLines.append('    colorkey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: >3.2f} {: >3.2f} {: >3.2f}'
+            for frame, key in keyList.items():
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
+        # Lamp radius
+        keyList = keyDict['radiuskey']
+        if len(keyList) == 1:
+            fstr = '    radius {: >3.2f} {: >3.2f} {: >3.2f}'
+            key = keyList.popitem()[1]
+            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+        elif len(keyList) > 1:
+            asciiLines.append('    radiuskey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: >6.5f}'
+            for frame, key in keyList.items():
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0]))
+        # Alpha value
+        keyList = keyDict['alphakey']
+        if len(keyList) == 1:
+            fstr = '    radius {: >3.2f} {: >3.2f} {: >3.2f}'
+            key = keyList.popitem()[1]
+            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+        elif len(keyList) > 1:
+            asciiLines.append('    alphakey ' + str(len(keyList)))
+            fstr = '      {: >6.5f} {: >3.2f}'
+            for frame, key in keyList.items():
+                time = nvb_utils.frame2nwtime(frame - animStart, fps)
+                asciiLines.append(fstr.format(time, key[0]))
 
     @staticmethod
-    def generateAsciiAnimmeshShapes(obj, anim, asciiLines):
+    def generateAsciiAnimmeshShapes(obj, anim, asciiLines,
+                                    options, numAnimUVs=0):
         """Add data for animated vertices."""
         shapekeyname = obj.nvb.aurorashapekey
         if not shapekeyname:
@@ -872,10 +855,13 @@ class Animnode():
         keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
         # Original vertex data. Needed to fill in values for unanimated
         # vertices.
-        mesh = obj.to_mesh(bpy.context.scene,
-                           True,
-                           'RENDER')
-        # vertexList = mesh.vertices[[f.uv1, f.uv2, f.uv3] for f in tf_uv]
+        mesh = obj.to_mesh(options.scene,
+                           options.applyModifiers,
+                           options.meshConvert)
+        # Cache values for speed
+        animStart = anim.frameStart
+        animEnd = anim.frameEnd
+        fps = options.scene.render.fps
         vertexList = [[v.co[0], v.co[1], v.co[2]] for v in mesh.vertices]
         if obj.data.shape_keys.animation_data:
             # Get the animation data
@@ -883,8 +869,6 @@ class Animnode():
             if action:
                 dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
                 tf = len(dpPrefix)
-                samplingStart = anim.frameStart
-                samplingEnd = anim.frameEnd
                 keys = collections.OrderedDict()  # {frame:values}
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
@@ -892,46 +876,51 @@ class Animnode():
                         vertexIdx = int(dp[tf:-4])
                         axis = fcurve.array_index
                         kfp = [p for p in fcurve.keyframe_points
-                               if anim.frameStart <= p.co[0] <= anim.frameEnd]
+                               if animStart <= p.co[0] <= animEnd]
                         for p in kfp:
                             frame = int(round(p.co[0]))
-                            samplingStart = min(frame, samplingStart)
-                            samplingEnd = max(frame, samplingEnd)
                             if frame in keys:
                                 values = keys[frame]
                             else:
                                 values = copy.deepcopy(vertexList)
                             values[vertexIdx][axis] = p.co[1]
                             keys[frame] = values
-                # Misc data for export + sanity checks
-                numSamples = len(keys)
+                # Misc data
                 numVerts = len(vertexList)
-                numAnimVerts = sum([len(l) for f, l in keys.items()])
-                # Sanity checks
-                if numAnimVerts != numSamples * numVerts:
-                    print("Neverblender: " +
-                          "WARNING - animvert sample size mismatch: " +
-                          obj.name)
-                    return
-                animlength = nvb_utils.frame2nwtime(
-                    anim.frameEnd-anim.frameStart,
-                    bpy.context.scene.render.fps)
-                sampleperiod = animlength / (numSamples-1)
+                numAnimVerts = sum([len(l) for _, l in keys.items()])
+                if numAnimUVs > 0:
+                    numSamples = min(numAnimUVs, len(keys))
+                    # Sanity check
+                    if numAnimVerts != numSamples * numVerts:
+                        print("Neverblender: " +
+                              "WARNING - anim verts/tverts mismatch: " +
+                              obj.name + " (using min value)")
+                    # We can recover from here, but results may be wrong
+                else:
+                    numSamples = len(keys)
+                    # Sanity check
+                    if numAnimVerts != numSamples * numVerts:
+                        print("Neverblender: " +
+                              "WARNING - animvert sample size mismatch: " +
+                              obj.name)
+                        return
+                    animlength = nvb_utils.frame2nwtime(animEnd-animStart, fps)
+                    sampleperiod = animlength / (numSamples-1)
+                    # Add some meta data
+                    asciiLines.append('    sampleperiod ' +
+                                      str(round(sampleperiod, 5)))
                 # Create ascii representation and add it to the output
-                asciiLines.append('    clipu 0.0')
-                asciiLines.append('    clipv 0.0')
-                asciiLines.append('    clipw 1.0')
-                asciiLines.append('    cliph 1.0')
-                asciiLines.append('    sampleperiod ' +
-                                  str(round(sampleperiod, 5)))
                 asciiLines.append('    animverts ' + str(numAnimVerts))
                 for frame, key in keys.items():
                     fstr = '      {: 6.3f} {: 6.3f} {: 6.3f}'
                     asciiLines.extend([fstr.format(*v) for v in key])
                 asciiLines.append('    endlist')
+                return numSamples
+        return -1
 
     @staticmethod
-    def generateAsciiAnimmeshUV(obj, anim, asciiLines):
+    def generateAsciiAnimmeshUV(obj, anim, asciiLines,
+                                options, numAnimVerts=0):
         """Add data for animated texture coordinates."""
         if not obj.active_material:
             return
@@ -944,7 +933,10 @@ class Animnode():
         tf_uv = obj.data.tessface_uv_textures.active.data
         tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
         tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
-
+        # Cache values for speed
+        animStart = anim.frameStart
+        animEnd = anim.frameEnd
+        fps = options.scene.render.fps
         if obj.data.animation_data:
             # Get the animation data from the object data
             # (not from the object itself!)
@@ -954,8 +946,6 @@ class Animnode():
                 uvname = obj.data.uv_layers.active.name
                 dpPrefix = 'uv_layers["' + uvname + '"].data['
                 tf = len(dpPrefix)
-                samplingStart = anim.frameStart
-                samplingEnd = anim.frameEnd
                 keys = collections.OrderedDict()  # {frame:values}
                 for fcurve in action.fcurves:
                     dp = fcurve.data_path
@@ -963,11 +953,9 @@ class Animnode():
                         uvIdx = int(dp[tf:-4])
                         axis = fcurve.array_index
                         kfp = [p for p in fcurve.keyframe_points
-                               if anim.frameStart <= p.co[0] <= anim.frameEnd]
+                               if animStart <= p.co[0] <= animEnd]
                         for p in kfp:
                             frame = int(round(p.co[0]))
-                            samplingStart = min(frame, samplingStart)
-                            samplingEnd = max(frame, samplingEnd)
                             if frame in keys:
                                 values = keys[frame]
                             else:
@@ -975,34 +963,40 @@ class Animnode():
                             values[uvIdx][axis] = p.co[1]
                             keys[frame] = values
                 # Misc data for export
-                numSamples = len(keys)
-                numTVerts = len(tessfaceUVList)
-                numAnimTVerts = sum([len(l) for f, l in keys.items()])
-                # Sanity checks
-                if numAnimTVerts != numSamples * numTVerts:
-                    print("Neverblender: " +
-                          "WARNING - animvert sample size mismatch: " +
-                          obj.name)
-                    return
-                animlength = nvb_utils.frame2nwtime(
-                    anim.frameEnd-anim.frameStart,
-                    bpy.context.scene.render.fps)
-                sampleperiod = animlength / (numSamples-1)
+                numUVs = len(tessfaceUVList)
+                numAnimUVs = sum([len(l) for f, l in keys.items()])
+                if numAnimVerts > 0:
+                    numSamples = min(numAnimVerts, len(keys))
+                    # Sanity check
+                    if numAnimUVs != numSamples * numUVs:
+                        print("Neverblender: " +
+                              "WARNING - anim verts/tverts mismatch: " +
+                              obj.name + " (using default min value)")
+                    # We can recover from here, but results may be wrong
+                else:
+                    numSamples = len(keys)
+                    # Sanity check
+                    if numAnimUVs != numSamples * numUVs:
+                        print("Neverblender: " +
+                              "WARNING - animvert sample size mismatch: " +
+                              obj.name)
+                        return
+                    animlength = nvb_utils.frame2nwtime(animEnd-animStart, fps)
+                    sampleperiod = animlength / (numSamples-1)
+                    # Add meta data
+                    asciiLines.append('    sampleperiod ' +
+                                      str(round(sampleperiod, 5)))
                 # Create ascii representation and add it to the output
-                asciiLines.append('    clipu 0.0')
-                asciiLines.append('    clipv 0.0')
-                asciiLines.append('    clipw 1.0')
-                asciiLines.append('    cliph 1.0')
-                asciiLines.append('    sampleperiod ' +
-                                  str(round(sampleperiod, 5)))
-                asciiLines.append('    animtverts ' + str(numAnimTVerts))
+                asciiLines.append('    animtverts ' + str(numAnimUVs))
                 for frame, key in keys.items():
                     fstr = '      {: 6.3f} {: 6.3f}  0'
                     asciiLines.extend([fstr.format(*v) for v in key])
                 asciiLines.append('    endlist')
+                return numSamples
+        return -1
 
     @staticmethod
-    def generateAsciiAnimmeshData(obj, anim, asciiLines):
+    def generateAsciiAnimmesh(obj, anim, asciiLines, options):
         """TODO:Doc."""
         if not obj.data:
             return
@@ -1010,16 +1004,18 @@ class Animnode():
         if (obj.type != 'MESH') or \
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
-        options = nvb_def.ExportOptions()
         tmpLines = []
         nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines,
                                             options, True)
         asciiLines.extend(['  '+l for l in tmpLines])
-        Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines)
-        Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines)
+        maxsamples = -1  # Samples > 0 also means not to write metadata (again)
+        maxsamples = Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines,
+                                                      options, maxsamples)
+        Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines,
+                                             options, maxsamples)
 
     @staticmethod
-    def generateAscii(obj, anim, asciiLines):
+    def generateAscii(obj, anim, asciiLines, options):
         """TODO:Doc."""
         if not obj:
             return
@@ -1031,7 +1027,7 @@ class Animnode():
             asciiLines.append('    parent ' + obj.parent.name)
         else:
             asciiLines.append('    parent null')
-        Animnode.generateAsciiAnimmeshData(obj, anim, asciiLines)
-        Animnode.generateAsciiRawData(obj, anim, asciiLines)
-        Animnode.generateAsciiKeys(obj, anim, asciiLines)
+        Animnode.generateAsciiAnimmesh(obj, anim, asciiLines, options)
+        Animnode.generateAsciiRawData(obj, anim, asciiLines, options)
+        Animnode.generateAsciiKeys(obj, anim, asciiLines, options)
         asciiLines.append('  endnode')
