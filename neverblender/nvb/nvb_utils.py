@@ -207,16 +207,17 @@ def createWOKObjects(mdlroot, scene, walkmeshonly=False):
     scene.objects.link(obj)
 
 
-def createPWKObjects(mdlroot, scene, walkmeshonly=False):
+def createPWKObjects(mdlroot, scene,
+                     walkmesh_only=False, check_existing=False):
     """Adds necessary (walkmesh) objects to mdlRoot."""
-    def getPrefix(mdlroot):
+    def get_prefix(mdlroot):
         basename = mdlroot.name
         dpos = basename[::-1].find('_')
         if dpos >= 0:
             return basename[-1*dpos:]
         return basename[-3:]
 
-    def getMDLBox(mdlroot):
+    def get_mdl_bbox(mdlroot):
         """Ge the bounding box for all object in the mesh."""
         verts = [(-0.5, -0.5, 0.0),
                  (-0.5, -0.5, 2.0),
@@ -234,7 +235,7 @@ def createPWKObjects(mdlroot, scene, walkmeshonly=False):
                  [7, 3, 1, 5]]
         return (verts, faces)
 
-    def createPWKMesh(meshname, verts, faces):
+    def create_pwk_mesh(meshname, verts, faces):
         """Get the default mesh for a generic door."""
         mesh = bpy.data.meshes.new(meshname)
         # Create Verts
@@ -248,7 +249,26 @@ def createPWKObjects(mdlroot, scene, walkmeshonly=False):
         mesh.update()
         return mesh
 
-    # Find or create walkmesh root (wkmroot)
+    def create_dummys(parent, scene, prefix, dummy_data,
+                      existing, check_existing):
+        if check_existing:
+            # Adjust name and parent
+            for suffix, _ in dummy_data:
+                dummylist = [o for o in existing if o.name.endswith(suffix)]
+                dummyname = prefix + suffix
+                for obj in dummylist:
+                    obj.name = dummyname
+                    obj.parent = parent
+        # Create missing dummies
+        for suffix, loc in dummy_data:
+            dummyname = prefix + suffix
+            if dummyname not in existing:
+                obj = bpy.data.objects.new(dummyname, None)
+                obj.location = loc
+                obj.parent = parent
+                scene.objects.link(obj)
+
+    # Find or create walkmesh root
     wkmroot = findWkmRoot(mdlroot, nvb_def.Walkmeshtype.PWK)
     if not wkmroot:
         # make a new one
@@ -256,48 +276,48 @@ def createPWKObjects(mdlroot, scene, walkmeshonly=False):
         wkmroot.parent = mdlroot
         wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
         scene.objects.link(wkmroot)
-    prefix = getPrefix(mdlroot)
+    else:
+        # Check existing (adjust name)
+        if check_existing:
+            wkmroot.name = mdlroot.name + '_pwk'
+            wkmroot.parent = mdlroot
+    prefix = get_prefix(mdlroot)
     # Get all children of the mdlroot (existing objects will be ignored)
-    objList = []
-    getAllChildren(mdlroot, objList)
-    # Create a mesh
-    objname = mdlroot.name + '_wg'
-    if objname not in objList:
-        verts, faces = getMDLBox(mdlroot)
-        mesh = createPWKMesh(objname, verts, faces)
-        obj = bpy.data.objects.new(objname, mesh)
+    obj_list = []
+    getAllChildren(mdlroot, obj_list)
+    # Add mesh to pwk root
+    if check_existing:
+        # Adjust name and parent
+        meshlist = [o for o in obj_list if o.name.endswith('_wg')]
+        for obj in meshlist:
+            obj.name = mdlroot.name + '_wg'
+            obj.parent = wkmroot
+    # Create missing mesh
+    meshname = mdlroot.name + '_wg'
+    if meshname not in obj_list:
+        verts, faces = get_mdl_bbox(mdlroot)
+        mesh = create_pwk_mesh(meshname, verts, faces)
+        obj = bpy.data.objects.new(meshname, mesh)
         obj.parent = wkmroot
         scene.objects.link(obj)
     # Create dummys
-    dummyData = [['_pwk_use01', (0.0, -1.0, 0.0)],
-                 ['_pwk_use02', (0.0, +1.0, 0.0)]]  # optional
-    for suffix, loc in dummyData:
-        objname = prefix + suffix
-        if objname not in objList:
-            obj = bpy.data.objects.new(objname, None)
-            obj.location = loc
-            obj.parent = wkmroot
-            scene.objects.link(obj)
+    dummy_data = [['_pwk_use01', (0.0, -1.0, 0.0)],
+                  ['_pwk_use02', (0.0, +1.0, 0.0)]]
+    create_dummys(wkmroot, scene, prefix, dummy_data, obj_list, check_existing)
     # FROM HERE ON: Special objects
     # Parented to mdlroot!
-    if walkmeshonly:
+    if walkmesh_only:
         return
     # Create special dummys
-    dummyData = [['_hand', (0.5, 0.0, 1.0)],
-                 ['_head', (0.0, 0.0, 2.0)],
-                 ['_head_hit', (0.0, 0.0, 2.2)],
-                 ['_impact', (0.0, 0.0, 1.0)],
-                 ['_ground', (0.0, 0.0, 0.0)]]
-    for suffix, loc in dummyData:
-        objname = prefix + suffix
-        if objname not in objList:
-            obj = bpy.data.objects.new(objname, None)
-            obj.location = loc
-            obj.parent = mdlroot
-            scene.objects.link(obj)
+    dummy_data = [['_hand', (0.5, 0.0, 1.0)],
+                  ['_head', (0.0, 0.0, 2.0)],
+                  ['_head_hit', (0.0, 0.0, 2.2)],
+                  ['_impact', (0.0, 0.0, 1.0)],
+                  ['_ground', (0.0, 0.0, 0.0)]]
+    create_dummys(mdlroot, scene, prefix, dummy_data, obj_list, check_existing)
 
 
-def createDWKObjects(mdlroot, scene, walkmeshonly=False):
+def createDWKObjects(mdlroot, scene, walkmeshonly=False, checkexisting=False):
     """Add necessary (walkmesh) objects to mdlRoot."""
     def createDWKMesh(meshname):
         """Generate the default (walk)mesh for a generic door."""
@@ -351,13 +371,18 @@ def createDWKObjects(mdlroot, scene, walkmeshonly=False):
         wkmroot.parent = mdlroot
         wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
         scene.objects.link(wkmroot)
+    else:
+        # Check existing (adjust name)
+        if checkexisting:
+            wkmroot.name = mdlroot.name + '_dwk'
+            wkmroot.parent = mdlroot
     prefix = mdlroot.name[-2:]
     # Get all children of the mdlroot (existing objects will be ignored)
     objList = []
     getAllChildren(mdlroot, objList)
     # Create walkmesh dummys
     # Parented to wkmroot!
-    dummyData = [['_DWK_dp_open1_01', (0.2, -2.0, 0.0)],
+    dummydata = [['_DWK_dp_open1_01', (0.2, -2.0, 0.0)],
                  ['_DWK_dp_open2_01', (0.2, +2.0, 0.0)],
                  ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
                  ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)],
@@ -365,13 +390,17 @@ def createDWKObjects(mdlroot, scene, walkmeshonly=False):
                  ['_DWK_dp_open2_02', (0.2, +2.0, 0.0)],  # optional
                  ['_DWK_use01', (0.0, -0.7, 0.0)],
                  ['_DWK_use02', (0.0, +0.7, 0.0)]]
-    for suffix, loc in dummyData:
+    for suffix, loc in dummydata:
         objname = prefix + suffix
         if objname not in objList:
+            # Create new object
             obj = bpy.data.objects.new(objname, None)
             obj.location = loc
             obj.parent = wkmroot
             scene.objects.link(obj)
+        else:
+            # TODO: Check name and parent of existing object
+            pass
     # Create (walk)meshes
     meshData = [['_DWK_wg_closed', (0.0, 0.0, 0.0)],
                 ['_DWK_wg_open1', (0.0, 0.0, -1.3962633609771729)],
@@ -379,12 +408,16 @@ def createDWKObjects(mdlroot, scene, walkmeshonly=False):
     for suffix, rot in meshData:
         objname = prefix + suffix
         if objname not in objList:
+            # Create new object
             mesh = createDWKMesh(objname)
             obj = bpy.data.objects.new(objname, mesh)
             obj.location = (-1.0, 0.0, 0.0)
             obj.rotation_euler = mathutils.Euler(rot)
             obj.parent = wkmroot
             scene.objects.link(obj)
+        else:
+            # TODO: Check name and parent of existing object
+            pass
     # FROM HERE ON: Special objects
     # Parented to mdlroot!
     if walkmeshonly:
@@ -396,13 +429,16 @@ def createDWKObjects(mdlroot, scene, walkmeshonly=False):
         obj.location = (0.0, 0.0, 0.0)
         obj.parent = mdlroot
         scene.objects.link(obj)
+    else:
+        # TODO: Check name and parent of existing object
+        pass
     # Create special dummys
-    dummyData = [['_hand', (0.0, 0.0, 1.0)],
+    dummydata = [['_hand', (0.0, 0.0, 1.0)],
                  ['_head', (0.0, 0.0, 2.5)],
                  ['_hhit', (0.0, 0.0, 3.0)],
                  ['_impc', (0.0, 0.0, 1.5)],
                  ['_grnd', (0.0, 0.0, 0.0)]]
-    for suffix, dloc in dummyData:
+    for suffix, dloc in dummydata:
         objname = prefix + suffix
         if objname not in objList:
             obj = bpy.data.objects.new(objname, None)

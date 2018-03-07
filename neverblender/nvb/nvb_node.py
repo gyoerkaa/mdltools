@@ -263,7 +263,7 @@ class NodeMaterial(object):
             options.mtrdb[self.materialname] = mtrMat
         # Load values into self
         if mtrMat and mtrMat.isvalid():  # Abort if no file was read
-            # If there are any textures: in the mtr load them into self
+            # If there are any textures in the mtr load them into self
             if mtrMat.textures:
                 # TODO: Decide between two options
                 # A. Selecetive loading, override only present texture
@@ -844,12 +844,7 @@ class Trimesh(Node):
         uvmap = None
         if tverts and mesh.tessfaces:
             uvmap = mesh.tessface_uv_textures.new(uvname)
-            # we need to save the order the tverts were created in blender
-            # for animmeshes/uv animations
             mesh.tessface_uv_textures.active = uvmap
-            # EEEKADOODLE fix
-            # cuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-            #         for f in self.facedef]
             # Set uv's
             for i in range(len(faceuvs)):
                 tessfaceUV = uvmap.data[i]

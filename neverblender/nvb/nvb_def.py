@@ -284,7 +284,7 @@ class Tilefade():
 
 
 class Classification():
-    """TODO: DOC."""
+    """Classification of mdl file."""
 
     UNKNOWN = 'unknown'
     TILE = 'tile'

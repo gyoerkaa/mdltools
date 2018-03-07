@@ -1371,7 +1371,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             description='Export a walkmesh',
             default=True)
     exportSmoothGroups = bpy.props.BoolProperty(
-            name='Export Smooth groups',
+            name='Export Smooth Groups',
             description='Generate smooth groups from sharp edges'
                         '(When disabled every face belongs to the same group)',
             default=True)
@@ -1491,7 +1491,7 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
 
 
 class NVB_OT_helper_node_setup(bpy.types.Operator):
-    """Helper to add missing walkmesh objects and Dummys."""
+    """Helper to add missing walkmesh objects and dummys."""
 
     bl_idname = "nvb.helper_node_setup"
     bl_label = "Setup Nodes"
@@ -1505,6 +1505,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         """Create Walkmesh root and objects."""
         mdlroot = nvb_utils.findObjRootDummy(context.object)
         if not mdlroot:
+            self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
         scene = bpy.context.scene
         wkmtype = mdlroot.nvb.helper_node_mdltype
@@ -1754,3 +1755,11 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             return self.reloadFile(material)
         elif material.nvb.mtrsrc == 'TEXT':
             return self.reloadTextBlock(material)
+
+
+class NVB_MT_mdlcreate_plc(bpy.types.Menu):
+    bl_label = "Create Aurora Mdl"
+    bl_idname = "NVB_MT_mdlcreate_plc"
+
+    def draw(self, context):
+        pass
