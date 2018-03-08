@@ -181,8 +181,6 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
             # Get all vertex groups with a name that exists as object
             self.setupPseudoBoneDetection(aur_root)
             pb_root = self.detectPseudoBonesRoot(aur_root)
-            print(pb_root.name)
-            print(self.pb_skingroups)
             if not pb_root:
                 self.report({'INFO'}, 'Error: No Pseudo Bone root.')
                 return {'CANCELLED'}
@@ -1482,7 +1480,7 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
             for i in range(len(obj.material_slots)):
                 bpy.ops.object.material_slot_remove()
             # Add wok materials
-            nvb_utils.createWOKMaterials(obj.data)
+            nvb_utils.create_wok_materials(obj.data)
         else:
             self.report({'ERROR'}, 'A mesh must be selected.')
             return {'CANCELLED'}
@@ -1495,6 +1493,259 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
     bl_idname = "nvb.helper_node_setup"
     bl_label = "Setup Nodes"
+
+    def create_dummys(self, ddata, prefix, parent, scene):
+        # Adjust name and parent for existing objects
+        for suffix, _ in ddata:
+            existing = [o for o in bpy.data.objects if o.name.endswith(suffix)]
+            newname = prefix + suffix
+            for obj in existing:
+                if obj.name != newname:
+                    # Avoid renaming to same name (results in '.001' suffix)
+                    obj.name = newname
+                obj.parent = parent
+        # Create missing dummies
+        for suffix, loc in ddata:
+            newname = prefix + suffix
+            if newname not in bpy.data.objects:
+                obj = bpy.data.objects.new(newname, None)
+                obj.location = loc
+                obj.parent = parent
+                scene.objects.link(obj)
+
+    def create_wok(self, mdlroot, scene):
+        """Adds necessary (walkmesh) objects to mdlRoot."""
+        def create_wok_mesh(meshname):
+            """Ge the bounding box for all object in the mesh."""
+            verts = [(+5.0,  5.0, 0.0),
+                     (+5.0, -5.0, 0.0),
+                     (-5.0, +5.0, 0.0),
+                     (-5.0, +5.0, 0.0)]
+            faces = [1, 0, 2, 3]
+            mesh = bpy.data.meshes.new(meshname)
+            # Create Verts
+            mesh.vertices.add(4)
+            mesh.vertices.foreach_set('co', verts)
+            # Create Faces
+            mesh.tessfaces.add(1)
+            mesh.tessfaces.foreach_set('vertices_raw', faces)
+            mesh.validate()
+            mesh.update()
+            return mesh
+
+        # Add a plane for the wok
+        objname = mdlroot.name + '_wok'
+        mesh = create_wok_mesh(objname)
+        nvb_utils.create_wok_materials(mesh)
+        obj = bpy.data.objects.new(objname, mesh)
+        obj.nvb.meshtype = nvb_def.Meshtype.AABB
+        obj.location = (0.0, 0.0, 0.0)
+        obj.parent = mdlroot
+        scene.objects.link(obj)
+
+    def create_pwk(self, mdlroot, scene):
+        """Adds necessary (walkmesh) objects to mdlRoot."""
+        def get_prefix(mdlroot):
+            basename = mdlroot.name
+            dpos = basename[::-1].find('_')
+            if dpos >= 0:
+                return basename[-1*dpos:]
+            return basename[-3:]
+
+        def get_mdl_bbox(mdlroot):
+            """Ge the bounding box for all object in the mesh."""
+            verts = [(-0.5, -0.5, 0.0),
+                     (-0.5, -0.5, 2.0),
+                     (-0.5, 0.5, 0.0),
+                     (-0.5, 0.5, 2.0),
+                     (0.5, -0.5, 0.0),
+                     (0.5, -0.5, 2.0),
+                     (0.5, 0.5, 0.0),
+                     (0.5, 0.5, 2.0)]
+            faces = [[0, 1, 3, 2],
+                     [2, 3, 7, 6],
+                     [6, 7, 5, 4],
+                     [1, 0, 4, 5],
+                     [4, 0, 2, 6],
+                     [7, 3, 1, 5]]
+            return (verts, faces)
+
+        def create_pwk_mesh(meshname, verts, faces):
+            """Get the default mesh for a generic door."""
+            mesh = bpy.data.meshes.new(meshname)
+            # Create Verts
+            mesh.vertices.add(len(verts))
+            mesh.vertices.foreach_set('co', [co for v in verts for co in v])
+            # Create Faces
+            mesh.tessfaces.add(len(faces))
+            mesh.tessfaces.foreach_set('vertices_raw',
+                                       [i for f in faces for i in f])
+            mesh.validate()
+            mesh.update()
+            return mesh
+
+        prefix = get_prefix(mdlroot)
+        # Find or create walkmesh root
+        wkmroot = nvb_utils.findWkmRoot(mdlroot, nvb_def.Walkmeshtype.PWK)
+        newname = mdlroot.name + '_pwk'
+        if wkmroot:
+            # Adjust existing object
+            if wkmroot.name != newname:
+                wkmroot.name = newname
+            wkmroot.parent = mdlroot
+        else:
+            # make a new one
+            wkmroot = bpy.data.objects.new(newname, None)
+            wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
+            wkmroot.parent = mdlroot
+            scene.objects.link(wkmroot)
+        # Get all children of the mdlroot (to check existing objects)
+        obj_list = []
+        nvb_utils.getAllChildren(mdlroot, obj_list)
+        # FROM HERE ON: Walkmesh objects - all parented to wkmroot
+        # Adjust name and parent of exising mesh(es)
+        meshlist = [o for o in obj_list if o.name.endswith('_wg')]
+        for obj in meshlist:
+            newname = mdlroot.name + '_wg'
+            if obj.name != newname:
+                obj.name = newname
+            obj.parent = wkmroot
+        # Create missing mesh
+        meshname = mdlroot.name + '_wg'
+        if meshname not in bpy.data.objects:
+            verts, faces = get_mdl_bbox(mdlroot)
+            mesh = create_pwk_mesh(meshname, verts, faces)
+            obj = bpy.data.objects.new(meshname, mesh)
+            obj.parent = wkmroot
+            scene.objects.link(obj)
+        # Create dummys
+        dummy_data = [['_pwk_use01', (0.0, -1.0, 0.0)],
+                      ['_pwk_use02', (0.0, +1.0, 0.0)]]
+        self.create_dummys(dummy_data, prefix, wkmroot, scene)
+        # FROM HERE ON: Special objects - all parented to mdlroot
+        # Create special dummys
+        dummy_data = [['_hand', (0.5, 0.0, 1.0)],
+                      ['_head', (0.0, 0.0, 2.0)],
+                      ['_head_hit', (0.0, 0.0, 2.2)],
+                      ['_impact', (0.0, 0.0, 1.0)],
+                      ['_ground', (0.0, 0.0, 0.0)]]
+        self.create_dummys(dummy_data, prefix, mdlroot, scene)
+
+    def create_dwk(self, mdlroot, scene):
+        """Add necessary (walkmesh) objects to mdlRoot."""
+        def create_dwk_mesh(meshname):
+            """Generate the default (walk)mesh for a generic door."""
+            verts = [2.0, -0.1, 0.0,
+                     0.0, -0.1, 0.0,
+                     2.0, -0.1, 3.0,
+                     0.0, -0.1, 3.0,
+                     2.0,  0.1, 0.0,
+                     0.0,  0.1, 0.0,
+                     2.0,  0.1, 3.0,
+                     0.0,  0.1, 3.0]
+            faces = [3, 7, 5, 1,
+                     7, 3, 2, 6,
+                     7, 6, 4, 5,
+                     2, 0, 4, 6,
+                     1, 0, 2, 3]
+            mesh = bpy.data.meshes.new(meshname)
+            # Create Verts
+            mesh.vertices.add(8)
+            mesh.vertices.foreach_set('co', verts)
+            # Create Faces
+            mesh.tessfaces.add(5)
+            mesh.tessfaces.foreach_set('vertices_raw', faces)
+            mesh.validate()
+            mesh.update()
+            return mesh
+
+        def create_sam_mesh(meshname):
+            """Generate the default SAM mesh for a generic door."""
+            verts = [-1.0, 0.0, 0.0,
+                     +1.0, 0.0, 0.0,
+                     -1.0, 0.0, 3.0,
+                     +1.0, 0.0, 3.0]
+            faces = [1, 0, 2, 3]
+            mesh = bpy.data.meshes.new(meshname)
+            # Create Verts
+            mesh.vertices.add(4)
+            mesh.vertices.foreach_set('co', verts)
+            # Create Faces
+            mesh.tessfaces.add(1)
+            mesh.tessfaces.foreach_set('vertices_raw', faces)
+            mesh.validate()
+            mesh.update()
+            return mesh
+
+        prefix = mdlroot.name[-2:]
+        # Find or create walkmesh root (wkmroot)
+        wkmroot = nvb_utils.findWkmRoot(mdlroot, nvb_def.Walkmeshtype.DWK)
+        objname = mdlroot.name + '_dwk'
+        if wkmroot:
+            # Adjust existing
+            if wkmroot.name != objname:
+                # Avoid renaming to same name (results in '.001' suffix)
+                wkmroot.name = objname
+            wkmroot.parent = mdlroot
+        else:
+            # Make a new one
+            wkmroot = bpy.data.objects.new(objname, None)
+            wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
+            wkmroot.parent = mdlroot
+            scene.objects.link(wkmroot)
+        # Get all children of the mdlroot (to check existing objects)
+        obj_list = []
+        nvb_utils.getAllChildren(mdlroot, obj_list)
+        # FROM HERE ON: Walkmesh objects - all parented to wkmroot
+        # Create walkmesh dummys
+        # Parented to wkmroot!
+        dummy_data = [['_DWK_dp_open1_01', (0.2, -2.0, 0.0)],
+                      ['_DWK_dp_open2_01', (0.2, +2.0, 0.0)],
+                      ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
+                      ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)],
+                      ['_DWK_dp_open1_02', (0.2, -2.0, 0.0)],  # optional
+                      ['_DWK_dp_open2_02', (0.2, +2.0, 0.0)],  # optional
+                      ['_DWK_use01', (0.0, -0.7, 0.0)],
+                      ['_DWK_use02', (0.0, +0.7, 0.0)]]
+        self.create_dummys(dummy_data, prefix, wkmroot, scene)
+        # Create (walk)meshes
+        mesh_data = [['_DWK_wg_closed', (0.0, 0.0, 0.0)],
+                     ['_DWK_wg_open1', (0.0, 0.0, -1.3962633609771729)],
+                     ['_DWK_wg_open2', (0.0, 0.0, 1.3962633609771729)]]
+        for suffix, rot in mesh_data:
+            objname = prefix + suffix  # the correct name
+            # Adjust existing objects
+            existing = [o for o in obj_list if o.name.endswith(suffix)]
+            for obj in existing:
+                if obj.name != objname:
+                    obj.name = objname
+                obj.parent = wkmroot
+            # Create missing objects
+            if objname not in bpy.data.objects:
+                mesh = create_dwk_mesh(objname)
+                obj = bpy.data.objects.new(objname, mesh)
+                obj.location = (-1.0, 0.0, 0.0)
+                obj.rotation_euler = mathutils.Euler(rot)
+                obj.parent = wkmroot
+                scene.objects.link(obj)
+        # FROM HERE ON: Special objects - parented to mdlroot
+        # Create SAM object
+        if 'sam' in bpy.data.objects:
+            obj = bpy.data.objects['sam']
+            obj.parent = mdlroot
+        else:
+            mesh = create_sam_mesh('sam')
+            obj = bpy.data.objects.new('sam', mesh)
+            obj.location = (0.0, 0.0, 0.0)
+            obj.parent = mdlroot
+            scene.objects.link(obj)
+        # Create special dummys
+        dummy_data = [['_hand', (0.0, 0.0, 1.0)],
+                      ['_head', (0.0, 0.0, 2.5)],
+                      ['_hhit', (0.0, 0.0, 3.0)],
+                      ['_impc', (0.0, 0.0, 1.5)],
+                      ['_grnd', (0.0, 0.0, 0.0)]]
+        self.create_dummys(dummy_data, prefix, mdlroot, scene)
 
     @classmethod
     def poll(self, context):
@@ -1510,9 +1761,11 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         scene = bpy.context.scene
         wkmtype = mdlroot.nvb.helper_node_mdltype
         if wkmtype == nvb_def.Walkmeshtype.PWK:
-            nvb_utils.createPWKObjects(mdlroot, scene)
+            self.create_pwk(mdlroot, scene)
         elif wkmtype == nvb_def.Walkmeshtype.DWK:
-            nvb_utils.createDWKObjects(mdlroot, scene)
+            self.create_dwk(mdlroot, scene)
+        elif wkmtype == nvb_def.Walkmeshtype.WOK:
+            self.create_wok(mdlroot, scene)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
@@ -1755,11 +2008,3 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             return self.reloadFile(material)
         elif material.nvb.mtrsrc == 'TEXT':
             return self.reloadTextBlock(material)
-
-
-class NVB_MT_mdlcreate_plc(bpy.types.Menu):
-    bl_label = "Create Aurora Mdl"
-    bl_idname = "NVB_MT_mdlcreate_plc"
-
-    def draw(self, context):
-        pass

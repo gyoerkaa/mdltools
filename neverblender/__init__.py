@@ -128,7 +128,6 @@ def register():
     bpy.types.Lamp.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_lamp)
 
-    # bpy.types.INFO_MT_mesh_add.append(menu_func_create_mdl)
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)
 
@@ -137,7 +136,6 @@ def unregister():
     """TODO:Doc."""
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
     bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    # bpy.types.INFO_MT_mesh_add.remove(menu_func_create_mdl)
     """
     from bpy.utils import unregister_class
     for cl in reversed(classes):

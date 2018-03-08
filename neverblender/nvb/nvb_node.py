@@ -36,6 +36,12 @@ class Mtr(object):
     def isvalid(self):
         return self.valid
 
+    def loadAsciiTexName(s):
+        """Convert to lower case. Convert null to nvb_def.null."""
+        if (not s or s.lower() == nvb_def.null):
+            return nvb_def.null
+        return s.lower()
+
     def loadFile(self, filepath):
         """Load contents of a mtr file."""
         self.valid = False
@@ -109,8 +115,7 @@ class Mtr(object):
                 if tid+1 > tcnt:
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
-                    self.textures[tid] = \
-                        nvb_utils.getAuroraTexture(aline[1])
+                    self.textures[tid] = self.loadAsciiTexName(aline[1])
         return aline
 
     def generateAscii(self, material, options):
@@ -2037,7 +2042,7 @@ class Aabb(Trimesh):
         me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
         me.polygons.foreach_set('loop_total', (3,) * face_cnt)
         me.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        nvb_utils.createWOKMaterials(me)
+        nvb_utils.create_wok_materials(me)
         """
         # Create materials
         for wokMat in nvb_def.wok_materials:
