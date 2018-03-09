@@ -202,9 +202,12 @@ class Mdl():
     @staticmethod
     def generateAsciiAnimations(mdlRoot, asciiLines, options):
         """TODO: DOC."""
-        for anim in mdlRoot.nvb.animList:
-            nvb_anim.Animation.generateAscii(mdlRoot, anim,
-                                             asciiLines, options)
+        if mdlRoot.nvb.animList:
+            asciiLines.append('')
+            asciiLines.append('# ANIM ASCII')
+            for anim in mdlRoot.nvb.animList:
+                nvb_anim.Animation.generateAscii(mdlRoot, anim,
+                                                 asciiLines, options)
 
     @staticmethod
     def generateAsciiMeta(mdlRoot, asciiLines, options):
@@ -232,8 +235,6 @@ class Mdl():
         asciiLines.append('endmodelgeom ' + mdlName)
         # Animations
         if options.exportAnimations:
-            asciiLines.append('')
-            asciiLines.append('# ANIM ASCII')
             Mdl.generateAsciiAnimations(mdlRoot, asciiLines, options)
         # The End
         asciiLines.append('donemodel ' + mdlName)

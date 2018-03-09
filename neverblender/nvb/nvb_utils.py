@@ -152,7 +152,7 @@ def findWkmRoot(mdlRoot, wkmtype):
     """Find a walkmesh root."""
     emptytype = nvb_def.Emptytype.PWK
     if wkmtype == nvb_def.Walkmeshtype.DWK:
-        emptytype == nvb_def.Emptytype.DWK
+        emptytype = nvb_def.Emptytype.DWK
     ol = [c for c in mdlRoot.children
           if c.type == 'EMPTY' and c.nvb.emptytype == emptytype]
     if len(ol) > 0:

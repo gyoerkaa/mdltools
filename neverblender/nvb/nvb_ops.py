@@ -1494,20 +1494,22 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
     bl_idname = "nvb.helper_node_setup"
     bl_label = "Setup Nodes"
 
-    def create_dummys(self, ddata, prefix, parent, scene):
-        # Adjust name and parent for existing objects
-        for suffix, _ in ddata:
-            existing = [o for o in bpy.data.objects if o.name.endswith(suffix)]
-            newname = prefix + suffix
-            for obj in existing:
-                if obj.name != newname:
-                    # Avoid renaming to same name (results in '.001' suffix)
-                    obj.name = newname
-                obj.parent = parent
-        # Create missing dummies
+    def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
+        if not obj_list:
+            return
         for suffix, loc in ddata:
+            existing = [o for o in obj_list if o.name.endswith(suffix)]
+            existing_names = [o.name for o in existing]
             newname = prefix + suffix
-            if newname not in bpy.data.objects:
+            if newname in existing_names:
+                # Adjust name and parent for existing objects
+                for obj in existing:
+                    if obj.name != newname:
+                        # Avoid renaming to same name (results in .001 suffix)
+                        obj.name = newname
+                    obj.parent = parent
+            else:
+                # Create missing dummies
                 obj = bpy.data.objects.new(newname, None)
                 obj.location = loc
                 obj.parent = parent
@@ -1621,7 +1623,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         # Create dummys
         dummy_data = [['_pwk_use01', (0.0, -1.0, 0.0)],
                       ['_pwk_use02', (0.0, +1.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, wkmroot, scene)
+        self.create_dummys(dummy_data, prefix, wkmroot, scene, obj_list)
         # FROM HERE ON: Special objects - all parented to mdlroot
         # Create special dummys
         dummy_data = [['_hand', (0.5, 0.0, 1.0)],
@@ -1629,7 +1631,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_head_hit', (0.0, 0.0, 2.2)],
                       ['_impact', (0.0, 0.0, 1.0)],
                       ['_ground', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdlroot, scene)
+        self.create_dummys(dummy_data, prefix, mdlroot, scene, obj_list)
 
     def create_dwk(self, mdlroot, scene):
         """Add necessary (walkmesh) objects to mdlRoot."""
@@ -1680,16 +1682,17 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         prefix = mdlroot.name[-2:]
         # Find or create walkmesh root (wkmroot)
         wkmroot = nvb_utils.findWkmRoot(mdlroot, nvb_def.Walkmeshtype.DWK)
-        objname = mdlroot.name + '_dwk'
+        print(wkmroot)
+        newname = mdlroot.name + '_dwk'
         if wkmroot:
             # Adjust existing
-            if wkmroot.name != objname:
+            if wkmroot.name != newname:
                 # Avoid renaming to same name (results in '.001' suffix)
-                wkmroot.name = objname
+                wkmroot.name = newname
             wkmroot.parent = mdlroot
         else:
             # Make a new one
-            wkmroot = bpy.data.objects.new(objname, None)
+            wkmroot = bpy.data.objects.new(newname, None)
             wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
             wkmroot.parent = mdlroot
             scene.objects.link(wkmroot)
@@ -1707,23 +1710,23 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_DWK_dp_open2_02', (0.2, +2.0, 0.0)],  # optional
                       ['_DWK_use01', (0.0, -0.7, 0.0)],
                       ['_DWK_use02', (0.0, +0.7, 0.0)]]
-        self.create_dummys(dummy_data, prefix, wkmroot, scene)
+        self.create_dummys(dummy_data, prefix, wkmroot, scene, obj_list)
         # Create (walk)meshes
         mesh_data = [['_DWK_wg_closed', (0.0, 0.0, 0.0)],
                      ['_DWK_wg_open1', (0.0, 0.0, -1.3962633609771729)],
                      ['_DWK_wg_open2', (0.0, 0.0, 1.3962633609771729)]]
         for suffix, rot in mesh_data:
-            objname = prefix + suffix  # the correct name
+            newname = prefix + suffix  # the correct name
             # Adjust existing objects
             existing = [o for o in obj_list if o.name.endswith(suffix)]
             for obj in existing:
-                if obj.name != objname:
-                    obj.name = objname
+                if obj.name != newname:
+                    obj.name = newname
                 obj.parent = wkmroot
             # Create missing objects
-            if objname not in bpy.data.objects:
-                mesh = create_dwk_mesh(objname)
-                obj = bpy.data.objects.new(objname, mesh)
+            if newname not in bpy.data.objects:
+                mesh = create_dwk_mesh(newname)
+                obj = bpy.data.objects.new(newname, mesh)
                 obj.location = (-1.0, 0.0, 0.0)
                 obj.rotation_euler = mathutils.Euler(rot)
                 obj.parent = wkmroot
@@ -1745,7 +1748,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_hhit', (0.0, 0.0, 3.0)],
                       ['_impc', (0.0, 0.0, 1.5)],
                       ['_grnd', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdlroot, scene)
+        self.create_dummys(dummy_data, prefix, mdlroot, scene, obj_list)
 
     @classmethod
     def poll(self, context):

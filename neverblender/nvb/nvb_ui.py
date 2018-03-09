@@ -138,11 +138,12 @@ class NVB_PT_dummy(bpy.types.Panel):
         elif (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY):
             row = layout.row()
             box = row.box()
-
+            """
             row = box.row(align=True)
             row.prop(obj.nvb, 'dummytype')
             row.operator('nvb.dummy_generatename',
                          icon='SORTALPHA', text='')
+            """
 
 
 class NVB_PT_armature(bpy.types.Panel):
