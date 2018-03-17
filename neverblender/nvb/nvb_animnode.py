@@ -193,7 +193,8 @@ class Animnode():
                         nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
                                      self.alphakey)
                     self.matdata = True
-                elif label == 'selfillumcolorkey':
+                elif (label == 'selfillumcolorkey' or
+                      label == 'setfillumcolorkey'):
                     numkeys = self.findEnd(asciiLines[i+1:])
                     nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
                                  self.selfillumcolorkey)

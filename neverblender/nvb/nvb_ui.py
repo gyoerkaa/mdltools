@@ -17,7 +17,6 @@ class NVB_UL_lensflares(bpy.types.UIList):
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(item.texture, icon=custom_icon)
-
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label('', icon=custom_icon)
@@ -50,7 +49,6 @@ class NVB_UL_animevents(bpy.types.UIList):
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(item.name, icon=custom_icon)
-
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label('', icon=custom_icon)
@@ -119,31 +117,16 @@ class NVB_PT_dummy(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        row = layout.row()
-        box = row.box()
+        box = layout.box()
         box.prop(obj.nvb, 'emptytype', text='Type')
-        row = box.row()
-        row.prop(obj.nvb, 'wirecolor')
-        layout.separator()
+        box.row().prop(obj.nvb, 'wirecolor')
 
         # Display properties depending on type of the empty
         if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
-            row = layout.row()
-            box = row.box()
-
-            row = box.row()
-            row.prop(obj.nvb, 'refmodel')
-            row = box.row()
-            row.prop(obj.nvb, 'reattachable')
-        elif (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY):
-            row = layout.row()
-            box = row.box()
-            """
-            row = box.row(align=True)
-            row.prop(obj.nvb, 'dummytype')
-            row.operator('nvb.dummy_generatename',
-                         icon='SORTALPHA', text='')
-            """
+            layout.separator()
+            box = layout.box()
+            box.prop(obj.nvb, 'refmodel')
+            box.prop(obj.nvb, 'reattachable')
 
 
 class NVB_PT_armature(bpy.types.Panel):
@@ -166,15 +149,16 @@ class NVB_PT_armature(bpy.types.Panel):
 
     def draw(self, context):
         """TODO: DOC."""
-        # obj = context.object
+        obj = context.object
         layout = self.layout
 
         # Armature Helper
-        row = layout.row()
-        box = row.box()
+        box = layout.box()
+        box.label(text='Armature Helper')
         row = box.row()
-        row.operator('nvb.helper_amt2psd',
-                     text='Generate Pseudo Bones',
+        row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
+        row = box.row()
+        row.operator('nvb.helper_amt2pbs', text='Generate Pseudo Bones',
                      icon='BONE_DATA')
 
 
@@ -196,7 +180,6 @@ class NVB_PT_material(bpy.types.Panel):
         layout = self.layout
 
         split = layout.split()
-
         col = split.column()
         col.prop(mat.nvb, 'ambient_color', text='')
         sub = col.column()
@@ -279,7 +262,6 @@ class NVB_PT_lamp_data(bpy.types.Panel):
         obj = context.object
         data = obj.data
         layout = self.layout
-
         layout.prop(data.nvb, 'lightpriority', text='Lightpriority')
         split = layout.split()
         col = split.column(align=True)
@@ -315,7 +297,6 @@ class NVB_PT_lensflares(bpy.types.Panel):
         obj = context.object
         data = obj.data
         layout = self.layout
-
         # Lens flares
         row = layout.row()
         row.prop(data.nvb, 'uselensflares')
@@ -356,7 +337,7 @@ class NVB_PT_lamp_object(bpy.types.Panel):
     """
 
     bl_idname = 'nvb.propertypanel.light'
-    bl_label = 'Aurora Object Properties'
+    bl_label = 'Aurora Lamp Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'object'
@@ -374,11 +355,9 @@ class NVB_PT_lamp_object(bpy.types.Panel):
         box = layout.box()
         row = box.row(align=True)
         row.prop(obj.nvb, 'lighttype', text='Type')
-        row.operator('nvb.light_generatename',
-                     icon='SORTALPHA', text='')
+        row.operator('nvb.light_generatename', icon='SORTALPHA', text='')
         row = box.row()
         row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
-        layout.separator()
 
 
 class NVB_PT_mesh_object(bpy.types.Panel):
@@ -404,36 +383,30 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         """TODO: DOC."""
         obj = context.object
         layout = self.layout
-
-        row = layout.row()
-        box = row.box()
+        # Properties for all types of meshes
+        box = layout.box()
         box.prop(obj.nvb, 'meshtype', text='Type')
         row = box.row()
         row.prop(obj.nvb, 'wirecolor')
-        layout.separator()
-
+        # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
-            row = layout.row()
-            box = row.box()
-
-            row = box.row()
-            row.prop_search(obj.nvb, 'rawascii',
-                            bpy.data, 'texts',
+            layout.separator()
+            box = layout.box()
+            box.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts',
                             text='Emitter Data')
-
         # Additional props for aabb walkmeshes
         elif obj.nvb.meshtype == nvb_def.Meshtype.AABB:
-            row = layout.row()
-            box = row.box()
-            row = box.row()
-            row.operator('nvb.helper_genwok',
-                         text='Setup Materials', icon='NONE')
-            row = box.row()
-            row.label(text='(Warning: Removes current materials)')
+            layout.separator()
+            box = layout.box()
+            box.label(text='AABB Properties')
 
-        else:  # Trimesh, danglymesh, skin
-            row = layout.row()
-            box = row.box()
+            box.operator('nvb.helper_genwok',
+                         text='Setup Materials', icon='MATERIAL')
+            box.label(text='(Warning: Removes current materials)')
+        # Trimesh, danglymesh, skin
+        else:
+            layout.separator()
+            box = layout.box()
             box.label(text='Trimesh Properties')
 
             row = box.row()
@@ -457,28 +430,21 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             # Additional props for danglymeshes
             if (obj.nvb.meshtype == nvb_def.Meshtype.DANGLYMESH):
                 layout.separator()
-
-                row = layout.row()
-                box = row.box()
+                box = layout.box()
                 box.label(text='Danglymesh Properties')
-                row = box.row()
-                row.prop_search(obj.nvb, 'constraints',
-                                obj, 'vertex_groups',
+
+                box.prop_search(obj.nvb, 'constraints', obj, 'vertex_groups',
                                 text='Constraints')
-                row = box.row()
-                row.prop(obj.nvb, 'period', text='Period')
-                row = box.row()
-                row.prop(obj.nvb, 'tightness', text='Tightness')
-                row = box.row()
-                row.prop(obj.nvb, 'displacement', text='Displacement')
+                box.prop(obj.nvb, 'period', text='Period')
+                box.prop(obj.nvb, 'tightness', text='Tightness')
+                box.prop(obj.nvb, 'displacement', text='Displacement')
 
             # Additional props for skins
             elif (obj.nvb.meshtype == nvb_def.Meshtype.SKIN):
                 layout.separator()
-
-                row = layout.row()
-                box = row.box()
+                box = layout.box()
                 box.label(text='Skinmesh Properties')
+
                 row = box.row()
                 row.label(text='Create vertex group: ')
                 row = box.row(align=True)
@@ -488,17 +454,17 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 
             # Additional props for Animmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
-                row = layout.row()
-                box = row.box()
-                row = box.row()
-                row.label(text='Animmesh Properties')
-                row = box.row()
+                layout.separator()
+                box = layout.box()
+                box.label(text='Animmesh Properties')
+
+                # obj.data.shape_keys is not always present
                 if obj.data and obj.data.shape_keys:
-                    row.prop_search(obj.nvb, 'aurorashapekey',
+                    box.prop_search(obj.nvb, 'aurorashapekey',
                                     obj.data.shape_keys, 'key_blocks',
                                     text='Shapekey')
                 else:
-                    row.prop(obj.nvb, 'aurorashapekey', text='Shapekey')
+                    box.prop(obj.nvb, 'aurorashapekey', text='Shapekey')
 
 
 class NVB_MT_animlist_specials(bpy.types.Menu):
@@ -643,8 +609,7 @@ class NVB_PT_utils(bpy.types.Panel):
         obj = nvb_utils.findObjRootDummy(context.object)
         if obj:
             # Minimap Helper
-            row = layout.row()
-            box = row.box()
+            box = layout.box()
             box.label(text='Minimap Helper')
             box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
             box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
@@ -653,23 +618,18 @@ class NVB_PT_utils(bpy.types.Panel):
                          icon='RENDER_STILL')
             layout.separator()
             # Armature Helper
-            row = layout.row()
-            box = row.box()
+            box = layout.box()
             box.label(text='Armature Helper')
             row = box.row()
             row.label(text='Source: ')
             row.prop(obj.nvb, 'helper_amt_source', expand=True)
-            row = box.row()
-            row.prop(obj.nvb, 'helper_amt_connect', text='Connect')
-            row = box.row()
-            row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-            box.operator('nvb.helper_amt_psd2amt',
-                         text='Generate Armature',
+            box.prop(obj.nvb, 'helper_amt_connect', text='Connect')
+            box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
+            box.operator('nvb.helper_pbs2amt', text='Generate Armature',
                          icon='BONE_DATA')
             layout.separator()
             # Walkmesh & Dummy Helper
-            row = layout.row()
-            box = row.box()
+            box = layout.box()
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')

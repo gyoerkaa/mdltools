@@ -124,20 +124,23 @@ class Mtr(object):
         if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
             txtBlock = bpy.data.texts[material.nvb.mtrtext]
             self.loadTextBlock(txtBlock)
-        # Add custom shaders
-        asciiLines.append('// Shaders')
-        if material.nvb.shadervs:
-            asciiLines.append('customshaderVS ' + material.nvb.shadervs)
-        if material.nvb.shaderfs:
-            asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
-        asciiLines.append('')
-        asciiLines.append('// Textures')
+        # Add shaders
+        if material.nvb.shadervs or material.nvb.shaderfs:
+            asciiLines.append('// Shaders')
+            if material.nvb.shadervs:
+                asciiLines.append('customshaderVS ' + material.nvb.shadervs)
+            if material.nvb.shaderfs:
+                asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
+            asciiLines.append('')
         # Add list of textures
         texList = NodeMaterial.getAsciiTextures(material, options)
         if len(texList) > 0:
+            asciiLines.append('// Textures')
             asciiLines.extend(['texture' + str(i) + ' ' + n
                                for i, n, _ in texList])
             asciiLines.append('')
+        # Add parameters
+        if len(self.parameters) > 0:
             asciiLines.append('// Parameters')
             for pname, pvalues in self.parameters.items():
                 asciiLines.append('parameter ' +
@@ -155,6 +158,7 @@ class NodeMaterial(object):
         self.name = name
         self.ambient = (1.0, 1.0, 1.0)
         self.diffuse = (1.0, 1.0, 1.0)
+        self.diffuse_alpha = -1.0  # EE stores alpha as 4th diffuse value
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
         self.bitmap = ''  # 'null' will be convertd to ''
@@ -228,6 +232,9 @@ class NodeMaterial(object):
             self.ambient = tuple([float(v) for v in aline[1:4]])
         elif (label == 'diffuse'):
             self.diffuse = tuple([float(v) for v in aline[1:4]])
+            # EE stores alpha as 4th diffuse value
+            if len(aline) > 4:
+                self.diffuse_alpha = float(aline[4])
         elif (label == 'specular'):
             self.specular = tuple([float(v) for v in aline[1:4]])
         elif (label == 'alpha'):
@@ -446,32 +453,31 @@ class NodeMaterial(object):
             material = obj.active_material
             if material:
                 # Write Color Values
-                fstr = '  ambient {: 3.2f} {: 3.2f} {: 3.2f}'
+                fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
                 asciiLines.append(fstr.format(*material.nvb.ambient_color))
-                fstr = '  diffuse {: 3.2f} {: 3.2f} {: 3.2f}'
+                fstr = '  diffuse {:3.2f} {:3.2f} {:3.2f}'
                 asciiLines.append(fstr.format(*material.diffuse_color))
-                fstr = '  specular {: 3.2f} {: 3.2f} {: 3.2f}'
+                fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
                 asciiLines.append(fstr.format(*material.specular_color))
                 # Get textures for this material
                 texList = NodeMaterial.getAsciiTextures(material, options)
-                # Write first texture as bitmap
+                # Always write bitmap entry
                 if len(texList) > 0:
                     istextured = True
                     asciiLines.append('  bitmap ' + texList[0][1])
-                    # Add renderhint
-                    if len(texList) > 1:
-                        asciiLines.append('  renderhint NormalAndSpecMapped')
                 else:
                     asciiLines.append('  bitmap ' + nvb_def.null)
-                # Either add material reference or textures
+                # Write the rest of the data either to mdl or add mtr reference
                 if options.materialUseMTR and material.nvb.usemtr:
                     asciiLines.append('  materialname ' +
                                       material.nvb.mtrname)
                 else:
-                    # Write the rest of the textures as textureX
+                    # Add renderhint
                     if len(texList) > 1:
-                        asciiLines.extend(['  texture' + str(i) + ' ' + n
-                                          for i, n, _ in texList[1:]])
+                        asciiLines.append('  renderhint NormalAndSpecMapped')
+                    # Write texture1 and texture2 to mdl
+                    asciiLines.extend(['  texture' + str(i) + ' ' + n
+                                      for i, n, _ in texList[1:3]])
                 # Alpha value:
                 # 1. Texture slots present: get alpha from 1st slot
                 # 2. No texture slot get alpha from material
@@ -612,6 +618,7 @@ class Node(object):
             return
         # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
+
         loc = transmat.to_translation()
         asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
 
@@ -619,9 +626,9 @@ class Node(object):
         fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
         asciiLines.append(fstr.format(*rot))
 
-        scale = round(nvb_utils.getAuroraScale(obj), 3)
+        scale = nvb_utils.getAuroraScale(obj)
         if not (0.998 < scale < 1.002):
-            asciiLines.append('  scale ' + str(scale))
+            asciiLines.append('  scale {:5.3f}'.format(scale))
 
     @classmethod
     def generateAscii(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -643,7 +650,6 @@ class Dummy(Node):
     def __init__(self, name='unnamed'):
         """TODO: Doc."""
         Node.__init__(self, name)
-
         self.emptytype = nvb_def.Emptytype.DUMMY
 
     def loadAscii(self, asciiLines, nodeidx=-1):
@@ -653,9 +659,7 @@ class Dummy(Node):
     def createObjectData(self, obj, options):
         """TODO: DOC."""
         Node.createObjectData(self, obj, options)
-
         obj.nvb.emptytype = self.emptytype
-        # obj.nvb.dummytype = nvb_def.Dummytype.getType(self.name)
 
 
 class Patch(Node):
@@ -666,13 +670,11 @@ class Patch(Node):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
-
         self.emptytype = nvb_def.Emptytype.PATCH
 
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
-
         obj.nvb.emptytype = self.emptytype
 
 
@@ -684,8 +686,8 @@ class Reference(Node):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
-
         self.emptytype = nvb_def.Emptytype.REFERENCE
+
         self.refmodel = nvb_def.null
         self.reattachable = 0
 
@@ -732,8 +734,8 @@ class Trimesh(Node):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.TRIMESH
+
         self.center = (0.0, 0.0, 0.0)  # Unused ?
         self.tilefade = 0
         self.render = 1
@@ -902,7 +904,8 @@ class Trimesh(Node):
         material = None
         matimg = None
         if options.importMaterials:
-            material = self.material.create(options)
+            uniqueMat = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
+            material = self.material.create(options, uniqueMat)
             if material:
                 me.materials.append(material)
                 # Set material idx (always 0, only a single material)
@@ -982,7 +985,8 @@ class Trimesh(Node):
         material = None
         matimg = None
         if options.importMaterials:
-            material = self.material.create(options)
+            uniqueMat = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
+            material = self.material.create(options, uniqueMat)
             if material:
                 me.materials.append(material)
                 # Set material idx (always 0, only a single material)
@@ -1333,7 +1337,7 @@ class Trimesh(Node):
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         col = obj.nvb.wirecolor
-        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
+        s = '  wirecolor {:3.2f} {:3.2f} {:3.2f}'.format(*col)
         asciiLines.append(s)
 
         hastexture = False
@@ -1349,7 +1353,7 @@ class Trimesh(Node):
             # Self illumination color
             col = obj.nvb.selfillumcolor
             if round(sum(col), 2) > 0.0:  # Skip default value
-                s = '  selfillumcolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
+                s = '  selfillumcolor {:3.2f} {:3.2f} {:3.2f}'.format(*col)
                 asciiLines.append(s)
             # Render and Shadow
             if not (obj.nvb.shadow and obj.nvb.render):  # Skip default value
@@ -1591,8 +1595,8 @@ class Emitter(Node):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.EMITTER
+
         self.xsize = 2
         self.ysize = 2
         self.rawascii = ''

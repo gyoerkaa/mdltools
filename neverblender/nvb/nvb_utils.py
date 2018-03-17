@@ -553,7 +553,7 @@ def copyAnims2Armature(armature, source,
     amt_action = armature.animation_data.action
     if not amt_action:
         amt_action = bpy.data.actions.new(name=armature.name)
-        amt_action.use_fake_user = True
+        # amt_action.use_fake_user = True
         armature.animation_data.action = amt_action
     for amt_bone in bones:
         amt_posebone = armature.pose.bones[amt_bone.name]

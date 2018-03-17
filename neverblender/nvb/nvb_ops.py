@@ -14,20 +14,69 @@ from . import nvb_io
 from . import nvb_node
 
 
-class NVB_OT_helper_amt2psd(bpy.types.Operator):
-    """Generate pseudobone from blender armature."""
-    bl_idname = 'nvb.helper_amt2psd'
+class NVB_OT_helper_amt2pbs(bpy.types.Operator):
+    """Generate pseudobones from blender armature."""
+    bl_idname = 'nvb.helper_amt2pbs'
     bl_label = 'Generate MDL pseudo bones from Armature'
 
-    def create_bone_geometry(amt_bone, prefix=''):
+    def create_mesh(meshname):
         """TODO: DOC."""
-        # head_loc = amt_bone.head
-        # tail_loc = amt_bone.tail
-        pass
+        verts = [+0.0, +0.0, 0.0,
+                 -0.1, -0.1, 0.1,
+                 -0.1, +0.1, 0.1,
+                 +0.1, -0.1, 0.1,
+                 +0.1, +0.1, 0.1,
+                 +0.0, +0.0, 1.0]
+        faces = [0, 1, 2,
+                 0, 2, 4,
+                 0, 4, 3,
+                 0, 3, 1,
+                 4, 2, 5,
+                 3, 4, 5,
+                 2, 1, 5,
+                 1, 3, 5]
+        mesh = bpy.data.meshes.new(meshname)
+        # Create Verts
+        mesh.vertices.add(6)
+        mesh.vertices.foreach_set('co', verts)
+        # Create Faces
+        mesh.tessfaces.add(8)
+        mesh.tessfaces.foreach_set('vertices_raw', faces)
+        mesh.validate()
+        mesh.update()
+        return mesh
+
+    def create_pseudo_bone(self, amt_bone, parent=None, prefix=''):
+        """TODO: DOC."""
+        # name for newly created mesh = pseudo bone
+        pb_name = prefix + amt_bone.name
+        # Scales the creates mesh to match the length of the armature bone
+        ab_length = (amt_bone.head - amt_bone.tail).length
+        mesh = self.create_mesh(pb_name)
+        mesh.transform(mathutils.Matrix.Scale(ab_length, 4))
+        pb = bpy.data.objects.new(pb_name, mesh)
+        pb.parent = parent
+        bpy.context.scene.objects.link(pb)
+        return pb
 
     def generateBones(self, armature):
         """TODO: doc."""
-        pass
+        # Only create meshes without parent or with an already created parent
+        generated = dict()
+        while len(armature.data.bones) > len(generated):
+            for bone in armature.bones:
+                if bone.parent:
+                    pname = bone.parent.name
+                    if pname in generated:
+                        pb = self.create_pseudo_bone(bone, generated[pname])
+                        generated[bone.name] = pb
+                else:
+                    pb = self.create_pseudo_bone(bone, None)
+                    generated[bone.name] = pb
+        # Transfer animations
+        if armature.nvb.helper_amt_copyani:
+            for ab_name, pb in generated:
+                pass
 
     @classmethod
     def poll(self, context):
@@ -37,24 +86,26 @@ class NVB_OT_helper_amt2psd(bpy.types.Operator):
 
     def execute(self, context):
         """Create pseudo bones"""
-        pass
+        obj = context.object
+        self.generateBones(obj)
 
 
-class NVB_OT_helper_psd2amt(bpy.types.Operator):
-    """Generate armature from skinmesh weights and mdl bones."""
+class NVB_OT_helper_pbs2amt(bpy.types.Operator):
+    """Generate armature from pseudo bones."""
 
-    bl_idname = 'nvb.helper_amt_psd2amt'
+    bl_idname = 'nvb.helper_pbs2amt'
     bl_label = 'Generate Armature from MDL pseudo bones'
 
-    # For detecting pseudo bones
+    # If only objects references by skingropups are used create a list here
     pb_skingroups = []
-    pb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
-                 'ground', 'grnd', 'handconjure', 'headconjure']
+    # Dummys with these names are ignores
+    pb_dummy_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
+                       'ground', 'grnd', 'handconjure', 'headconjure']
     pb_prefix = '?'
     pb_suffix = '?'
 
     def can_connect(self, obj):
-        """Determnine whether the bone belonging to this object can be
+        """Determine whether the bone belonging to this object can be
            connected to it's parent."""
         # If location is animated the bone cannot be connected
         if obj.animation_data:
@@ -65,7 +116,7 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
                         return False
         return True
 
-    def setupPseudoBoneDetection(self, aur_root, strict=False):
+    def setupPseudoBoneDetection(self, aur_root, autodetect=False):
         """TODO: doc."""
         # Get all names of skinmesh vertex groups which exist as object
         children = []
@@ -81,24 +132,29 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
             os.path.commonprefix([n[::-1] for n in self.pb_skingroups])
         self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
 
-    def detectPseudoBonesRoot(self, auroraRoot, strict=False):
+    def detectPseudoBonesRoot(self, auroraRoot, autodetect=False):
         """TODO: doc."""
         for c in auroraRoot.children:
             for cc in c.children:
-                if self.isPseudoBone(cc, strict):
+                if self.isPseudoBone(cc, autodetect):
                     return c
         return None
 
-    def isPseudoBone(self, obj, strict=False):
+    def isPseudoBone(self, obj, autodetect=False):
         """TODO: doc."""
         oname = obj.name
-        if strict:
+        # Some objects like impact nodes can never be pseudo bones
+        if (obj.type == 'EMPTY' and ((oname in self.pb_dummy_ignore) or
+           (obj.nvb.emptytype != nvb_def.Emptytype.DUMMY))):
+            return False
+        # Ignore skinmeshes and walkmeshes
+        if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
+           (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
+            return False
+        if autodetect:
             # Object is referred to in any vertex group of a skinmesh
             if oname in self.pb_skingroups:
                 return True
-            # Some objects like impact nodes never are pseudo bones
-            if oname in self.pb_ignore:
-                return False
             # Maybe: Object carries a common suffix or prefix
             if oname.startswith(self.pb_prefix) or \
                oname.endswith(self.pb_suffix):
@@ -108,19 +164,18 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
             nvb_utils.getAllChildren(obj, children)
             cn = [c.name for c in children]
             return bool(set(cn) & set(self.pb_skingroups))
-        else:
-            return (oname.lower() not in self.pb_ignore) and \
-                   (obj.nvb.meshtype != nvb_def.Meshtype.SKIN)
-        return False
+        return True
 
-    def generateBones(self, amt, obj, strict=False,
-                      pbone=None, ploc=mathutils.Vector()):
+    def generateBones(self, amt, obj, autodetect=False, pbone=None,
+                      ploc=mathutils.Vector()):
         """TODO: doc."""
         # TODO set every rotation to 0 before creating a bone
         bone = None
         bhead = obj.matrix_local.translation + ploc
         # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
-        if self.isPseudoBone(obj, strict):
+        print(obj.name)
+        if self.isPseudoBone(obj, autodetect):
+            print('  is pseudo')
             bone = amt.edit_bones.new(obj.name)
             bone.roll = 0
             # Set head
@@ -138,7 +193,7 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
             # Set tail
             btail = mathutils.Vector([0.0, 0.0, 0.0])
             valid_children = [c for c in obj.children
-                              if self.isPseudoBone(c, strict)]
+                              if self.isPseudoBone(c, autodetect)]
             if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
                 locsum = mathutils.Vector([0.0, 0.0, 0.0])
@@ -165,7 +220,7 @@ class NVB_OT_helper_psd2amt(bpy.types.Operator):
             # if pbone:
             #     bone.align_roll(pbone.z_axis)
         for c in obj.children:
-            self.generateBones(amt, c, strict, bone, bhead)
+            self.generateBones(amt, c, autodetect, bone, bhead)
 
     @classmethod
     def poll(self, context):
@@ -1735,13 +1790,13 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         # Create SAM object
         if 'sam' in bpy.data.objects:
             obj = bpy.data.objects['sam']
-            obj.parent = mdlroot
         else:
             mesh = create_sam_mesh('sam')
             obj = bpy.data.objects.new('sam', mesh)
             obj.location = (0.0, 0.0, 0.0)
-            obj.parent = mdlroot
             scene.objects.link(obj)
+        obj.parent = mdlroot
+        obj.nvb.shadow = False
         # Create special dummys
         dummy_data = [['_hand', (0.0, 0.0, 1.0)],
                       ['_head', (0.0, 0.0, 2.5)],

@@ -105,10 +105,10 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     # For gui editing
     shadervs = bpy.props.StringProperty(name='Vertex Shader',
                                         description='Specify Vertex shader',
-                                        default='')
+                                        default='vslitc_nm')
     shaderfs = bpy.props.StringProperty(name='Fragment Shader',
                                         description='Specify Fragment shader',
-                                        default='')
+                                        default='fslit_nm')
 
 
 class NVB_PG_flare(bpy.types.PropertyGroup):
@@ -243,38 +243,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                 name='Animationscale',
                 description='Animation scale for all animations',
                 default=1.00, min=0.0)
-    dummytype = bpy.props.EnumProperty(
-                name='Type',
-                items=[(nvb_def.Dummytype.DEFAULT,
-                        'None', 'Simple dummy object', 0),
-                       (nvb_def.Dummytype.HAND,
-                        'Hand', 'Hand node for vfx', 1),
-                       (nvb_def.Dummytype.HEAD,
-                        'Head', 'Head node for vfx', 2),
-                       (nvb_def.Dummytype.HEAD_HIT,
-                        'Head hit', 'Head hit node for vfx', 3),
-                       (nvb_def.Dummytype.IMPACT,
-                        'Impact', 'Impact node for vfx', 4),
-                       (nvb_def.Dummytype.GROUND,
-                        'Ground', 'Ground node for vfx', 5),
-                       (nvb_def.Dummytype.USE1,
-                        'Use 1', '1st Node for placeable "Use"', 6),
-                       (nvb_def.Dummytype.USE2,
-                        'Use 2', '2nd Node for placeable "Use"', 7),
-                       (nvb_def.Dummytype.OPEN1_01,
-                        'DWK: Open 1 1st', '1st node for door "Use"', 8),
-                       (nvb_def.Dummytype.OPEN1_02,
-                        'DWK: Open 1 2nd', '2nd node for door "Use"', 9),
-                       (nvb_def.Dummytype.OPEN2_01,
-                        'DWK: Open 2 1st', '1st node for door "Use"', 10),
-                       (nvb_def.Dummytype.OPEN2_02,
-                        'DWK: Open 2 2nd', '2nd node for door "Use"', 11),
-                       (nvb_def.Dummytype.CLOSED_01,
-                        'DWK: Closed 1st', '1st node for door "Use"', 12),
-                       (nvb_def.Dummytype.CLOSED_01,
-                        'DWK: Closed 2nd', '2nd node for door "Use"', 13)
-                       ],
-                default=nvb_def.Dummytype.DEFAULT)
     # Animation Data (for being able to seperate them)
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
@@ -313,7 +281,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                ('SKIN',
                 'Skinmeshes', 'Vertex groups from all skinmeshes', 1),
                ],
-        default='SKIN')
+        default='SELN')
     helper_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect Bones',
         description='Connect bones when possible',
