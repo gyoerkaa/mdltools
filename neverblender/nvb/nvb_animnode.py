@@ -264,7 +264,7 @@ class Animnode():
         curve = Animnode.getCurve(action, dp)
         if self.alphakey:
             for key in self.alphakey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                frame = fps * key[0] + frameStart
                 curve.keyframe_points.insert(frame, key[1])
         elif self.alpha is not None:
             curve.keyframe_points.insert(frameStart, self.alpha)
@@ -296,8 +296,7 @@ class Animnode():
             curr_eul = 0
             prev_eul = 0
             for i in range(len(self.orientationkey)):
-                frame = frameStart + \
-                    nvb_utils.nwtime2frame(self.orientationkey[i][0], fps)
+                frame = fps * self.orientationkey[i][0] + frameStart
                 eul = nvb_utils.nwangle2euler(self.orientationkey[i][1:5])
                 curr_eul = Animnode.eulerFilter(eul, prev_eul)
                 prev_eul = curr_eul
@@ -329,8 +328,7 @@ class Animnode():
             nkfp = list(map(lambda x: len(x), kfp))
             list(map(lambda x: x.add(len(self.positionkey)), kfp))
             for i in range(len(self.positionkey)):
-                frame = frameStart + \
-                    nvb_utils.nwtime2frame(self.positionkey[i][0], fps)
+                frame = fps * self.positionkey[i][0] + frameStart
                 val = self.positionkey[i][1:4]
                 for j in range(3):
                     tp = kfp[j][nkfp[j]+i]
@@ -358,7 +356,7 @@ class Animnode():
             curveY = Animnode.getCurve(action, dp, 1)
             curveZ = Animnode.getCurve(action, dp, 2)
             for key in self.scalekey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                frame = fps * key[0] + frameStart
                 curveX.keyframe_points.insert(frame, key[1])
                 curveY.keyframe_points.insert(frame, key[1])
                 curveZ.keyframe_points.insert(frame, key[1])
@@ -380,7 +378,7 @@ class Animnode():
             curveG = Animnode.getCurve(action, dp, 1)
             curveB = Animnode.getCurve(action, dp, 2)
             for key in self.selfillumcolorkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                frame = fps * key[0] + frameStart
                 curveR.keyframe_points.insert(frame, key[1])
                 curveG.keyframe_points.insert(frame, key[2])
                 curveB.keyframe_points.insert(frame, key[3])
@@ -402,7 +400,7 @@ class Animnode():
             curveG = Animnode.getCurve(action, dp, 1)
             curveB = Animnode.getCurve(action, dp, 2)
             for key in self.colorkey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                frame = fps * key[0] + frameStart
                 curveR.keyframe_points.insert(frame, key[1])
                 curveG.keyframe_points.insert(frame, key[2])
                 curveB.keyframe_points.insert(frame, key[3])
@@ -422,7 +420,7 @@ class Animnode():
         if self.radiuskey:
             curve = Animnode.getCurve(action, dp)
             for key in self.radiuskey:
-                frame = frameStart + nvb_utils.nwtime2frame(key[0], fps)
+                frame = fps * key[0] + frameStart
                 curve.keyframe_points.insert(frame, key[1])
         elif self.radius:
             curve = Animnode.getCurve(action, dp, 0)
@@ -450,9 +448,8 @@ class Animnode():
                 # List of unknown keys
                 txt.write('  ' + label + ' ' + str(len(keyList)) + '\n')
                 for key in keyList:
-                    nwtime = float(key[0])
+                    frame = fps * float(key[0])
                     values = [float(v) for v in key[1:]]
-                    frame = nvb_utils.nwtime2frame(nwtime, fps)
                     formatStr = '    {: >4d}' + \
                                 ' '.join(['{: > 8.5f}']*len(values)) + '\n'
                     s = formatStr.format(frame, *values)
@@ -617,8 +614,6 @@ class Animnode():
                 # Maybe texture or material alpha
                 if dp.endswith('alpha_factor') or dp.endswith('alpha'):
                     nwname = 'alphakey'
-                else:
-                    continue  # Can't export this one, skip it
 
             kfp = [p for p in fcurve.keyframe_points
                    if anim.frameStart <= p.co[0] <= anim.frameEnd]
@@ -665,64 +660,133 @@ class Animnode():
                 asciiLines.append('    ' + ' '.join(line))
 
     @staticmethod
-    def getKeysFromMatAction(action, anim, exports):
+    def get_keys_material(mat, anim, key_data):
         """TODO: DOC."""
-        for fcurve in action.fcurves:
-            # ai = fcurve.array_index
-            # Get the name from the data path
-            dp = fcurve.data_path
-            if dp.endswith('alpha_factor') or dp.endswith('alpha'):
-                pass  # nwname = 'alphakey'
+        action = mat.animation_data.action
+        if not action:
+            return
+        # Build data paths
+        exports = [['ambient', 3, ' {: >3.2f}', 3, 'nvb.ambient_color']]
+        # Aplha can be animated with the following data paths
+        # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
+        # 2. 'alpha' - which is material alpha
+        # We only want one of those, alpha_factor takes precendence
+        dp_alpha_factor = [fc.data_path for fc in action.fcurves
+                           if fc.data_path.endswith('.alpha_factor')]
+        if dp_alpha_factor:
+            exports.append(['alpha', 1, ' {: >3.2f}', dp_alpha_factor[0]])
+        else:
+            exports.append(['alpha', 1, ' {: >3.2f}', 'alpha'])
+        # Get keyframe data
+        fcurves = action.fcurves
+        for key_name, val_dim, val_fstr, dp_dim, dp in exports:
+            fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
+            keyed_frames = \
+                list(set().union(*[[k.co[0] for k in fcu[i].keyframe_points]
+                                   for i in range(dp_dim)]))
+            keyed_frames.sort()
+            keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                    for f in keyed_frames]
+            key_data.append([key_name, keys, val_dim * val_fstr])
 
     @staticmethod
-    def getKeysFromObjAction(action, anim, exports):
+    def get_keys_object(obj, anim, key_data):
         """TODO: DOC."""
-        pass
-        """
-        export_dp = {'rotation_euler', 'location', 'scale',
-                     'nvb.selfillumcolor',
-                     'color', 'distance'}
-        dp_dict = dict()
-        test12_dp = {'rotation_euler':     [[], 'orientationkey'],
-                     'location':           [[], 'positionkey'],
-                     'scale':              [[], 'scalekey'],
-                     'nvb.selfillumcolor': [[], 'selfillumcolorkey'],
-                     'color':              [[], 'colorkey'],
-                     'distance':           [[], 'radiuskey']}
-        for fcurve in action.fcurves:
-            # Get all compatible fcurves
-            dp = fcurve.data_path
-            ai = fcurve.array_index
-
-            if dp in export_dp:
-                nwname = export_dp[dp][1]
-        """
+        action = obj.animation_data.action
+        if not action:
+            return
+        # Build data paths
+        exports = [
+            ['scale', 1, ' {: > 6.5f}', 1, 'scale'],
+            ['selfillumcolor', 3, ' {: >3.2f}', 3, 'nvb.selfillumcolor'],
+            ['color', 3, ' {: >3.2f}', 3, 'color'],
+            ['radius', 1, ' {: >6.5f}', 1, 'distance']]
+        # Get keyframe data
+        fcurves = action.fcurves
+        for key_name, val_dim, val_fstr, dp_dim, dp in exports:
+            fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
+            if fcu:
+                keyed_frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)])).sort()
+                keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                        for f in keyed_frames]
+                key_data.append([key_name, keys, val_dim * val_fstr])
+        # Add rotation keys, depending on object rotation mode
+        keys = []
+        if obj.rotation_mode == 'AXIS_ANGLE':
+            dp_dim = 4
+            fcu = [fcurves.find('rotation_axis_angle', i)
+                   for i in range(dp_dim)]
+            if fcu:
+                keyed_frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)])).sort()
+                keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                        for f in keyed_frames]
+                # Apply parent_inverse
+                # Convert to nwn axis angle
+        elif obj.rotation_mode == 'QUATERNION':
+            dp_dim = 4
+            fcu = [fcurves.find('rotation_quaternion', i)
+                   for i in range(dp_dim)]
+            if fcu:
+                keyed_frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)])).sort()
+                keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                        for f in keyed_frames]
+                # Apply parent_inverse
+                # Convert to nwn axis angle
+        else:
+            dp_dim = 3
+            fcu = [fcurves.find('rotation_euler', i)
+                   for i in range(dp_dim)]
+            if fcu:
+                keyed_frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)])).sort()
+                keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                        for f in keyed_frames]
+                # Apply parent_inverse
+                # Convert to nwn axis angle
+        key_data.append(['orientation', keys, 4 * ' {: > 6.5f}'])
+        # Add location keys and apply parent_inverse
+        dp_dim = 3
+        fcu = [fcurves.find('location', i) for i in range(dp_dim)]
+        if fcu:
+            keyed_frames = \
+                list(set().union(*[[k.co[0] for k in fcu[i].keyframe_points]
+                                   for i in range(dp_dim)]))
+            keyed_frames.sort()
+            keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
+                    for f in keyed_frames]
+            # Apply parent_inverse
+            key_data.append(['position', keys, 3 * ' {: > 6.5f}'])
 
     @staticmethod
-    def generateAsciiKeys2(obj, anim, asciiLines):
+    def generate_ascii_keys(obj, anim, asciiLines, options):
         """TODO: DOC."""
-        exports = [['orientationkey', collections.OrderedDict()],
-                   ['positionkey', collections.OrderedDict()],
-                   ['scalekey', collections.OrderedDict()],
-                   ['selfillumcolorkey', collections.OrderedDict()],
-                   ['colorkey', collections.OrderedDict()],
-                   ['radiuskey', collections.OrderedDict()],
-                   ['alphakey', collections.OrderedDict()]]
+        key_data = []
         # 1. Object animation data
         if obj.animation_data:
-            action = obj.animation_data.action
-            if action:
-                Animnode.getKeysFromObjAction(action, anim, exports)
+            Animnode.get_keys_object(obj, anim, key_data)
         # 2. Material animation data
         if obj.active_material and obj.active_material.animation_data:
-            action = obj.active_material.animation_data.action
-            if action:
-                Animnode.getKeysFromMatAction(action, anim, exports)
-
-        # astart = anim.frameStart
-        # rfps = options.scene.render.fps
-        for exp in exports:
-            pass  # keys = exp[1]
+            Animnode.get_keys_material(obj.active_material, anim, key_data)
+        # Add keys to ascii lines
+        time_fstr = '{: >6.5f}'
+        for key_name, keys, val_fstr in key_data:
+            num_keys = len(keys)
+            if num_keys > 1:
+                # Create a key list
+                asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
+                fstr = '      ' + time_fstr + val_fstr
+                asciiLines.extend([fstr.format(*k) for k in keys])
+            elif num_keys == 1:
+                # Create only a single value
+                fstr = '    ' + key_name + val_fstr
+                asciiLines.append(fstr.format(*keys[0]))
 
     @staticmethod
     def generateAsciiKeys(obj, anim, asciiLines, options):
@@ -745,6 +809,8 @@ class Animnode():
             action = obj.active_material.animation_data.action
             if action:
                 Animnode.getKeysFromAction(action, anim, keyDict)
+        # Adjust coordinates, remove parent inverse
+        # mat_pinv = obj.matrix_parent_inverse
         # Cache values for speed
         animStart = anim.frameStart
         fps = options.scene.render.fps
@@ -818,9 +884,9 @@ class Animnode():
         # Lamp radius
         keyList = keyDict['radiuskey']
         if len(keyList) == 1:
-            fstr = '    radius {: >3.2f} {: >3.2f} {: >3.2f}'
+            fstr = '    radius {: >6.5f}'
             key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+            asciiLines.append(fstr.format(key[0]))
         elif len(keyList) > 1:
             asciiLines.append('    radiuskey ' + str(len(keyList)))
             fstr = '      {: >6.5f} {: >6.5f}'
@@ -830,9 +896,9 @@ class Animnode():
         # Alpha value
         keyList = keyDict['alphakey']
         if len(keyList) == 1:
-            fstr = '    radius {: >3.2f} {: >3.2f} {: >3.2f}'
+            fstr = '    alpha {: >3.2f}'
             key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0], key[1], key[2]))
+            asciiLines.append(fstr.format(key[0]))
         elif len(keyList) > 1:
             asciiLines.append('    alphakey ' + str(len(keyList)))
             fstr = '      {: >6.5f} {: >3.2f}'
@@ -841,8 +907,8 @@ class Animnode():
                 asciiLines.append(fstr.format(time, key[0]))
 
     @staticmethod
-    def generateAsciiAnimmeshShapes(obj, anim, asciiLines,
-                                    options, numAnimUVs=0):
+    def generateAsciiAnimeshShapes(obj, anim, asciiLines, options,
+                                   numAnimUVs=0):
         """Add data for animated vertices."""
         shapekeyname = obj.nvb.aurorashapekey
         if not shapekeyname:
@@ -920,8 +986,7 @@ class Animnode():
         return -1
 
     @staticmethod
-    def generateAsciiAnimmeshUV(obj, anim, asciiLines,
-                                options, numAnimVerts=0):
+    def generateAsciiAnimeshUV(obj, anim, asciiLines, options, numAnimVerts=0):
         """Add data for animated texture coordinates."""
         if not obj.active_material:
             return
@@ -1010,10 +1075,10 @@ class Animnode():
                                             options, True)
         asciiLines.extend(['  '+l for l in tmpLines])
         maxsamples = -1  # Samples > 0 also means not to write metadata (again)
-        maxsamples = Animnode.generateAsciiAnimmeshUV(obj, anim, asciiLines,
-                                                      options, maxsamples)
-        Animnode.generateAsciiAnimmeshShapes(obj, anim, asciiLines,
-                                             options, maxsamples)
+        maxsamples = Animnode.generateAsciiAnimeshUV(obj, anim, asciiLines,
+                                                     options, maxsamples)
+        Animnode.generateAsciiAnimeshShapes(obj, anim, asciiLines,
+                                            options, maxsamples)
 
     @staticmethod
     def generateAscii(obj, anim, asciiLines, options):

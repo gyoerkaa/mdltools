@@ -367,42 +367,6 @@ def setObjectRotationAurora(obj, nwangle):
         obj.rotation_euler = eul
 
 
-def getAuroraRotFromObject(obj):
-    """Get Rotation as axis angle in aurora format/order.
-
-    Get the rotation from an object as Axis Angle in the format used by NWN
-    NWN uses     [X, Y, Z, Angle]
-    Blender uses [Angle, X, Y, Z]
-    Depending on rotation_mode we have to get the rotation from different
-    attributes
-    """
-    rotMode = obj.rotation_mode
-
-    if rotMode == "QUATERNION":
-        q = obj.rotation_quaternion
-        return [q.axis[0], q.axis[1], q.axis[0], q.angle]
-    elif rotMode == "AXIS_ANGLE":
-        aa = obj.rotation_axis_angle
-        return [aa[1], aa[2], aa[3], aa[0]]
-    else:  # Has to be Euler
-        eul = obj.rotation_euler
-        q = eul.to_quaternion()
-        return [q.axis[0], q.axis[1], q.axis[2], q.angle]
-
-    return [0.0, 0.0, 0.0, 0.0]
-
-
-def getAuroraRotFromMatrix(matrix):
-    """Get Rotation as axis angle in aurora format/order.
-
-    Get the rotation from a 4x4 matrix as Axis Angle in the format used by NWN
-    NWN uses     [X, Y, Z, Angle]
-    Blender uses [Angle, X, Y, Z]
-    """
-    q = matrix.to_quaternion()
-    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
-
-
 def getAuroraScale(obj):
     """If scale is uniform (x=y=z) return the value; Else return 1."""
     scale = obj.scale

@@ -592,31 +592,37 @@ class Node(object):
     @staticmethod
     def getAdjustedMatrix(obj):
         """TODO: DOC."""
+        return obj.matrix_parent_inverse * obj.matrix_basis
+        """
+        # Apply parent inverse matrix and parent scale
         if obj.parent:
-            parent_mw = obj.parent.matrix_world
+            parent_scale = obj.parent.matrix_world.to_scale()
         else:
-            parent_mw = mathutils.Matrix()
+            parent_scale = mathutils.Matrix()
+        return obj.matrix_parent_inverse * obj.matrix_basis * parent_scale
+        """
+        """
+        matrix = obj.matrix_parent_inverse * obj.matrix_basis
+        if obj.parent:
+            pmw = obj.parent.matrix_world
+        else:
+            pmw = mathutils.Matrix()
 
-        p_mw_scale = parent_mw.to_scale()
-
-        # scale_m = mathutils.Matrix([[p_mw_scale[0],0,0,0],
-        #                             [0,p_mw_scale[1],0,0],
-        #                             [0,0,p_mw_scale[2],0],
-        #                             [0,0,0            ,1]])
+        pmw_scale = pmw.to_scale()
 
         scaled = obj.matrix_local.copy()
-        scaled[0][3] = scaled[0][3] * p_mw_scale[0]
-        scaled[1][3] = scaled[1][3] * p_mw_scale[1]
-        scaled[2][3] = scaled[2][3] * p_mw_scale[2]
+        scaled[0][3] = scaled[0][3] * pmw_scale[0]
+        scaled[1][3] = scaled[1][3] * pmw_scale[1]
+        scaled[2][3] = scaled[2][3] * pmw_scale[2]
         return scaled
+        """
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: DOC."""
-        # Rootdummy's get no data at all
+        # Rootdummys get no data at all
         if obj.parent is None:
             return
-        # Scaling fix
         transmat = Node.getAdjustedMatrix(obj)
 
         loc = transmat.to_translation()
@@ -1231,17 +1237,16 @@ class Trimesh(Node):
                          options.meshConvert)
         for p in me.polygons:
             p.use_smooth = True
-
+        """
         # Scaling fix
-        # TODO: Find out how exactly blender handles scaling,
-        # which matrices to use etc
+        # Disabled: Interferes with animations
         scale = obj.matrix_world.to_scale()
         scale_matrix = mathutils.Matrix([[scale[0], 0, 0, 0],
                                          [0, scale[1], 0, 0],
                                          [0, 0, scale[2], 0],
                                          [0, 0, 0, 1]])
         me.transform(scale_matrix)
-
+        """
         # Triangulation (doing it with bmesh to retain edges marked as sharp)
         bm = bmesh.new()
         bm.from_mesh(me)
@@ -1301,6 +1306,19 @@ class Trimesh(Node):
             fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
             fcUVCoList = []
             fcUVData.append([fcUVIdList, fcUVCoList])
+        # Write tverts to file (if any)
+        fstr = '    {: 7.3f} {: 7.3f}  0'
+        for idx, fuvd in enumerate(fcUVData):
+            if len(fuvd[1]) > 0:
+                if idx == 0:
+                    asciiLines.append('  tverts ' +
+                                      str(len(fuvd[1])))
+                else:
+                    asciiLines.append('  tverts' + str(idx) + ' ' +
+                                      str(len(fuvd[1])))
+                asciiLines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
+        # Vertex color
+        generateVColors(me, asciiLines)
         # Write faces to file
         vdigs = str(max(1, len(str(len(me.vertices)))))  # Digits for vertices
         sdigs = str(max(1, len(str(max(fcSGrps)))))  # Digits for smoothgrps
@@ -1316,19 +1334,6 @@ class Trimesh(Node):
                '{:' + udigs + 'd} {:' + udigs + 'd} {:' + udigs + 'd}  ' + \
                '{:' + mdigs + 'd}'
         asciiLines.extend([fstr.format(*f) for f in faces])
-        # Write tverts to file (if any)
-        fstr = '    {: 6.3f} {: 6.3f}  0'
-        for idx, fuvd in enumerate(fcUVData):
-            if len(fuvd[1]) > 0:
-                if idx == 0:
-                    asciiLines.append('  tverts ' +
-                                      str(len(fuvd[1])))
-                else:
-                    asciiLines.append('  tverts' + str(idx) + ' ' +
-                                      str(len(fuvd[1])))
-                asciiLines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
-        # Vertex color
-        generateVColors(me, asciiLines)
         bpy.data.meshes.remove(me)
 
     @classmethod
@@ -1388,7 +1393,6 @@ class Animmesh(Trimesh):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.ANIMMESH
 
     def createMaterial(self, options, makeunique=False):
@@ -1405,8 +1409,8 @@ class Danglymesh(Trimesh):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.DANGLYMESH
+
         self.period = 1.0
         self.tightness = 1.0
         self.displacement = 1.0
@@ -1497,8 +1501,8 @@ class Skinmesh(Trimesh):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.SKIN
+
         self.weights = []
 
     def loadAsciiWeights(self, asciiLines):
@@ -1901,7 +1905,7 @@ class Light(Node):
                 for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + str(flare.size))
                 asciiLines.append('  flarecolorshifts zd')
-                fstr = '    {: 3.2f} {: 3.2f} {: 3.2f}'
+                fstr = '    {:3.2f} {:3.2f} {:3.2f}'
                 for flare in lamp.nvb.flareList:
                     asciiLines.append(fstr.format(*(flare.colorshift)))
 
@@ -1920,7 +1924,7 @@ class Light(Node):
         asciiLines.append('  fadingLight ' + str(int(lamp.nvb.fadinglight)))
         asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
-        fstr = '  color {: 3.2f} {: 3.2f} {: 3.2f}'
+        fstr = '  color {:3.2f} {:3.2f} {:3.2f}'
         asciiLines.append(fstr.format(*lamp.color))
         Light.generateAsciiFlares(obj, asciiLines)
 
@@ -1933,7 +1937,6 @@ class Aabb(Trimesh):
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
-
         self.meshtype = nvb_def.Meshtype.AABB
 
     @staticmethod
@@ -1998,31 +2001,20 @@ class Aabb(Trimesh):
         aabbTree = []
         nvb_aabb.generateTree(aabbTree, faceList)
 
-        # l_rnd = round
         if aabbTree:
             fstr = '  aabb ' + \
                    '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
                    '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
             asciiLines.append(fstr.format(*aabbTree.pop(0)))
-            fstr = '       ' + \
+            fstr = '    ' + \
                    '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
                    '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
             asciiLines.extend([fstr.format(*bb) for bb in aabbTree])
 
     @classmethod
-    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
+    def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=True):
         """TODO: Doc."""
-
-        loc = obj.location
-        asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
-
-        rot = nvb_utils.getAuroraRotFromObject(obj)
-        fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
-        asciiLines.append(fstr.format(*rot))
-
-        col = obj.nvb.wirecolor
-        s = '  wirecolor {: 3.2f} {: 3.2f} {: 3.2f}'.format(*col)
-        asciiLines.append(s)
+        Node.generateAsciiData(obj, asciiLines, options, True)
 
         asciiLines.append('  ambient 1.0 1.0 1.0')
         asciiLines.append('  diffuse 1.0 1.0 1.0')
@@ -2047,22 +2039,6 @@ class Aabb(Trimesh):
         me.polygons.foreach_set('loop_total', (3,) * face_cnt)
         me.loops.foreach_set('vertex_index', unpack_list(face_vids))
         nvb_utils.create_wok_materials(me)
-        """
-        # Create materials
-        for wokMat in nvb_def.wok_materials:
-            matName = wokMat[0]
-            # Walkmesh materials will be shared across multiple walkmesh
-            # objects
-            if matName in bpy.data.materials:
-                material = bpy.data.materials[matName]
-            else:
-                material = bpy.data.materials.new(matName)
-                material.diffuse_color = wokMat[1]
-                material.diffuse_intensity = 1.0
-                material.specular_color = (0.0, 0.0, 0.0)
-                material.specular_intensity = 0.0
-            me.materials.append(material)
-        """
         me.update()
         # Apply the walkmesh materials to each face
         me.polygons.foreach_set('material_index',
