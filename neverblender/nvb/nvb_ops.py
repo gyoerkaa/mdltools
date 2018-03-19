@@ -27,14 +27,14 @@ class NVB_OT_helper_amt2pbs(bpy.types.Operator):
                  +0.1, -0.1, 0.1,
                  +0.1, +0.1, 0.1,
                  +0.0, +0.0, 1.0]
-        faces = [0, 1, 2,
-                 0, 2, 4,
-                 0, 4, 3,
-                 0, 3, 1,
-                 4, 2, 5,
-                 3, 4, 5,
-                 2, 1, 5,
-                 1, 3, 5]
+        faces = [0, 1, 2, 0,
+                 0, 2, 4, 0,
+                 0, 4, 3, 0,
+                 0, 3, 1, 0,
+                 4, 2, 5, 0,
+                 3, 4, 5, 0,
+                 2, 1, 5, 0,
+                 1, 3, 5, 0]
         mesh = bpy.data.meshes.new(meshname)
         # Create Verts
         mesh.vertices.add(6)
@@ -172,10 +172,7 @@ class NVB_OT_helper_pbs2amt(bpy.types.Operator):
         # TODO set every rotation to 0 before creating a bone
         bone = None
         bhead = obj.matrix_local.translation + ploc
-        # rot = pmat.decompose()[1].inverted().to_matrix().to_4x4()
-        print(obj.name)
         if self.isPseudoBone(obj, autodetect):
-            print('  is pseudo')
             bone = amt.edit_bones.new(obj.name)
             bone.roll = 0
             # Set head
@@ -191,12 +188,12 @@ class NVB_OT_helper_pbs2amt(bpy.types.Operator):
                         bone.use_connect = True
             bone.head = bhead
             # Set tail
-            btail = mathutils.Vector([0.0, 0.0, 0.0])
+            btail = mathutils.Vector()
             valid_children = [c for c in obj.children
                               if self.isPseudoBone(c, autodetect)]
             if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
-                locsum = mathutils.Vector([0.0, 0.0, 0.0])
+                locsum = mathutils.Vector()
                 for c in valid_children:
                     locsum = locsum + bhead + c.matrix_local.translation
                 btail = locsum/len(valid_children)

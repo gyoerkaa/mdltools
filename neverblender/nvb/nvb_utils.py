@@ -544,8 +544,7 @@ def copyAnims2Armature(armature, source,
                     # Get keyframes
                     keyed_frames = list(set().union(
                         *[[k.co[0] for k in psb_fcu[i].keyframe_points]
-                          for i in range(3)]))
-                    keyed_frames.sort()
+                          for i in range(3)])).sort()
                     psb_kfp = [[f,
                                 (psb_fcu[0].evaluate(f),
                                  psb_fcu[1].evaluate(f),
@@ -586,8 +585,7 @@ def copyAnims2Armature(armature, source,
                     # Get keyframes
                     keyed_frames = list(set().union(
                         *[[k.co[0] for k in psb_fcu[i].keyframe_points]
-                          for i in range(3)]))
-                    keyed_frames.sort()
+                          for i in range(3)])).sort()
                     psb_loc = psb_bone.location
                     psb_kfp = [[f,
                                 (psb_fcu[0].evaluate(f) - psb_loc[0],
