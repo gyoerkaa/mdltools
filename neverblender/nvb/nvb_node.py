@@ -19,34 +19,37 @@ from . import nvb_aabb
 
 class Mtr(object):
     """A material read from an mtr file."""
-    def __init__(self, name='unnamed'):
+    def __init__(self, name='unnamed', filepath=''):
         """TODO: DOC."""
         self.valid = False
 
         self.name = name
+        self.filepath = filepath
         self.ambient = (1.0, 1.0, 1.0)
         self.diffuse = (1.0, 1.0, 1.0)
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
         self.textures = ['']
-        self.customshaders = dict()
         self.renderhints = set()
         self.parameters = dict()
+        self.customshaderVS = ''
+        self.customshaderFS = ''
 
     def isvalid(self):
         return self.valid
 
+    @staticmethod
     def loadAsciiTexName(s):
         """Convert to lower case. Convert null to nvb_def.null."""
         if (not s or s.lower() == nvb_def.null):
             return nvb_def.null
         return s.lower()
 
-    def loadFile(self, filepath):
+    def loadFile(self):
         """Load contents of a mtr file."""
         self.valid = False
         try:
-            mtrFile = open(filepath, 'r')
+            mtrFile = open(os.fsencode(self.filepath), 'r')
         except IOError:
             return
         else:
@@ -102,9 +105,12 @@ class Mtr(object):
             except IndexError:
                 # Bad parameter, skip it
                 pass
-        elif label.startswith('customshader'):
+        elif label == 'customshadervs':
             self.valid = True
-            self.customshaders[label] = aline[1]
+            self.customshaderVS = aline[1]
+        elif label == 'customshaderfs':
+            self.valid = True
+            self.customshaderFS = aline[1]
         elif label.startswith('texture'):
             self.valid = True
             tid = 0
@@ -115,7 +121,8 @@ class Mtr(object):
                 if tid+1 > tcnt:
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
-                    self.textures[tid] = self.loadAsciiTexName(aline[1])
+                    self.textures[tid] = Mtr.loadAsciiTexName(aline[1])
+
         return aline
 
     def generateAscii(self, material, options):
@@ -165,8 +172,7 @@ class NodeMaterial(object):
         self.textures = ['']  # texture[0] overwrites bitmap
         self.renderhints = set()
         self.materialname = ''  # Name of external mtr file
-        self.customshaderVS = ''
-        self.customshaderFS = ''
+        self.mtrMat = None
 
     @staticmethod
     def colorisclose(a, b, tol=0.05):
@@ -261,36 +267,33 @@ class NodeMaterial(object):
         """Loads contents of a mtr file into the this material."""
         if not self.materialname:
             return
-        mtrMat = None
+        self.mtrMat = None
         if self.materialname in options.mtrdb:
             # MTR was already loaded before
-            mtrMat = options.mtrdb[self.materialname]
+            self.mtrMat = options.mtrdb[self.materialname]
         else:
             # Load MTR from file
             mdlPath, _ = os.path.split(options.filepath)
-            mtrFilename = self.name + '.mtr'
-            mtrPath = os.fsencode(os.path.join(mdlPath, mtrFilename))
-            mtrMat = Mtr()
-            mtrMat.loadFile(mtrPath)
-            options.mtrdb[self.materialname] = mtrMat
+            mtrFilename = self.materialname + '.mtr'
+            mtrPath = os.path.join(mdlPath, mtrFilename)
+            self.mtrMat = Mtr(self.materialname, mtrPath)
+            self.mtrMat.loadFile()
+            options.mtrdb[self.materialname] = self.mtrMat
         # Load values into self
-        if mtrMat and mtrMat.isvalid():  # Abort if no file was read
+        if self.mtrMat and self.mtrMat.isvalid():  # Abort if no file was read
             # If there are any textures in the mtr load them into self
-            if mtrMat.textures:
+            if self.mtrMat.textures:
                 # TODO: Decide between two options
                 # A. Selecetive loading, override only present texture
                 l1 = len(self.textures)
-                l2 = len(mtrMat.textures)
+                l2 = len(self.mtrMat.textures)
                 if l1 < l2:
                     self.textures.extend(['' for _ in range(l2-l1+1)])
-                for tidx, texname in enumerate(mtrMat.textures):
-                    self.textures
+                for tidx, texname in enumerate(self.mtrMat.textures):
+                    if texname:
+                        self.textures[tidx] = texname
                 # B. Override all if only a single texture is present
                 # self.textures = mtrMat.textures
-            if 'customshadervs' in mtrMat.customshaders:
-                self.customshaderVS = mtrMat.customshaders['customshadervs']
-            if 'customshaderfs' in mtrMat.customshaders:
-                self.customshaderFS = mtrMat.customshaders['customshaderfs']
 
     @staticmethod
     def createTexture(tname, imgname, options):
@@ -388,8 +391,6 @@ class NodeMaterial(object):
             material.specular_color = self.specular
             material.specular_intensity = 1.0
             material.nvb.ambient_color = self.ambient
-            material.nvb.shadervs = self.customshaderVS
-            material.nvb.shaderfs = self.customshaderFS
             # Load all textures
             for idx, mdltex in enumerate(texlist):
                 if mdltex:  # might be ''
@@ -398,6 +399,13 @@ class NodeMaterial(object):
                                                                options)
             # Set the default roles for texture slots:
             NodeMaterial.applyTextureRoles(material, self.alpha, options)
+            # Set MTR options
+            if self.mtrMat:
+                material.nvb.usemtr = True
+                material.nvb.mtrname = self.mtrMat.name
+                material.nvb.mtrpath = self.mtrMat.filepath
+                material.nvb.shadervs = self.mtrMat.customshaderVS
+                material.nvb.shaderfs = self.mtrMat.customshaderFS
         return material
 
     @staticmethod
@@ -1307,7 +1315,7 @@ class Trimesh(Node):
             fcUVCoList = []
             fcUVData.append([fcUVIdList, fcUVCoList])
         # Write tverts to file (if any)
-        fstr = '    {: 7.3f} {: 7.3f}  0'
+        fstr = '    {: 5.3f} {: 5.3f}  0'
         for idx, fuvd in enumerate(fcUVData):
             if len(fuvd[1]) > 0:
                 if idx == 0:

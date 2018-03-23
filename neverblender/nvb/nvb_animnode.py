@@ -725,7 +725,6 @@ class Animnode():
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse
-                # Convert to nwn axis angle
         elif obj.rotation_mode == 'QUATERNION':
             dp_dim = 4
             fcu = [fcurves.find('rotation_quaternion', i)
@@ -737,8 +736,7 @@ class Animnode():
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse
-                # Convert to nwn axis angle
-        else:
+        else:  # Rotation Mode == Euler ('XYZ', 'YXZ', ...)
             dp_dim = 3
             fcu = [fcurves.find('rotation_euler', i)
                    for i in range(dp_dim)]
@@ -749,7 +747,8 @@ class Animnode():
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse
-                # Convert to nwn axis angle
+        # Convert to nwn axis angle
+        # TODO
         key_data.append(['orientation', keys, 4 * ' {: > 6.5f}'])
         # Add location keys and apply parent_inverse
         dp_dim = 3

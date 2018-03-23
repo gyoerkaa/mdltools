@@ -1952,8 +1952,8 @@ class NVB_OT_mtr_open(bpy.types.Operator):
         material.nvb.mtrpath = self.filepath
         material.nvb.mtrname = mtrname
         # Load mtr
-        mtr = nvb_node.Mtr(mtrname)
-        mtr.loadFile(material.nvb.mtrpath)
+        mtr = nvb_node.Mtr(mtrname, material.nvb.mtrpath)
+        mtr.loadFile()
         if not mtr or not mtr.isvalid():
             self.report({'ERROR'}, 'Error: Invalid file.')
             return {'CANCELLED'}
@@ -1997,8 +1997,8 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
         # Load mtr
-        mtr = nvb_node.Mtr()
-        mtr.loadFile(material.nvb.mtrpath)
+        mtr = nvb_node.Mtr('none', material.nvb.mtrpath)
+        mtr.loadFile()
         if not mtr or not mtr.isvalid():
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
@@ -2013,10 +2013,8 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
                     tslot = material.texture_slots.create(idx)
                 tslot.texture = nvb_node.NodeMaterial.createTexture(
                     tname, tname, importOptions)
-        if 'customshadervs' in mtr.customshaders:
-            material.nvb.shadervs = mtr.customshaders['customshadervs']
-        if 'customshaderfs' in mtr.customshaders:
-            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
+        material.nvb.shadervs = mtr.customshaderVS
+        material.nvb.shaderfs = mtr.customshaderFS
         # Report
         _, mtrfilename = os.path.split(material.nvb.mtrpath)
         self.report({'INFO'}, 'Reloaded ' + mtrfilename)
@@ -2046,10 +2044,8 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
                     tslot = material.texture_slots.create(idx)
                 tslot.texture = nvb_node.NodeMaterial.createTexture(
                     tname, tname, importOptions)
-        if 'customshadervs' in mtr.customshaders:
-            material.nvb.shadervs = mtr.customshaders['customshadervs']
-        if 'customshaderfs' in mtr.customshaders:
-            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
+        material.nvb.shadervs = mtr.customshaderVS
+        material.nvb.shaderfs = mtr.customshaderFS
         self.report({'INFO'}, 'Reloaded ' + txtBlock.name)
         return {'FINISHED'}
 
