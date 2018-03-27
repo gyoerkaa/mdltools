@@ -320,12 +320,6 @@ class Mdl():
         anims = [a for a in animationlist if a.name != 'default']
         for a in anims:
             a.create(mdlroot, noderesolver, options)
-        # Create rest poses
-        children = []
-        nvb_utils.getAllChildren(mdlroot, children)
-        for anim in mdlroot.nvb.animList:
-            for c in children:
-                nvb_utils.createRestPose(c, anim.frameStart-5)
 
     def create(self, options):
         """TODO: DOC."""

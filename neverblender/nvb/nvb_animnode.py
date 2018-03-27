@@ -134,10 +134,10 @@ class Animnode():
                     self.parentName = nvb_utils.getAuroraString(line[1])
                 # Animations using a single value as key
                 elif label == 'position':
-                    self.position = tuple([float(v) for v in line[1:4]])
+                    self.position = [float(v) for v in line[1:4]]
                     self.objdata = True
                 elif label == 'orientation':
-                    self.orientation = tuple([float(v) for v in line[1:5]])
+                    self.orientation = [float(v) for v in line[1:5]]
                     self.objdata = True
                 elif label == 'scale':
                     self.scale = l_float(line[1])
@@ -272,6 +272,22 @@ class Animnode():
 
     def createDataObject(self, obj, anim, options):
         """TODO: DOC."""
+        def create_values(frames, values, action, dp, dp_dim):
+            """TODO: DOC."""
+            if frames and values:
+                fcu = [Animnode.getCurve(action, dp, i) for i in range(dp_dim)]
+                kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
+                nkfp = list(map(lambda x: len(x), kfp))
+                list(map(lambda x: x.add(len(values)), kfp))
+                for i in range(len(values)):
+                    frm = frames[i]
+                    val = values[i]
+                    for j in range(dp_dim):
+                        p = kfp[j][nkfp[j]+i]
+                        p.co = frm, val[j]
+                        p.interpolation = 'LINEAR'
+                list(map(lambda c: c.update(), fcu))
+
         fps = options.scene.render.fps
         # Add everything to a single action.
         frameStart = anim.frameStart
@@ -287,146 +303,127 @@ class Animnode():
             action.use_fake_user = True
             animData.action = action
 
-        dp = 'rotation_euler'
-        if (self.orientationkey):
-            curves = [Animnode.getCurve(action, dp, i) for i in range(3)]
-            kfp = [curves[i].keyframe_points for i in range(3)]
-            nkfp = list(map(lambda x: len(x), kfp))
-            list(map(lambda x: x.add(len(self.orientationkey)), kfp))
-            curr_eul = 0
-            prev_eul = 0
-            for i in range(len(self.orientationkey)):
-                frame = fps * self.orientationkey[i][0] + frameStart
-                eul = nvb_utils.nwangle2euler(self.orientationkey[i][1:5])
-                curr_eul = Animnode.eulerFilter(eul, prev_eul)
-                prev_eul = curr_eul
-                for j in range(3):
-                    tp = kfp[j][nkfp[j]+i]
-                    tp.co = frame, curr_eul[j]
-                    tp.interpolation = 'LINEAR'
-                    tp.handle_left_type = 'AUTO_CLAMPED'
-                    tp.handle_right_type = 'AUTO_CLAMPED'
-            list(map(lambda x: x.update(), curves))
+        if self.orientationkey or self.orientation is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.orientationkey]
+            # Set up animation
+            if options.rotmode in ['AXIS_ANGLE', 'QUATERNION']:
+                dp = 'rotation_axis_angle'
+                if options.rotmode == 'QUATERNION':
+                    dp = 'rotation_quaternion'
+                dp_dim = 4
+                if frames:  # Keyed animation
+                    quats = [mathutils.Quaternion(k[1:4], k[4])
+                             for k in self.orientationkey]
+                    values = [[q.w, q.x, q.y, q.z] for q in quats]
+                else:  # "Static" animation (single value)
+                    q = mathutils.Quaternion(
+                        self.orientation[:3], self.orientation[3])
+                    frames.append(frameStart)
+                    values.append([q.w, q.x, q.y, q.z])
+                    if frameStart < frameEnd:
+                        frames.append(frameEnd)
+                        values.append([q.w, q.x, q.y, q.z])
+            else:
+                dp = 'rotation_euler'
+                dp_dim = 3
+                if frames:  # Keyed animation
+                    # Run an euler filer
+                    prev_eul = 0
+                    for k in self.orientationkey:
+                        eul = Animnode.eulerFilter(
+                            nvb_utils.nwangle2euler(k[1:5]), prev_eul)
+                        values.append(eul)
+                        prev_eul = eul
+                else:  # "Static" animation (single value)
+                    v = nvb_utils.nwangle2euler(self.orientation)
+                    frames.append(frameStart)
+                    values.append(v)
+                    if frameEnd > frameStart:
+                        frames.append(frameEnd)
+                        values.append(v)
+            # Generate animation
+            create_values(frames, values, action, dp, dp_dim)
 
-        elif self.orientation is not None:
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            eul = nvb_utils.nwangle2euler(self.orientation)
-            curveX.keyframe_points.insert(frameStart, eul[0])
-            curveY.keyframe_points.insert(frameStart, eul[1])
-            curveZ.keyframe_points.insert(frameStart, eul[2])
-            if frameStart < frameEnd:
-                curveX.keyframe_points.insert(frameEnd, eul[0])
-                curveY.keyframe_points.insert(frameEnd, eul[1])
-                curveZ.keyframe_points.insert(frameEnd, eul[2])
+        if self.positionkey or self.position is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.positionkey]
+            dp = 'location'
+            dp_dim = 3
+            if frames:  # Keyed animation
+                values = [k[1:4] for k in self.positionkey]
+            else:  # "Static" animation (single value)
+                v = self.position
+                frames.append(frameStart)
+                values.append(v)
+                if frameEnd > frameStart:
+                    frames.append(frameEnd)
+                    values.append(v)
+            create_values(frames, values, action, dp, dp_dim)
 
-        dp = 'location'
-        if (self.positionkey):
-            curves = [Animnode.getCurve(action, dp, i) for i in range(3)]
-            kfp = [curves[i].keyframe_points for i in range(3)]
-            nkfp = list(map(lambda x: len(x), kfp))
-            list(map(lambda x: x.add(len(self.positionkey)), kfp))
-            for i in range(len(self.positionkey)):
-                frame = fps * self.positionkey[i][0] + frameStart
-                val = self.positionkey[i][1:4]
-                for j in range(3):
-                    tp = kfp[j][nkfp[j]+i]
-                    tp.co = frame, val[j]
-                    tp.interpolation = 'LINEAR'
-                    tp.handle_left_type = 'AUTO_CLAMPED'
-                    tp.handle_right_type = 'AUTO_CLAMPED'
-            list(map(lambda x: x.update(), curves))
+        if self.scalekey or self.scale is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.scalekey]
+            dp = 'scale'
+            dp_dim = 3  # but only a single value in mdl
+            if frames:  # Keyed animation
+                values = [[k] * dp_dim for k in self.scalekey]
+            else:  # "Static" animation (single value)
+                v = [self.scale] * dp_dim
+                frames.append(frameStart)
+                values.append(v)
+                if frameEnd > frameStart:
+                    frames.append(frameEnd)
+                    values.append(v)
+            create_values(frames, values, action, dp, dp_dim)
 
-        elif (self.position is not None):
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            curveX.keyframe_points.insert(frameStart, self.position[0])
-            curveY.keyframe_points.insert(frameStart, self.position[1])
-            curveZ.keyframe_points.insert(frameStart, self.position[2])
-            if frameStart < frameEnd:
-                curveX.keyframe_points.insert(frameEnd, self.position[0])
-                curveY.keyframe_points.insert(frameEnd, self.position[1])
-                curveZ.keyframe_points.insert(frameEnd, self.position[2])
+        if self.selfillumcolorkey or self.selfillumcolor is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.selfillumcolorkey]
+            dp = 'nvb.selfillumcolor'
+            dp_dim = 3
+            if frames:  # Keyed animation
+                values = [k for k in self.selfillumcolorkey]
+            else:  # "Static" animation (single value)
+                v = self.selfillumcolor
+                frames.append(frameStart)
+                values.append(v)
+                if frameEnd > frameStart:
+                    frames.append(frameEnd)
+                    values.append(v)
+            create_values(frames, values, action, dp, dp_dim)
 
-        dp = 'scale'
-        if (self.scalekey):
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            for key in self.scalekey:
-                frame = fps * key[0] + frameStart
-                curveX.keyframe_points.insert(frame, key[1])
-                curveY.keyframe_points.insert(frame, key[1])
-                curveZ.keyframe_points.insert(frame, key[1])
-        elif (self.scale is not None):
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
-            curveX.keyframe_points.insert(frameStart, self.scale)
-            curveY.keyframe_points.insert(frameStart, self.scale)
-            curveZ.keyframe_points.insert(frameStart, self.scale)
-            if frameStart < frameEnd:
-                curveX.keyframe_points.insert(frameEnd, self.scale)
-                curveY.keyframe_points.insert(frameEnd, self.scale)
-                curveZ.keyframe_points.insert(frameEnd, self.scale)
+        if self.colorkey or self.color is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.colorkey]
+            dp = 'color'
+            dp_dim = 3
+            if frames:  # Keyed animation
+                values = [k for k in self.colorkey]
+            else:  # "Static" animation (single value)
+                v = self.color
+                frames.append(frameStart)
+                values.append(v)
+                if frameEnd > frameStart:
+                    frames.append(frameEnd)
+                    values.append(v)
+            create_values(frames, values, action, dp, dp_dim)
 
-        dp = 'nvb.selfillumcolor'
-        if (self.selfillumcolorkey):
-            curveR = Animnode.getCurve(action, dp, 0)
-            curveG = Animnode.getCurve(action, dp, 1)
-            curveB = Animnode.getCurve(action, dp, 2)
-            for key in self.selfillumcolorkey:
-                frame = fps * key[0] + frameStart
-                curveR.keyframe_points.insert(frame, key[1])
-                curveG.keyframe_points.insert(frame, key[2])
-                curveB.keyframe_points.insert(frame, key[3])
-        elif (self.selfillumcolor is not None):
-            curveR = Animnode.getCurve(action, dp, 0)
-            curveG = Animnode.getCurve(action, dp, 1)
-            curveB = Animnode.getCurve(action, dp, 2)
-            curveR.keyframe_points.insert(frameStart, self.selfillumcolor[0])
-            curveG.keyframe_points.insert(frameStart, self.selfillumcolor[1])
-            curveB.keyframe_points.insert(frameStart, self.selfillumcolor[2])
-            if frameStart < frameEnd:
-                curveR.keyframe_points.insert(frameEnd, self.selfillumcolor[0])
-                curveG.keyframe_points.insert(frameEnd, self.selfillumcolor[1])
-                curveB.keyframe_points.insert(frameEnd, self.selfillumcolor[2])
-
-        dp = 'color'
-        if self.colorkey:
-            curveR = Animnode.getCurve(action, dp, 0)
-            curveG = Animnode.getCurve(action, dp, 1)
-            curveB = Animnode.getCurve(action, dp, 2)
-            for key in self.colorkey:
-                frame = fps * key[0] + frameStart
-                curveR.keyframe_points.insert(frame, key[1])
-                curveG.keyframe_points.insert(frame, key[2])
-                curveB.keyframe_points.insert(frame, key[3])
-        elif self.color:
-            curveR = Animnode.getCurve(action, dp, 0)
-            curveG = Animnode.getCurve(action, dp, 1)
-            curveB = Animnode.getCurve(action, dp, 2)
-            curveR.keyframe_points.insert(frameStart, self.color[0])
-            curveG.keyframe_points.insert(frameStart, self.color[1])
-            curveB.keyframe_points.insert(frameStart, self.color[2])
-            if frameStart < frameEnd:
-                curveR.keyframe_points.insert(frameEnd, self.color[0])
-                curveG.keyframe_points.insert(frameEnd, self.color[1])
-                curveB.keyframe_points.insert(frameEnd, self.color[2])
-
-        dp = 'distance'
-        if self.radiuskey:
-            curve = Animnode.getCurve(action, dp)
-            for key in self.radiuskey:
-                frame = fps * key[0] + frameStart
-                curve.keyframe_points.insert(frame, key[1])
-        elif self.radius:
-            curve = Animnode.getCurve(action, dp, 0)
-            curve.keyframe_points.insert(frameStart, self.radius)
-            if frameStart < frameEnd:
-                curve.keyframe_points.insert(frameEnd, self.radius)
+        if self.radiuskey or self.radius is not None:
+            values = []
+            frames = [fps * k[0] + frameStart for k in self.radiuskey]
+            dp = 'distance'
+            dp_dim = 1
+            if frames:  # Keyed animation
+                values = [k for k in self.radiuskey]
+            else:  # "Static" animation (single value)
+                v = self.radius
+                frames.append(frameStart)
+                values.append(v)
+                if frameEnd > frameStart:
+                    frames.append(frameEnd)
+                    values.append(v)
+            create_values(frames, values, action, dp, dp_dim)
 
     def createDataRaw(self, obj, anim, options):
         """Add incompatible animations (usually emitters) as plain text."""
@@ -581,6 +578,41 @@ class Animnode():
                 curveU.keyframe_points.insert(frame, co[0], kfOptions)
                 curveV.keyframe_points.insert(frame, co[1], kfOptions)
 
+    @staticmethod
+    def createRestPose(obj, frame=1):
+        """TODO: DOC."""
+
+        def insert_kfp(fcurves, frame, val, dim):
+            """TODO: DOC."""
+            for j in range(dim):
+                fcurves[j].keyframe_points.insert(frame, val[j], {'FAST'})
+        # Get animation data
+        animData = obj.animation_data
+        if not animData:
+            return  # No data = no animation = no need for rest pose
+        # Get action
+        action = animData.action
+        if not action:
+            return  # No action = no animation = no need for rest pose
+        if obj.rotation_mode in ['AXIS_ANGLE', 'QUATERNION']:
+            dp = 'rotation_axis_angle'
+            if obj.rotation_mode == 'QUATERNION':
+                dp = 'rotation_quaternion'
+            fcu = [action.fcurves.find(dp, i) for i in range(4)]
+            if fcu.count(None) < 1:
+                orr = obj.nvb.restrot
+                q = mathutils.Quaternion((orr[0], orr[1], orr[2]), orr[3])
+                insert_kfp(fcu, frame, [q.w, q.x, q.y, q.z], 4)
+        else:
+            dp = 'rotation_euler'
+            fcu = [action.fcurves.find(dp, i) for i in range(3)]
+            if fcu.count(None) < 1:
+                rot = nvb_utils.nwangle2euler(obj.nvb.restrot)
+                insert_kfp(fcu, frame, rot, 3)
+        fcu = [action.fcurves.find('location', i) for i in range(3)]
+        if fcu.count(None) < 1:
+            insert_kfp(fcu, frame, obj.nvb.restloc, 3)
+
     def create(self, obj, anim, animlength, options):
         """TODO:Doc."""
         if self.objdata:
@@ -681,9 +713,9 @@ class Animnode():
         fcurves = action.fcurves
         for key_name, val_dim, val_fstr, dp_dim, dp in exports:
             fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
-            keyed_frames = \
-                list(set().union(*[[k.co[0] for k in fcu[i].keyframe_points]
-                                   for i in range(dp_dim)]))
+            keyed_frames = list(set().union(
+                *[[k.co[0] for k in fcu[i].keyframe_points]
+                  for i in range(dp_dim)]))
             keyed_frames.sort()
             keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                     for f in keyed_frames]
@@ -708,7 +740,8 @@ class Animnode():
             if fcu:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
-                      for i in range(dp_dim)])).sort()
+                      for i in range(dp_dim)]))
+                keyed_frames.sort()
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 key_data.append([key_name, keys, val_dim * val_fstr])
@@ -721,7 +754,8 @@ class Animnode():
             if fcu:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
-                      for i in range(dp_dim)])).sort()
+                      for i in range(dp_dim)]))
+                keyed_frames.sort()
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse
@@ -732,7 +766,8 @@ class Animnode():
             if fcu:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
-                      for i in range(dp_dim)])).sort()
+                      for i in range(dp_dim)]))
+                keyed_frames.sort()
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse
@@ -743,7 +778,8 @@ class Animnode():
             if fcu:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
-                      for i in range(dp_dim)])).sort()
+                      for i in range(dp_dim)]))
+                keyed_frames.sort()
                 keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
                         for f in keyed_frames]
                 # Apply parent_inverse

@@ -158,7 +158,7 @@ class NVB_PT_armature(bpy.types.Panel):
         row = box.row()
         row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
         row = box.row()
-        row.operator('nvb.helper_amt2pbs', text='Generate Pseudo Bones',
+        row.operator('nvb.helper_amt2psb', text='Generate Pseudo Bones',
                      icon='BONE_DATA')
 
 
@@ -625,7 +625,7 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(obj.nvb, 'helper_amt_source', expand=True)
             box.prop(obj.nvb, 'helper_amt_connect', text='Connect')
             box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-            box.operator('nvb.helper_pbs2amt', text='Generate Armature',
+            box.operator('nvb.helper_psb2amt', text='Generate Armature',
                          icon='BONE_DATA')
             layout.separator()
             # Walkmesh & Dummy Helper

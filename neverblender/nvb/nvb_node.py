@@ -582,8 +582,9 @@ class Node(object):
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
-        nvb_utils.setObjectRotationAurora(obj, self.orientation)
-        obj.nvb.restrot = obj.rotation_euler
+        obj.rotation_mode = options.rotmode
+        nvb_utils.setObjAuroraRot(obj, self.orientation)
+        obj.nvb.restrot = self.orientation
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.restloc = obj.location

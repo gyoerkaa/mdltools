@@ -16,6 +16,11 @@ class Animation():
         self.events = []
         self.nodes = []
 
+    @staticmethod
+    def createRestPose(obj, frame=1):
+        """TODO: DOC."""
+        nvb_animnode.Animnode.createRestPose(obj, frame)
+
     def create(self, rootDummy, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Add new animation to list
@@ -32,12 +37,13 @@ class Animation():
             newEvent.name = ev[1]
             newEvent.frame = newAnim.frameStart + \
                 nvb_utils.nwtime2frame(ev[0], fps)
-
         # Load the animation into the objects/actions
         for node in self.nodes:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
             if obj:
                 node.create(obj, newAnim, self.length, options)
+                if options.restpose:
+                    Animation.createRestPose(obj, newAnim.frameStart-5)
 
     def loadAsciiAnimHeader(self, asciiBlock):
         """TODO: DOC."""

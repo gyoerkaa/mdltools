@@ -14,9 +14,9 @@ from . import nvb_io
 from . import nvb_node
 
 
-class NVB_OT_helper_amt2pbs(bpy.types.Operator):
+class NVB_OT_helper_amt2psb(bpy.types.Operator):
     """Generate pseudobones from blender armature."""
-    bl_idname = 'nvb.helper_amt2pbs'
+    bl_idname = 'nvb.helper_amt2psb'
     bl_label = 'Generate MDL pseudo bones from Armature'
 
     def create_mesh(meshname):
@@ -46,36 +46,50 @@ class NVB_OT_helper_amt2pbs(bpy.types.Operator):
         mesh.update()
         return mesh
 
-    def create_pseudo_bone(self, amt_bone, parent=None, prefix=''):
-        """TODO: DOC."""
+    def create_pb(self, amt_bone, parent=None, prefix=''):
+        """Creates a pseusobone (mesh) object from an armature bone."""
         # name for newly created mesh = pseudo bone
         pb_name = prefix + amt_bone.name
-        # Scales the creates mesh to match the length of the armature bone
-        ab_length = (amt_bone.head - amt_bone.tail).length
+        # Create the mesh for the pseudo bone
         mesh = self.create_mesh(pb_name)
+        # Scale the mesh to match the length of the armature bone
+        ab_length = (amt_bone.head - amt_bone.tail).length
         mesh.transform(mathutils.Matrix.Scale(ab_length, 4))
+        # Rotate the mesh to align with the armature bone
+        pass
+        # Create object holding the mesh
         pb = bpy.data.objects.new(pb_name, mesh)
+        # Set location of the object to the armature bone head
+        pb.location = amt_bone.head
+        # Set parent and link to scene
         pb.parent = parent
         bpy.context.scene.objects.link(pb)
         return pb
 
     def generateBones(self, armature):
         """TODO: doc."""
-        # Only create meshes without parent or with an already created parent
+        # Do several passes. Only create meshes without parent or with
+        # an already created parent
         generated = dict()
         while len(armature.data.bones) > len(generated):
             for bone in armature.bones:
-                if bone.parent:
-                    pname = bone.parent.name
-                    if pname in generated:
-                        pb = self.create_pseudo_bone(bone, generated[pname])
-                        generated[bone.name] = pb
-                else:
-                    pb = self.create_pseudo_bone(bone, None)
-                    generated[bone.name] = pb
+                bname = bone.name
+                if bname not in generated:
+                    if bone.parent:
+                        pname = bone.parent.name
+                        if pname in generated:
+                            pb = self.create_pb(bone, generated[pname])
+                            generated[bname] = pb
+                        else:
+                            # This bone has a parent that hasn't been created
+                            # yet. Create this bone in the next pass
+                            pass
+                    else:
+                        pb = self.create_pseudo_bone(bone, None)
+                        generated[bname] = pb
         # Transfer animations
         if armature.nvb.helper_amt_copyani:
-            for ab_name, pb in generated:
+            for ab_name, psb in generated:
                 pass
 
     @classmethod
@@ -90,10 +104,10 @@ class NVB_OT_helper_amt2pbs(bpy.types.Operator):
         self.generateBones(obj)
 
 
-class NVB_OT_helper_pbs2amt(bpy.types.Operator):
+class NVB_OT_helper_psb2amt(bpy.types.Operator):
     """Generate armature from pseudo bones."""
 
-    bl_idname = 'nvb.helper_pbs2amt'
+    bl_idname = 'nvb.helper_psb2amt'
     bl_label = 'Generate Armature from MDL pseudo bones'
 
     # If only objects references by skingropups are used create a list here
@@ -1333,10 +1347,21 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     customfps = bpy.props.BoolProperty(name='Use Custom fps',
                                        description='Use custom fps value',
                                        default=True)
-    fps = bpy.props.IntProperty(name='Custom fps',
+    fps = bpy.props.IntProperty(name='Scene Framerate',
                                 description='Custom fps value',
                                 default=30,
                                 min=1, max=60)
+    rotmode = bpy.props.EnumProperty(
+            name='Rotation Mode',
+            description='',
+            items=(('AXIS_ANGLE', 'Axis Angle', ''),
+                   ('QUATERNION', 'Quaternion', ''),
+                   ('XYZ', 'Euler XYZ', '')),
+            default='XYZ')
+    restpose = bpy.props.BoolProperty(
+        name='Insert Rest Pose',
+        description='Insert rest keyframe before every animation',
+        default=True)
     # Hidden settings for batch processing
     minimapMode = bpy.props.BoolProperty(
             name='Minimap Mode',
@@ -1363,8 +1388,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'importMaterials')
         sub = box.column()
         sub.enabled = self.importMaterials
-        sub.prop(self, 'materialLoadMTR')
         sub.prop(self, 'materialAutoMerge')
+        sub.prop(self, 'materialLoadMTR')
         sub.prop(self, 'textureDefaultRoles')
         sub.prop(self, 'textureSearch')
         # Blender Settings
@@ -1374,7 +1399,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         row.prop(self, 'customfps', text='')
         sub = row.row(align=True)
         sub.enabled = self.customfps
-        sub.prop(self, 'fps', text='Scene Framerate')
+        sub.prop(self, 'fps')
+        box.prop(self, 'restpose')
+        box.prop(self, 'rotmode')
 
     def execute(self, context):
         """TODO: DOC."""
@@ -1397,6 +1424,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Blender Settings
         options.customfps = self.customfps
         options.fps = self.fps
+        options.restpose = self.restpose
+        options.rotmode = self.rotmode
         return nvb_io.loadMdl(self, context, options)
 
 
@@ -1442,27 +1471,22 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ('REN', 'Rendered Meshes',
                     'Add UV Maps only to rendered meshes'),
                    ('ALL', 'All',
-                    'Add UV Maps to all meshes'),
-                   ),
-            default='REN',
-            )
+                    'Add UV Maps to all meshes')),
+            default='REN')
     uvmapOrder = bpy.props.EnumProperty(
             name='Order',
             description='Determines ordering of uv maps in MDL',
             items=(('AL0', 'Alphabetical',
-                    'Alphabetical orering'),
+                    'Alphabetical ordering'),
                    ('AL1', 'Alphabetical (Active First)',
-                    'Alphabetical orering, active UVMap will be first'),
+                    'Alphabetical ordering, active UVMap will be first'),
                    ('ACT', 'Active Only',
-                    'Export active UVMap only'),
-                   ),
-            default='AL0',
-            )
+                    'Export active UVMap only')),
+            default='AL0')
     # Material Export Settings
     materialUseMTR = bpy.props.BoolProperty(
-            name='Reference MTR file',
-            description='Add a reference to MTR file ' +
-                        '(Filename will be the objects material name)',
+            name='Add MTR Reference',
+            description='Add a reference to MTR file (if specified)',
             default=False)
     # Blender Setting to use
     applyModifiers = bpy.props.BoolProperty(

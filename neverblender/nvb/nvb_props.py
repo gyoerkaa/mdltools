@@ -83,6 +83,13 @@ class NVB_PG_material(bpy.types.PropertyGroup):
         default=1.0,
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
+    renderhint = bpy.props.EnumProperty(
+        name='Renderhint',
+        items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
+               ('NONE', 'None', 'No renderhint', 1),
+               ('NASM', 'NormalAndSpecMapped', 'No renderhint', 2)],
+        default='AUTO')
+    # MTR Panel
     usemtr = bpy.props.BoolProperty(name='Use MTR',
                                     description='Use external MTR file',
                                     default=False)
@@ -91,10 +98,8 @@ class NVB_PG_material(bpy.types.PropertyGroup):
                                        default='')
     mtrsrc = bpy.props.EnumProperty(
         name='Source',
-        items=[('TEXT',
-                'Text', 'From text block', 0),
-               ('FILE',
-                'File', 'From file', 1)],
+        items=[('TEXT', 'Text', 'From text block', 0),
+               ('FILE', 'File', 'From file', 1)],
         default='FILE')
     mtrtext = bpy.props.StringProperty(name='Text Block',
                                        description='Blender Text Block',
@@ -105,10 +110,10 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     # For gui editing
     shadervs = bpy.props.StringProperty(name='Vertex Shader',
                                         description='Specify Vertex shader',
-                                        default='vslitc_nm')
+                                        default='')
     shaderfs = bpy.props.StringProperty(name='Fragment Shader',
                                         description='Specify Fragment shader',
-                                        default='fslit_nm')
+                                        default='')
 
 
 class NVB_PG_flare(bpy.types.PropertyGroup):
@@ -194,8 +199,10 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     imporder = bpy.props.IntProperty(name='Original position in MDL',
                                      default=0)
     restrot = bpy.props.FloatVectorProperty(name='Rest Pose Rotation',
-                                            default=(0.0, 0.0, 0.0))
+                                            size=4,
+                                            default=(0.0, 0.0, 0.0, 0.0))
     restloc = bpy.props.FloatVectorProperty(name='Rest Pose Location',
+                                            size=3,
                                             default=(0.0, 0.0, 0.0))
     # For all emptys
     emptytype = bpy.props.EnumProperty(
