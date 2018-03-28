@@ -132,26 +132,55 @@ class Animnode():
                     return
                 elif label == 'parent':
                     self.parentName = nvb_utils.getAuroraString(line[1])
-                # Animations using a single value as key
                 elif label == 'position':
                     self.position = [float(v) for v in line[1:4]]
+                    self.objdata = True
+                elif label == 'positionkey':
+                    numkeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
+                                 self.positionkey)
                     self.objdata = True
                 elif label == 'orientation':
                     self.orientation = [float(v) for v in line[1:5]]
                     self.objdata = True
+                elif label == 'orientationkey':
+                    numkeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f5(asciiLines[i+1:i+numkeys+1],
+                                 self.orientationkey)
+                    self.objdata = True
                 elif label == 'scale':
                     self.scale = l_float(line[1])
+                    self.objdata = True
+                elif label == 'scalekey':
+                    numkeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
+                                 self.scalekey)
                     self.objdata = True
                 elif label == 'alpha':
                     self.alpha = l_float(line[1])
                     self.matdata = True
+                elif label == 'alphakey':
+                    # If this is an emitter, alphakeys are incompatible. We'll
+                    # handle them later as plain text
+                    numkeys = self.findEnd(asciiLines[i+1:])
+                    if nodetype == 'emitter':
+                        nvb_parse.txt(asciiLines[i:i+numkeys+1],
+                                      self.rawdata)
+                    else:
+                        nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
+                                     self.alphakey)
+                    self.matdata = True
+                elif (label == 'selfillumcolor' or
+                      label == 'setfillumcolor'):
+                    self.selfillumcolor = [float(v) for v in line[1:4]]
+                    self.objdata = True
+                elif (label == 'selfillumcolorkey' or
+                      label == 'setfillumcolorkey'):
+                    numkeys = self.findEnd(asciiLines[i+1:])
+                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
+                                 self.selfillumcolorkey)
+                    self.objdata = True
                 # Animeshes
-                elif label == 'verts':
-                    pass  # Not needed (?)
-                elif label == 'tverts':
-                    pass  # Not needed (?)
-                elif label == 'faces':
-                    pass  # Not needed (?)
                 elif label == 'sampleperiod':
                     self.sampleperiod = l_float(line[1])
                 elif label == 'animverts':
@@ -166,43 +195,16 @@ class Animnode():
                         nvb_parse.f3(asciiLines[i+1:i+numVals+1],
                                      self.animtverts)
                         self.uvdata = True
-                # Keyed animations
-                elif label == 'positionkey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
-                                 self.positionkey)
-                    self.objdata = True
-                elif label == 'orientationkey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f5(asciiLines[i+1:i+numkeys+1],
-                                 self.orientationkey)
-                    self.objdata = True
-                elif label == 'scalekey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
-                                 self.scalekey)
-                    self.objdata = True
-                elif label == 'alphakey':
-                    # If this is an emitter, alphakeys are incompatible. We'll
-                    # handle them later as plain text
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    if nodetype == 'emitter':
-                        nvb_parse.txt(asciiLines[i:i+numkeys+1],
-                                      self.rawdata)
-                    else:
-                        nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
-                                     self.alphakey)
-                    self.matdata = True
-                elif (label == 'selfillumcolorkey' or
-                      label == 'setfillumcolorkey'):
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
-                                 self.selfillumcolorkey)
-                    self.objdata = True
                 # Lights/lamps only
+                elif label == 'color':
+                    self.color = [float(v) for v in line[1:4]]
+                    self.objdata = True
                 elif label == 'colorkey':
                     numkeys = self.findEnd(asciiLines[i+1:])
                     nvb_parse.f4(asciiLines[i+1:i+numkeys+1], self.colorkey)
+                    self.objdata = True
+                elif label == 'radius':
+                    self.radius = l_float(line[1])
                     self.objdata = True
                 elif label == 'radiuskey':
                     numkeys = self.findEnd(asciiLines[i+1:])
@@ -226,9 +228,6 @@ class Animnode():
     @staticmethod
     def getCurve(action, data_path, index=0):
         """TODO: DOC."""
-        # for fc in action.fcurves:
-        #     if (fc.data_path == dataPath) and (fc.array_index == idx):
-        #         return fc
         fc = action.fcurves.find(data_path, index)
         if not fc:
             fc = action.fcurves.new(data_path=data_path, index=index)
@@ -307,23 +306,34 @@ class Animnode():
             values = []
             frames = [fps * k[0] + frameStart for k in self.orientationkey]
             # Set up animation
-            if options.rotmode in ['AXIS_ANGLE', 'QUATERNION']:
+            if options.rotmode == 'AXIS_ANGLE':
                 dp = 'rotation_axis_angle'
-                if options.rotmode == 'QUATERNION':
-                    dp = 'rotation_quaternion'
+                dp_dim = 4
+                if frames:  # Keyed animation
+                    values = [[k[4], k[1], k[2], k[3]]
+                              for k in self.orientationkey]
+                else:  # "Static" animation (single value)
+                    v = self.orientation
+                    frames.append(frameStart)
+                    values.append([v[3], v[0], v[1], v[2]])
+                    if frameStart < frameEnd:
+                        frames.append(frameEnd)
+                        values.append([v[3], v[0], v[1], v[2]])
+            elif options.rotmode == 'QUATERNION':
+                dp = 'rotation_quaternion'
                 dp_dim = 4
                 if frames:  # Keyed animation
                     quats = [mathutils.Quaternion(k[1:4], k[4])
                              for k in self.orientationkey]
                     values = [[q.w, q.x, q.y, q.z] for q in quats]
                 else:  # "Static" animation (single value)
-                    q = mathutils.Quaternion(
+                    v = mathutils.Quaternion(
                         self.orientation[:3], self.orientation[3])
                     frames.append(frameStart)
-                    values.append([q.w, q.x, q.y, q.z])
+                    values.append([v.w, v.x, v.y, v.z])
                     if frameStart < frameEnd:
                         frames.append(frameEnd)
-                        values.append([q.w, q.x, q.y, q.z])
+                        values.append([v.w, v.x, v.y, v.z])
             else:
                 dp = 'rotation_euler'
                 dp_dim = 3
@@ -594,21 +604,25 @@ class Animnode():
         action = animData.action
         if not action:
             return  # No action = no animation = no need for rest pose
-        if obj.rotation_mode in ['AXIS_ANGLE', 'QUATERNION']:
+        if obj.rotation_mode == 'AXIS_ANGLE':
             dp = 'rotation_axis_angle'
-            if obj.rotation_mode == 'QUATERNION':
-                dp = 'rotation_quaternion'
             fcu = [action.fcurves.find(dp, i) for i in range(4)]
             if fcu.count(None) < 1:
-                orr = obj.nvb.restrot
-                q = mathutils.Quaternion((orr[0], orr[1], orr[2]), orr[3])
+                rr = obj.nvb.restrot
+                insert_kfp(fcu, frame, [rr[3], rr[0], rr[1], rr[2]], 4)
+        if obj.rotation_mode == 'QUATERNION':
+            dp = 'rotation_quaternion'
+            fcu = [action.fcurves.find(dp, i) for i in range(4)]
+            if fcu.count(None) < 1:
+                rr = obj.nvb.restrot
+                q = mathutils.Quaternion((rr[0], rr[1], rr[2]), rr[3])
                 insert_kfp(fcu, frame, [q.w, q.x, q.y, q.z], 4)
         else:
             dp = 'rotation_euler'
             fcu = [action.fcurves.find(dp, i) for i in range(3)]
             if fcu.count(None) < 1:
-                rot = nvb_utils.nwangle2euler(obj.nvb.restrot)
-                insert_kfp(fcu, frame, rot, 3)
+                eul = nvb_utils.nwangle2euler(obj.nvb.restrot)
+                insert_kfp(fcu, frame, eul, 3)
         fcu = [action.fcurves.find('location', i) for i in range(3)]
         if fcu.count(None) < 1:
             insert_kfp(fcu, frame, obj.nvb.restloc, 3)
@@ -737,7 +751,7 @@ class Animnode():
         fcurves = action.fcurves
         for key_name, val_dim, val_fstr, dp_dim, dp in exports:
             fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
-            if fcu:
+            if fcu.count(None) < 1:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
@@ -751,7 +765,7 @@ class Animnode():
             dp_dim = 4
             fcu = [fcurves.find('rotation_axis_angle', i)
                    for i in range(dp_dim)]
-            if fcu:
+            if fcu.count(None) < 1:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
@@ -763,7 +777,7 @@ class Animnode():
             dp_dim = 4
             fcu = [fcurves.find('rotation_quaternion', i)
                    for i in range(dp_dim)]
-            if fcu:
+            if fcu.count(None) < 1:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
@@ -775,7 +789,7 @@ class Animnode():
             dp_dim = 3
             fcu = [fcurves.find('rotation_euler', i)
                    for i in range(dp_dim)]
-            if fcu:
+            if fcu.count(None) < 1:
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))

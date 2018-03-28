@@ -1246,16 +1246,6 @@ class Trimesh(Node):
                          options.meshConvert)
         for p in me.polygons:
             p.use_smooth = True
-        """
-        # Scaling fix
-        # Disabled: Interferes with animations
-        scale = obj.matrix_world.to_scale()
-        scale_matrix = mathutils.Matrix([[scale[0], 0, 0, 0],
-                                         [0, scale[1], 0, 0],
-                                         [0, 0, scale[2], 0],
-                                         [0, 0, 0, 1]])
-        me.transform(scale_matrix)
-        """
         # Triangulation (doing it with bmesh to retain edges marked as sharp)
         bm = bmesh.new()
         bm.from_mesh(me)

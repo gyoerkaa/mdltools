@@ -458,8 +458,7 @@ def setupMinimapRender(rootDummy,
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def copyAnims2Armature(armature, source,
-                       destructive=False, convertangles=False):
+def copyAnims2Armature(armature, source, destructive=False):
     """TODO: DOC."""
     def convert_quat(amt_posebone, kfvalues):
         for i in range(len(kfvalues)):
@@ -467,17 +466,7 @@ def copyAnims2Armature(armature, source,
             adj_m = armature.convert_space(amt_posebone, mat,
                                            'LOCAL_WITH_PARENT',
                                            'LOCAL')
-            kfvalues[i] = tuple(adj_m.to_quaterion())
-
-    def convert_axan(amt_posebone, kfvalues):
-        for i in range(len(kfvalues)):
-            val = kfvalues[i]
-            mat = mathutils.Quaternion(val[0], val[1:4]).to_matrix().to_4x4()
-            adj_m = armature.convert_space(amt_posebone, mat,
-                                           'LOCAL_WITH_PARENT',
-                                           'LOCAL')
-            q = adj_m.to_quaternion()
-            kfvalues[i] = tuple([q.angle, q.axis[0], q.axis[1], q.axis[2]])
+            kfvalues[i] = list(adj_m.to_quaternion())
 
     def convert_eul(amt_posebone, kfvalues):
         prev_val = amt_posebone.rotation_euler
@@ -515,12 +504,12 @@ def copyAnims2Armature(armature, source,
             if psb_bone.animation_data and psb_bone.animation_data.action:
                 psb_all_fcu = psb_bone.animation_data.action.fcurves
                 # Copy rotation keyframes
-                rot_dp_list = [('rotation_quaternion', 4, convert_quat),
-                               ('rotation_axis_angle', 4, convert_axan),
+                rot_dp_list = [('rotation_axis_angle', 4, convert_quat),
+                               ('rotation_quaternion', 4, convert_quat),
                                ('rotation_euler', 3, convert_eul)]
                 for dp, dp_dim, convert_func in rot_dp_list:
                     psb_fcu = [psb_all_fcu.find(dp, i) for i in range(dp_dim)]
-                    if psb_fcu.count(None) < dp_dim:
+                    if psb_fcu.count(None) < 1:
                         amt_dp = 'pose.bones["' + amt_bone.name + '"].' + dp
                         # Get keyed frames
                         frames = list(set().union(
@@ -546,12 +535,12 @@ def copyAnims2Armature(armature, source,
                                 p = amt_kfp[j][i]
                                 p.co = frm, val[j]
                                 p.interpolation = 'LINEAR'
-                        list(map(lambda x: x.update(), amt_fcu))
+                        list(map(lambda c: c.update(), amt_fcu))
                 # Copy location keyframes
                 dp = 'location'
                 dp_dim = 3
                 psb_fcu = [psb_all_fcu.find(dp, i) for i in range(dp_dim)]
-                if psb_fcu.count(None) < dp_dim:
+                if psb_fcu.count(None) < 1:
                     amt_dp = 'pose.bones["' + amt_bone.name + '"].' + dp
                     # Get keyframes
                     frames = list(set().union(
@@ -583,11 +572,10 @@ def copyAnims2Armature(armature, source,
                             p = amt_kfp[j][i]
                             p.co = frm, val[j]
                             p.interpolation = 'LINEAR'
-                    list(map(lambda x: x.update(), amt_fcu))
+                    list(map(lambda c: c.update(), amt_fcu))
 
 
-def copyAnims2Mdl(armature, source,
-                  destructive=False, convertangles=False, prefix=''):
+def copyAnims2Mdl(armature, source, destructive=False, prefix=''):
     """TODO: DOC."""
     # Process animations/poses of the bones
     bones = armature.data.bones

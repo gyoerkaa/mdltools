@@ -16,10 +16,12 @@ from . import nvb_node
 
 class NVB_OT_helper_amt2psb(bpy.types.Operator):
     """Generate pseudobones from blender armature."""
-    bl_idname = 'nvb.helper_amt2psb'
-    bl_label = 'Generate MDL pseudo bones from Armature'
 
-    def create_mesh(meshname):
+    bl_idname = 'nvb.helper_amt2psb'
+    bl_label = 'Generate Pseudo Bones'
+    bl_options = {'UNDO'}
+
+    def create_mesh(self, meshname):
         """TODO: DOC."""
         verts = [+0.0, +0.0, 0.0,
                  -0.1, -0.1, 0.1,
@@ -46,50 +48,52 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
         mesh.update()
         return mesh
 
-    def create_pb(self, amt_bone, parent=None, prefix=''):
+    def create_psb(self, amt_bone, parent=None, prefix=''):
         """Creates a pseusobone (mesh) object from an armature bone."""
         # name for newly created mesh = pseudo bone
-        pb_name = prefix + amt_bone.name
+        psb_name = prefix + amt_bone.name
         # Create the mesh for the pseudo bone
-        mesh = self.create_mesh(pb_name)
+        mesh = self.create_mesh(psb_name)
         # Scale the mesh to match the length of the armature bone
-        ab_length = (amt_bone.head - amt_bone.tail).length
-        mesh.transform(mathutils.Matrix.Scale(ab_length, 4))
+        amb_length = (amt_bone.head - amt_bone.tail).length
+        mesh.transform(mathutils.Matrix.Scale(amb_length, 4))
+        amb_loc, amb_rot, amb_scl = amt_bone.matrix_local.decompose()
         # Rotate the mesh to align with the armature bone
-        pass
+        # mesh.transform(mathutils.Matrix.Rotation(
+        #    amb_rot.angle, 4, amb_rot.axis))
         # Create object holding the mesh
-        pb = bpy.data.objects.new(pb_name, mesh)
+        psb = bpy.data.objects.new(psb_name, mesh)
         # Set location of the object to the armature bone head
-        pb.location = amt_bone.head
+        psb.location = amb_loc
         # Set parent and link to scene
-        pb.parent = parent
-        bpy.context.scene.objects.link(pb)
-        return pb
+        psb.parent = parent
+        bpy.context.scene.objects.link(psb)
+        return psb
 
-    def generateBones(self, armature):
+    def generate_bones(self, armature, psb_root=None):
         """TODO: doc."""
         # Do several passes. Only create meshes without parent or with
         # an already created parent
         generated = dict()
         while len(armature.data.bones) > len(generated):
-            for bone in armature.bones:
-                bname = bone.name
-                if bname not in generated:
+            for bone in armature.data.bones:
+                amb_name = bone.name
+                if amb_name not in generated:
                     if bone.parent:
                         pname = bone.parent.name
                         if pname in generated:
-                            pb = self.create_pb(bone, generated[pname])
-                            generated[bname] = pb
+                            pb = self.create_psb(bone, generated[pname])
+                            generated[amb_name] = pb
                         else:
                             # This bone has a parent that hasn't been created
                             # yet. Create this bone in the next pass
                             pass
                     else:
-                        pb = self.create_pseudo_bone(bone, None)
-                        generated[bname] = pb
+                        pb = self.create_psb(bone, psb_root)
+                        generated[amb_name] = pb
         # Transfer animations
         if armature.nvb.helper_amt_copyani:
-            for ab_name, psb in generated:
+            for amb_name, psb in generated.items():
                 pass
 
     @classmethod
@@ -100,8 +104,12 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
 
     def execute(self, context):
         """Create pseudo bones"""
-        obj = context.object
-        self.generateBones(obj)
+        amt_obj = context.object
+        psb_root = bpy.data.objects.new(amt_obj.name, None)
+        psb_root.location = amt_obj.location
+        context.scene.objects.link(psb_root)
+        self.generate_bones(amt_obj, psb_root)
+        return {'FINISHED'}
 
 
 class NVB_OT_helper_psb2amt(bpy.types.Operator):
@@ -125,9 +133,8 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         if obj.animation_data:
             action = obj.animation_data.action
             if action:
-                for fcu in action.fcurves:
-                    if 'location' in fcu.data_path:
-                        return False
+                if 'location' in [fcu.data_path for fcu in action.fcurves]:
+                    return False
         return True
 
     def setupPseudoBoneDetection(self, aur_root, autodetect=False):
@@ -193,10 +200,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             if pbone:
                 bone.parent = pbone
                 # Merge head with parent tail if distance is short enough
-                dist = math.sqrt(math.pow(pbone.tail.x - bhead.x, 2) +
-                                 math.pow(pbone.tail.y - bhead.y, 2) +
-                                 math.pow(pbone.tail.z - bhead.z, 2))
-                if dist <= 0.01:
+                if (pbone.tail - bhead).length <= 0.01:
                     bhead = pbone.tail
                     if obj.nvb.helper_amt_connect and self.can_connect(obj):
                         bone.use_connect = True
@@ -310,13 +314,6 @@ class NVB_OT_anim_clone(bpy.types.Operator):
                 kfp.add(len(vals))
                 for i in range(len(vals)):
                     kfp[nkfp+i].co = vals[i]
-                """
-                # Get the keyframe points of the selected animation
-                kfp = [(p.co[0] + offset, p.co[1]) for p in fc.keyframe_points
-                       if an_start <= p.co[0] <= an_end]
-                for p in kfp:
-                    fc.keyframe_points.insert(p[0], p[1], in_options)
-                """
                 # For compatibility with older blender versions
                 try:
                     fc.update()
@@ -800,7 +797,6 @@ class NVB_OT_anim_pad(bpy.types.Operator):
         col = split.column(align=True)
         col.prop(self, 'padFront', text='Front')
         col.prop(self, 'padBack', text='Back')
-
         layout.separator()
 
     def invoke(self, context, event):
@@ -1252,47 +1248,6 @@ class NVB_OT_light_genname(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OT_dummy_genname(bpy.types.Operator):
-    """Generate an appropriate name for the dummy"""
-
-    bl_idname = 'nvb.dummy_generatename'
-    bl_label = 'Generate a name for the dummy'
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if a Empty is selected."""
-        return (context.object and context.object.type == 'EMPTY')
-
-    def execute(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        rootDummy = nvb_utils.findObjRootDummy(obj)
-        if not rootDummy:
-            self.report({'INFO'}, 'Failure: No rootdummy.')
-            return {'CANCELLED'}
-        currentSuffix = nvb_def.Dummytype.getSuffix(obj)
-        newSuffix = nvb_def.Dummytype.generateSuffix(
-                        obj,
-                        rootDummy.nvb.classification)
-        baseName = rootDummy.name
-        if newSuffix:
-            # Remove old suffix first
-            if currentSuffix:
-                baseName = obj.name[:-1*len(currentSuffix)]
-            newName = baseName + '_' + newSuffix
-            if newName in bpy.data.objects:
-                self.report({'INFO'}, 'Failure: Name already exists.')
-                return {'CANCELLED'}
-            elif obj.name.endswith(newSuffix):
-                self.report({'INFO'}, 'Failure: Suffix already exists.')
-                return {'CANCELLED'}
-            else:
-                obj.name = newName
-                return {'FINISHED'}
-        self.report({'INFO'}, 'Failure: No suffix found.')
-        return {'CANCELLED'}
-
-
 class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import Aurora Engine model (.mdl)"""
 
@@ -1351,6 +1306,10 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                                 description='Custom fps value',
                                 default=30,
                                 min=1, max=60)
+    restpose = bpy.props.BoolProperty(
+        name='Insert Rest Pose',
+        description='Insert rest keyframe before every animation',
+        default=True)
     rotmode = bpy.props.EnumProperty(
             name='Rotation Mode',
             description='',
@@ -1358,10 +1317,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                    ('QUATERNION', 'Quaternion', ''),
                    ('XYZ', 'Euler XYZ', '')),
             default='XYZ')
-    restpose = bpy.props.BoolProperty(
-        name='Insert Rest Pose',
-        description='Insert rest keyframe before every animation',
-        default=True)
     # Hidden settings for batch processing
     minimapMode = bpy.props.BoolProperty(
             name='Minimap Mode',
