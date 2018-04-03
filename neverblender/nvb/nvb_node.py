@@ -830,7 +830,7 @@ class Trimesh(Node):
                 self.colors = [tuple(map(float, v)) for v in tmp]
         elif (label.startswith('tverts')):
             tvid = 0
-            if label[6:]:  # might be '', which we interpret as = 0
+            if label[6:]:  # might be '', which we interpret as 0
                 tvid = int(label[6:])
                 tvcnt = len(self.tverts)
                 if tvid+1 > tvcnt:

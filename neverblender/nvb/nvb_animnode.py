@@ -1,6 +1,5 @@
 """TODO: DOC."""
 
-import math
 import mathutils
 import collections
 import copy
@@ -63,51 +62,6 @@ class Animnode():
         l_isNumber = nvb_utils.isNumber
         return next((i for i, v in enumerate(asciiBlock)
                      if not l_isNumber(v[0])), -1)
-
-    @staticmethod
-    def eulerFilter(currEul, prevEul):
-        """TODO: DOC."""
-        def distance(a, b):
-            return abs(a[0] - b[0]) + abs(a[1] - b[1]) + abs(a[2] - b[2])
-
-        def flip(e):
-            f = e.copy()
-            f[0] += math.pi
-            f[1] *= -1
-            f[1] += math.pi
-            f[2] += math.pi
-            return f
-
-        def flipDiff(a, b):
-            while abs(a - b) > math.pi:
-                if a < b:
-                    b -= 2 * math.pi
-                else:
-                    b += 2 * math.pi
-            return b
-
-        if not prevEul:
-            # Nothing to compare to, return original value
-            return currEul
-
-        eul = currEul.copy()
-        eul[0] = flipDiff(prevEul[0], eul[0])
-        eul[1] = flipDiff(prevEul[1], eul[1])
-        eul[2] = flipDiff(prevEul[2], eul[2])
-
-        # Flip current euler
-        flipEul = flip(eul)
-        flipEul[0] = flipDiff(prevEul[0], flipEul[0])
-        flipEul[1] = flipDiff(prevEul[1], flipEul[1])
-        flipEul[2] = flipDiff(prevEul[2], flipEul[2])
-
-        currDist = distance(prevEul, eul)
-        flipDist = distance(prevEul, flipEul)
-
-        if flipDist < currDist:
-            return flipEul
-        else:
-            return eul
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
@@ -341,7 +295,7 @@ class Animnode():
                     # Run an euler filer
                     prev_eul = 0
                     for k in self.orientationkey:
-                        eul = Animnode.eulerFilter(
+                        eul = nvb_utils.eulerFilter(
                             nvb_utils.nwangle2euler(k[1:5]), prev_eul)
                         values.append(eul)
                         prev_eul = eul
@@ -706,7 +660,7 @@ class Animnode():
                 asciiLines.append('    ' + ' '.join(line))
 
     @staticmethod
-    def get_keys_material(mat, anim, key_data):
+    def getKeysMaterial(mat, anim, key_data, options):
         """TODO: DOC."""
         action = mat.animation_data.action
         if not action:
@@ -723,42 +677,75 @@ class Animnode():
             exports.append(['alpha', 1, ' {: >3.2f}', dp_alpha_factor[0]])
         else:
             exports.append(['alpha', 1, ' {: >3.2f}', 'alpha'])
+        fps = options.scene.render.fps
         # Get keyframe data
         fcurves = action.fcurves
         for key_name, val_dim, val_fstr, dp_dim, dp in exports:
             fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
-            keyed_frames = list(set().union(
+            frames = list(set().union(
                 *[[k.co[0] for k in fcu[i].keyframe_points]
                   for i in range(dp_dim)]))
-            keyed_frames.sort()
-            keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
-                    for f in keyed_frames]
+            frames.sort()
+            values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                      for f in frames]
+            times = [nvb_utils.frame2nwtime(f, fps) for f in frames]
+            keys = list(zip(times, values))
             key_data.append([key_name, keys, val_dim * val_fstr])
 
     @staticmethod
-    def get_keys_object(obj, anim, key_data):
+    def getKeysObject(obj, anim, key_data, options):
         """TODO: DOC."""
+        def convert_loc(obj, key_values):
+            pass
+
+        def convert_eul(obj, key_values):
+            pass
+
+        def convert_axan(obj, key_values):
+            pass
+
+        def convert_quat(obj, key_values):
+            pass
+
         action = obj.animation_data.action
         if not action:
             return
         # Build data paths
         exports = [
-            ['scale', 1, ' {: > 6.5f}', 1, 'scale'],
-            ['selfillumcolor', 3, ' {: >3.2f}', 3, 'nvb.selfillumcolor'],
-            ['color', 3, ' {: >3.2f}', 3, 'color'],
-            ['radius', 1, ' {: >6.5f}', 1, 'distance']]
+            ['scale', 1, ' {: > 6.5f}', 1, 'scale', None],
+            ['selfillumcolor', 3, ' {: >3.2f}', 3, 'nvb.selfillumcolor', None],
+            ['color', 3, ' {: >3.2f}', 3, 'color', None],
+            ['radius', 1, ' {: >6.5f}', 1, 'distance', None],
+            ['position', 3, ' {: > 6.5f}', 3, 'location', convert_loc]]
+        if obj.rotation_mode == 'AXIS_ANGLE':
+            exports.append(['orientation', 4, ' {: > 6.5f}',
+                            4, 'rotation_axis_angle', convert_axan])
+        elif obj.rotation_mode == 'QUATERNION':
+            exports.append(['orientation', 4, ' {: > 6.5f}',
+                            4, 'rotation_quaternion', convert_quat])
+        else:
+            exports.append(['orientation', 4, ' {: > 6.5f}',
+                            4, 'rotation_euler', convert_eul])
+        fps = options.scene.render.fps
         # Get keyframe data
         fcurves = action.fcurves
-        for key_name, val_dim, val_fstr, dp_dim, dp in exports:
+        for key_name, val_dim, val_fstr, dp_dim, dp, convert_func in exports:
             fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
             if fcu.count(None) < 1:
-                keyed_frames = list(set().union(
+                # Get keyed frames
+                frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
-                keyed_frames.sort()
-                keys = [[f, *[fcu[i].evaluate(f) for i in range(dp_dim)]]
-                        for f in keyed_frames]
+                frames.sort()
+                # Get values at keyed frames and convert
+                values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                          for f in frames]
+                if convert_func is not None:
+                    convert_func(obj, values)
+                times = [nvb_utils.frame2nwtime(f, fps) for f in frames]
+                keys = list(zip(times, values))
                 key_data.append([key_name, keys, val_dim * val_fstr])
+        """
         # Add rotation keys, depending on object rotation mode
         keys = []
         if obj.rotation_mode == 'AXIS_ANGLE':
@@ -812,20 +799,21 @@ class Animnode():
                     for f in keyed_frames]
             # Apply parent_inverse
             key_data.append(['position', keys, 3 * ' {: > 6.5f}'])
+        """
 
     @staticmethod
-    def generate_ascii_keys(obj, anim, asciiLines, options):
+    def generateAsciiKeys2(obj, anim, asciiLines, options):
         """TODO: DOC."""
-        key_data = []
+        kdata = []
         # 1. Object animation data
         if obj.animation_data:
-            Animnode.get_keys_object(obj, anim, key_data)
+            Animnode.getKeysObject(obj, anim, kdata, options)
         # 2. Material animation data
         if obj.active_material and obj.active_material.animation_data:
-            Animnode.get_keys_material(obj.active_material, anim, key_data)
+            Animnode.getKeysMaterial(obj.active_material, anim, kdata, options)
         # Add keys to ascii lines
         time_fstr = '{: >6.5f}'
-        for key_name, keys, val_fstr in key_data:
+        for key_name, keys, val_fstr in kdata:
             num_keys = len(keys)
             if num_keys > 1:
                 # Create a key list

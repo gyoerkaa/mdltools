@@ -21,7 +21,10 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
     bl_label = 'Generate Pseudo Bones'
     bl_options = {'UNDO'}
 
-    def create_mesh(self, meshname):
+    prefix = ''
+    generated = dict()
+
+    def create_mesh(self, mvector, meshname):
         """TODO: DOC."""
         verts = [+0.0, +0.0, 0.0,
                  -0.1, -0.1, 0.1,
@@ -39,62 +42,38 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
                  1, 3, 5, 0]
         mesh = bpy.data.meshes.new(meshname)
         # Create Verts
-        mesh.vertices.add(6)
+        mesh.vertices.add(len(verts)/3)
         mesh.vertices.foreach_set('co', verts)
         # Create Faces
-        mesh.tessfaces.add(8)
+        mesh.tessfaces.add(len(faces)/4)
         mesh.tessfaces.foreach_set('vertices_raw', faces)
         mesh.validate()
+        rot = mathutils.Vector((0, 0, 1)).rotation_difference(mvector)
+        mesh.transform(mathutils.Matrix.Rotation(rot.angle, 4, rot.axis))
+        mesh.transform(mathutils.Matrix.Scale(mvector.length, 4))
         mesh.update()
         return mesh
 
-    def create_psb(self, amt_bone, parent=None, prefix=''):
+    def generate_bones(self, amb, psb_parent=None):
         """Creates a pseusobone (mesh) object from an armature bone."""
         # name for newly created mesh = pseudo bone
-        psb_name = prefix + amt_bone.name
+        psb_name = self.prefix + amb.name
+        if amb.parent:
+            psb_head = amb.head_local - amb.parent.head_local
+            psb_tail = amb.tail_local - amb.parent.head_local
+        else:
+            psb_head = amb.head_local
+            psb_tail = amb.tail_local
         # Create the mesh for the pseudo bone
-        mesh = self.create_mesh(psb_name)
-        # Scale the mesh to match the length of the armature bone
-        amb_length = (amt_bone.head - amt_bone.tail).length
-        mesh.transform(mathutils.Matrix.Scale(amb_length, 4))
-        amb_loc, amb_rot, amb_scl = amt_bone.matrix_local.decompose()
-        # Rotate the mesh to align with the armature bone
-        # mesh.transform(mathutils.Matrix.Rotation(
-        #    amb_rot.angle, 4, amb_rot.axis))
+        mesh = self.create_mesh(psb_tail-psb_head, psb_name)
         # Create object holding the mesh
         psb = bpy.data.objects.new(psb_name, mesh)
-        # Set location of the object to the armature bone head
-        psb.location = amb_loc
-        # Set parent and link to scene
-        psb.parent = parent
+        psb.location = psb_head
+        psb.parent = psb_parent
         bpy.context.scene.objects.link(psb)
-        return psb
-
-    def generate_bones(self, armature, psb_root=None):
-        """TODO: doc."""
-        # Do several passes. Only create meshes without parent or with
-        # an already created parent
-        generated = dict()
-        while len(armature.data.bones) > len(generated):
-            for bone in armature.data.bones:
-                amb_name = bone.name
-                if amb_name not in generated:
-                    if bone.parent:
-                        pname = bone.parent.name
-                        if pname in generated:
-                            pb = self.create_psb(bone, generated[pname])
-                            generated[amb_name] = pb
-                        else:
-                            # This bone has a parent that hasn't been created
-                            # yet. Create this bone in the next pass
-                            pass
-                    else:
-                        pb = self.create_psb(bone, psb_root)
-                        generated[amb_name] = pb
-        # Transfer animations
-        if armature.nvb.helper_amt_copyani:
-            for amb_name, psb in generated.items():
-                pass
+        self.generated[amb.name] = psb
+        for c in amb.children:
+            self.generate_bones(c, psb)
 
     @classmethod
     def poll(self, context):
@@ -104,11 +83,20 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
 
     def execute(self, context):
         """Create pseudo bones"""
-        amt_obj = context.object
-        psb_root = bpy.data.objects.new(amt_obj.name, None)
-        psb_root.location = amt_obj.location
-        context.scene.objects.link(psb_root)
-        self.generate_bones(amt_obj, psb_root)
+        armature = context.object
+        # Create an extra root object for the armature
+        psb_root = None
+        if False:
+            psb_root = bpy.data.objects.new(armature.name, None)
+            psb_root.location = armature.location
+            context.scene.objects.link(psb_root)
+        # Create Pseudo bones
+        for amb in armature.data.bones:
+            if not amb.parent:
+                self.generate_bones(amb, psb_root)
+        # Transfer animations
+        if armature.nvb.helper_amt_copyani:
+            nvb_utils.copyAnims2Mdl(armature, self.generated.items())
         return {'FINISHED'}
 
 
@@ -153,15 +141,15 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             os.path.commonprefix([n[::-1] for n in self.pb_skingroups])
         self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
 
-    def detectPseudoBonesRoot(self, auroraRoot, autodetect=False):
+    def detectPseudoBonesRoot(self, aur_root, autodetect=False):
         """TODO: doc."""
-        for c in auroraRoot.children:
+        for c in aur_root.children:
             for cc in c.children:
-                if self.isPseudoBone(cc, autodetect):
+                if self.is_pbone(cc, autodetect):
                     return c
         return None
 
-    def isPseudoBone(self, obj, autodetect=False):
+    def is_pbone(self, obj, autodetect=False):
         """TODO: doc."""
         oname = obj.name
         # Some objects like impact nodes can never be pseudo bones
@@ -187,28 +175,27 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             return bool(set(cn) & set(self.pb_skingroups))
         return True
 
-    def generateBones(self, amt, obj, autodetect=False, pbone=None,
-                      ploc=mathutils.Vector()):
+    def generate_bones(self, amt, obj, autodetect=False, pbone=None,
+                       ploc=mathutils.Vector()):
         """TODO: doc."""
-        # TODO set every rotation to 0 before creating a bone
-        bone = None
+        amt_bone = None
         bhead = obj.matrix_local.translation + ploc
-        if self.isPseudoBone(obj, autodetect):
-            bone = amt.edit_bones.new(obj.name)
-            bone.roll = 0
+        if self.is_pbone(obj, autodetect):
+            amt_bone = amt.edit_bones.new(obj.name)
+            amt_bone.roll = 0
             # Set head
             if pbone:
-                bone.parent = pbone
+                amt_bone.parent = pbone
                 # Merge head with parent tail if distance is short enough
                 if (pbone.tail - bhead).length <= 0.01:
                     bhead = pbone.tail
                     if obj.nvb.helper_amt_connect and self.can_connect(obj):
-                        bone.use_connect = True
-            bone.head = bhead
+                        amt_bone.use_connect = True
+            amt_bone.head = bhead
             # Set tail
             btail = mathutils.Vector()
             valid_children = [c for c in obj.children
-                              if self.isPseudoBone(c, autodetect)]
+                              if self.is_pbone(c, autodetect)]
             if len(valid_children) >= 2:
                 # Multiple children: Calculate average location
                 locsum = mathutils.Vector()
@@ -223,55 +210,57 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                     center = bhead + \
                              (sum((mathutils.Vector(p) for p in obj.bound_box),
                               mathutils.Vector()) / 8)
-                    btail = center + center - bone.head
+                    btail = center + center - amt_bone.head
                 elif obj.type == 'EMPTY':
                     if pbone:
                         btail = pbone.tail - pbone.head + bhead
                     else:
                         btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
 
-            bone.tail = btail
+            amt_bone.tail = btail
             # Align coordinate system to parent bone
             # if pbone:
             #     bone.align_roll(pbone.z_axis)
         for c in obj.children:
-            self.generateBones(amt, c, autodetect, bone, bhead)
+            self.generate_bones(amt, c, autodetect, amt_bone, bhead)
 
     @classmethod
     def poll(self, context):
         """Prevent execution if no root was found."""
-        auroraRoot = nvb_utils.findObjRootDummy(context.object)
-        return (auroraRoot is not None)
+        aur_root = nvb_utils.findObjRootDummy(context.object)
+        return (aur_root is not None)
 
     def execute(self, context):
         """Create the armature"""
         aur_root = nvb_utils.findObjRootDummy(context.object)
         # Get source for armature
-        if aur_root.nvb.helper_amt_source == 'SKIN':
+        autodetect = False
+        if aur_root.nvb.helper_amt_source == 'VGR':
             # Get all vertex groups with a name that exists as object
             self.setupPseudoBoneDetection(aur_root)
-            pb_root = self.detectPseudoBonesRoot(aur_root)
-            if not pb_root:
+            psb_root = self.detectPseudoBonesRoot(aur_root)
+            if not psb_root:
                 self.report({'INFO'}, 'Error: No Pseudo Bone root.')
                 return {'CANCELLED'}
-            strict = True
+            autodetect = True
+        elif aur_root.nvb.helper_amt_source == 'ALL':
+            psb_root = aur_root
         else:
-            pb_root = context.object
-            strict = False
+            psb_root = context.object
         # Create armature
         bpy.ops.object.add(type='ARMATURE',
                            enter_editmode=True,
-                           location=pb_root.location)
-        amt = context.scene.objects.active
-        amt.name = aur_root.name + '.armature'
+                           location=psb_root.location)
+        armature = context.scene.objects.active
+        armature.name = aur_root.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
         # Create the bones
-        for c in pb_root.children:
-            self.generateBones(amt.data, c, strict)
+        for c in psb_root.children:
+            self.generate_bones(armature.data, c, autodetect)
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
         if aur_root.nvb.helper_amt_copyani:
-            nvb_utils.copyAnims2Armature(amt, pb_root)
+            nvb_utils.copyAnims2Armature(armature, psb_root)
         # Update scene and objects
         bpy.ops.object.mode_set(mode='OBJECT')
         context.scene.update()

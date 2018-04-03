@@ -282,13 +282,12 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         default=nvb_def.Walkmeshtype.PWK)
     # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
-        name='Armature Source',
-        items=[('SELN',
-                'Selection', 'Selected object and its children', 0),
-               ('SKIN',
-                'Skinmeshes', 'Vertex groups from all skinmeshes', 1),
+        name='Source',
+        items=[('ALL', 'All', 'All objects in the mdl.', 0),
+               ('ACT', 'Active', 'Active object and its children.', 1),
+               ('VGR', 'Vertex Groups', 'Objects matching vertex groups.', 2),
                ],
-        default='SELN')
+        default='ALL')
     helper_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect Bones',
         description='Connect bones when possible',
