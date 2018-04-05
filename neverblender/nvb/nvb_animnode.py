@@ -592,38 +592,6 @@ class Animnode():
             self.createDataRaw(obj, anim, options)
 
     @staticmethod
-    def getKeysFromActionOLD(action, anim, keyDict):
-        """TODO: DOC."""
-        namelookup = {'rotation_euler':     'orientationkey',
-                      'location':           'positionkey',
-                      'scale':              'scalekey',
-                      'nvb.selfillumcolor': 'selfillumcolorkey',
-                      'color':              'colorkey',
-                      'distance':           'radiuskey'}
-        for fcurve in action.fcurves:
-            axis = fcurve.array_index
-            # Get the name from the data path
-            dp = fcurve.data_path
-            if dp in namelookup:
-                nwname = namelookup[fcurve.data_path]
-            else:
-                # Maybe texture or material alpha
-                if dp.endswith('alpha_factor') or dp.endswith('alpha'):
-                    nwname = 'alphakey'
-
-            kfp = [p for p in fcurve.keyframe_points
-                   if anim.frameStart <= p.co[0] <= anim.frameEnd]
-            for p in kfp:
-                frame = int(round(p.co[0]))
-                keys = keyDict[nwname]
-                if frame in keys:
-                    values = keys[frame]
-                else:
-                    values = [0.0, 0.0, 0.0, 0.0]
-                values[axis] = values[axis] + p.co[1]
-                keys[frame] = values
-
-    @staticmethod
     def getKeysMaterial(mat, anim, key_data, options):
         """TODO: DOC."""
         action = mat.animation_data.action
@@ -681,8 +649,9 @@ class Animnode():
 
         def convert_axan(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
-            mats = [pinv * mathutils.Quaternion(v).to_matrix().to_4x4()
-                    for v in kfvalues]
+            mats = \
+                [pinv * mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+                 for v in kfvalues]
             return [[*q.axis, q.angle] for q in
                     [m.to_quaternion() for m in mats]]
 
@@ -757,130 +726,6 @@ class Animnode():
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
-            """
-            elif num_keys == 1:
-                # Create only a single value
-                fstr = '    ' + key_name + val_fstr
-                asciiLines.append(fstr.format(*keys[0][1]))
-            """
-
-    @staticmethod
-    def generateAsciiKeysOLD(obj, anim, asciiLines, options):
-        """TODO: DOC."""
-        keyDict = {'orientationkey': collections.OrderedDict(),
-                   'positionkey': collections.OrderedDict(),
-                   'scalekey': collections.OrderedDict(),
-                   'selfillumcolorkey': collections.OrderedDict(),
-                   'colorkey': collections.OrderedDict(),
-                   'radiuskey': collections.OrderedDict(),
-                   'alphakey': collections.OrderedDict()}
-
-        # Get animation data from object
-        if obj.animation_data:
-            action = obj.animation_data.action
-            if action:
-                Animnode.getKeysFromAction(action, anim, keyDict)
-        # Get animation data from Material/ texture data (= alpha keys only)
-        if obj.active_material and obj.active_material.animation_data:
-            action = obj.active_material.animation_data.action
-            if action:
-                Animnode.getKeysFromAction(action, anim, keyDict)
-        # Adjust coordinates, remove parent inverse
-        # mat_pinv = obj.matrix_parent_inverse
-        # Cache values for speed
-        animStart = anim.frameStart
-        fps = options.scene.render.fps
-        # Rotation
-        keyList = keyDict['orientationkey']
-        if len(keyList) == 1:
-            fstr = '    ' + \
-                'orientation {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-            key = keyList.popitem()[1]
-            eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
-            val = nvb_utils.euler2nwangle(eul)
-            asciiLines.append(fstr.format(*val))
-        elif len(keyList) > 1:
-            asciiLines.append('    orientationkey ' + str(len(keyList)))
-            fstr = '      ' + \
-                '{: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                eul = mathutils.Euler((key[0], key[1], key[2]), 'XYZ')
-                val = nvb_utils.euler2nwangle(eul)
-                asciiLines.append(fstr.format(time, *val))
-        # Location
-        keyList = keyDict['positionkey']
-        if len(keyList) == 1:
-            fstr = '    position {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-            key = keyList.popitem()[1]
-            s = fstr.format(key[0], key[1], key[2])
-            asciiLines.append(s)
-        elif len(keyList) > 1:
-            asciiLines.append('    positionkey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: > 6.5f} {: > 6.5f} {: > 6.5f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
-        # Scale
-        keyList = keyDict['scalekey']
-        if len(keyList) == 1:
-            fstr = '    scale {: >6.5f}'
-            key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0]))
-        elif len(keyList) > 1:
-            asciiLines.append('    scalekey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: >6.5f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0]))
-        # Self illumination color
-        keyList = keyDict['selfillumcolorkey']
-        if len(keyList) == 1:
-            fstr = '    selfillumcolor {: >3.2f} {: >3.2f} {: >3.2f}'
-            key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0], key[1], key[2]))
-        elif len(keyList) > 1:
-            asciiLines.append('    selfillumcolorkey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: > 3.2f} {: > 3.2f} {: > 3.2f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
-        # Lamp color
-        keyList = keyDict['colorkey']
-        if len(keyList) == 1:
-            fstr = '    color {: >3.2f} {: >3.2f} {: >3.2f}'
-            key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0], key[1], key[2]))
-        elif len(keyList) > 1:
-            asciiLines.append('    colorkey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: >3.2f} {: >3.2f} {: >3.2f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0], key[1], key[2]))
-        # Lamp radius
-        keyList = keyDict['radiuskey']
-        if len(keyList) == 1:
-            fstr = '    radius {: >6.5f}'
-            key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0]))
-        elif len(keyList) > 1:
-            asciiLines.append('    radiuskey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: >6.5f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0]))
-        # Alpha value
-        keyList = keyDict['alphakey']
-        if len(keyList) == 1:
-            fstr = '    alpha {: >3.2f}'
-            key = keyList.popitem()[1]
-            asciiLines.append(fstr.format(key[0]))
-        elif len(keyList) > 1:
-            asciiLines.append('    alphakey ' + str(len(keyList)))
-            fstr = '      {: >6.5f} {: >3.2f}'
-            for frame, key in keyList.items():
-                time = nvb_utils.frame2nwtime(frame - animStart, fps)
-                asciiLines.append(fstr.format(time, key[0]))
 
     @staticmethod
     def generateAsciiRawData(obj, anim, asciiLines, options):
