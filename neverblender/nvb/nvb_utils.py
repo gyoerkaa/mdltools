@@ -526,8 +526,7 @@ def copyAnims2Armature(armature, source, destructive=False):
             loc = [kfvalues[i][j] - psb_loc[j] for j in range(3)]
             mat = mathutils.Matrix.Translation(loc)
             mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT',
-                                    'LOCAL')
+                                    'LOCAL_WITH_PARENT', 'LOCAL')
             kfvalues[i] = list(mat.to_translation())
 
     def convert_axan(amt, amt_posebone, psb, kfvalues):
@@ -535,17 +534,15 @@ def copyAnims2Armature(armature, source, destructive=False):
             aa = kfvalues[i]
             mat = mathutils.Quaternion(aa[1:], aa[0]).to_matrix().to_4x4()
             mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT',
-                                    'LOCAL')
+                                    'LOCAL_WITH_PARENT', 'LOCAL')
             q = mat.to_quaternion()
-            kfvalues[i] = [q.angle] + [*q.axis]
+            kfvalues[i] = [q.angle, *q.axis]
 
     def convert_quat(amt, amt_posebone, psb, kfvalues):
         for i in range(len(kfvalues)):
             mat = mathutils.Quaternion(kfvalues[i]).to_matrix().to_4x4()
             mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT',
-                                    'LOCAL')
+                                    'LOCAL_WITH_PARENT', 'LOCAL')
             kfvalues[i] = list(mat.to_quaternion())
 
     def convert_eul(amt, amt_posebone, psb, kfvalues):
@@ -553,8 +550,7 @@ def copyAnims2Armature(armature, source, destructive=False):
         for i in range(len(kfvalues)):
             mat = mathutils.Euler(kfvalues[i], 'XYZ').to_matrix().to_4x4()
             mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT',
-                                    'LOCAL')
+                                    'LOCAL_WITH_PARENT', 'LOCAL')
             val = mat.to_euler('XYZ', prev_val)
             kfvalues[i] = list(val)
             prev_val = val
@@ -570,26 +566,25 @@ def copyAnims2Armature(armature, source, destructive=False):
     amt_action = armature.animation_data.action
     if not amt_action:
         amt_action = bpy.data.actions.new(name=armature.name)
-        # amt_action.use_fake_user = True
         armature.animation_data.action = amt_action
     for amt_bone in bones:
         amt_posebone = armature.pose.bones[amt_bone.name]
         # Check wether there is an pseudo bone object with the same
         # name as the bone
         if amt_bone.name in bpy.data.objects:
-            psb = bpy.data.objects[amt_bone.name]
-            amt_posebone.rotation_mode = psb.rotation_mode
+            psb_bone = bpy.data.objects[amt_bone.name]
+            amt_posebone.rotation_mode = psb_bone.rotation_mode
             # Gather rotation and location keyframe points
-            # Their coordinates need to be adjusted for use with bones
-            if psb.animation_data and psb.animation_data.action:
-                psb_all_fcu = psb.animation_data.action.fcurves
+            # Their coordinates need to be adjusted to use them with bones
+            if psb_bone.animation_data and psb_bone.animation_data.action:
+                source_fcu = psb_bone.animation_data.action.fcurves
                 # Copy rotation keyframes
                 dp_list = [('rotation_axis_angle', 4, convert_axan),
                            ('rotation_quaternion', 4, convert_quat),
                            ('rotation_euler', 3, convert_eul),
                            ('location', 3, convert_loc)]
                 for dp, dp_dim, convert_func in dp_list:
-                    psb_fcu = [psb_all_fcu.find(dp, i) for i in range(dp_dim)]
+                    psb_fcu = [source_fcu.find(dp, i) for i in range(dp_dim)]
                     if psb_fcu.count(None) < 1:
                         amt_dp = 'pose.bones["' + amt_bone.name + '"].' + dp
                         # Get keyed frames
@@ -600,7 +595,7 @@ def copyAnims2Armature(armature, source, destructive=False):
                         values = [[psb_fcu[i].evaluate(f)
                                   for i in range(dp_dim)] for f in frames]
                         # Convert from pseudo-bone to armature-bone space
-                        convert_func(armature, amt_posebone, psb, values)
+                        convert_func(armature, amt_posebone, psb_bone, values)
                         # Create fcurves for armature
                         amt_fcu = [amt_action.fcurves.new(amt_dp, i)
                                    for i in range(dp_dim)]
@@ -630,8 +625,7 @@ def copyAnims2Mdl(armature, psb_list, destructive=False):
         for i in range(len(kfvalues)):
             mat = mathutils.Matrix.Translation(kfvalues[i])
             mat = psb.convert_space(amt_posebone, mat,
-                                    'LOCAL',
-                                    'LOCAL_WITH_PARENT')
+                                    'LOCAL', 'LOCAL_WITH_PARENT')
             loc = mat.to_translation()
             loc = [kfvalues[i][j] + psb_loc[j] for j in range(3)]
             kfvalues[i] = list(loc)
@@ -641,17 +635,15 @@ def copyAnims2Mdl(armature, psb_list, destructive=False):
             aa = kfvalues[i]
             mat = mathutils.Quaternion(aa[1:], aa[0]).to_matrix().to_4x4()
             mat = psb.convert_space(amt_posebone, mat,
-                                    'LOCAL',
-                                    'LOCAL_WITH_PARENT')
+                                    'LOCAL', 'LOCAL_WITH_PARENT')
             q = mat.to_quaternion()
-            kfvalues[i] = [q.angle] + [*q.axis]
+            kfvalues[i] = [q.angle, *q.axis]
 
     def convert_quat(amt, amt_posebone, psb, kfvalues):
         for i in range(len(kfvalues)):
             mat = mathutils.Quaternion(kfvalues[i]).to_matrix().to_4x4()
             mat = psb.convert_space(amt_posebone, mat,
-                                    'LOCAL',
-                                    'LOCAL_WITH_PARENT')
+                                    'LOCAL', 'LOCAL_WITH_PARENT')
             kfvalues[i] = list(mat.to_quaternion())
 
     def convert_eul(amt, amt_posebone, psb, kfvalues):
@@ -659,8 +651,7 @@ def copyAnims2Mdl(armature, psb_list, destructive=False):
         for i in range(len(kfvalues)):
             mat = mathutils.Euler(kfvalues[i], 'XYZ').to_matrix().to_4x4()
             mat = psb.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT',
-                                    'LOCAL')
+                                    'LOCAL_WITH_PARENT', 'LOCAL')
             val = mat.to_euler('XYZ', prev_val)
             kfvalues[i] = list(val)
             prev_val = val
@@ -687,15 +678,15 @@ def copyAnims2Mdl(armature, psb_list, destructive=False):
             psb_action.use_fake_user = True
             psb.animation_data.action = psb_action
         # All fcurves of the armature
-        amt_all_fcu = amt_action.fcurves
+        source_fcu = amt_action.fcurves
         # Copy rotation keyframes
         dp_list = [('rotation_axis_angle', 4, convert_axan),
                    ('rotation_quaternion', 4, convert_quat),
                    ('rotation_euler', 3, convert_eul),
                    ('location', 3, convert_loc)]
-        for dp, dp_dim, convert_func in dp_list:
-            amt_dp = 'pose.bones["' + amt_bone_name + '"].' + dp
-            amt_fcu = [amt_all_fcu.find(amt_dp, i) for i in range(dp_dim)]
+        for psb_dp, dp_dim, convert_func in dp_list:
+            amt_dp = 'pose.bones["' + amt_bone_name + '"].' + psb_dp
+            amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
             if amt_fcu.count(None) < 1:
                 # Get keyed frames
                 frames = list(set().union(
@@ -707,7 +698,7 @@ def copyAnims2Mdl(armature, psb_list, destructive=False):
                 # Convert from armature bone space to pseudobone space
                 convert_func(armature, amt_posebone, psb, values)
                 # Create fcurves for pseudo bone
-                psb_fcu = [psb_action.fcurves.new(dp, i)
+                psb_fcu = [psb_action.fcurves.new(psb_dp, i)
                            for i in range(dp_dim)]
                 # Add keyframes to fcurves
-                insert_kfp(psb_fcu, frames, values, dp, dp_dim)
+                insert_kfp(psb_fcu, frames, values, psb_dp, dp_dim)
