@@ -104,15 +104,12 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     """Generate armature from pseudo bones."""
 
     bl_idname = 'nvb.helper_psb2amt'
-    bl_label = 'Generate Armature from MDL pseudo bones'
+    bl_label = 'Generate Armature'
 
-    # If only objects references by skingropups are used create a list here
-    pb_skingroups = []
     # Dummys with these names are ignores
     pb_dummy_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
-                       'ground', 'grnd', 'handconjure', 'headconjure']
-    pb_prefix = '?'
-    pb_suffix = '?'
+                       'ground', 'grnd', 'handconjure', 'headconjure',
+                       'lhand', 'rhand', 'lforearm']
 
     def can_connect(self, obj):
         """Determine whether the bone belonging to this object can be
@@ -125,31 +122,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                     return False
         return True
 
-    def setupPseudoBoneDetection(self, aur_root, autodetect=False):
-        """TODO: doc."""
-        # Get all names of skinmesh vertex groups which exist as object
-        children = []
-        nvb_utils.getAllChildren(aur_root, children)
-        cnames = [c.name for c in children]
-        for c in children:
-            if c.nvb.meshtype == nvb_def.Meshtype.SKIN:
-                self.pb_skingroups.extend([vg.name for vg in c.vertex_groups
-                                           if vg.name in cnames])
-        self.pb_prefix = os.path.commonprefix(self.pb_skingroups)
-        self.pb_prefix = self.pb_prefix if self.pb_prefix else '?'
-        self.pb_suffix = \
-            os.path.commonprefix([n[::-1] for n in self.pb_skingroups])
-        self.pb_suffix = self.pb_suffix[::-1] if self.pb_suffix else '?'
-
-    def detectPseudoBonesRoot(self, aur_root, autodetect=False):
-        """TODO: doc."""
-        for c in aur_root.children:
-            for cc in c.children:
-                if self.is_pbone(cc, autodetect):
-                    return c
-        return None
-
-    def is_pbone(self, obj, autodetect=False):
+    def is_pbone(self, obj):
         """TODO: doc."""
         oname = obj.name
         # Some objects like impact nodes can never be pseudo bones
@@ -160,69 +133,95 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
            (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
             return False
-        if autodetect:
-            # Object is referred to in any vertex group of a skinmesh
-            if oname in self.pb_skingroups:
-                return True
-            # Maybe: Object carries a common suffix or prefix
-            if oname.startswith(self.pb_prefix) or \
-               oname.endswith(self.pb_suffix):
-                return True
-            # If any child is a pseudo bone this object is too
-            children = []
-            nvb_utils.getAllChildren(obj, children)
-            cn = [c.name for c in children]
-            return bool(set(cn) & set(self.pb_skingroups))
         return True
 
-    def generate_bones(self, amt, obj, autodetect=False, pbone=None,
-                       ploc=mathutils.Vector()):
+    def generate_bones(self, amt, obj, pbone=None, pmat=mathutils.Matrix()):
         """TODO: doc."""
-        amt_bone = None
-        bhead = obj.matrix_local.translation + ploc
-        if self.is_pbone(obj, autodetect):
-            amt_bone = amt.edit_bones.new(obj.name)
-            amt_bone.roll = 0
-            # Set head
-            if pbone:
-                amt_bone.parent = pbone
-                # Merge head with parent tail if distance is short enough
-                if (pbone.tail - bhead).length <= 0.01:
-                    bhead = pbone.tail
-                    if obj.nvb.helper_amt_connect and self.can_connect(obj):
-                        amt_bone.use_connect = True
-            amt_bone.head = bhead
-            # Set tail
-            btail = mathutils.Vector()
-            valid_children = [c for c in obj.children
-                              if self.is_pbone(c, autodetect)]
-            if len(valid_children) >= 2:
-                # Multiple children: Calculate average location
-                locsum = mathutils.Vector()
-                for c in valid_children:
-                    locsum = locsum + bhead + c.matrix_local.translation
-                btail = locsum/len(valid_children)
-            elif len(valid_children) == 1:
-                btail = bhead + valid_children[0].matrix_local.translation
-            else:
-                # No children: Generate location from object bounding box
-                if obj.type == 'MESH':
-                    center = bhead + \
-                             (sum((mathutils.Vector(p) for p in obj.bound_box),
-                              mathutils.Vector()) / 8)
-                    btail = center + center - amt_bone.head
-                elif obj.type == 'EMPTY':
-                    if pbone:
-                        btail = pbone.tail - pbone.head + bhead
-                    else:
-                        btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
-
-            amt_bone.tail = btail
-            # Align coordinate system to parent bone
-            # if pbone:
-            #     bone.align_roll(pbone.z_axis)
+        if not self.is_pbone(obj):
+            return
+        amt_bone = amt.edit_bones.new(obj.name)
+        amt_bone.roll = 0
+        # Set head
+        mat = pmat * obj.matrix_parent_inverse * obj.matrix_basis
+        bhead = mat.translation
+        if pbone:
+            amt_bone.parent = pbone
+            # Merge head with parent tail if distance is short enough
+            if (pbone.tail - bhead).length <= 0.01:
+                bhead = pbone.tail
+                if obj.nvb.helper_amt_connect and self.can_connect(obj):
+                    amt_bone.use_connect = True
+        amt_bone.head = bhead
+        # Set tail
+        btail = mathutils.Vector()
+        valid_children = [c for c in obj.children if self.is_pbone(c)]
+        if len(valid_children) >= 2:
+            # Multiple children: Calculate average location
+            locsum = mathutils.Vector()
+            for c in valid_children:
+                locsum = locsum + bhead + c.matrix_local.translation
+            btail = locsum/len(valid_children)
+        elif len(valid_children) == 1:
+            btail = bhead + valid_children[0].matrix_local.translation
+        else:
+            # No children: Generate location from object bounding box
+            if obj.type == 'MESH':
+                center = bhead + \
+                         (sum((mathutils.Vector(p) for p in obj.bound_box),
+                          mathutils.Vector()) / 8)
+                btail = center + center - amt_bone.head
+            elif obj.type == 'EMPTY':
+                if pbone:
+                    btail = pbone.tail - pbone.head + bhead
+                else:
+                    btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+        amt_bone.tail = btail
         for c in obj.children:
-            self.generate_bones(amt, c, autodetect, amt_bone, bhead)
+            mat = mathutils.Matrix.Translation(bhead)
+            self.generate_bones(amt, c, amt_bone, mat)
+
+    def generate_bonesOLD(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
+        """TODO: doc."""
+        if not self.is_pbone(obj):
+            return
+        bhead = obj.matrix_local.translation + ploc
+        amt_bone = amt.edit_bones.new(obj.name)
+        amt_bone.roll = 0
+        # Set head
+        if pbone:
+            amt_bone.parent = pbone
+            # Merge head with parent tail if distance is short enough
+            if (pbone.tail - bhead).length <= 0.01:
+                bhead = pbone.tail
+                if obj.nvb.helper_amt_connect and self.can_connect(obj):
+                    amt_bone.use_connect = True
+        amt_bone.head = bhead
+        # Set tail
+        btail = mathutils.Vector()
+        valid_children = [c for c in obj.children if self.is_pbone(c)]
+        if len(valid_children) >= 2:
+            # Multiple children: Calculate average location
+            locsum = mathutils.Vector()
+            for c in valid_children:
+                locsum = locsum + bhead + c.matrix_local.translation
+            btail = locsum/len(valid_children)
+        elif len(valid_children) == 1:
+            btail = bhead + valid_children[0].matrix_local.translation
+        else:
+            # No children: Generate location from object bounding box
+            if obj.type == 'MESH':
+                center = bhead + \
+                         (sum((mathutils.Vector(p) for p in obj.bound_box),
+                          mathutils.Vector()) / 8)
+                btail = center + center - amt_bone.head
+            elif obj.type == 'EMPTY':
+                if pbone:
+                    btail = pbone.tail - pbone.head + bhead
+                else:
+                    btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+        amt_bone.tail = btail
+        for c in obj.children:
+            self.generate_bonesOLD(amt, c, amt_bone, bhead)
 
     @classmethod
     def poll(self, context):
@@ -234,29 +233,18 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         """Create the armature"""
         aur_root = nvb_utils.findObjRootDummy(context.object)
         # Get source for armature
-        autodetect = False
-        if aur_root.nvb.helper_amt_source == 'VGR':
-            # Get all vertex groups with a name that exists as object
-            self.setupPseudoBoneDetection(aur_root)
-            psb_root = self.detectPseudoBonesRoot(aur_root)
-            if not psb_root:
-                self.report({'INFO'}, 'Error: No Pseudo Bone root.')
-                return {'CANCELLED'}
-            autodetect = True
-        elif aur_root.nvb.helper_amt_source == 'ALL':
+        if aur_root.nvb.helper_amt_source == 'ALL':
             psb_root = aur_root
         else:
             psb_root = context.object
         # Create armature
-        bpy.ops.object.add(type='ARMATURE',
-                           enter_editmode=True,
-                           location=psb_root.location)
+        bpy.ops.object.add(type='ARMATURE', location=psb_root.location)
         armature = context.scene.objects.active
         armature.name = aur_root.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
         # Create the bones
         for c in psb_root.children:
-            self.generate_bones(armature.data, c, autodetect)
+            self.generate_bones(armature.data, c)
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
         if aur_root.nvb.helper_amt_copyani:
@@ -1843,6 +1831,20 @@ class NVB_OT_helper_genskgr(bpy.types.Operator):
         else:
             self.report({'INFO'}, 'Empty Name')
             return {'CANCELLED'}
+
+
+class NVB_OT_helper_scale(bpy.types.Operator):
+    """TODO: DOC"""
+    bl_idname = "nvb.helper_scale"
+    bl_label = "Scale"
+
+    def execute(self, context):
+        """TODO: DOC."""
+        obj = context.object
+        aur_root = nvb_utils.findRootDummy(obj)
+
+        # return {'CANCELLED'}
+        return {'FINISHED'}
 
 
 class NVB_OT_mtr_embed(bpy.types.Operator):

@@ -241,7 +241,6 @@ class Animnode():
                 list(map(lambda c: c.update(), fcu))
 
         fps = options.scene.render.fps
-        # Add everything to a single action.
         frameStart = anim.frameStart
         frameEnd = anim.frameEnd
         # Get animation data, create if needed.
@@ -924,9 +923,8 @@ class Animnode():
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
         tmpLines = []
-        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines,
-                                            options, True)
-        asciiLines.extend(['  '+l for l in tmpLines])
+        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines, options, True)
+        asciiLines.extend(['  ' + l for l in tmpLines])
         maxsamples = -1  # Samples > 0 also means not to write metadata (again)
         maxsamples = Animnode.generateAsciiAnimeshUV(obj, anim, asciiLines,
                                                      options, maxsamples)

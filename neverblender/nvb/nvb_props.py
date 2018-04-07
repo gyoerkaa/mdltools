@@ -137,11 +137,26 @@ class NVB_PG_flare(bpy.types.PropertyGroup):
                                                soft_min=0.0, soft_max=1.0)
 
 
+class NVB_PG_bone(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for bones.
+    """
+    # Armature Helper
+    helper_amt_ctype = bpy.props.EnumProperty(
+        name='Source',
+        items=[('EMT', 'Empty', 'Bone will be converted to an empty.', 0),
+               ('ME1', 'Mesh', 'Bone will be converted to a mesh.', 1)
+               ],
+        default='ME1')
+
+
 class NVB_PG_lamp(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
     This class defines all additional properties needed by the mdl file
-    format. It hold the properties for meshes, lamps and empties.
+    format. It hold the properties for lamps.
     """
     shadow = bpy.props.BoolProperty(
                 name='Shadow',
@@ -280,17 +295,24 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK)
+    helper_scale_fac = bpy.props.FloatVectorProperty(name='Scale',
+                                                     description='Scale',
+                                                     subtype='XYZ',
+                                                     default=(1.0, 1.0, 1.0))
     # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',
         items=[('ALL', 'All', 'All objects in the mdl.', 0),
                ('ACT', 'Active', 'Active object and its children.', 1),
-               ('VGR', 'Vertex Groups', 'Objects matching vertex groups.', 2),
                ],
         default='ALL')
     helper_amt_connect = bpy.props.BoolProperty(
-        name='Auto Connect Bones',
-        description='Connect bones when possible',
+        name='Auto Connect',
+        description='Automatically connect bones when possible',
+        default=True)
+    helper_amt_restrot = bpy.props.BoolProperty(
+        name='Rotate Rest Pose',
+        description='Use object rotations as rest pose',
         default=True)
     helper_amt_copyani = bpy.props.BoolProperty(
         name='Copy Animations',

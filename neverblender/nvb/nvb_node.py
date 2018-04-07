@@ -598,48 +598,20 @@ class Node(object):
         self.createObjectData(obj, options)
         return obj
 
-    @staticmethod
-    def getAdjustedMatrix(obj):
-        """TODO: DOC."""
-        return obj.matrix_parent_inverse * obj.matrix_basis
-        """
-        # Apply parent inverse matrix and parent scale
-        if obj.parent:
-            parent_scale = obj.parent.matrix_world.to_scale()
-        else:
-            parent_scale = mathutils.Matrix()
-        return obj.matrix_parent_inverse * obj.matrix_basis * parent_scale
-        """
-        """
-        matrix = obj.matrix_parent_inverse * obj.matrix_basis
-        if obj.parent:
-            pmw = obj.parent.matrix_world
-        else:
-            pmw = mathutils.Matrix()
-
-        pmw_scale = pmw.to_scale()
-
-        scaled = obj.matrix_local.copy()
-        scaled[0][3] = scaled[0][3] * pmw_scale[0]
-        scaled[1][3] = scaled[1][3] * pmw_scale[1]
-        scaled[2][3] = scaled[2][3] * pmw_scale[2]
-        return scaled
-        """
-
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: DOC."""
         # Rootdummys get no data at all
         if obj.parent is None:
             return
-        transmat = Node.getAdjustedMatrix(obj)
+        mat = obj.matrix_parent_inverse * obj.matrix_basis
 
-        loc = transmat.to_translation()
+        loc = mat.to_translation()
         asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
 
-        rot = nvb_utils.euler2nwangle(transmat.to_euler('XYZ'))
+        rot = mat.to_quaternion()
         fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
-        asciiLines.append(fstr.format(*rot))
+        asciiLines.append(fstr.format(*rot.axis, rot.angle))
 
         scale = nvb_utils.getAuroraScale(obj)
         if not (0.998 < scale < 1.002):

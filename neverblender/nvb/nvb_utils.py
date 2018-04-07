@@ -520,44 +520,45 @@ def copyAnims2Armature(armature, source, destructive=False):
         list(map(lambda c: c.update(), fcu))
 
     def convert_loc(amt, amt_posebone, psb, kfvalues):
-        psb_loc = psb.location
-        # Adjust to bone coordinates
-        for i in range(len(kfvalues)):
-            loc = [kfvalues[i][j] - psb_loc[j] for j in range(3)]
-            mat = mathutils.Matrix.Translation(loc)
-            mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT', 'LOCAL')
-            kfvalues[i] = list(mat.to_translation())
+        pinv = psb.matrix_parent_inverse
+        ploc = psb.location
+        locs = [[val[j] - ploc[j] for j in range(3)] for val in kfvalues]
+        mats = [pinv * mathutils.Matrix.Translation(l) for l in locs]
+        mats = [amt.convert_space(amt_posebone, m,
+                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
+        return [list(m.to_translation()) for m in mats]
 
     def convert_axan(amt, amt_posebone, psb, kfvalues):
-        for i in range(len(kfvalues)):
-            aa = kfvalues[i]
-            mat = mathutils.Quaternion(aa[1:], aa[0]).to_matrix().to_4x4()
-            mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT', 'LOCAL')
-            q = mat.to_quaternion()
-            kfvalues[i] = [q.angle, *q.axis]
+        pinv = psb.matrix_parent_inverse
+        mats = [pinv * mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+                for v in kfvalues]
+        quats = [amt.convert_space(amt_posebone, m,
+                 'LOCAL_WITH_PARENT', 'LOCAL').to_quaternion() for m in mats]
+        return [[q.angle, *q.axis] for q in quats]
 
     def convert_quat(amt, amt_posebone, psb, kfvalues):
-        for i in range(len(kfvalues)):
-            mat = mathutils.Quaternion(kfvalues[i]).to_matrix().to_4x4()
-            mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT', 'LOCAL')
-            kfvalues[i] = list(mat.to_quaternion())
+        pinv = psb.matrix_parent_inverse
+        mats = [pinv * mathutils.Quaternion(v).to_matrix().to_4x4()
+                for v in kfvalues]
+        mats = [amt.convert_space(amt_posebone, m,
+                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
+        return [list(m.to_quaternion()) for m in mats]
 
     def convert_eul(amt, amt_posebone, psb, kfvalues):
-        prev_val = amt_posebone.rotation_euler
-        for i in range(len(kfvalues)):
-            mat = mathutils.Euler(kfvalues[i], 'XYZ').to_matrix().to_4x4()
-            mat = amt.convert_space(amt_posebone, mat,
-                                    'LOCAL_WITH_PARENT', 'LOCAL')
-            val = mat.to_euler('XYZ', prev_val)
-            kfvalues[i] = list(val)
-            prev_val = val
+        pinv = psb.matrix_parent_inverse
+        mats = [pinv * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+                for v in kfvalues]
+        mats = [amt.convert_space(amt_posebone, m,
+                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
+        euls = []
+        e = amt_posebone.rotation_euler
+        for m in mats:
+            e = m.to_euler('XYZ', e)
+            euls.append(e)
+        return euls
 
     # Process animations/poses of the bones
-    bones = armature.data.bones
-    if not bones:
+    if not armature.data.bones:
         return
     # Get or create animation data for this armature
     if not armature.animation_data:
@@ -567,17 +568,17 @@ def copyAnims2Armature(armature, source, destructive=False):
     if not amt_action:
         amt_action = bpy.data.actions.new(name=armature.name)
         armature.animation_data.action = amt_action
-    for amt_bone in bones:
+    for amt_bone in armature.data.bones:
         amt_posebone = armature.pose.bones[amt_bone.name]
         # Check wether there is an pseudo bone object with the same
         # name as the bone
         if amt_bone.name in bpy.data.objects:
-            psb_bone = bpy.data.objects[amt_bone.name]
-            amt_posebone.rotation_mode = psb_bone.rotation_mode
+            psb = bpy.data.objects[amt_bone.name]
+            amt_posebone.rotation_mode = psb.rotation_mode
             # Gather rotation and location keyframe points
             # Their coordinates need to be adjusted to use them with bones
-            if psb_bone.animation_data and psb_bone.animation_data.action:
-                source_fcu = psb_bone.animation_data.action.fcurves
+            if psb.animation_data and psb.animation_data.action:
+                source_fcu = psb.animation_data.action.fcurves
                 # Copy rotation keyframes
                 dp_list = [('rotation_axis_angle', 4, convert_axan),
                            ('rotation_quaternion', 4, convert_quat),
@@ -595,7 +596,8 @@ def copyAnims2Armature(armature, source, destructive=False):
                         values = [[psb_fcu[i].evaluate(f)
                                   for i in range(dp_dim)] for f in frames]
                         # Convert from pseudo-bone to armature-bone space
-                        convert_func(armature, amt_posebone, psb_bone, values)
+                        values = convert_func(armature, amt_posebone,
+                                              psb, values)
                         # Create fcurves for armature
                         amt_fcu = [amt_action.fcurves.new(amt_dp, i)
                                    for i in range(dp_dim)]

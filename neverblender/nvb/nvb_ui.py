@@ -129,6 +129,35 @@ class NVB_PT_dummy(bpy.types.Panel):
             box.prop(obj.nvb, 'reattachable')
 
 
+class NVB_PT_bone(bpy.types.Panel):
+    """Property panel for armature properties.
+
+    Tools for auto-generating armatures from a models skinmesh and copying
+    animation from a models meshes.
+    """
+
+    bl_idname = 'nvb.propertypanel.bone'
+    bl_label = 'Aurora Bone Properties'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'bone'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return context.bone
+
+    def draw(self, context):
+        """TODO: DOC."""
+        bone = context.bone
+        layout = self.layout
+        # Armature Helper
+        box = layout.box()
+        box.label(text='Armature Helper Settings')
+        row = box.row()
+        row.prop(bone.nvb, 'helper_amt_ctype', text='Conversion type')
+
+
 class NVB_PT_armature(bpy.types.Panel):
     """Property panel for armature properties.
 
@@ -608,25 +637,30 @@ class NVB_PT_utils(bpy.types.Panel):
         layout = self.layout
         obj = nvb_utils.findObjRootDummy(context.object)
         if obj:
-            # Minimap Helper
-            box = layout.box()
-            box.label(text='Minimap Helper')
-            box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
-            box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
-            box.operator('nvb.helper_minimap_setup',
-                         text='Render Minimap',
-                         icon='RENDER_STILL')
-            layout.separator()
             # Armature Helper
             box = layout.box()
             box.label(text='Armature Helper')
             row = box.row()
             row.label(text='Source: ')
             row.prop(obj.nvb, 'helper_amt_source', expand=True)
-            box.prop(obj.nvb, 'helper_amt_connect', text='Connect')
+            box.prop(obj.nvb, 'helper_amt_connect', text='Auto Connect')
             box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-            box.operator('nvb.helper_psb2amt', text='Generate Armature',
-                         icon='BONE_DATA')
+            box.prop(obj.nvb, 'helper_amt_restrot', text='Rotated Rest Pose')
+            box.operator('nvb.helper_psb2amt', icon='BONE_DATA')
+            layout.separator()
+            # Minimap Helper
+            box = layout.box()
+            box.label(text='Minimap Helper')
+            box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
+            box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
+            box.operator('nvb.helper_minimap_setup', text='Render Minimap',
+                         icon='RENDER_STILL')
+            layout.separator()
+            # Scale Helper
+            box = layout.box()
+            box.label(text='Scale Helper')
+            box.prop(obj.nvb, 'helper_scale_fac')
+            box.operator('nvb.helper_scale', icon='SORTSIZE')
             layout.separator()
             # Walkmesh & Dummy Helper
             box = layout.box()
@@ -634,7 +668,6 @@ class NVB_PT_utils(bpy.types.Panel):
             row = box.row()
             row.label(text='Type: ')
             row.prop(obj.nvb, 'helper_node_mdltype', expand=True)
-            box.operator('nvb.helper_node_setup',
-                         text='Generate Objects',
+            box.operator('nvb.helper_node_setup', text='Generate Objects',
                          icon='OOPS')
             layout.separator()
