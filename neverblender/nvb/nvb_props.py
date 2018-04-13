@@ -311,8 +311,8 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         description='Automatically connect bones when possible',
         default=True)
     helper_amt_restrot = bpy.props.BoolProperty(
-        name='Rotate Rest Pose',
-        description='Use object rotations as rest pose',
+        name='Rotated Rest Pose',
+        description='Use current rotations as rest pose',
         default=True)
     helper_amt_copyani = bpy.props.BoolProperty(
         name='Copy Animations',

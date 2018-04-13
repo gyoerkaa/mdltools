@@ -93,7 +93,6 @@ def findMdlRoot(obj=None, scene=None):
     matches = [m for m in bpy.data.objects if isMdlRoot(m)]
     if matches:
         return matches[0]
-
     return None
 
 
@@ -121,7 +120,6 @@ def findRootDummy(obj=None):
     matches = [m for m in bpy.data.objects if isMdlRoot(m)]
     if matches:
         return matches[0]
-
     return None
 
 
@@ -416,32 +414,28 @@ def eulerFilter(currEul, prevEul):
                 b += 2 * math.pi
         return b
 
-    if not prevEul:
-        # Nothing to compare to, return original value
+    if not prevEul:  # Nothing to compare to, return original value
         return currEul
-
+    # Original euler
     eul = currEul.copy()
     eul[0] = flipDiff(prevEul[0], eul[0])
     eul[1] = flipDiff(prevEul[1], eul[1])
     eul[2] = flipDiff(prevEul[2], eul[2])
-
-    # Flip current euler
+    # Flipped euler
     flipEul = flip(eul)
     flipEul[0] = flipDiff(prevEul[0], flipEul[0])
     flipEul[1] = flipDiff(prevEul[1], flipEul[1])
     flipEul[2] = flipDiff(prevEul[2], flipEul[2])
-
+    # Return the "better" = smoother euler
     currDist = distance(prevEul, eul)
     flipDist = distance(prevEul, flipEul)
-
     if flipDist < currDist:
         return flipEul
     else:
         return eul
 
 
-def setupMinimapRender(rootDummy,
-                       scene,
+def setupMinimapRender(rootDummy, scene,
                        lamp_color=(1.0, 1.0, 1.0),
                        alpha_mode='TRANSPARENT'):
     """TODO: DOC."""
@@ -503,7 +497,7 @@ def setupMinimapRender(rootDummy,
     scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
-def copyAnims2Armature(armature, source, destructive=False):
+def copyAnims2Armature(armature, source, ucr=False):
     """TODO: DOC."""
     def insert_kfp(fcu, kfp_frames, kfp_data, dp, dp_dim):
         # Add keyframes to fcurves
@@ -519,16 +513,21 @@ def copyAnims2Armature(armature, source, destructive=False):
                 p.interpolation = 'LINEAR'
         list(map(lambda c: c.update(), fcu))
 
-    def convert_loc(amt, amt_posebone, psb, kfvalues):
+    def convert_loc(amt, amt_posebone, psb, kfvalues, ucr=False):
         pinv = psb.matrix_parent_inverse
-        ploc = psb.location
-        locs = [[val[j] - ploc[j] for j in range(3)] for val in kfvalues]
+        if ucr:
+            crot = psb.matrix_local.inverted()
+            pinv = pinv * crot
+            locs = [[val[j] for j in range(3)] for val in kfvalues]
+        else:
+            ploc = psb.location
+            locs = [[val[j] - ploc[j] for j in range(3)] for val in kfvalues]
         mats = [pinv * mathutils.Matrix.Translation(l) for l in locs]
         mats = [amt.convert_space(amt_posebone, m,
                 'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
         return [list(m.to_translation()) for m in mats]
 
-    def convert_axan(amt, amt_posebone, psb, kfvalues):
+    def convert_axan(amt, amt_posebone, psb, kfvalues, ucr=False):
         pinv = psb.matrix_parent_inverse
         mats = [pinv * mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                 for v in kfvalues]
@@ -536,15 +535,18 @@ def copyAnims2Armature(armature, source, destructive=False):
                  'LOCAL_WITH_PARENT', 'LOCAL').to_quaternion() for m in mats]
         return [[q.angle, *q.axis] for q in quats]
 
-    def convert_quat(amt, amt_posebone, psb, kfvalues):
+    def convert_quat(amt, amt_posebone, psb, kfvalues, ucr=False):
         pinv = psb.matrix_parent_inverse
+        if ucr:
+            crot = psb.matrix_local.inverted()
+            pinv = pinv * crot
         mats = [pinv * mathutils.Quaternion(v).to_matrix().to_4x4()
                 for v in kfvalues]
         mats = [amt.convert_space(amt_posebone, m,
                 'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
         return [list(m.to_quaternion()) for m in mats]
 
-    def convert_eul(amt, amt_posebone, psb, kfvalues):
+    def convert_eul(amt, amt_posebone, psb, kfvalues, ucr=False):
         pinv = psb.matrix_parent_inverse
         mats = [pinv * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                 for v in kfvalues]
@@ -597,7 +599,7 @@ def copyAnims2Armature(armature, source, destructive=False):
                                   for i in range(dp_dim)] for f in frames]
                         # Convert from pseudo-bone to armature-bone space
                         values = convert_func(armature, amt_posebone,
-                                              psb, values)
+                                              psb, values, ucr)
                         # Create fcurves for armature
                         amt_fcu = [amt_action.fcurves.new(amt_dp, i)
                                    for i in range(dp_dim)]
@@ -605,7 +607,7 @@ def copyAnims2Armature(armature, source, destructive=False):
                         insert_kfp(amt_fcu, frames, values, dp, dp_dim)
 
 
-def copyAnims2Mdl(armature, psb_list, destructive=False):
+def copyAnims2Mdl(armature, psb_list):
     """TODO: DOC."""
     def insert_kfp(fcu, kfp_frames, kfp_data, dp, dp_dim):
         # Add keyframes to fcurves

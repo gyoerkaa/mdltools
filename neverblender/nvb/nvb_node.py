@@ -69,11 +69,10 @@ class Mtr(object):
     def loadAscii(self, asciiData):
         """TODO: DOC."""
         asciiLines = [l.strip().split() for l in asciiData.splitlines()]
-        # list(map(self.loadAsciiLine, asciiLines))
         iterable = iter(asciiLines)
-        lline = True
-        while lline is not None:
-            lline = self.loadAsciiLine(iterable)
+        aline = True
+        while aline is not None:
+            aline = self.loadAsciiLine(iterable)
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
@@ -574,11 +573,10 @@ class Node(object):
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         self.nodeidx = nodeidx
-        # list(map(self.loadAsciiLine, asciiLines))
         iterable = iter(asciiLines)
-        lline = True
-        while lline is not None:
-            lline = self.loadAsciiLine(iterable)
+        aline = True
+        while aline is not None:
+            aline = self.loadAsciiLine(iterable)
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -1798,13 +1796,13 @@ class Light(Node):
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         self.nodeidx = nodeidx
-        #  Need to do two runs. First one is to find the number of flares
-        lline = self.loadNumFlareValues(asciiLines)
-        # Second run to get the values
+        #  Need to do two passes. First one is to find the number of flares
+        aline = self.loadNumFlareValues(asciiLines)
+        # Second pass to get the values
         iterable = iter(asciiLines)
-        lline = True
-        while lline is not None:
-            lline = self.loadAsciiLine(iterable)
+        aline = True
+        while aline is not None:
+            aline = self.loadAsciiLine(iterable)
 
     def createLamp(self, name):
         """TODO: Doc."""

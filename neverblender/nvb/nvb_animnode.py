@@ -7,7 +7,6 @@ import bpy
 
 from . import nvb_def
 from . import nvb_utils
-from . import nvb_parse
 from . import nvb_node
 
 
@@ -17,7 +16,7 @@ class Animnode():
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
         self.nodeidx = -1
-
+        self.nodetype = nvb_def.Nodetype.DUMMY
         self.name = name
         self.parent = nvb_def.null
 
@@ -37,7 +36,8 @@ class Animnode():
         self.radius = None
         self.radiuskey = []
         # Emitters ... incompatible. Import as text
-        self.rawdata = []
+        self.unknownvalue = dict()
+        self.unknownkey = dict()
 
         # Animesh
         self.sampleperiod = 0.0
@@ -53,130 +53,120 @@ class Animnode():
         """Return false if the node is empty, i.e. no anims attached."""
         return self.objdata or self.matdata or self.rawdata
 
-    def findEnd(self, asciiBlock):
-        """Find the end of a key list.
-
-        We don't know when a list of keys of keys will end. We'll have to
-        search for the first non-numeric value
-        """
-        l_isNumber = nvb_utils.isNumber
-        return next((i for i, v in enumerate(asciiBlock)
-                     if not l_isNumber(v[0])), -1)
-
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
-        self.animtverts = []
-        self.animverts = []
+        def findEnd(asciiLines):
+            """Find the end of a key list.
 
-        l_float = float
-        l_int = int
+            We don't know when a list of keys of keys will end. We'll have to
+            search for the first non-numeric value
+            """
+            l_isNumber = nvb_utils.isNumber
+            return next((i for i, v in enumerate(asciiLines)
+                         if not l_isNumber(v[0])), -1)
+
         l_isNumber = nvb_utils.isNumber
         self.nodeidx = nodeidx
-        nodetype = 'dummy'
         for i, line in enumerate(asciiLines):
             try:
                 label = line[0].lower()
             except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
-            if not l_isNumber(label):
-                if label == 'node':
-                    nodetype = line[1].lower()
-                    self.name = nvb_utils.getAuroraString(line[2])
-                elif label == 'endnode':
-                    return
-                elif label == 'parent':
-                    self.parentName = nvb_utils.getAuroraString(line[1])
-                elif label == 'position':
-                    self.position = [float(v) for v in line[1:4]]
-                    self.objdata = True
-                elif label == 'orientation':
-                    self.orientation = [float(v) for v in line[1:5]]
-                    self.objdata = True
-                elif label == 'scale':
-                    self.scale = l_float(line[1])
-                    self.objdata = True
-                elif (label == 'selfillumcolor' or
-                      label == 'setfillumcolor'):
-                    self.selfillumcolor = [float(v) for v in line[1:4]]
-                    self.objdata = True
-                elif label == 'color':
-                    self.color = [float(v) for v in line[1:4]]
-                    self.objdata = True
-                elif label == 'radius':
-                    self.radius = l_float(line[1])
-                    self.objdata = True
-                elif label == 'positionkey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
-                                 self.positionkey)
-                    self.objdata = True
-                elif label == 'orientationkey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f5(asciiLines[i+1:i+numkeys+1],
-                                 self.orientationkey)
-                    self.objdata = True
-                elif label == 'scalekey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
-                                 self.scalekey)
-                    self.objdata = True
-                elif label == 'alpha':
-                    self.alpha = l_float(line[1])
-                    self.matdata = True
-                elif label == 'alphakey':
-                    # If this is an emitter, alphakeys are incompatible. We'll
-                    # handle them later as plain text
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    if nodetype == 'emitter':
-                        nvb_parse.txt(asciiLines[i:i+numkeys+1],
-                                      self.rawdata)
-                    else:
-                        nvb_parse.f2(asciiLines[i+1:i+numkeys+1],
-                                     self.alphakey)
-                    self.matdata = True
-                elif (label == 'selfillumcolorkey' or
-                      label == 'setfillumcolorkey'):
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1],
-                                 self.selfillumcolorkey)
-                    self.objdata = True
-                # Animeshes
-                elif label == 'sampleperiod':
-                    self.sampleperiod = l_float(line[1])
-                elif label == 'animverts':
-                    if not self.animverts:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.animverts)
-                        self.shapedata = True
-                elif label == 'animtverts':
-                    if not self.animtverts:
-                        numVals = l_int(line[1])
-                        nvb_parse.f3(asciiLines[i+1:i+numVals+1],
-                                     self.animtverts)
-                        self.uvdata = True
-                elif label == 'colorkey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f4(asciiLines[i+1:i+numkeys+1], self.colorkey)
-                    self.objdata = True
-                elif label == 'radiuskey':
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    nvb_parse.f2(asciiLines[i+1:i+numkeys+1], self.radiuskey)
-                    self.objdata = True
-                # Some unknown label.
-                # Probably keys for emitters, incompatible, save as plain text
-                elif (nodetype == 'emitter') and (label[0] != '#'):
-                    numkeys = self.findEnd(asciiLines[i+1:])
-                    if numkeys > 1:
-                        # Set of unknown keys
-                        self.rawdata.append([label,
-                                            asciiLines[i+1:i+numkeys+1]])
-                    elif numkeys == 1:
-                        # Single unknown key
-                        self.rawdata.append([label, [asciiLines[i+1]]])
-                    else:
-                        # Single unknown value
-                        self.rawdata.append([' '.join(line), []])
+            if l_isNumber(label):
+                continue
+            if label == 'node':
+                self.nodetype = line[1].lower()
+                self.name = nvb_utils.getAuroraString(line[2])
+            elif label == 'endnode':
+                return
+            elif label == 'parent':
+                self.parentName = nvb_utils.getAuroraString(line[1])
+            elif label == 'position':
+                self.position = [float(v) for v in line[1:4]]
+                self.objdata = True
+            elif label == 'orientation':
+                self.orientation = [float(v) for v in line[1:5]]
+                self.objdata = True
+            elif label == 'scale':
+                self.scale = float(line[1])
+                self.objdata = True
+            elif label == 'alpha':
+                self.alpha = float(line[1])
+                self.matdata = True
+            elif (label == 'selfillumcolor' or
+                  label == 'setfillumcolor'):
+                self.selfillumcolor = [float(v) for v in line[1:4]]
+                self.objdata = True
+            elif label == 'color':
+                self.color = [float(v) for v in line[1:4]]
+                self.objdata = True
+            elif label == 'radius':
+                self.radius = float(line[1])
+                self.objdata = True
+            elif label == 'positionkey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.positionkey = [list(map(float, v[:4]))
+                                    for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            elif label == 'orientationkey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.orientationkey = [list(map(float, v[:5]))
+                                       for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            elif label == 'scalekey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.scalekey = [list(map(float, v[:2]))
+                                 for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            elif label == 'alphakey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.alphakey = [list(map(float, v[:2]))
+                                 for v in asciiLines[i+1:i+keycnt+1]]
+                self.matdata = True
+            elif (label == 'selfillumcolorkey' or
+                  label == 'setfillumcolorkey'):
+                keycnt = findEnd(asciiLines[i+1:])
+                self.selfillumcolorkey = [list(map(float, v[:4]))
+                                          for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            # Animeshes
+            elif label == 'sampleperiod':
+                self.sampleperiod = float(line[1])
+            elif label == 'animverts':
+                if not self.animverts:
+                    valcnt = int(line[1])
+                    self.animverts = [list(map(float, v))
+                                      for v in asciiLines[i+1:i+valcnt+1]]
+                    self.shapedata = True
+            elif label == 'animtverts':
+                if not self.animtverts:
+                    valcnt = int(line[1])
+                    self.animtverts = [list(map(float, v))
+                                       for v in asciiLines[i+1:i+valcnt+1]]
+                    self.uvdata = True
+            elif label == 'colorkey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.colorkey = [list(map(float, v[:4]))
+                                 for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            elif label == 'radiuskey':
+                keycnt = findEnd(asciiLines[i+1:])
+                self.radiuskey = [list(map(float, v[:2]))
+                                  for v in asciiLines[i+1:i+keycnt+1]]
+                self.objdata = True
+            # Unknown or unsupported label  for emitters, import as text
+            elif self.nodetype == nvb_def.Nodetype.EMITTER:
+                if not label.startswith('#'):
+                    if label.endswith('key') and \
+                       label not in self.unknownkey:
+                        # Unknown or unsupported keyed animation
+                        keycnt = findEnd(asciiLines[i+1:])
+                        self.unknownkey[label] = \
+                            [list(map(float, v))
+                             for v in asciiLines[i+1:i+keycnt+1]]
+                    elif label not in self.unknownvalue:
+                        # Unknown or unsupported single value
+                        self.unknownval[label] = line[1:]
 
     @staticmethod
     def getCurve(action, data_path, index=0):
@@ -206,12 +196,10 @@ class Animnode():
         # If there is a texture, use texture alpha for animations
         if mat.active_texture:
             # Material has a texture
-            # data_path = material.texture_slots[x].alpha_factor
             tslotIdx = mat.active_texture_index
             dp = 'texture_slots[' + str(tslotIdx) + '].alpha_factor'
         else:
-            # No texture.
-            # data_path = material.alpha
+            # No texture
             dp = 'alpha'
         curve = Animnode.getCurve(action, dp)
         if self.alphakey:
@@ -387,10 +375,10 @@ class Animnode():
                     values.append(v)
             create_values(frames, values, action, dp, dp_dim)
 
-    def createDataRaw(self, obj, anim, options):
+    def createDataUnkown(self, obj, anim, options):
         """Add incompatible animations (usually emitters) as plain text."""
-        # Get or create the text object
         fps = options.scene.render.fps
+        # Get or create the text object
         txt = None
         if anim.rawascii and (anim.rawascii in bpy.data.texts):
             txt = bpy.data.texts[anim.rawascii]
@@ -399,23 +387,17 @@ class Animnode():
                                      '.anim.' + anim.name)
             txt.use_fake_user = True
             anim.rawascii = txt.name
-        # Convert nwn time to frames and write to text object
         txt.write('node ' + nvb_utils.getNodeType(obj) +
                   ' ' + self.name + '\n')
-        for label, keyList in self.rawdata:
-            if keyList:
-                # List of unknown keys
-                txt.write('  ' + label + ' ' + str(len(keyList)) + '\n')
-                for key in keyList:
-                    frame = int(fps * float(key[0]))
-                    values = [float(v) for v in key[1:]]
-                    formatStr = '    {: >4d}' + \
-                                ' '.join(['{: > 8.5f}']*len(values)) + '\n'
-                    s = formatStr.format(frame, *values)
-                    txt.write(s)
-            else:
-                # Single unknown value
-                txt.write('  ' + ' '.join(label) + '\n')
+        for label, value in self.unknownvalue.items():
+            txt.write('  ' + label + ' ' + ' '.join(value) + '\n')
+        for label, keylist in self.unknownkey.items():
+            txt.write('  ' + label + ' ' + str(len(keylist)) + '\n')
+            for key in keylist:
+                frm = int(fps * float(key[0]))
+                val = [float(v) for v in key[1:]]
+                fstr = '    {: >4d}' + ' '.join(['{: > 8.5f}']*len(val)) + '\n'
+                txt.write(fstr.format(frm, *val))
         txt.write('endnode\n')
 
     def createDataShape(self, obj, anim, animlength, options):
@@ -586,9 +568,9 @@ class Animnode():
             self.createDataUV(obj, anim, animlength, options)
         if self.shapedata:
             self.createDataShape(obj, anim, animlength, options)
-        if self.rawdata and \
+        if (self.unknownkey or self.unknownvalue) and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
-            self.createDataRaw(obj, anim, options)
+            self.createDataUnkown(obj, anim, options)
 
     @staticmethod
     def getKeysMaterial(mat, anim, key_data, options):

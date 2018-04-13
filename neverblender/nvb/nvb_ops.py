@@ -3,6 +3,7 @@
 import math
 import copy
 import os
+import re
 
 import bpy
 import bpy_extras
@@ -106,10 +107,10 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     bl_idname = 'nvb.helper_psb2amt'
     bl_label = 'Generate Armature'
 
-    # Dummys with these names are ignores
-    pb_dummy_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
-                       'ground', 'grnd', 'handconjure', 'headconjure',
-                       'lhand', 'rhand', 'lforearm']
+    # Dummys with these names are ignored
+    psb_ignore = ['hand', 'head', 'head_hit', 'hhit', 'impact', 'impc',
+                  'ground', 'grnd', 'handconjure', 'headconjure',
+                  'lhand', 'rhand', 'lforearm', 'rforearm']
 
     def can_connect(self, obj):
         """Determine whether the bone belonging to this object can be
@@ -126,68 +127,72 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         """TODO: doc."""
         oname = obj.name
         # Some objects like impact nodes can never be pseudo bones
-        if (obj.type == 'EMPTY' and ((oname in self.pb_dummy_ignore) or
-           (obj.nvb.emptytype != nvb_def.Emptytype.DUMMY))):
-            return False
+        if obj.type == 'EMPTY':
+            # Match objects ending with '.XYZ' numbers as well
+            matches = [re.fullmatch(s+'(\.\d+)?', oname)
+                       for s in self.psb_ignore]
+            if matches.count(None) < len(matches):
+                return False
+            if obj.nvb.emptytype != nvb_def.Emptytype.DUMMY:
+                return False
         # Ignore skinmeshes and walkmeshes
         if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
            (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
             return False
         return True
 
-    def generate_bones(self, amt, obj, pbone=None, pmat=mathutils.Matrix()):
+    def generate_bones_cr(self, amt, obj, parent_bone=None):
         """TODO: doc."""
         if not self.is_pbone(obj):
             return
-        amt_bone = amt.edit_bones.new(obj.name)
-        amt_bone.roll = 0
-        # Set head
-        mat = pmat * obj.matrix_parent_inverse * obj.matrix_basis
-        bhead = mat.translation
-        if pbone:
-            amt_bone.parent = pbone
-            # Merge head with parent tail if distance is short enough
-            if (pbone.tail - bhead).length <= 0.01:
-                bhead = pbone.tail
-                if obj.nvb.helper_amt_connect and self.can_connect(obj):
-                    amt_bone.use_connect = True
-        amt_bone.head = bhead
-        # Set tail
-        btail = mathutils.Vector()
+        # Calculate head
+        obj_mat = obj.matrix_parent_inverse * obj.matrix_basis
+        if obj.parent:
+            obj_mat = obj.parent.matrix_world * obj_mat
+        bhead = obj_mat.translation
+        # Calculate tail
         valid_children = [c for c in obj.children if self.is_pbone(c)]
-        if len(valid_children) >= 2:
-            # Multiple children: Calculate average location
-            locsum = mathutils.Vector()
-            for c in valid_children:
-                locsum = locsum + bhead + c.matrix_local.translation
-            btail = locsum/len(valid_children)
-        elif len(valid_children) == 1:
-            btail = bhead + valid_children[0].matrix_local.translation
+        if valid_children:
+            # Multiple children: Calculate centroid
+            btail = mathutils.Vector()
+            for child in valid_children:
+                child_mat = obj.matrix_world * \
+                    child.matrix_parent_inverse * child.matrix_basis
+                btail += child_mat.translation
+            btail = btail/len(valid_children)
         else:
             # No children: Generate location from object bounding box
             if obj.type == 'MESH':
                 center = bhead + \
                          (sum((mathutils.Vector(p) for p in obj.bound_box),
                           mathutils.Vector()) / 8)
-                btail = center + center - amt_bone.head
+                btail = center + center - bhead
             elif obj.type == 'EMPTY':
-                if pbone:
-                    btail = pbone.tail - pbone.head + bhead
-                else:
-                    btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+                btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+        # Create Bone
+        amt_bone = amt.edit_bones.new(obj.name)
+        amt_bone.roll = 0
         amt_bone.tail = btail
-        for c in obj.children:
-            mat = mathutils.Matrix.Translation(bhead)
-            self.generate_bones(amt, c, amt_bone, mat)
+        amt_bone.head = bhead
+        if parent_bone:
+            amt_bone.parent = parent_bone
+            # Merge head with parent tail if distance is short enough
+            if (parent_bone.tail - bhead).length <= 0.01:
+                amt_bone.head = parent_bone.tail
+                if obj.nvb.helper_amt_connect and self.can_connect(obj):
+                    amt_bone.use_connect = True
+        # Generate children
+        for child in valid_children:
+            self.generate_bones_cr(amt, child, amt_bone)
 
-    def generate_bonesOLD(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
+    def generate_bones_zr(self, amt, obj, pbone=None, ploc=mathutils.Vector()):
         """TODO: doc."""
         if not self.is_pbone(obj):
             return
-        bhead = obj.matrix_local.translation + ploc
         amt_bone = amt.edit_bones.new(obj.name)
         amt_bone.roll = 0
         # Set head
+        bhead = obj.matrix_local.translation + ploc
         if pbone:
             amt_bone.parent = pbone
             # Merge head with parent tail if distance is short enough
@@ -199,14 +204,12 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         # Set tail
         btail = mathutils.Vector()
         valid_children = [c for c in obj.children if self.is_pbone(c)]
-        if len(valid_children) >= 2:
+        if valid_children:
             # Multiple children: Calculate average location
-            locsum = mathutils.Vector()
+            btail = mathutils.Vector()
             for c in valid_children:
-                locsum = locsum + bhead + c.matrix_local.translation
-            btail = locsum/len(valid_children)
-        elif len(valid_children) == 1:
-            btail = bhead + valid_children[0].matrix_local.translation
+                btail = btail + bhead + c.matrix_local.translation
+            btail = btail/len(valid_children)
         else:
             # No children: Generate location from object bounding box
             if obj.type == 'MESH':
@@ -215,13 +218,10 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                           mathutils.Vector()) / 8)
                 btail = center + center - amt_bone.head
             elif obj.type == 'EMPTY':
-                if pbone:
-                    btail = pbone.tail - pbone.head + bhead
-                else:
-                    btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
+                btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])
         amt_bone.tail = btail
         for c in obj.children:
-            self.generate_bonesOLD(amt, c, amt_bone, bhead)
+            self.generate_bones_zr(amt, c, amt_bone, bhead)
 
     @classmethod
     def poll(self, context):
@@ -243,12 +243,17 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         armature.name = aur_root.name + '.armature'
         bpy.ops.object.mode_set(mode='EDIT')
         # Create the bones
-        for c in psb_root.children:
-            self.generate_bones(armature.data, c)
+        if aur_root.nvb.helper_amt_restrot:
+            for c in psb_root.children:
+                self.generate_bones_cr(armature.data, c)
+        else:
+            for c in psb_root.children:
+                self.generate_bones_zr(armature.data, c)
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
         if aur_root.nvb.helper_amt_copyani:
-            nvb_utils.copyAnims2Armature(armature, psb_root)
+            nvb_utils.copyAnims2Armature(armature, psb_root,
+                                         aur_root.nvb.helper_amt_restrot)
         # Update scene and objects
         bpy.ops.object.mode_set(mode='OBJECT')
         context.scene.update()
@@ -1840,8 +1845,8 @@ class NVB_OT_helper_scale(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        obj = context.object
-        aur_root = nvb_utils.findRootDummy(obj)
+        # obj = context.object
+        # aur_root = nvb_utils.findRootDummy(obj)
 
         # return {'CANCELLED'}
         return {'FINISHED'}
