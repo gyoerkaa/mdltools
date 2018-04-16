@@ -20,7 +20,7 @@ class Animnode():
         self.name = name
         self.parent = nvb_def.null
 
-        # For animations using a single value as key
+        # All objects
         self.position = None
         self.positionkey = []
         self.orientation = None
@@ -31,6 +31,7 @@ class Animnode():
         self.alphakey = []
         self.selfillumcolor = None
         self.selfillumcolorkey = []
+        # Lamps
         self.color = None
         self.colorkey = []
         self.radius = None

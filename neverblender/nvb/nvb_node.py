@@ -121,7 +121,6 @@ class Mtr(object):
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
                     self.textures[tid] = Mtr.loadAsciiTexName(aline[1])
-
         return aline
 
     def generateAscii(self, material, options):
