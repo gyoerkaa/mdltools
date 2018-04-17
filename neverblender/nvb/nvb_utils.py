@@ -278,7 +278,7 @@ def toggleAnimFocus(scene, rootDummy):
     anim = animList[animIdx]
     if (scene.frame_start == anim.frameStart) and \
        (scene.frame_end == anim.frameEnd):
-        # Set timeline to all current animation
+        # Set timeline to include all current
         scene.frame_start = 1
         lastFrame = 1
         for anim in animList:
@@ -495,97 +495,6 @@ def setupMinimapRender(rootDummy, scene,
     scene.render.resolution_percentage = 100
     scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
-
-
-def transferAnims(armature, psb, amt_bone_name, cmat):
-    """TODO: DOC."""
-    def get_curve(action, data_path, index=0):
-        """TODO: DOC."""
-        fc = action.fcurves.find(data_path, index)
-        if not fc:
-            fc = action.fcurves.new(data_path=data_path, index=index)
-        return fc
-
-    def insert_kfp(fcu, kfp_frames, kfp_data, dp, dp_dim):
-        # Add keyframes to fcurves
-        kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
-        list(map(lambda x: x.add(len(kfp_data)), kfp))
-        # Set values for all keyframe points
-        for i in range(len(kfp_data)):
-            frm = kfp_frames[i]
-            val = kfp_data[i]
-            for j in range(dp_dim):
-                p = kfp[j][i]
-                p.co = frm, val[j]
-                p.interpolation = 'LINEAR'
-        list(map(lambda c: c.update(), fcu))
-
-    def convert_loc(amt, amt_posebone, kfvalues, cmat):
-        ploc = psb.location
-        locs = [[val[j] - ploc[j] for j in range(3)] for val in kfvalues]
-        mats = [cmat * mathutils.Matrix.Translation(l) for l in locs]
-        mats = [amt.convert_space(amt_posebone, m,
-                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
-        return [list(m.to_translation()) for m in mats]
-
-    def convert_axan(amt, amt_posebone, kfvalues, cmat):
-        mats = [cmat * mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
-                for v in kfvalues]
-        quats = [amt.convert_space(amt_posebone, m,
-                 'LOCAL_WITH_PARENT', 'LOCAL').to_quaternion() for m in mats]
-        return [[q.angle, *q.axis] for q in quats]
-
-    def convert_quat(amt, amt_posebone, kfvalues, cmat):
-        mats = [cmat * mathutils.Quaternion(v).to_matrix().to_4x4()
-                for v in kfvalues]
-        mats = [amt.convert_space(amt_posebone, m,
-                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
-        return [list(m.to_quaternion()) for m in mats]
-
-    def convert_eul(amt, amt_posebone, kfvalues, cmat):
-        mats = [cmat * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
-                for v in kfvalues]
-        mats = [amt.convert_space(amt_posebone, m,
-                'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
-        euls = []
-        e = amt_posebone.rotation_euler
-        for m in mats:
-            e = m.to_euler('XYZ', e)
-            euls.append(e)
-        return euls
-
-    amt_action = armature.animation_data.action
-    amt_posebone = armature.pose.bones[amt_bone_name]
-    # Check wether there is an pseudo bone object with the same
-    # name as the bone
-    amt_posebone.rotation_mode = psb.rotation_mode
-    # Gather rotation and location keyframe points
-    # Their coordinates need to be adjusted to use them with bones
-    if psb.animation_data and psb.animation_data.action:
-        source_fcu = psb.animation_data.action.fcurves
-        # Copy rotation keyframes
-        dp_list = [('rotation_axis_angle', 4, convert_axan),
-                   ('rotation_quaternion', 4, convert_quat),
-                   ('rotation_euler', 3, convert_eul),
-                   ('location', 3, convert_loc)]
-        for dp, dp_dim, convert_func in dp_list:
-            psb_fcu = [source_fcu.find(dp, i) for i in range(dp_dim)]
-            if psb_fcu.count(None) < 1:
-                amt_dp = 'pose.bones["' + amt_bone_name + '"].' + dp
-                # Get keyed frames
-                frames = list(set().union(
-                    *[[k.co[0] for k in psb_fcu[i].keyframe_points]
-                      for i in range(dp_dim)]))
-                frames.sort()
-                values = [[psb_fcu[i].evaluate(f)
-                          for i in range(dp_dim)] for f in frames]
-                # Convert from pseudo-bone to armature-bone space
-                values = convert_func(armature, amt_posebone, values, cmat)
-                # Create fcurves for armature
-                amt_fcu = [get_curve(amt_action, amt_dp, i)
-                           for i in range(dp_dim)]
-                # Add keyframes to fcurves
-                insert_kfp(amt_fcu, frames, values, dp, dp_dim)
 
 
 def copyAnims2Armature(armature, source):

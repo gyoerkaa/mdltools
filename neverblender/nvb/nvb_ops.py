@@ -152,10 +152,10 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         """TODO: doc."""
         def convert_loc(obj, pmat, rotated_restpose=False):
             mat = obj.matrix_parent_inverse * obj.matrix_basis
+            dc_pm = pmat.decompose()
             if rotated_restpose:
-                mat = pmat * mat
-            else:
-                mat = mathutils.Matrix.Translation(pmat.translation) * mat
+                mat = dc_pm[1].to_matrix().to_4x4() * mat
+            mat = mathutils.Matrix.Translation(dc_pm[0]) * mat
             return mat
         # Calculate head (relative to parent head)
         obj_mat = convert_loc(obj, parent_mat, self.rotated_restpose)
@@ -184,12 +184,14 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                 amt_bone.head = amt_bone_parent.tail
                 amt_bone.use_connect = self.can_connect(obj)
         amt_bone.tail = btail
-        # Save for animation transfer
-        cmat = obj.matrix_parent_inverse * \
-            mathutils.Matrix.Translation(obj.matrix_local.translation) \
-            .inverted()
+        # Save values for animation transfer
+        dc_ml = obj.matrix_local.decompose()
+        dc_pm = parent_mat.decompose()
+        cmat = obj.matrix_parent_inverse
+        cmat = mathutils.Matrix.Translation(dc_ml[0]).inverted() * cmat
         if self.rotated_restpose:
-            cmat = cmat
+            # cmat = dc_pm[1].to_matrix().to_4x4().inverted() * cmat
+            cmat = dc_ml[1].to_matrix().to_4x4().inverted() * cmat
         self.generated.append([obj, amt_bone.name, cmat.copy()])
         # Create children
         for c in valid_children:
@@ -269,8 +271,8 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
 
         def convert_loc(amt, amt_posebone, kfvalues, cmat):
             mats = [cmat * mathutils.Matrix.Translation(v) for v in kfvalues]
-            mats = [amt.convert_space(amt_posebone, m,
-                    'LOCAL_WITH_PARENT', 'LOCAL') for m in mats]
+            mats = [amt.convert_space(amt_posebone, m, 'LOCAL_WITH_PARENT',
+                    'LOCAL') for m in mats]
             return [list(m.to_translation()) for m in mats]
 
         def convert_axan(amt, amt_posebone, kfvalues, cmat):
@@ -293,6 +295,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                     for v in kfvalues]
             mats = [amt.convert_space(amt_posebone, m, 'LOCAL_WITH_PARENT',
                     'LOCAL') for m in mats]
+            # Euler Filter
             euls = []
             e = amt_posebone.rotation_euler
             for m in mats:
@@ -336,8 +339,8 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no root was found."""
-        aur_root = nvb_utils.findObjRootDummy(context.object)
-        return (aur_root is not None)
+        aurora_root = nvb_utils.findObjRootDummy(context.object)
+        return (aurora_root is not None)
 
     def execute(self, context):
         """Create the armature"""
