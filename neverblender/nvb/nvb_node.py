@@ -166,8 +166,7 @@ class NodeMaterial(object):
         self.diffuse_alpha = -1.0  # EE stores alpha as 4th diffuse value
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
-        self.bitmap = ''  # 'null' will be convertd to ''
-        self.textures = ['']  # texture[0] overwrites bitmap
+        self.textures = ['']
         self.renderhints = set()
         self.materialname = ''  # Name of external mtr file
         self.mtrMat = None
@@ -221,7 +220,6 @@ class NodeMaterial(object):
         d = d and NodeMaterial.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
         d = d and NodeMaterial.colorisclose(self.specular, (0.0, 0.0, 0.0))
         d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
-        d = d and self.bitmap == ''
         d = d and self.textures.count('') == len(self.textures)
         d = d and self.materialname == ''
         return d
@@ -248,7 +246,8 @@ class NodeMaterial(object):
         elif (label == 'renderhint'):
             self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
         elif (label == 'bitmap'):
-            self.bitmap = nvb_utils.getAuroraString(aline[1])
+            if not self.textures[0]:
+                self.textures[0] = nvb_utils.getAuroraString(aline[1])
         elif (label.startswith('texture')):
             tid = 0
             # 'texture' has to be followed by a number
@@ -263,34 +262,45 @@ class NodeMaterial(object):
 
     def loadMTR(self, options):
         """Loads contents of a mtr file into the this material."""
-        mtrfilename = self.materialname
-        if not mtrfilename:
-            return
         self.mtrMat = None
-        if mtrfilename in options.mtrdb:
-            # MTR was already loaded before
-            self.mtrMat = options.mtrdb[mtrfilename]
-        else:
-            # Load MTR from file
-            mdlPath, _ = os.path.split(options.filepath)
-            mtrFilename = self.materialname + '.mtr'
-            mtrPath = os.path.join(mdlPath, mtrFilename)
-            self.mtrMat = Mtr(self.materialname, mtrPath)
-            self.mtrMat.loadFile()
-            options.mtrdb[self.materialname] = self.mtrMat
+        if self.materialname:  # "materialname" takes precedence
+            # Always load, create empty material if file not present
+            if self.materialname in options.mtrdb:  # already loaded
+                self.mtrMat = options.mtrdb[self.materialname]
+            else:
+                mtr_filename = self.materialname + '.mtr'
+                mdl_dir, _ = os.path.split(options.filepath)
+                mtr_path = os.path.join(mdl_dir, mtr_filename)
+                self.mtrMat = Mtr(self.materialname, mtr_path)
+                self.mtrMat.loadFile()
+                options.mtrdb[self.materialname] = self.mtrMat
+        elif self.textures[0]:
+            # Load only if an mtr file was found
+            mtr_filename = self.textures[0] + '.mtr'
+            mdl_dir, _ = os.path.split(options.filepath)
+            mtr_path = os.path.join(mdl_dir, mtr_filename)
+            if os.path.isfile(mtr_path):
+                if self.materialname in options.mtrdb:  # already loaded
+                    self.mtrMat = options.mtrdb[self.materialname]
+                else:
+                    self.mtrMat = Mtr(self.materialname, mtr_path)
+                    self.mtrMat.loadFile()
+                    options.mtrdb[self.materialname] = self.mtrMat
         # Load values into self
         if self.mtrMat and self.mtrMat.isvalid():  # Abort if no file was read
+            # Merge renderhints
+            self.renderhints = self.renderhints.union(self.mtrMat.renderhints)
             # If there are any textures in the mtr load them into self
             if self.mtrMat.textures:
                 # TODO: Decide between two options
-                # A. Selecetive loading, override only present texture
+                # A. Selective loading, override only present texture
                 l1 = len(self.textures)
                 l2 = len(self.mtrMat.textures)
                 if l1 < l2:
                     self.textures.extend(['' for _ in range(l2-l1+1)])
-                for tidx, texname in enumerate(self.mtrMat.textures):
-                    if texname:
-                        self.textures[tidx] = texname
+                for tidx, mtr_txname in enumerate(self.mtrMat.textures):
+                    if mtr_txname:
+                        self.textures[tidx] = mtr_txname
                 # B. Override all if only a single texture is present
                 # self.textures = mtrMat.textures
 
@@ -367,22 +377,17 @@ class NodeMaterial(object):
         # If this material has no texture, no alpha and default values
         if self.isdefault():
             return None
-        # texture0 == bitmap, texture0 takes precedence
-        texlist = self.textures
-        if len(texlist) > 0:
-            if texlist[0] == '':
-                texlist[0] = self.bitmap
-        else:
-            if self.bitmap:
-                texlist.append(self.bitmap)
         # Look for similar materials to avoid duplicates
         material = None
         if options.materialAutoMerge and not makeunique:
             material = NodeMaterial.findMaterial(
-                texlist, self.materialname,
+                self.textures, self.materialname,
                 self.diffuse, self.specular, self.alpha)
         if not material:
-            matname = texlist[0].lower() if texlist[0] else self.name
+            if self.textures[0]:
+                matname = self.textures[0].lower()
+            else:
+                matname = self.name
             material = bpy.data.materials.new(matname)
             material.use_transparency = True
             material.diffuse_color = self.diffuse
@@ -391,7 +396,7 @@ class NodeMaterial(object):
             material.specular_intensity = 1.0
             material.nvb.ambient_color = self.ambient
             # Load all textures
-            for idx, mdltex in enumerate(texlist):
+            for idx, mdltex in enumerate(self.textures):
                 if mdltex:  # might be ''
                     tslot = material.texture_slots.create(idx)
                     tslot.texture = NodeMaterial.createTexture(mdltex, mdltex,
