@@ -263,12 +263,13 @@ class NodeMaterial(object):
 
     def loadMTR(self, options):
         """Loads contents of a mtr file into the this material."""
-        if not self.materialname:
+        mtrfilename = self.materialname
+        if not mtrfilename:
             return
         self.mtrMat = None
-        if self.materialname in options.mtrdb:
+        if mtrfilename in options.mtrdb:
             # MTR was already loaded before
-            self.mtrMat = options.mtrdb[self.materialname]
+            self.mtrMat = options.mtrdb[mtrfilename]
         else:
             # Load MTR from file
             mdlPath, _ = os.path.split(options.filepath)
@@ -361,7 +362,7 @@ class NodeMaterial(object):
     def create(self, options, makeunique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values intro this material
-        if options.materialLoadMTR and self.materialname != '':
+        if options.materialLoadMTR:
             self.loadMTR(options)
         # If this material has no texture, no alpha and default values
         if self.isdefault():

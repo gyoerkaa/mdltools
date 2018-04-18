@@ -112,7 +112,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                   'ground', 'grnd', 'handconjure', 'headconjure',
                   'lhand', 'rhand', 'lforearm', 'rforearm']
     # Saved settings from aurora root
-    rotated_restpose = False
+    use_restpose = False
     copy_animations = True
     auto_connect = False
     # Generated bones
@@ -132,6 +132,11 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     def is_pbone(self, obj):
         """TODO: doc."""
         oname = obj.name
+        # Ignore skinmeshes and walkmeshes
+        if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
+           (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
+           (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
+            return False
         # Some objects like impact nodes can never be pseudo bones
         if obj.type == 'EMPTY':
             # Match objects ending with '.XYZ' numbers as well
@@ -141,10 +146,6 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                 return False
             if obj.nvb.emptytype != nvb_def.Emptytype.DUMMY:
                 return False
-        # Ignore skinmeshes and walkmeshes
-        if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
-           (obj.nvb.meshtype == nvb_def.Meshtype.AABB):
-            return False
         return True
 
     def generate_bones(self, amt, obj, amt_bone_parent=None,
@@ -158,14 +159,14 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             mat = mathutils.Matrix.Translation(dc_pm[0]) * mat
             return mat
         # Calculate head (relative to parent head)
-        obj_mat = convert_loc(obj, parent_mat, self.rotated_restpose)
+        obj_mat = convert_loc(obj, parent_mat, self.use_restpose)
         bhead = obj_mat.translation
         # Calculate tail (relative to head)
         btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])  # For Empties
         valid_children = [c for c in obj.children if self.is_pbone(c)]
         if valid_children:
             # Multiple children: Calculate centroid
-            clocs = [convert_loc(c, obj_mat, self.rotated_restpose).translation
+            clocs = [convert_loc(c, obj_mat, self.use_restpose).translation
                      for c in valid_children]
             btail = sum(clocs, mathutils.Vector())/len(valid_children)
         else:
@@ -186,53 +187,41 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         amt_bone.tail = btail
         # Save values for animation transfer
         dc_ml = obj.matrix_local.decompose()
-        dc_pm = parent_mat.decompose()
         cmat = obj.matrix_parent_inverse
         cmat = mathutils.Matrix.Translation(dc_ml[0]).inverted() * cmat
-        if self.rotated_restpose:
-            # cmat = dc_pm[1].to_matrix().to_4x4().inverted() * cmat
+        if self.use_restpose:
             cmat = dc_ml[1].to_matrix().to_4x4().inverted() * cmat
         self.generated.append([obj, amt_bone.name, cmat.copy()])
         # Create children
         for c in valid_children:
             self.generate_bones(amt, c, amt_bone, obj_mat)
 
-    def generate_bones2(self, amt, obj, amt_bone_parent=None):
+    def generate_bones2(self, amt, obj, amt_bone_parent=None,
+                        parent_mat=mathutils.Matrix()):
         """TODO: doc."""
-        def convert_loc(obj, rotated_restpose=False):
-            if rotated_restpose:
-                mat = obj.matrix_parent_inverse * obj.matrix_basis
-                if obj.parent:
-                    mat = obj.parent.matrix_world * mat
-            else:
-                # Remove rotation components
-                mat = obj.matrix_parent_inverse * obj.matrix_basis
-                mat = mat * mat.to_quaternion().to_matrix().to_4x4().inverted()
-                if obj.parent:
-                    omw = obj.parent.matrix_world
-                    omw = omw * \
-                        omw.to_quaternion().to_matrix().to_4x4().inverted()
-                    mat = omw * mat
-            return mat.translation
-
-        # Calculate head
-        bhead = convert_loc(obj, self.rotated_restpose)
-        # Calculate tail
+        def convert_loc(obj, pmat, rotated_restpose=False):
+            mat = obj.matrix_parent_inverse * obj.matrix_basis
+            dc_pm = pmat.decompose()
+            mat = mathutils.Matrix.Translation(dc_pm[0]) * mat
+            return mat
+        # Calculate head (relative to parent head)
+        obj_mat = convert_loc(obj, parent_mat, False)
+        bhead = obj_mat.translation
+        # Calculate tail (relative to head)
         btail = bhead + mathutils.Vector([0.0, 0.2, 0.0])  # For Empties
         valid_children = [c for c in obj.children if self.is_pbone(c)]
         if valid_children:
             # Multiple children: Calculate centroid
-            btail = mathutils.Vector()
-            for child in valid_children:
-                btail += convert_loc(child, self.rotated_restpose)
-            btail = btail/len(valid_children)
+            clocs = [convert_loc(c, obj_mat, False).translation
+                     for c in valid_children]
+            btail = sum(clocs, mathutils.Vector())/len(valid_children)
         else:
             # No children: Generate location from mesh bounding box
             if obj.type == 'MESH':
                 btail = 2 * (sum((mathutils.Vector(p) for p in obj.bound_box),
                              mathutils.Vector()) / 8) + bhead
-        # Create Bone
-        amt_bone = amt.edit_bones.new(obj.name)
+        # Create armature bone
+        amt_bone = amt.data.edit_bones.new(obj.name)
         amt_bone.roll = 0
         amt_bone.head = bhead
         if amt_bone_parent:
@@ -242,9 +231,47 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                 amt_bone.head = amt_bone_parent.tail
                 amt_bone.use_connect = self.can_connect(obj)
         amt_bone.tail = btail
-        # Continue with children
-        for child in valid_children:
-            self.generate_bones2(amt, child, amt_bone)
+        # Save values for animation transfer
+        mat_ldc = obj.matrix_local.decompose()
+        cmat = mathutils.Matrix()  # obj.matrix_parent_inverse
+        cmat = mathutils.Matrix.Translation(mat_ldc[0]).inverted() * cmat
+        self.generated.append([obj, amt_bone.name, cmat.copy()])
+        # Create children
+        for c in valid_children:
+            self.generate_bones2(amt, c, amt_bone, obj_mat)
+
+    def add_restpose(self, amt):
+        """TODO: DOC."""
+        for bone_data in self.generated:
+            psb = bone_data[0]
+            amt_posebone = amt.pose.bones[bone_data[1]]
+            mat_ldc = psb.matrix_local.decompose()
+            amt_posebone.rotation_mode = 'QUATERNION'
+            rmatA = mat_ldc[1].to_matrix().to_4x4()
+            bone_data[2] = rmatA.inverted() * bone_data[2]
+            rmatB = amt.convert_space(amt_posebone, rmatA, 'LOCAL_WITH_PARENT',
+                                      'LOCAL')
+            amt_posebone.rotation_quaternion = rmatB.to_quaternion()
+            amt_posebone.rotation_mode = psb.rotation_mode
+
+        return
+        for psb, amt_bone_name, cmat in self.generated:
+            amt_posebone = amt.pose.bones[amt_bone_name]
+            # mat = psb.matrix_local
+            # mat = amt.convert_space(amt_posebone, mat,
+            #                         'LOCAL_WITH_PARENT', 'LOCAL')
+            # amt_posebone.matrix_basis = mat
+            mat_ldc = psb.matrix_local.decompose()
+            # mat = cmat * mathutils.Matrix.Translation(mat_ldc[0])
+            # mat = amt.convert_space(amt_posebone, mat, 'LOCAL_WITH_PARENT',
+            #                         'LOCAL')
+            # amt_posebone.location = mat.to_translation()
+            amt_posebone.rotation_mode = 'QUATERNION'
+            mat = mat_ldc[1].to_matrix().to_4x4()
+            mat = amt.convert_space(amt_posebone, mat, 'LOCAL_WITH_PARENT',
+                                    'LOCAL')
+            amt_posebone.rotation_quaternion = mat.to_quaternion()
+            amt_posebone.rotation_mode = psb.rotation_mode
 
     def transfer_animations(self, armature, psb, amt_bone_name, cmat):
         """TODO: DOC."""
@@ -303,13 +330,13 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                 euls.append(e)
             return euls
 
-        amt_action = armature.animation_data.action
+        if amt_bone_name not in armature.pose.bones:
+            return
         amt_posebone = armature.pose.bones[amt_bone_name]
-        # Check wether there is an pseudo bone object with the same
-        # name as the bone
         amt_posebone.rotation_mode = psb.rotation_mode
         # Gather rotation and location keyframe points
         # Their coordinates need to be adjusted to use them with bones
+        amt_action = armature.animation_data.action
         if psb.animation_data and psb.animation_data.action:
             source_fcu = psb.animation_data.action.fcurves
             # Copy rotation keyframes
@@ -345,7 +372,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     def execute(self, context):
         """Create the armature"""
         aurora_root = nvb_utils.findObjRootDummy(context.object)
-        self.rotated_restpose = aurora_root.nvb.helper_amt_restrot
+        self.use_restpose = aurora_root.nvb.helper_amt_restpose
         self.copy_animations = aurora_root.nvb.helper_amt_copyani
         self.auto_connect = aurora_root.nvb.helper_amt_connect
         self.generated = []
@@ -364,6 +391,13 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             if self.is_pbone(child):
                 self.generate_bones(armature, child)
         context.scene.update()
+        bpy.ops.object.mode_set(mode='OBJECT')
+        # Apply current transformations as restpose
+        if False:  # self.use_restpose:
+            bpy.ops.object.mode_set(mode='POSE')
+            self.add_restpose(armature)
+            bpy.ops.pose.armature_apply()
+            bpy.ops.object.mode_set(mode='OBJECT')
         # Copy animations
         if self.copy_animations:
             bpy.ops.object.mode_set(mode='POSE')
@@ -377,8 +411,8 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
             # Copy animation to every bone
             for psb, amb_name, cmat in self.generated:
                 self.transfer_animations(armature, psb, amb_name, cmat)
+            bpy.ops.object.mode_set(mode='OBJECT')
         del self.generated
-        bpy.ops.object.mode_set(mode='OBJECT')
         return {'FINISHED'}
 
 

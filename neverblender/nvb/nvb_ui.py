@@ -643,9 +643,9 @@ class NVB_PT_utils(bpy.types.Panel):
             row = box.row()
             row.label(text='Source: ')
             row.prop(obj.nvb, 'helper_amt_source', expand=True)
-            box.prop(obj.nvb, 'helper_amt_connect', text='Auto Connect')
-            box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-            box.prop(obj.nvb, 'helper_amt_restrot', text='Rotated Rest Pose')
+            box.prop(obj.nvb, 'helper_amt_connect')
+            box.prop(obj.nvb, 'helper_amt_copyani')
+            box.prop(obj.nvb, 'helper_amt_restpose')
             box.operator('nvb.helper_psb2amt', icon='BONE_DATA')
             layout.separator()
             # Minimap Helper
