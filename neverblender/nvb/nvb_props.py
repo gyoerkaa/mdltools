@@ -83,11 +83,20 @@ class NVB_PG_material(bpy.types.PropertyGroup):
         default=1.0,
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
+    ambient_shader = bpy.props.EnumProperty(
+        name='Ambient Shader Model',
+        description='Ambient Shader Model',
+        items=[('LAMBERT', 'Lambert', 'Use a Lambertian shader', 0)],
+        default='LAMBERT')
+    use_ambient_ramp = bpy.props.BoolProperty(
+        name='Ramp',
+        description='Toggle ambient ramp options',
+        default=False)
     renderhint = bpy.props.EnumProperty(
         name='Renderhint',
         items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
                ('NONE', 'None', 'No renderhint', 1),
-               ('NASM', 'NormalAndSpecMapped', 'No renderhint', 2)],
+               ('NASM', 'NormalAndSpecMapped', 'Normal & Specular Mapped', 2)],
         default='AUTO')
     # MTR Panel
     usemtr = bpy.props.BoolProperty(name='Use MTR',
@@ -310,14 +319,14 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         name='Auto Connect',
         description='Automatically connect bones when possible',
         default=True)
-    helper_amt_restpose = bpy.props.BoolProperty(
-        name='Add Rest Pose',
-        description='Use current pose as rest pose',
-        default=True)
     helper_amt_copyani = bpy.props.BoolProperty(
         name='Copy Animations',
         description='Copy animations to the created armature',
         default=True)
+    helper_amt_restpose = bpy.props.BoolProperty(
+        name='Add Rest Pose',
+        description='Use current pose as rest pose',
+        default=False)
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

@@ -77,11 +77,11 @@ class Animnode():
                 continue
             if label == 'node':
                 self.nodetype = line[1].lower()
-                self.name = nvb_utils.getAuroraString(line[2])
+                self.name = nvb_utils.getAuroraIdentifier(line[2])
             elif label == 'endnode':
                 return
             elif label == 'parent':
-                self.parentName = nvb_utils.getAuroraString(line[1])
+                self.parentName = nvb_utils.getAuroraIdentifier(line[1])
             elif label == 'position':
                 self.position = [float(v) for v in line[1:4]]
                 self.objdata = True

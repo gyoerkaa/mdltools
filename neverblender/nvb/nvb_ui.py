@@ -145,7 +145,8 @@ class NVB_PT_bone(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        return context.bone
+        return False
+        # return context.bone
 
     def draw(self, context):
         """TODO: DOC."""
@@ -193,7 +194,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
 class NVB_PT_material(bpy.types.Panel):
     bl_idname = 'nvb.propertypanel.material'
-    bl_label = 'Aurora Ambient'
+    bl_label = 'Aurora Material Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'material'
@@ -208,17 +209,20 @@ class NVB_PT_material(bpy.types.Panel):
         mat = context.material
         layout = self.layout
 
+        # Ambient color parameters
         split = layout.split()
         col = split.column()
         col.prop(mat.nvb, 'ambient_color', text='')
         sub = col.column()
         sub.active = (not mat.use_shadeless)
-        sub.prop(mat.nvb, 'ambient_intensity', text='Intensity')
+        sub.prop(mat.nvb, 'ambient_intensity')
+        col = split.column()
+        col.active = False  # (not mat.use_shadeless)
+        col.prop(mat.nvb, 'ambient_shader', text='')
+        col.prop(mat.nvb, 'use_ambient_ramp')
 
-        # col = split.column()
-        # col.active = (not mat.use_shadeless)
-        # col.prop(mat, "diffuse_shader", text="")
-        # col.prop(mat, "use_diffuse_ramp", text="Ramp")
+        layout.separator()
+        layout.prop(mat.nvb, 'renderhint')
 
 
 class NVB_PT_mtr(bpy.types.Panel):

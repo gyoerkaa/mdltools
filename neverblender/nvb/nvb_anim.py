@@ -54,7 +54,7 @@ class Animation():
             except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
             if (label == 'newanim'):
-                self.name = nvb_utils.getAuroraString(line[1])
+                self.name = nvb_utils.getAuroraIdentifier(line[1])
             elif (label == 'length'):
                 self.length = float(line[1])
             elif (label == 'transtime'):

@@ -115,6 +115,10 @@ class Emptytype():
     ALL = {DUMMY, REFERENCE, PATCH, PWK, DWK}
 
 
+class Renderhint():
+    NORMALANDSPECMAPPED = 'normalandspecmapped'
+
+
 class Nodetype(Emptytype, Meshtype):
     """TODO: Doc."""
 
@@ -219,7 +223,7 @@ class ImportOptions():
         self.importNormals = True
         self.importMaterials = True
         # Additional options for textures and materials
-        self.materialLoadMTR = True
+        self.importMTR = True
         self.materialAutoMerge = True
         self.textureDefaultRoles = True
         self.texturePath = ''
@@ -253,7 +257,7 @@ class ExportOptions():
         self.uvmapMode = 'REN'
         self.uvmapOrder = 'AL0'
         # Additional options for textures and materials
-        self.materialUseMTR = False
+        self.exportMTR = True
         # Blender Settings
         self.applyModifiers = True
         self.meshConvert = 'RENDER'

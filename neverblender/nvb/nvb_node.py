@@ -19,47 +19,32 @@ from . import nvb_aabb
 
 class Mtr(object):
     """A material read from an mtr file."""
-    def __init__(self, name='unnamed', filepath=''):
+    def __init__(self, name='unnamed'):
         """TODO: DOC."""
-        self.valid = False
-
         self.name = name
-        self.filepath = filepath
-        self.ambient = (1.0, 1.0, 1.0)
-        self.diffuse = (1.0, 1.0, 1.0)
-        self.specular = (0.0, 0.0, 0.0)
-        self.alpha = 1.0
+
+        self.filepath = ''
         self.textures = ['']
         self.renderhints = set()
         self.parameters = dict()
         self.customshaderVS = ''
         self.customshaderFS = ''
 
-    def isvalid(self):
-        return self.valid
-
-    @staticmethod
-    def loadAsciiTexName(s):
-        """Convert to lower case. Convert null to nvb_def.null."""
-        if (not s or s.lower() == nvb_def.null):
-            return nvb_def.null
-        return s.lower()
-
-    def loadFile(self):
+    def loadFile(self, filepath):
         """Load contents of a mtr file."""
-        self.valid = False
+        self.filepath = filepath
         try:
-            mtrFile = open(os.fsencode(self.filepath), 'r')
+            mtrFile = open(os.fsencode(filepath), 'r')
         except IOError:
-            return
+            return False
         else:
             asciiData = mtrFile.read()
             self.loadAscii(asciiData)
             mtrFile.close()
+        return True
 
     def loadTextBlock(self, textBlock):
         """Load content of a blender text block."""
-        self.valid = False
         if not textBlock:
             return
         # txtLines = [l.split() for l in textBlock.as_string().split('\n')]
@@ -70,66 +55,55 @@ class Mtr(object):
         """TODO: DOC."""
         asciiLines = [l.strip().split() for l in asciiData.splitlines()]
         iterable = iter(asciiLines)
-        aline = True
-        while aline is not None:
-            aline = self.loadAsciiLine(iterable)
+        line = True
+        while line is not None:
+            line = self.loadAsciiLine(iterable)
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = None
+        line = None
         try:
-            aline = next(itlines)
+            line = next(itlines)
         except StopIteration:
             return None
         label = ''
         try:
-            label = aline[0].lower()
+            label = line[0].lower()
         except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
-        if label == 'ambient':
-            self.ambient = tuple([float(v) for v in aline[1:4]])
-        elif label == 'diffuse':
-            self.diffuse = tuple([float(v) for v in aline[1:4]])
-        elif label == 'specular':
-            self.specular = tuple([float(v) for v in aline[1:4]])
-        elif label == 'alpha':
-            self.alpha = float(aline[1])
-        elif label == 'renderhint':
-            self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
+            return line  # Probably empty line or comment
+        if label == 'renderhint':
+            self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
         elif label == 'parameter':
             # 'parameter' 'float' 'myParam' '1.0'
-            self.valid = True
             try:
-                self.parameters[aline[2]] = (aline[1], aline[3:])
+                self.parameters[line[2]] = (line[1], line[3:])
             except IndexError:
-                # Bad parameter, skip it
-                pass
+                pass  # Bad parameter, skip it
         elif label == 'customshadervs':
-            self.valid = True
-            self.customshaderVS = aline[1]
+            self.customshaderVS = line[1]
         elif label == 'customshaderfs':
-            self.valid = True
-            self.customshaderFS = aline[1]
+            self.customshaderFS = line[1]
         elif label.startswith('texture'):
-            self.valid = True
             tid = 0
-            # 'texture' has to be followed by a number
-            if label[7:]:
+            if label[7:]:  # 'texture' has to be followed by a number
                 tid = int(label[7:])
                 tcnt = len(self.textures)
                 if tid+1 > tcnt:
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
-                    self.textures[tid] = Mtr.loadAsciiTexName(aline[1])
-        return aline
+                    self.textures[tid] = nvb_utils.getAuroraTexture(line[1])
+        return line
 
     def generateAscii(self, material, options):
         """Generate a mtr file as asciilines."""
         asciiLines = []
+        # Load text block to get parameters
+        # (other properties will be overwritten by blender's own material)
         if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
             txtBlock = bpy.data.texts[material.nvb.mtrtext]
             self.loadTextBlock(txtBlock)
-        # Add shaders
+        texList = NodeMaterial.getAsciiTextures(material, options)
+        # Add shader specification
         if material.nvb.shadervs or material.nvb.shaderfs:
             asciiLines.append('// Shaders')
             if material.nvb.shadervs:
@@ -137,8 +111,13 @@ class Mtr(object):
             if material.nvb.shaderfs:
                 asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
             asciiLines.append('')
+        else:
+            # Add Renderhint
+            if (material.nvb.renderhint == 'NASM') or \
+               (material.nvb.renderhint == 'AUTO' and len(texList) > 2):
+                asciiLines.append('renderhint NormalAndSpecMapped')
+                asciiLines.append('')
         # Add list of textures
-        texList = NodeMaterial.getAsciiTextures(material, options)
         if len(texList) > 0:
             asciiLines.append('// Textures')
             asciiLines.extend(['texture' + str(i) + ' ' + n
@@ -166,10 +145,10 @@ class NodeMaterial(object):
         self.diffuse_alpha = -1.0  # EE stores alpha as 4th diffuse value
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
-        self.textures = ['']
+        self.textures = [nvb_def.null]
         self.renderhints = set()
         self.materialname = ''  # Name of external mtr file
-        self.mtrMat = None
+        self.mtr = None
 
     @staticmethod
     def colorisclose(a, b, tol=0.05):
@@ -220,34 +199,34 @@ class NodeMaterial(object):
         d = d and NodeMaterial.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
         d = d and NodeMaterial.colorisclose(self.specular, (0.0, 0.0, 0.0))
         d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
-        d = d and self.textures.count('') == len(self.textures)
+        d = d and self.textures.count(nvb_def.null) == len(self.textures)
         d = d and self.materialname == ''
         return d
 
-    def loadAsciiLine(self, aline):
+    def loadAsciiLine(self, line):
         """TODO: Doc."""
         try:
-            label = aline[0].lower()
+            label = line[0].lower()
         except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
+            return line  # Probably empty line or comment
         if (label == 'ambient'):
-            self.ambient = tuple([float(v) for v in aline[1:4]])
+            self.ambient = tuple([float(v) for v in line[1:4]])
         elif (label == 'diffuse'):
-            self.diffuse = tuple([float(v) for v in aline[1:4]])
+            self.diffuse = tuple([float(v) for v in line[1:4]])
             # EE stores alpha as 4th diffuse value
-            if len(aline) > 4:
-                self.diffuse_alpha = float(aline[4])
+            if len(line) > 4:
+                self.diffuse_alpha = float(line[4])
         elif (label == 'specular'):
-            self.specular = tuple([float(v) for v in aline[1:4]])
+            self.specular = tuple([float(v) for v in line[1:4]])
         elif (label == 'alpha'):
-            self.alpha = float(aline[1])
+            self.alpha = float(line[1])
         elif (label == 'materialname'):
-            self.materialname = nvb_utils.getAuroraString(aline[1])
+            self.materialname = nvb_utils.getAuroraIdentifier(line[1])
         elif (label == 'renderhint'):
-            self.renderhints.add(nvb_utils.getAuroraString(aline[1]))
+            self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
         elif (label == 'bitmap'):
             if not self.textures[0]:
-                self.textures[0] = nvb_utils.getAuroraString(aline[1])
+                self.textures[0] = nvb_utils.getAuroraTexture(line[1])
         elif (label.startswith('texture')):
             tid = 0
             # 'texture' has to be followed by a number
@@ -258,51 +237,49 @@ class NodeMaterial(object):
                     self.textures.extend(['' for _ in range(tid-tcnt+1)])
                 if not self.textures[tid]:
                     self.textures[tid] = \
-                        nvb_utils.getAuroraString(aline[1])
+                        nvb_utils.getAuroraTexture(line[1])
 
     def loadMTR(self, options):
         """Loads contents of a mtr file into the this material."""
-        self.mtrMat = None
-        if self.materialname:  # "materialname" takes precedence
-            # Always load, create empty material if file not present
+        self.mtr = None
+        if self.materialname:  # try loading from materialname first
+            # Always load, create empty mtr if no file found
             if self.materialname in options.mtrdb:  # already loaded
-                self.mtrMat = options.mtrdb[self.materialname]
+                self.mtr = options.mtrdb[self.materialname]
             else:
                 mtr_filename = self.materialname + '.mtr'
                 mdl_dir, _ = os.path.split(options.filepath)
                 mtr_path = os.path.join(mdl_dir, mtr_filename)
-                self.mtrMat = Mtr(self.materialname, mtr_path)
-                self.mtrMat.loadFile()
-                options.mtrdb[self.materialname] = self.mtrMat
-        elif self.textures[0]:
+                tmp = Mtr(self.materialname)
+                if tmp.loadFile(mtr_path):
+                    options.mtrdb[self.materialname] = tmp
+                self.mtr = tmp
+        elif self.textures[0]:  # load from texture[0]/bitmap parameter
             # Load only if an mtr file was found
             mtr_filename = self.textures[0] + '.mtr'
             mdl_dir, _ = os.path.split(options.filepath)
             mtr_path = os.path.join(mdl_dir, mtr_filename)
             if os.path.isfile(mtr_path):
-                if self.materialname in options.mtrdb:  # already loaded
-                    self.mtrMat = options.mtrdb[self.materialname]
+                if self.textures[0] in options.mtrdb:  # already loaded
+                    self.mtr = options.mtrdb[self.textures[0]]
                 else:
-                    self.mtrMat = Mtr(self.materialname, mtr_path)
-                    self.mtrMat.loadFile()
-                    options.mtrdb[self.materialname] = self.mtrMat
+                    self.mtr = Mtr(self.textures[0])
+                    if self.mtr.loadFile(mtr_path):
+                        options.mtrdb[self.textures[0]] = self.mtr
         # Load values into self
-        if self.mtrMat and self.mtrMat.isvalid():  # Abort if no file was read
+        if self.mtr:  # Abort if no file was read
             # Merge renderhints
-            self.renderhints = self.renderhints.union(self.mtrMat.renderhints)
+            self.renderhints = self.renderhints.union(self.mtr.renderhints)
             # If there are any textures in the mtr load them into self
-            if self.mtrMat.textures:
-                # TODO: Decide between two options
-                # A. Selective loading, override only present texture
+            if self.mtr.textures:
+                # Override textures in the mdl
                 l1 = len(self.textures)
-                l2 = len(self.mtrMat.textures)
+                l2 = len(self.mtr.textures)
                 if l1 < l2:
                     self.textures.extend(['' for _ in range(l2-l1+1)])
-                for tidx, mtr_txname in enumerate(self.mtrMat.textures):
+                for tidx, mtr_txname in enumerate(self.mtr.textures):
                     if mtr_txname:
                         self.textures[tidx] = mtr_txname
-                # B. Override all if only a single texture is present
-                # self.textures = mtrMat.textures
 
     @staticmethod
     def createTexture(tname, imgname, options):
@@ -330,7 +307,7 @@ class NodeMaterial(object):
         return tex
 
     @staticmethod
-    def applyTextureRoles(material, alpha, options):
+    def applyNASMSettings(material, alpha, options):
         """Apply settings to material and texture slots for default shader."""
         matalpha = alpha
         if options.textureDefaultRoles:
@@ -343,7 +320,7 @@ class NodeMaterial(object):
                 tslot.use_map_color_spec = False
                 tslot.use_map_alpha = True
                 tslot.alpha_factor = alpha
-                matalpha = 0.0  # alpha doesn't need to be in mat
+                matalpha = 0.0  # alpha doesn't need to be in mat anymore
             # Normal in tslot 1
             tslot = material.texture_slots[1]
             if tslot is not None:
@@ -372,7 +349,7 @@ class NodeMaterial(object):
     def create(self, options, makeunique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values intro this material
-        if options.materialLoadMTR:
+        if options.importMTR:
             self.loadMTR(options)
         # If this material has no texture, no alpha and default values
         if self.isdefault():
@@ -383,8 +360,9 @@ class NodeMaterial(object):
             material = NodeMaterial.findMaterial(
                 self.textures, self.materialname,
                 self.diffuse, self.specular, self.alpha)
+        # Create new material as necessary
         if not material:
-            if self.textures[0]:
+            if self.textures[0] and self.textures[0] is not nvb_def.null:
                 matname = self.textures[0].lower()
             else:
                 matname = self.name
@@ -395,21 +373,24 @@ class NodeMaterial(object):
             material.specular_color = self.specular
             material.specular_intensity = 1.0
             material.nvb.ambient_color = self.ambient
+            material.nvb.ambient_intensity = 1.0
             # Load all textures
-            for idx, mdltex in enumerate(self.textures):
-                if mdltex:  # might be ''
+            for idx, txname in enumerate(self.textures):
+                if txname and txname is not nvb_def.null:
                     tslot = material.texture_slots.create(idx)
-                    tslot.texture = NodeMaterial.createTexture(mdltex, mdltex,
+                    tslot.texture = NodeMaterial.createTexture(txname, txname,
                                                                options)
-            # Set the default roles for texture slots:
-            NodeMaterial.applyTextureRoles(material, self.alpha, options)
+            # Set Renderhint and set up textures accordingly
+            if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
+                material.nvb.renderhint = 'NASM'
+                NodeMaterial.applyNASMSettings(material, self.alpha, options)
             # Set MTR options
-            if self.mtrMat:
+            if self.mtr:
                 material.nvb.usemtr = True
-                material.nvb.mtrname = self.mtrMat.name
-                material.nvb.mtrpath = self.mtrMat.filepath
-                material.nvb.shadervs = self.mtrMat.customshaderVS
-                material.nvb.shaderfs = self.mtrMat.customshaderFS
+                material.nvb.mtrname = self.mtr.name
+                material.nvb.mtrpath = self.mtr.filepath
+                material.nvb.shadervs = self.mtr.customshaderVS
+                material.nvb.shaderfs = self.mtr.customshaderFS
         return material
 
     @staticmethod
@@ -480,7 +461,7 @@ class NodeMaterial(object):
                 else:
                     asciiLines.append('  bitmap ' + nvb_def.null)
                 # Write the rest of the data either to mdl or add mtr reference
-                if options.materialUseMTR and material.nvb.usemtr:
+                if options.exportMTR and material.nvb.usemtr:
                     asciiLines.append('  materialname ' +
                                       material.nvb.mtrname)
                 else:
@@ -547,33 +528,33 @@ class Node(object):
 
     def loadAsciiLine(self, itlines):
         """TODO: DOC."""
-        aline = None
+        line = None
         try:
-            aline = next(itlines)
+            line = next(itlines)
         except StopIteration:
             return None
         label = ''
         try:
-            label = aline[0].lower()
+            label = line[0].lower()
         except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
+            return line  # Probably empty line or comment
         if nvb_utils.isNumber(label):
-            return aline
+            return line
         if (label == 'node'):
-            self.name = nvb_utils.getAuroraString(aline[2])
+            self.name = nvb_utils.getAuroraIdentifier(line[2])
         elif (label == 'endnode'):
-            return aline
+            return line
         elif (label == 'parent'):
-            self.parent = nvb_utils.getAuroraString(aline[1])
+            self.parent = nvb_utils.getAuroraIdentifier(line[1])
         elif (label == 'position'):
-            self.position = tuple([float(v) for v in aline[1:4]])
+            self.position = tuple([float(v) for v in line[1:4]])
         elif (label == 'orientation'):
-            self.orientation = tuple([float(v) for v in aline[1:5]])
+            self.orientation = tuple([float(v) for v in line[1:5]])
         elif (label == 'scale'):
-            self.scale = float(aline[1])
+            self.scale = float(line[1])
         elif (label == 'wirecolor'):
-            self.wirecolor = tuple([float(v) for v in aline[1:4]])
-        return aline
+            self.wirecolor = tuple([float(v) for v in line[1:4]])
+        return line
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
@@ -683,21 +664,21 @@ class Reference(Node):
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = Node.loadAsciiLine(self, itlines)
-        if not aline:
-            return aline
+        line = Node.loadAsciiLine(self, itlines)
+        if not line:
+            return line
         try:
-            label = aline[0].lower()
+            label = line[0].lower()
         except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
+            return line  # Probably empty line or comment
         if (label == 'refmodel'):
-            self.refmodel = nvb_utils.getAuroraString(aline[1])
+            self.refmodel = nvb_utils.getAuroraIdentifier(line[1])
         elif (label == 'reattachable'):
             try:
-                self.reattachable = int(aline[1])
+                self.reattachable = int(line[1])
             except (ValueError, IndexError):
                 pass
-        return aline
+        return line
 
     def createObjectData(self, obj, options):
         """TODO: Doc."""
@@ -1594,13 +1575,13 @@ class Emitter(Node):
         if nvb_utils.isNumber(label):
             return aline
         if (label == 'node'):
-            self.name = nvb_utils.getAuroraString(aline[2])
+            self.name = nvb_utils.getAuroraIdentifier(aline[2])
             self.rawascii = self.rawascii + '\n' + ' '.join(aline)
         elif (label == 'endnode'):
             self.rawascii = self.rawascii + '\n' + ' '.join(aline)
             return aline
         elif (label == 'parent'):
-            self.parent = nvb_utils.getAuroraString(aline[1])
+            self.parent = nvb_utils.getAuroraIdentifier(aline[1])
             self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
         elif (label == 'position'):
             self.position = tuple([float(v) for v in aline[1:4]])

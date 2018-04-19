@@ -184,10 +184,17 @@ def isNumber(s):
         return True
 
 
-def getAuroraString(s):
-    """Convert 'null' to empty string."""
+def getAuroraIdentifier(s):
+    """Convert to lower case. Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):
         return ''
+    return s.lower()
+
+
+def getAuroraTexture(s):
+    """Convert to lower case. Convert null to nvb_def.null."""
+    if (not s or s.lower() == nvb_def.null):
+        return nvb_def.null
     return s.lower()
 
 
@@ -220,7 +227,7 @@ def readRawAnimData(txtBlock):
             if not l_isNumber(label):
                 if label == 'node':
                     nodetype = line[1].lower()
-                    nodename = getAuroraString(line[2])
+                    nodename = getAuroraIdentifier(line[2])
                 elif label == 'endnode':
                     break
                 elif (label[0] != '#'):

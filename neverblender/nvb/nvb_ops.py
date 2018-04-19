@@ -1417,7 +1417,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             description='Import materials and textures',
             default=True)
     # Sub-Options for Materials
-    materialLoadMTR = bpy.props.BoolProperty(
+    importMTR = bpy.props.BoolProperty(
             name='Load MTR files',
             description='Load external material files ' +
                         '(will overwride material in MDL)',
@@ -1482,7 +1482,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         sub = box.column()
         sub.enabled = self.importMaterials
         sub.prop(self, 'materialAutoMerge')
-        sub.prop(self, 'materialLoadMTR')
+        sub.prop(self, 'importMTR')
         sub.prop(self, 'textureDefaultRoles')
         sub.prop(self, 'textureSearch')
         # Blender Settings
@@ -1507,7 +1507,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.importAnimations = self.importAnimations
         options.importMaterials = self.importMaterials
         # Material Import Settings
-        options.materialLoadMTR = self.materialLoadMTR
+        options.importMTR = self.importMTR
         options.materialAutoMerge = self.materialAutoMerge
         options.textureDefaultRoles = self.textureDefaultRoles
         options.textureSearch = self.textureSearch
@@ -1577,10 +1577,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     'Export active UVMap only')),
             default='AL0')
     # Material Export Settings
-    materialUseMTR = bpy.props.BoolProperty(
-            name='Add MTR Reference',
-            description='Add a reference to MTR file (if specified)',
-            default=False)
+    exportMTR = bpy.props.BoolProperty(
+            name='Export MTR files',
+            description='Use MTR files to store material data (if specified)',
+            default=True)
     # Blender Setting to use
     applyModifiers = bpy.props.BoolProperty(
             name='Apply Modifiers',
@@ -1607,7 +1607,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box = layout.box()
         box.label(text='Material Settings')
         sub = box.column()
-        sub.prop(self, 'materialUseMTR')
+        sub.prop(self, 'exportMTR')
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
@@ -1629,7 +1629,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.uvmapMode = self.uvmapMode
         options.uvmapOrder = self.uvmapOrder
         # Material Export Settings
-        options.materialUseMTR = self.materialUseMTR
+        options.materialUseMTR = self.exportMTR
         # Blender Settings
         options.applyModifiers = self.applyModifiers
         return nvb_io.saveMdl(self, context, options)
@@ -2083,9 +2083,8 @@ class NVB_OT_mtr_open(bpy.types.Operator):
         material.nvb.mtrpath = self.filepath
         material.nvb.mtrname = mtrname
         # Load mtr
-        mtr = nvb_node.Mtr(mtrname, material.nvb.mtrpath)
-        mtr.loadFile()
-        if not mtr or not mtr.isvalid():
+        mtr = nvb_node.Mtr(mtrname)
+        if not mtr.loadFile(material.nvb.mtrpath):
             self.report({'ERROR'}, 'Error: Invalid file.')
             return {'CANCELLED'}
         # Add textures
@@ -2128,9 +2127,8 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
         # Load mtr
-        mtr = nvb_node.Mtr('none', material.nvb.mtrpath)
-        mtr.loadFile()
-        if not mtr or not mtr.isvalid():
+        mtr = nvb_node.Mtr()
+        if not mtr.loadFile(material.nvb.mtrpath):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
         # Add the rest of the properties
