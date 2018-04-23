@@ -6,13 +6,12 @@ import os
 import re
 
 import bpy
-import bpy_extras
 import mathutils
 
 from . import nvb_def
 from . import nvb_utils
-from . import nvb_io
 from . import nvb_node
+from . import nvb_mtr
 
 
 class NVB_OT_helper_amt2psb(bpy.types.Operator):
@@ -1386,255 +1385,6 @@ class NVB_OT_light_genname(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
-    """Import Aurora Engine model (.mdl)"""
-
-    bl_idname = 'nvb.mdlimport'
-    bl_label = 'Import Aurora MDL'
-    bl_options = {'UNDO', 'PRESET'}
-
-    filename_ext = '.mdl'
-    filter_glob = bpy.props.StringProperty(default='*.mdl',
-                                           options={'HIDDEN'})
-    importAnimations = bpy.props.BoolProperty(
-            name='Import Animations',
-            description='Import animation data',
-            default=True)
-    importWalkmesh = bpy.props.BoolProperty(
-            name='Import Walkmesh',
-            description='Load placeable and door walkmeshes',
-            default=True)
-    importSmoothGroups = bpy.props.BoolProperty(
-            name='Import Smooth Groups',
-            description='Import smooth groups as sharp edges',
-            default=True)
-    importNormals = bpy.props.BoolProperty(
-            name='Import Normals',
-            description='Import normals from MDL',
-            default=True)
-    importMaterials = bpy.props.BoolProperty(
-            name='Import Materials',
-            description='Import materials and textures',
-            default=True)
-    # Sub-Options for Materials
-    importMTR = bpy.props.BoolProperty(
-            name='Load MTR files',
-            description='Load external material files ' +
-                        '(will overwride material in MDL)',
-            default=True)
-    materialAutoMerge = bpy.props.BoolProperty(
-            name='Auto Merge Materials',
-            description='Merge materials with same settings',
-            default=True)
-    textureDefaultRoles = bpy.props.BoolProperty(
-            name='Texture Default Roles',
-            description='Auto apply settings to create diffuse, normal ' +
-                        'and specular textures',
-            default=True)
-    textureSearch = bpy.props.BoolProperty(
-            name='Image Search',
-            description='Search for images in subdirectories \
-                         (Warning: May be slow)',
-            default=False)
-    # Blender Settings
-    customfps = bpy.props.BoolProperty(name='Use Custom fps',
-                                       description='Use custom fps value',
-                                       default=True)
-    fps = bpy.props.IntProperty(name='Scene Framerate',
-                                description='Custom fps value',
-                                default=30,
-                                min=1, max=60)
-    restpose = bpy.props.BoolProperty(
-        name='Insert Rest Pose',
-        description='Insert rest keyframe before every animation',
-        default=True)
-    rotmode = bpy.props.EnumProperty(
-            name='Rotation Mode',
-            description='',
-            items=(('AXIS_ANGLE', 'Axis Angle', ''),
-                   ('QUATERNION', 'Quaternion', ''),
-                   ('XYZ', 'Euler XYZ', '')),
-            default='XYZ')
-    # Hidden settings for batch processing
-    minimapMode = bpy.props.BoolProperty(
-            name='Minimap Mode',
-            description='Ignore lights and fading objects',
-            default=False,
-            options={'HIDDEN'})
-    minimapSkipFade = bpy.props.BoolProperty(
-            name='Minimap Mode: Import Fading Objects',
-            description='Ignore fading objects',
-            default=False,
-            options={'HIDDEN'})
-
-    def draw(self, context):
-        """Draw the export UI."""
-        layout = self.layout
-        # Misc Import Settings
-        box = layout.box()
-        box.prop(self, 'importAnimations')
-        box.prop(self, 'importWalkmesh')
-        box.prop(self, 'importSmoothGroups')
-        box.prop(self, 'importNormals')
-        # Material Import Settings
-        box = layout.box()
-        box.prop(self, 'importMaterials')
-        sub = box.column()
-        sub.enabled = self.importMaterials
-        sub.prop(self, 'materialAutoMerge')
-        sub.prop(self, 'importMTR')
-        sub.prop(self, 'textureDefaultRoles')
-        sub.prop(self, 'textureSearch')
-        # Blender Settings
-        box = layout.box()
-        box.label(text='Blender Settings')
-        row = box.row(align=True)
-        row.prop(self, 'customfps', text='')
-        sub = row.row(align=True)
-        sub.enabled = self.customfps
-        sub.prop(self, 'fps')
-        box.prop(self, 'restpose')
-        box.prop(self, 'rotmode')
-
-    def execute(self, context):
-        """TODO: DOC."""
-        options = nvb_def.ImportOptions()
-        options.filepath = self.filepath
-        options.scene = context.scene
-        # Misc Import Settings
-        options.importSmoothGroups = self.importSmoothGroups
-        options.importNormals = self.importNormals
-        options.importAnimations = self.importAnimations
-        options.importMaterials = self.importMaterials
-        # Material Import Settings
-        options.importMTR = self.importMTR
-        options.materialAutoMerge = self.materialAutoMerge
-        options.textureDefaultRoles = self.textureDefaultRoles
-        options.textureSearch = self.textureSearch
-        # Hidden settings for batch processing
-        options.minimapMode = self.minimapMode
-        options.minimapSkipFade = self.minimapSkipFade
-        # Blender Settings
-        options.customfps = self.customfps
-        options.fps = self.fps
-        options.restpose = self.restpose
-        options.rotmode = self.rotmode
-        return nvb_io.loadMdl(self, context, options)
-
-
-class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
-    """Export Aurora Engine model (.mdl)"""
-
-    bl_idname = 'nvb.mdlexport'
-    bl_label = 'Export Aurora MDL'
-    bl_options = {'PRESET'}
-
-    filename_ext = '.mdl'
-    filter_glob = bpy.props.StringProperty(
-            default='*.mdl',
-            options={'HIDDEN'})
-    # Misc Export Settings
-    exportAnimations = bpy.props.BoolProperty(
-            name='Export Animations',
-            description='Export animations',
-            default=True)
-    exportWalkmesh = bpy.props.BoolProperty(
-            name='Export Walkmesh',
-            description='Export a walkmesh',
-            default=True)
-    exportSmoothGroups = bpy.props.BoolProperty(
-            name='Export Smooth Groups',
-            description='Generate smooth groups from sharp edges'
-                        '(When disabled every face belongs to the same group)',
-            default=True)
-    exportNormals = bpy.props.BoolProperty(
-            name='Export Normals and Tangents',
-            description='Add normals and tangents to MDL',
-            default=False)
-    # UV Map Export settings
-    uvmapAutoJoin = bpy.props.BoolProperty(
-            name='Auto Join UVs',
-            description='Join uv-vertices with identical coordinates',
-            default=True)
-    uvmapMode = bpy.props.EnumProperty(
-            name='Mode',
-            description='Determines which meshes get uv maps',
-            items=(('TEX', 'Textured Meshes',
-                    'Add UV Maps only to textured and rendered meshes'),
-                   ('REN', 'Rendered Meshes',
-                    'Add UV Maps only to rendered meshes'),
-                   ('ALL', 'All',
-                    'Add UV Maps to all meshes')),
-            default='REN')
-    uvmapOrder = bpy.props.EnumProperty(
-            name='Order',
-            description='Determines ordering of uv maps in MDL',
-            items=(('AL0', 'Alphabetical',
-                    'Alphabetical ordering'),
-                   ('AL1', 'Alphabetical (Active First)',
-                    'Alphabetical ordering, active UVMap will be first'),
-                   ('ACT', 'Active Only',
-                    'Export active UVMap only')),
-            default='AL0')
-    # Material Export Settings
-    exportMTR = bpy.props.BoolProperty(
-            name='Export MTR files',
-            description='Use MTR files to store material data (if specified)',
-            default=True)
-    # Blender Setting to use
-    applyModifiers = bpy.props.BoolProperty(
-            name='Apply Modifiers',
-            description='Apply Modifiers before exporting',
-            default=True)
-
-    def draw(self, context):
-        """Draw the export UI."""
-        layout = self.layout
-        # Misc Export Settings
-        box = layout.box()
-        box.prop(self, 'exportAnimations')
-        box.prop(self, 'exportWalkmesh')
-        box.prop(self, 'exportSmoothGroups')
-        box.prop(self, 'exportNormals')
-        # UV Map settings
-        box = layout.box()
-        box.label(text='UV Map Settings')
-        sub = box.column()
-        sub.prop(self, 'uvmapAutoJoin')
-        sub.prop(self, 'uvmapMode')
-        sub.prop(self, 'uvmapOrder')
-        # Material Export Settings
-        box = layout.box()
-        box.label(text='Material Settings')
-        sub = box.column()
-        sub.prop(self, 'exportMTR')
-        # Blender Settings
-        box = layout.box()
-        box.label(text='Blender Settings')
-        sub = box.column()
-        sub.prop(self, 'applyModifiers')
-
-    def execute(self, context):
-        """TODO: DOC."""
-        options = nvb_def.ExportOptions()
-        options.filepath = self.filepath
-        options.scene = context.scene
-        # Misc Export Settings
-        options.exportAnimations = self.exportAnimations
-        options.exportWalkmesh = self.exportWalkmesh
-        options.exportSmoothGroups = self.exportSmoothGroups
-        options.exportNormals = self.exportNormals
-        # UV Map settings
-        options.uvmapAutoJoin = self.uvmapAutoJoin
-        options.uvmapMode = self.uvmapMode
-        options.uvmapOrder = self.uvmapOrder
-        # Material Export Settings
-        options.materialUseMTR = self.exportMTR
-        # Blender Settings
-        options.applyModifiers = self.applyModifiers
-        return nvb_io.saveMdl(self, context, options)
-
-
 class NVB_OT_helper_genwok(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
@@ -2008,10 +1758,56 @@ class NVB_OT_helper_scale(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class NVB_OT_mtr_generate(bpy.types.Operator):
+    """Generate a new Text Block containing from the current material."""
+    bl_idname = "nvb.mtr_generate"
+    bl_label = "Generate MTR"
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if mtrs are used and in text mode."""
+        mat = context.material
+        return mat is not None and mat.nvb.usemtr and mat.nvb.mtrsrc == 'TEXT'
+
+    def execute(self, context):
+        """TODO: DOC."""
+        material = context.material
+        if not material:
+            self.report({'ERROR'}, 'Error: No material.')
+            return {'CANCELLED'}
+        mtr = nvb_mtr.Mtr()
+        # Either change existing or create new text block
+        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
+            txtBlock = bpy.data.texts[material.nvb.mtrtext]
+            mtr.loadTextBlock(txtBlock)
+        else:
+            if material.nvb.mtrname:
+                txtname = material.nvb.mtrname + '.mtr'
+            else:
+                txtname = material.name + '.mtr'
+            txtBlock = bpy.data.texts.new(txtname)
+            material.nvb.mtrtext = txtBlock.name
+        options = nvb_def.ExportOptions()
+        asciiLines = nvb_mtr.Mtr.generateAscii(material, options)
+        txtBlock.clear()
+        txtBlock.write('\n'.join(asciiLines))
+        # Report
+        self.report({'INFO'}, 'Created ' + txtBlock.name)
+        return {'FINISHED'}
+
+
 class NVB_OT_mtr_embed(bpy.types.Operator):
-    """Embed the MTR file into the blend file by creating a Text block."""
+    """Embed the MTR file into the blend file by creating a Text block"""
     bl_idname = "nvb.mtr_embed"
     bl_label = "Embed MTR"
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if mtrs are used and a path is set."""
+        mat = context.material
+        if mat is not None and mat.nvb.usemtr:
+            return mat.nvb.mtrpath != ''
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
@@ -2027,40 +1823,8 @@ class NVB_OT_mtr_embed(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_mtr_generate(bpy.types.Operator):
-    """Generate a new Text Block containing from the current material."""
-    bl_idname = "nvb.mtr_generate"
-    bl_label = "Generate MTR"
-
-    def execute(self, context):
-        """TODO: DOC."""
-        material = context.material
-        if not material:
-            self.report({'ERROR'}, 'Error: No material.')
-            return {'CANCELLED'}
-        mtr = nvb_node.Mtr()
-        # Either change existing or create new text block
-        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
-            txtBlock = bpy.data.texts[material.nvb.mtrtext]
-            mtr.loadTextBlock(txtBlock)
-        else:
-            if material.nvb.mtrname:
-                txtname = material.nvb.mtrname + '.mtr'
-            else:
-                txtname = material.name + '.mtr'
-            txtBlock = bpy.data.texts.new(txtname)
-            material.nvb.mtrtext = txtBlock.name
-        exportOptions = nvb_def.ExportOptions()
-        asciiLines = mtr.generateAscii(material, exportOptions)
-        txtBlock.clear()
-        txtBlock.write('\n'.join(asciiLines))
-        # Report
-        self.report({'INFO'}, 'Created ' + txtBlock.name)
-        return {'FINISHED'}
-
-
 class NVB_OT_mtr_open(bpy.types.Operator):
-    """Open material file."""
+    """Open material file"""
     bl_idname = "nvb.mtr_open"
     bl_label = "Open MTR"
 
@@ -2069,38 +1833,41 @@ class NVB_OT_mtr_open(bpy.types.Operator):
 
     filepath = bpy.props.StringProperty(subtype="FILE_PATH")
 
+    @classmethod
+    def poll(self, context):
+        """Enable only if mtrs are used and in file mode."""
+        mat = context.material
+        if mat is not None:
+            return mat.nvb.usemtr and mat.nvb.mtrsrc == 'FILE'
+        return False
+
     def execute(self, context):
-        if not self.filepath:
-            self.report({'ERROR'}, 'Error: No path to file.')
-            return {'CANCELLED'}
         material = context.material
         if not material:
             self.report({'ERROR'}, 'Error: No material.')
             return {'CANCELLED'}
+        if material.nvb.mtrsrc != 'FILE':
+            self.report({'ERROR'}, 'Error: Wrong MTR mode.')
+            return {'CANCELLED'}
+        if not self.filepath:
+            self.report({'ERROR'}, 'Error: No path to file.')
+            return {'CANCELLED'}
         mtrpath, mtrfilename = os.path.split(self.filepath)
         mtrname = os.path.splitext(mtrfilename)[0]
-        # Add to custom properties
-        material.nvb.mtrpath = self.filepath
-        material.nvb.mtrname = mtrname
         # Load mtr
-        mtr = nvb_node.Mtr(mtrname)
-        if not mtr.loadFile(material.nvb.mtrpath):
+        mtr = nvb_mtr.Mtr(mtrname)
+        if not mtr.loadFile(self.filepath):
             self.report({'ERROR'}, 'Error: Invalid file.')
             return {'CANCELLED'}
-        # Add textures
         options = nvb_def.ImportOptions()
-        options.filepath = material.nvb.mtrpath
+        mtr.create(material, options)
         for idx, tname in enumerate(mtr.textures):
             if tname:  # might be ''
                 tslot = material.texture_slots[idx]
                 if not tslot:
                     tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.NodeMaterial.createTexture(
+                tslot.texture = nvb_node.Material.createTexture(
                     tname, tname, options)
-        if 'customshadervs' in mtr.customshaders:
-            material.nvb.shadervs = mtr.customshaders['customshadervs']
-        if 'customshaderfs' in mtr.customshaders:
-            material.nvb.shaderfs = mtr.customshaders['customshaderfs']
         # Report
         self.report({'INFO'}, 'Loaded ' + mtrfilename)
         return {'FINISHED'}
@@ -2116,7 +1883,7 @@ class NVB_OT_mtr_open(bpy.types.Operator):
 
 
 class NVB_OT_mtr_reload(bpy.types.Operator):
-    """Reload MTR, update current material."""
+    """Reload MTR, update current material"""
     bl_idname = "nvb.mtr_reload"
     bl_label = "Reload MTR"
 
@@ -2127,24 +1894,21 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
         # Load mtr
-        mtr = nvb_node.Mtr()
+        mtr = nvb_mtr.Mtr()
         if not mtr.loadFile(material.nvb.mtrpath):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
-        # Add the rest of the properties
+        options = nvb_def.ImportOptions()
+        options.filepath = material.nvb.mtrpath
         # Add textures
-        importOptions = nvb_def.ImportOptions()
-        importOptions.filepath = material.nvb.mtrpath
         for idx, tname in enumerate(mtr.textures):
-            if tname:  # might be ''
+            if tname:
                 tslot = material.texture_slots[idx]
                 if not tslot:
                     tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.NodeMaterial.createTexture(
-                    tname, tname, importOptions)
-        material.nvb.shadervs = mtr.customshaderVS
-        material.nvb.shaderfs = mtr.customshaderFS
-        # Report
+                tslot.texture = nvb_node.Material.createTexture(
+                    tname, tname, options)
+        mtr.create(material, options)
         _, mtrfilename = os.path.split(material.nvb.mtrpath)
         self.report({'INFO'}, 'Reloaded ' + mtrfilename)
         return {'FINISHED'}
@@ -2154,29 +1918,42 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No text block.')
             return {'CANCELLED'}
         if material.nvb.mtrtext not in bpy.data.texts:
-            self.report({'ERROR'}, 'Error: Text block does not exist.')
+            self.report({'ERROR'}, 'Error: ' + material.nvb.mtrtext +
+                        ' does not exist.')
             return {'CANCELLED'}
-        txtBlock = bpy.data.texts[material.nvb.mtrtext]
-        mtr = nvb_node.Mtr()
-        mtr.loadTextBlock(txtBlock)
-        if not mtr or not mtr.isvalid():
+        txt_block = bpy.data.texts[material.nvb.mtrtext]
+        # Generate a name, strip trailing numbers (".001") and ".mtr"
+        match = re.match('([\w\-]+)[\.mtr]?[\.\d+]*', txt_block.name)
+        if match:
+            mtrname = match.group(1)
+        else:
+            mtrname = material.name
+        mtr = nvb_mtr.Mtr(mtrname)
+        if not mtr.loadTextBlock(txt_block):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
-        # Update name
-        # Add the rest of the properties
-        importOptions = nvb_def.ImportOptions()
-        importOptions.filepath = material.nvb.mtrpath
+        options = nvb_def.ImportOptions()
+        options.filepath = material.nvb.mtrpath
+        # Add textures
         for idx, tname in enumerate(mtr.textures):
-            if tname:  # might be ''
+            if tname:
                 tslot = material.texture_slots[idx]
                 if not tslot:
                     tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.NodeMaterial.createTexture(
-                    tname, tname, importOptions)
-        material.nvb.shadervs = mtr.customshaderVS
-        material.nvb.shaderfs = mtr.customshaderFS
-        self.report({'INFO'}, 'Reloaded ' + txtBlock.name)
+                tslot.texture = nvb_node.Material.createTexture(
+                    tname, tname, options)
+        mtr.create(material, options)
+        self.report({'INFO'}, 'Reloaded ' + txt_block.name)
         return {'FINISHED'}
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if mtrs are used."""
+        mat = context.material
+        if mat is not None and mat.nvb.usemtr:
+            return (mat.nvb.mtrsrc == 'FILE' and mat.nvb.mtrpath != '') or \
+                   (mat.nvb.mtrsrc == 'TEXT' and mat.nvb.mtrtext != '')
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
@@ -2188,3 +1965,54 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             return self.reloadFile(material)
         elif material.nvb.mtrsrc == 'TEXT':
             return self.reloadTextBlock(material)
+
+
+class NVB_OT_mtrparam_new(bpy.types.Operator):
+    """Add a new item to the parameter list"""
+
+    bl_idname = 'nvb.mtrparam_new'
+    bl_label = 'Add a new parameter'
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if there is a material."""
+        mat = context.material
+        return mat is not None and mat.nvb.usemtr
+
+    def execute(self, context):
+        """TODO: DOC."""
+        material = context.material
+        plist = material.nvb.mtrparam_list
+
+        param = plist.add()
+        if param.ptype == 'int':
+            param.pvalue = '1'
+        elif param.ptype == 'float':
+            param.pvalue = '1.0 1.0 1.0'
+        return {'FINISHED'}
+
+
+class NVB_OT_mtrparam_delete(bpy.types.Operator):
+    """Delete the selected parameter from the parameter list"""
+
+    bl_idname = 'nvb.mtrparam_delete'
+    bl_label = 'Delete a parameter'
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if the list isn't empty."""
+        mat = context.material
+        if mat is not None and mat.nvb.usemtr:
+            return len(mat.nvb.mtrparam_list) > 0
+        return False
+
+    def execute(self, context):
+        """TODO: DOC."""
+        mat = context.material
+        plist = mat.nvb.mtrparam_list
+        plist_idx = mat.nvb.mtrparam_list_idx
+
+        plist.remove(plist_idx)
+        if plist_idx > 0:
+            plist_idx = plist_idx - 1
+        return {'FINISHED'}

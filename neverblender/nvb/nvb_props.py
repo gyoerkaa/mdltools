@@ -62,6 +62,22 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
         default=0)
 
 
+class NVB_PG_mtrparameter(bpy.types.PropertyGroup):
+    """Properties for a single parameter in the flare list."""
+    ptype = bpy.props.EnumProperty(
+        name='Type',
+        description='Parameter type',
+        items=[('float', 'float', 'float', 0),
+               ('int', 'int', 'int', 1)],
+        default='int')
+    pname = bpy.props.StringProperty(name='Name',
+                                     description='Parameter name',
+                                     default='name')
+    pvalue = bpy.props.StringProperty(name='Value',
+                                      description='Parameter value',
+                                      default='')
+
+
 class NVB_PG_material(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
@@ -123,6 +139,9 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     shaderfs = bpy.props.StringProperty(name='Fragment Shader',
                                         description='Specify Fragment shader',
                                         default='')
+    mtrparam_list = bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
+    mtrparam_list_idx = bpy.props.IntProperty(name='Index for parameter list',
+                                              default=0)
 
 
 class NVB_PG_flare(bpy.types.PropertyGroup):

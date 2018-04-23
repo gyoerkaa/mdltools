@@ -12,129 +12,13 @@ import bpy_extras.image_utils
 import bmesh
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 # custom imports
+from . import nvb_mtr
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_aabb
 
 
-class Mtr(object):
-    """A material read from an mtr file."""
-    def __init__(self, name='unnamed'):
-        """TODO: DOC."""
-        self.name = name
-
-        self.filepath = ''
-        self.textures = ['']
-        self.renderhints = set()
-        self.parameters = dict()
-        self.customshaderVS = ''
-        self.customshaderFS = ''
-
-    def loadFile(self, filepath):
-        """Load contents of a mtr file."""
-        self.filepath = filepath
-        try:
-            mtrFile = open(os.fsencode(filepath), 'r')
-        except IOError:
-            return False
-        else:
-            asciiData = mtrFile.read()
-            self.loadAscii(asciiData)
-            mtrFile.close()
-        return True
-
-    def loadTextBlock(self, textBlock):
-        """Load content of a blender text block."""
-        if not textBlock:
-            return
-        # txtLines = [l.split() for l in textBlock.as_string().split('\n')]
-        asciiData = textBlock.as_string()
-        self.loadAscii(asciiData)
-
-    def loadAscii(self, asciiData):
-        """TODO: DOC."""
-        asciiLines = [l.strip().split() for l in asciiData.splitlines()]
-        iterable = iter(asciiLines)
-        line = True
-        while line is not None:
-            line = self.loadAsciiLine(iterable)
-
-    def loadAsciiLine(self, itlines):
-        """TODO: Doc."""
-        line = None
-        try:
-            line = next(itlines)
-        except StopIteration:
-            return None
-        label = ''
-        try:
-            label = line[0].lower()
-        except (IndexError, AttributeError):
-            return line  # Probably empty line or comment
-        if label == 'renderhint':
-            self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
-        elif label == 'parameter':
-            # 'parameter' 'float' 'myParam' '1.0'
-            try:
-                self.parameters[line[2]] = (line[1], line[3:])
-            except IndexError:
-                pass  # Bad parameter, skip it
-        elif label == 'customshadervs':
-            self.customshaderVS = line[1]
-        elif label == 'customshaderfs':
-            self.customshaderFS = line[1]
-        elif label.startswith('texture'):
-            tid = 0
-            if label[7:]:  # 'texture' has to be followed by a number
-                tid = int(label[7:])
-                tcnt = len(self.textures)
-                if tid+1 > tcnt:
-                    self.textures.extend(['' for _ in range(tid-tcnt+1)])
-                if not self.textures[tid]:
-                    self.textures[tid] = nvb_utils.getAuroraTexture(line[1])
-        return line
-
-    def generateAscii(self, material, options):
-        """Generate a mtr file as asciilines."""
-        asciiLines = []
-        # Load text block to get parameters
-        # (other properties will be overwritten by blender's own material)
-        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
-            txtBlock = bpy.data.texts[material.nvb.mtrtext]
-            self.loadTextBlock(txtBlock)
-        texList = NodeMaterial.getAsciiTextures(material, options)
-        # Add shader specification
-        if material.nvb.shadervs or material.nvb.shaderfs:
-            asciiLines.append('// Shaders')
-            if material.nvb.shadervs:
-                asciiLines.append('customshaderVS ' + material.nvb.shadervs)
-            if material.nvb.shaderfs:
-                asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
-            asciiLines.append('')
-        else:
-            # Add Renderhint
-            if (material.nvb.renderhint == 'NASM') or \
-               (material.nvb.renderhint == 'AUTO' and len(texList) > 2):
-                asciiLines.append('renderhint NormalAndSpecMapped')
-                asciiLines.append('')
-        # Add list of textures
-        if len(texList) > 0:
-            asciiLines.append('// Textures')
-            asciiLines.extend(['texture' + str(i) + ' ' + n
-                               for i, n, _ in texList])
-            asciiLines.append('')
-        # Add parameters
-        if len(self.parameters) > 0:
-            asciiLines.append('// Parameters')
-            for pname, pvalues in self.parameters.items():
-                asciiLines.append('parameter ' +
-                                  pvalues[0] +
-                                  ' ' + pname + ' ' +
-                                  ' '.join(pvalues[1]))
-        return asciiLines
-
-
-class NodeMaterial(object):
+class Material(object):
     """A material read from an mdl node."""
 
     def __init__(self, name='unnamed'):
@@ -142,12 +26,12 @@ class NodeMaterial(object):
         self.name = name
         self.ambient = (1.0, 1.0, 1.0)
         self.diffuse = (1.0, 1.0, 1.0)
-        self.diffuse_alpha = -1.0  # EE stores alpha as 4th diffuse value
+        self.diffuse_alpha = -1.0  # EE stores an alpha as 4th diffuse value
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
         self.textures = [nvb_def.null]
         self.renderhints = set()
-        self.materialname = ''  # Name of external mtr file
+        self.materialname = ''
         self.mtr = None
 
     @staticmethod
@@ -170,8 +54,8 @@ class NodeMaterial(object):
         for mat in bpy.data.materials:
             eq = True
             # Check diffuse and specular color
-            eq = eq and NodeMaterial.colorisclose(mat.diffuse_color, cdiff)
-            eq = eq and NodeMaterial.colorisclose(mat.specular_color, cspec)
+            eq = eq and Material.colorisclose(mat.diffuse_color, cdiff)
+            eq = eq and Material.colorisclose(mat.specular_color, cspec)
             # Check texture names:
             tstextures = list(map(get_tslot_img, mat.texture_slots))
             matches = []
@@ -195,9 +79,9 @@ class NodeMaterial(object):
     def isdefault(self):
         """Return True if the material contains only default values"""
         d = True
-        d = d and NodeMaterial.colorisclose(self.ambient, (1.0, 1.0, 1.0))
-        d = d and NodeMaterial.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
-        d = d and NodeMaterial.colorisclose(self.specular, (0.0, 0.0, 0.0))
+        d = d and Material.colorisclose(self.ambient, (1.0, 1.0, 1.0))
+        d = d and Material.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
+        d = d and Material.colorisclose(self.specular, (0.0, 0.0, 0.0))
         d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
         d = d and self.textures.count(nvb_def.null) == len(self.textures)
         d = d and self.materialname == ''
@@ -209,155 +93,144 @@ class NodeMaterial(object):
             label = line[0].lower()
         except (IndexError, AttributeError):
             return line  # Probably empty line or comment
-        if (label == 'ambient'):
+        if label == 'ambient':
             self.ambient = tuple([float(v) for v in line[1:4]])
-        elif (label == 'diffuse'):
+        elif label == 'diffuse':
             self.diffuse = tuple([float(v) for v in line[1:4]])
-            # EE stores alpha as 4th diffuse value
-            if len(line) > 4:
+            if len(line) > 4:  # EE may store an alpha as 4th diffuse value
                 self.diffuse_alpha = float(line[4])
-        elif (label == 'specular'):
+        elif label == 'specular':
             self.specular = tuple([float(v) for v in line[1:4]])
-        elif (label == 'alpha'):
+        elif label == 'alpha':
             self.alpha = float(line[1])
-        elif (label == 'materialname'):
+        elif label == 'materialname':
             self.materialname = nvb_utils.getAuroraIdentifier(line[1])
-        elif (label == 'renderhint'):
+        elif label == 'renderhint':
             self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
-        elif (label == 'bitmap'):
-            if not self.textures[0]:
+        elif label == 'bitmap':
+            if self.textures[0] == nvb_def.null:  # Do not overwrite existing
                 self.textures[0] = nvb_utils.getAuroraTexture(line[1])
-        elif (label.startswith('texture')):
-            tid = 0
-            # 'texture' has to be followed by a number
-            if label[7:]:
-                tid = int(label[7:])
-                tcnt = len(self.textures)
-                if tid+1 > tcnt:
-                    self.textures.extend(['' for _ in range(tid-tcnt+1)])
-                if not self.textures[tid]:
-                    self.textures[tid] = \
-                        nvb_utils.getAuroraTexture(line[1])
+        elif label.startswith('texture'):
+            if label[7:]:  # 'texture' is followed by a number
+                idx = int(label[7:])
+                cnt = len(self.textures)
+                if idx+1 > cnt:
+                    self.textures.extend([nvb_def.null
+                                         for _ in range(idx+1-cnt)])
+                self.textures[idx] = nvb_utils.getAuroraTexture(line[1])
 
     def loadMTR(self, options):
-        """Loads contents of a mtr file into the this material."""
+        """Loads contents of the mtr file into the this material."""
         self.mtr = None
-        if self.materialname:  # try loading from materialname first
-            # Always load, create empty mtr if no file found
-            if self.materialname in options.mtrdb:  # already loaded
-                self.mtr = options.mtrdb[self.materialname]
-            else:
-                mtr_filename = self.materialname + '.mtr'
-                mdl_dir, _ = os.path.split(options.filepath)
-                mtr_path = os.path.join(mdl_dir, mtr_filename)
-                tmp = Mtr(self.materialname)
-                if tmp.loadFile(mtr_path):
-                    options.mtrdb[self.materialname] = tmp
-                self.mtr = tmp
-        elif self.textures[0]:  # load from texture[0]/bitmap parameter
-            # Load only if an mtr file was found
-            mtr_filename = self.textures[0] + '.mtr'
-            mdl_dir, _ = os.path.split(options.filepath)
-            mtr_path = os.path.join(mdl_dir, mtr_filename)
-            if os.path.isfile(mtr_path):
-                if self.textures[0] in options.mtrdb:  # already loaded
-                    self.mtr = options.mtrdb[self.textures[0]]
-                else:
-                    self.mtr = Mtr(self.textures[0])
-                    if self.mtr.loadFile(mtr_path):
-                        options.mtrdb[self.textures[0]] = self.mtr
-        # Load values into self
-        if self.mtr:  # Abort if no file was read
-            # Merge renderhints
+        namelist = [(self.materialname, True), (self.textures[0], False)]
+        for mtrname, alwayscreate in namelist:
+            if mtrname not in [nvb_def.null, '']:
+                if mtrname in options.mtrdb:
+                    self.mtr = options.mtrdb[mtrname]
+                else:  # Always load, use empty mtr if no file was found
+                    mtr_filename = mtrname + '.mtr'
+                    mdl_dir, _ = os.path.split(options.filepath)
+                    mtr_path = os.path.join(mdl_dir, mtr_filename)
+                    tmp = nvb_mtr.Mtr(mtrname)
+                    if tmp.loadFile(mtr_path) or alwayscreate:
+                        options.mtrdb[mtrname] = tmp
+                        self.mtr = tmp
+        # Merge values from mtr, overwrtite existing
+        if self.mtr:
             self.renderhints = self.renderhints.union(self.mtr.renderhints)
-            # If there are any textures in the mtr load them into self
-            if self.mtr.textures:
-                # Override textures in the mdl
+            if self.mtr.textures:  # Transfer texture names
                 l1 = len(self.textures)
                 l2 = len(self.mtr.textures)
-                if l1 < l2:
+                if l2 > l1:
                     self.textures.extend(['' for _ in range(l2-l1+1)])
-                for tidx, mtr_txname in enumerate(self.mtr.textures):
-                    if mtr_txname:
-                        self.textures[tidx] = mtr_txname
+                for idx, txname in enumerate(self.mtr.textures):
+                    if txname:  # null value in mtr overwrites existing in mdl
+                        self.textures[idx] = txname
 
     @staticmethod
-    def createTexture(tname, imgname, options):
+    def createTexture(texname, imgname, options):
         """TODO: Doc."""
-        if tname in bpy.data.textures:
+        if texname in bpy.data.textures:
             # Load the image for the texture
-            tex = bpy.data.textures[tname]
+            tex = bpy.data.textures[texname]
         else:
-            tex = bpy.data.textures.new(tname, type='IMAGE')
+            tex = bpy.data.textures.new(texname, type='IMAGE')
             if (imgname in bpy.data.images):
-                image = bpy.data.images[imgname]
-                tex.image = image
+                img = bpy.data.images[imgname]
+                tex.image = img
             else:
                 texpath = os.path.dirname(options.filepath)
-                image = bpy_extras.image_utils.load_image(
-                    imgname + '.tga',
-                    texpath,
-                    recursive=options.textureSearch,
-                    place_holder=False,
-                    ncase_cmp=True)
-                if image is None:
-                    image = bpy.data.images.new(imgname, 512, 512)
-                image.name = imgname
-                tex.image = image
+                img = bpy_extras.image_utils.load_image(
+                    imgname + '.tga', texpath, recursive=options.tex_search,
+                    place_holder=False, ncase_cmp=True)
+                if img is None:
+                    img = bpy.data.images.new(imgname, 512, 512)
+                img.name = imgname
+                tex.image = img
         return tex
 
     @staticmethod
-    def applyNASMSettings(material, alpha, options):
+    def applyNASMSettings(material, options):
         """Apply settings to material and texture slots for default shader."""
-        matalpha = alpha
-        if options.textureDefaultRoles:
-            # Diffuse in tslot 0
-            tslot = material.texture_slots[0]
-            if tslot is not None:
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = True
-                tslot.use_map_normal = False
-                tslot.use_map_color_spec = False
-                tslot.use_map_alpha = True
-                tslot.alpha_factor = alpha
-                matalpha = 0.0  # alpha doesn't need to be in mat anymore
-            # Normal in tslot 1
-            tslot = material.texture_slots[1]
-            if tslot is not None:
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = False
-                tslot.use_map_normal = True
-                tslot.use_map_color_spec = False
-                tslot.normal_map_space = 'TANGENT'
-                tslot.texture.use_normal_map = True
-            # Specular in tslot 2
-            tslot = material.texture_slots[2]
-            if tslot is not None:
-                tslot.texture_coords = 'UV'
-                tslot.use_map_color_diffuse = False
-                tslot.use_map_normal = False
-                tslot.use_map_color_spec = True
-            # ??? in tslot 3
-            tslot = material.texture_slots[3]
-            if tslot is not None:
-                tslot.texture_coords = 'UV'
-            # Other slots are generic
+        # Diffuse in tslot 0
+        tslot = material.texture_slots[0]
+        if tslot is not None:
+            tslot.texture_coords = 'UV'
+            tslot.use_map_color_diffuse = True
+            tslot.use_map_normal = False
+            tslot.use_map_color_spec = False
+            tslot.use_map_alpha = True
+        # Normal in tslot 1
+        tslot = material.texture_slots[1]
+        if tslot is not None:
+            tslot.texture_coords = 'UV'
+            tslot.use_map_color_diffuse = False
+            tslot.use_map_normal = True
+            tslot.use_map_color_spec = False
+            tslot.normal_map_space = 'TANGENT'
+            tslot.texture.use_normal_map = True
+        # Specular in tslot 2
+        tslot = material.texture_slots[2]
+        if tslot is not None:
+            tslot.texture_coords = 'UV'
+            tslot.use_map_color_diffuse = False
+            tslot.use_map_normal = False
+            tslot.use_map_color_spec = True
+        # ??? in tslot 3
+        tslot = material.texture_slots[3]
+        if tslot is not None:
+            tslot.texture_coords = 'UV'
+
+    @staticmethod
+    def applyAlphaSettings(material, alpha, options):
+        """Applies settings to correctly display alpha values
+
+           1. If there is a texture, alpha goes into texture slot, material
+              alpha is 0.0
+           2. Alpha goes in material if there is no texture.
+        """
         material.use_transparency = True
-        material.alpha = matalpha
-        material.specular_alpha = matalpha
+        material.specular_alpha = 0.0
+        tslot = material.texture_slots[0]
+        if tslot:
+            material.alpha = 0.0
+            tslot.use_map_alpha = True
+            tslot.alpha_factor = alpha
+        else:
+            material.alpha = alpha
 
     def create(self, options, makeunique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values intro this material
-        if options.importMTR:
+        if options.mtr_import:
             self.loadMTR(options)
         # If this material has no texture, no alpha and default values
         if self.isdefault():
             return None
         # Look for similar materials to avoid duplicates
         material = None
-        if options.materialAutoMerge and not makeunique:
-            material = NodeMaterial.findMaterial(
+        if options.mat_automerge and not makeunique:
+            material = Material.findMaterial(
                 self.textures, self.materialname,
                 self.diffuse, self.specular, self.alpha)
         # Create new material as necessary
@@ -378,19 +251,17 @@ class NodeMaterial(object):
             for idx, txname in enumerate(self.textures):
                 if txname and txname is not nvb_def.null:
                     tslot = material.texture_slots.create(idx)
-                    tslot.texture = NodeMaterial.createTexture(txname, txname,
-                                                               options)
+                    tslot.texture = Material.createTexture(txname, txname,
+                                                           options)
             # Set Renderhint and set up textures accordingly
             if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
                 material.nvb.renderhint = 'NASM'
-                NodeMaterial.applyNASMSettings(material, self.alpha, options)
-            # Set MTR options
+                Material.applyNASMSettings(material, options)
+            Material.applyAlphaSettings(material, self.alpha, options)
+            # Set MTR values
             if self.mtr:
-                material.nvb.usemtr = True
-                material.nvb.mtrname = self.mtr.name
-                material.nvb.mtrpath = self.mtr.filepath
-                material.nvb.shadervs = self.mtr.customshaderVS
-                material.nvb.shaderfs = self.mtr.customshaderFS
+                material.nvb.mtrsrc = 'FILE'
+                self.mtr.create(material, options)
         return material
 
     @staticmethod
@@ -410,13 +281,11 @@ class NodeMaterial(object):
             tex = tslot.texture
             if tex.type == 'IMAGE':
                 img = tex.image
-                if tex.image:
-                    # 1st try: Image filepath
+                if img:
                     if img.filepath:
                         imgname = \
                             os.path.splitext(os.path.basename(img.filepath))[0]
-                    # 2nd try: Image name
-                    if not imgname:
+                    elif img.name:
                         imgname = \
                             os.path.splitext(os.path.basename(img.name))[0]
             # Last resort: Texture name
@@ -424,68 +293,57 @@ class NodeMaterial(object):
                 imgname = tex.name
             return imgname
 
-        # Generate a list of (texture_index, texture_name) tuples
-        # texture index = texture slot index
-        # texture name = either image filename, image name, texture
-        texList1 = [(idx, get_img_name(tslot), tslot.alpha_factor)
-                    for idx, tslot in enumerate(material.texture_slots)
-                    if tslot and material.use_textures[idx]]
-        # Alter texture indices to be consecutive
-        # texList2 = [(i, *v[1:]) for i, v in enumerate(texList1)]
-        # return texList2
-        return texList1
+        # Generate a list of (texture_idx, texture_name, texture_alpha) tuples
+        texList = [(idx, get_img_name(tslot), tslot.alpha_factor)
+                   for idx, tslot in enumerate(material.texture_slots)
+                   if tslot and material.use_textures[idx]]
+        return texList
 
     @staticmethod
     def generateAscii(obj, asciiLines, options):
         """Write Ascii lines from the objects material for a MDL file."""
-        istextured = False  # Return value
-        if not obj.nvb.render:
-            NodeMaterial.generateDefaultValues(asciiLines)
-        else:
-            # Check if this object has a material assigned to it
-            material = obj.active_material
-            if material:
-                # Write Color Values
-                fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
-                asciiLines.append(fstr.format(*material.nvb.ambient_color))
-                fstr = '  diffuse {:3.2f} {:3.2f} {:3.2f}'
-                asciiLines.append(fstr.format(*material.diffuse_color))
-                fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
-                asciiLines.append(fstr.format(*material.specular_color))
-                # Get textures for this material
-                texList = NodeMaterial.getAsciiTextures(material, options)
-                # Always write bitmap entry
-                if len(texList) > 0:
-                    istextured = True
-                    asciiLines.append('  bitmap ' + texList[0][1])
+        material = obj.active_material
+        txlist = []
+        if obj.nvb.render and material:
+            # Write Color Values
+            fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
+            asciiLines.append(fstr.format(*material.nvb.ambient_color))
+            fstr = '  diffuse {:3.2f} {:3.2f} {:3.2f}'
+            asciiLines.append(fstr.format(*material.diffuse_color))
+            fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
+            asciiLines.append(fstr.format(*material.specular_color))
+            # Get textures for this material
+            txlist = Material.getAsciiTextures(material, options)
+            if material.nvb.usemtr:
+                mtrname = material.nvb.mtrname
+                asciiLines.append('  ' + options.mtr_ref + ' ' + mtrname)
+                options.mtrdb.add(mtrname)
+            else:
+                # Add Renderhint
+                if (material.nvb.renderhint == 'NASM') or \
+                   (material.nvb.renderhint == 'AUTO' and len(txlist) > 1):
+                    asciiLines.append('  renderhint NormalAndSpecMapped')
+                # Export texture[0] as "bitmap", not "texture0"
+                if len(txlist) > 0:
+                    asciiLines.append('  bitmap ' + txlist[0][1])
                 else:
                     asciiLines.append('  bitmap ' + nvb_def.null)
-                # Write the rest of the data either to mdl or add mtr reference
-                if options.exportMTR and material.nvb.usemtr:
-                    asciiLines.append('  materialname ' +
-                                      material.nvb.mtrname)
+                # Export texture1 and texture2
+                fstr = 'texture{:d} {:s}'
+                asciiLines.extend([fstr.format(i, n) for i, n, _ in txlist])
+            # Alpha value:
+            # 1. Texture slots present: get alpha from 1st slot
+            # 2. No texture slots: get alpha from material
+            if material.use_transparency:
+                if len(txlist) > 0:
+                    _, _, alpha = txlist[0]
                 else:
-                    # Add renderhint
-                    if len(texList) > 1:
-                        asciiLines.append('  renderhint NormalAndSpecMapped')
-                    # Write texture1 and texture2 to mdl
-                    asciiLines.extend(['  texture' + str(i) + ' ' + n
-                                      for i, n, _ in texList[1:3]])
-                # Alpha value:
-                # 1. Texture slots present: get alpha from 1st slot
-                # 2. No texture slot get alpha from material
-                if material.use_transparency:
-                    alpha = 1.0
-                    if len(texList) > 0:
-                        _, _, alpha = texList[0]
-                    else:
-                        alpha = material.alpha
-                    # Skip if 1.0
-                    if not math.isclose(alpha, 1.0, rel_tol=0.01):
-                        asciiLines.append('  alpha {: 3.2f}'.format(alpha))
-            else:
-                NodeMaterial.generateDefaultValues(asciiLines)
-        return istextured
+                    alpha = material.alpha
+                if not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
+                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
+        else:
+            Material.generateDefaultValues(asciiLines)
+        return len(txlist) > 0  # Needed later to decide whether to add UVs
 
 
 class Node(object):
@@ -717,7 +575,7 @@ class Trimesh(Node):
         self.selfillumcolor = (0.0, 0.0, 0.0)
         self.shininess = 0
         self.rotatetexture = 0
-        self.material = NodeMaterial()
+        self.material = Material()
         self.verts = []
         self.facedef = []
         self.tverts = [[]]
@@ -1154,8 +1012,7 @@ class Trimesh(Node):
                 normals = \
                     [l.normal for l in mesh.loops if l.vertex_index == i]
                 s = set([str(n) for n in normals])
-                if len(s) != 1:
-                    # Something is not right, cannot export this
+                if len(s) != 1:  # Something is not right, cannot export this
                     oknormals = []
                     print('Neverblender: WARNING - Invalid normals ' +
                           obj.name)
@@ -1198,8 +1055,8 @@ class Trimesh(Node):
             # mesh.free_normals_split()
 
         me = obj.to_mesh(options.scene,
-                         options.applyModifiers,
-                         options.meshConvert)
+                         options.apply_modifiers,
+                         options.mesh_convert)
         for p in me.polygons:
             p.use_smooth = True
         # Triangulation (doing it with bmesh to retain edges marked as sharp)
@@ -1307,7 +1164,7 @@ class Trimesh(Node):
             asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap ' + nvb_def.null)
         else:
-            hastexture = NodeMaterial.generateAscii(obj, asciiLines, options)
+            hastexture = Material.generateAscii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Self illumination color
@@ -1898,8 +1755,8 @@ class Aabb(Trimesh):
     def generateAsciiAABB(obj, asciiLines, options):
         """TODO: Doc."""
         walkmesh = obj.to_mesh(options.scene,
-                               options.applyModifiers,
-                               options.meshConvert)
+                               options.apply_modifiers,
+                               options.mesh_convert)
 
         faceList = []
         faceIdx = 0
@@ -1946,9 +1803,7 @@ class Aabb(Trimesh):
                                   walkmesh.vertices[v0].co],
                                  centroid))
                 faceIdx += 1
-            else:
-                # Ngon or no polygon at all
-                # (This should never be the case with tessfaces)
+            else:  # Ngon or not a polygon (shouldn't happen with tessfaces)
                 print('Neverblender: WARNING - Ngon in walkmesh. \
                        Unable to generate aabb.')
                 return

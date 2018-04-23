@@ -192,7 +192,7 @@ def getAuroraIdentifier(s):
 
 
 def getAuroraTexture(s):
-    """Convert to lower case. Convert null to nvb_def.null."""
+    """Convert to lower case. Convert 'null' to nvb_def.null."""
     if (not s or s.lower() == nvb_def.null):
         return nvb_def.null
     return s.lower()

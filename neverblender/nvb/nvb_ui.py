@@ -54,6 +54,24 @@ class NVB_UL_animevents(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
+class NVB_UL_mtrparams(bpy.types.UIList):
+    """TODO: DOC."""
+
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
+        """TODO: DOC."""
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(item.pname, icon=custom_icon)
+            layout.label(item.ptype)
+            layout.label(item.pvalue)
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon=custom_icon)
+
+
 class NVB_PT_rootdummy(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
@@ -247,28 +265,51 @@ class NVB_PT_mtr(bpy.types.Panel):
         mat = context.material
         layout = self.layout
 
-        col = layout.column()
-        col.active = mat.nvb.usemtr
+        sub = layout.column()
+        sub.active = mat.nvb.usemtr
 
-        col.prop(mat.nvb, 'mtrname')
-        col.separator()
-        col.prop(mat.nvb, 'mtrsrc')
-        col.separator()
+        sub.prop(mat.nvb, 'mtrname')
+
+        sub.separator()
+        row = sub.row()
+        row.prop(mat.nvb, 'mtrsrc', expand=True)
+        sub.separator()
         if mat.nvb.mtrsrc == 'FILE':
-            row = col.row(align=True)
+            row = sub.row(align=True)
             row.operator('nvb.mtr_embed', icon='UGLYPACKAGE', text='')
             row.prop(mat.nvb, 'mtrpath', text='')
             row.operator('nvb.mtr_open', icon='FILESEL', text='')
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
         elif mat.nvb.mtrsrc == 'TEXT':
-            row = col.row(align=True)
+            row = sub.row(align=True)
             row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
             row.operator('nvb.mtr_generate', icon='IMPORT', text='')
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
-        col.separator()
-        box = col.box()
+
+        sub.separator()
+        box = sub.box()
         box.prop(mat.nvb, 'shadervs')
         box.prop(mat.nvb, 'shaderfs')
+
+        sub.separator()
+        box = sub.box()
+        box.label('Parameters')
+        row = box.row()
+        row.template_list('NVB_UL_mtrparams', 'TheParamList',
+                          mat.nvb, 'mtrparam_list',
+                          mat.nvb, 'mtrparam_list_idx')
+        col = row.column(align=True)
+        col.operator('nvb.mtrparam_new', icon='ZOOMIN', text='')
+        col.operator('nvb.mtrparam_delete', icon='ZOOMOUT', text='')
+        col.separator()
+        if mat.nvb.mtrparam_list_idx >= 0 and \
+           len(mat.nvb.mtrparam_list) > 0:
+            plist = mat.nvb.mtrparam_list[mat.nvb.mtrparam_list_idx]
+            row = box.row(align=True)
+            row.prop(plist, 'pname', text='')
+            row.prop(plist, 'ptype', text='')
+            row = box.row()
+            row.prop(plist, 'pvalue')
 
 
 class NVB_PT_lamp_data(bpy.types.Panel):
@@ -339,7 +380,7 @@ class NVB_PT_lensflares(bpy.types.Panel):
 
         row = layout.row()
         row.active = data.nvb.uselensflares
-        row.template_list('NVB_UL_lensflares', 'The_List',
+        row.template_list('NVB_UL_lensflares', 'TheFlareList',
                           data.nvb, 'flareList',
                           data.nvb, 'flareListIdx')
         col = row.column(align=True)
@@ -552,7 +593,8 @@ class NVB_PT_animlist(bpy.types.Panel):
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             row.template_list('NVB_UL_anims', 'TheAnimList',
-                              obj.nvb, 'animList', obj.nvb, 'animListIdx',
+                              obj.nvb, 'animList',
+                              obj.nvb, 'animListIdx',
                               rows=7)
             col = row.column(align=True)
             col.operator('nvb.anim_new', icon='ZOOMIN', text='')
@@ -598,7 +640,8 @@ class NVB_PT_animlist(bpy.types.Panel):
 
                 row = sub.row()
                 row.template_list('NVB_UL_animevents', 'TheEventList',
-                                  anim, 'eventList', anim, 'eventListIdx')
+                                  anim, 'eventList',
+                                  anim, 'eventListIdx')
                 col = row.column(align=True)
                 col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
                 col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')

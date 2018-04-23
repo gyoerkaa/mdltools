@@ -223,11 +223,9 @@ class ImportOptions():
         self.importNormals = True
         self.importMaterials = True
         # Additional options for textures and materials
-        self.importMTR = True
-        self.materialAutoMerge = True
-        self.textureDefaultRoles = True
-        self.texturePath = ''
-        self.textureSearch = False
+        self.mtr_import = True
+        self.mat_automerge = True
+        self.tex_search = False
         # Blender Settings
         self.customfps = True
         self.fps = 30
@@ -246,6 +244,7 @@ class ExportOptions():
         self.filepath = ''
         self.scene = None
         self.mdlname = 'unnamed'
+        self.mtrdb = set()
         self.classification = Classification.UNKNOWN
         # Misc options
         self.exportAnimations = True
@@ -257,7 +256,9 @@ class ExportOptions():
         self.uvmapMode = 'REN'
         self.uvmapOrder = 'AL0'
         # Additional options for textures and materials
-        self.exportMTR = True
+        self.mtr_export = True
+        self.mtr_ref = 'bitmap'
         # Blender Settings
-        self.applyModifiers = True
-        self.meshConvert = 'RENDER'
+        self.apply_modifiers = True
+        self.mesh_convert = 'RENDER'
+        self.batch_mode = 'OFF'

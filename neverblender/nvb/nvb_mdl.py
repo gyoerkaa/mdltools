@@ -56,9 +56,7 @@ class Mdl():
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read model name.")
             elif (label == 'setsupermodel'):
-                try:
-                    # line should be
-                    # ['setsupermodel', modelname, supermodelname]
+                try:  # should be ['setsupermodel', modelname, supermodelname]
                     self.supermodel = line[2]
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read supermodel. \
@@ -70,7 +68,6 @@ class Mdl():
                     print("Neverblender: WARNING - Unable to read \
                            classification. \
                            Using Default value " + self.classification)
-
                 if self.classification not in nvb_def.Classification.ALL:
                     print("Neverblender: WARNING - Invalid classification \
                            '" + self.classification + "'")
@@ -87,9 +84,7 @@ class Mdl():
         """TODO: DOC."""
         if options.importWalkmesh:
             geomStart = asciiBlock.find('node ')  # Look for the first 'node'
-            if (geomStart < 0):
-                # Something is wrong
-                # Most likely empty walkmesh file
+            if (geomStart < 0):  # Most likely empty walkmesh file
                 print("Neverblender: WARNING: Unable to read walkmesh data")
                 return
             if wkmtype == 'pwk':
@@ -135,8 +130,7 @@ class Mdl():
 
     def readAsciiAnimations(self, asciiBlock):
         """Load all animations from an ascii mdl block."""
-        # Split into animations using 'newanim' as delimiter
-        dlm = 'newanim '
+        dlm = 'newanim '  # Split animations using 'newanim' as delimiter
         animList = [dlm+block for block in asciiBlock.split(dlm) if block]
         self.animations = list(map(Mdl.readAsciiAnimation, animList))
 
@@ -157,8 +151,7 @@ class Mdl():
             Mdl.readAsciiGeometry(asciiBlock[geomStart:animStart],
                                   self.mdlnodes)
         else:
-            Mdl.readAsciiGeometry(asciiBlock[geomStart:],
-                                  self.mdlnodes)
+            Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.mdlnodes)
         # Import Animations
         if options.importAnimations and (animStart > 0):
             self.readAsciiAnimations(asciiBlock[animStart:])
@@ -301,7 +294,6 @@ class Mdl():
     def createObjects(nodelist, noderesolver, options):
         """TODO: DOC."""
         for node in nodelist:
-            # Creates a blender object for this node
             obj = node.createObject(options)
             # Save the imported objects for animation import
             if obj:

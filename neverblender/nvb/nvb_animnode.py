@@ -167,7 +167,7 @@ class Animnode():
                              for v in asciiLines[i+1:i+keycnt+1]]
                     elif label not in self.unknownvalue:
                         # Unknown or unsupported single value
-                        self.unknownval[label] = line[1:]
+                        self.unknownvalue[label] = line[1:]
 
     @staticmethod
     def getCurve(action, data_path, index=0):

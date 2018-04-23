@@ -63,8 +63,6 @@ def saveMdl(operator, context, options):
                 wkmPath = os.path.splitext(options.filepath)[0] + '.' + wkmtype
                 with open(os.fsencode(wkmPath), 'w') as f:
                     f.write('\n'.join(asciiLines))
-            else:
-                pass
     else:
         return {'CANCELLED'}
 

@@ -24,14 +24,15 @@ import bpy
 
 from .nvb import nvb_def
 from .nvb import nvb_utils
-from .nvb import nvb_io
 from .nvb import nvb_mdl
 from .nvb import nvb_node
 from .nvb import nvb_anim
 from .nvb import nvb_animnode
+from .nvb import nvb_mtr
 
 from .nvb import nvb_props
 from .nvb import nvb_ops
+from .nvb import nvb_ops_io
 from .nvb import nvb_ui
 
 if 'bpy' in locals():
@@ -39,14 +40,15 @@ if 'bpy' in locals():
     if 'nvb_def' in locals():
         importlib.reload(nvb_def)
         importlib.reload(nvb_utils)
-        importlib.reload(nvb_io)
         importlib.reload(nvb_mdl)
         importlib.reload(nvb_node)
         importlib.reload(nvb_anim)
         importlib.reload(nvb_animnode)
+        importlib.reload(nvb_mtr)
 
         importlib.reload(nvb_props)
         importlib.reload(nvb_ops)
+        importlib.reload(nvb_ops_io)
         importlib.reload(nvb_ui)
         print('Neverblender: Ready')
 
@@ -103,13 +105,13 @@ def menu_func_create_mdl(self, context):
 
 def menu_func_export(self, context):
     """TODO:Doc."""
-    self.layout.operator(nvb_ops.NVB_OT_mdlexport.bl_idname,
+    self.layout.operator(nvb_ops_io.NVB_OT_mdlexport.bl_idname,
                          text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
     """TODO:Doc."""
-    self.layout.operator(nvb_ops.NVB_OT_mdlimport.bl_idname,
+    self.layout.operator(nvb_ops_io.NVB_OT_mdlimport.bl_idname,
                          text="Aurora (.mdl)")
 
 
