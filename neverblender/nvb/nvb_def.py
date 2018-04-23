@@ -217,7 +217,6 @@ class ImportOptions():
         self.mdlname = 'unnamed'
         self.mtrdb = dict()
         # What to import
-        self.importAnimations = True
         self.importWalkmesh = True
         self.importSmoothGroups = True
         self.importNormals = True
@@ -226,10 +225,12 @@ class ImportOptions():
         self.mtr_import = True
         self.mat_automerge = True
         self.tex_search = False
-        # Blender Settings
+        # Animation Settings
+        self.importAnimations = True
         self.customfps = True
         self.fps = 30
         self.restpose = True
+        # Blender Settings
         self.rotmode = 'XYZ'
         # for batch processing
         self.minimapMode = False

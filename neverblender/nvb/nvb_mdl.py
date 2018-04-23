@@ -50,18 +50,18 @@ class Mdl():
                 label = line[0].lower()
             except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
-            if (label == 'newmodel'):
+            if label == 'newmodel':
                 try:
                     self.name = line[1]
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read model name.")
-            elif (label == 'setsupermodel'):
+            elif label == 'setsupermodel':
                 try:  # should be ['setsupermodel', modelname, supermodelname]
                     self.supermodel = line[2]
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read supermodel. \
                            Using default value " + self.supermodel)
-            elif (label == 'classification'):
+            elif label == 'classification':
                 try:
                     self.classification = line[1].lower()
                 except (ValueError, IndexError):
@@ -72,9 +72,9 @@ class Mdl():
                     print("Neverblender: WARNING - Invalid classification \
                            '" + self.classification + "'")
                     self.classification = nvb_def.Classification.UNKNOWN
-            elif (label == 'setanimationscale'):
+            elif label == 'setanimationscale':
                 try:
-                    self.animscale = line[1]
+                    self.animscale = float(line[1])
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read \
                            animationscale. \
@@ -102,22 +102,19 @@ class Mdl():
             node = None
             nodeType = ''
             nodeName = 'UNNAMED'
-            # Read node type
-            try:
+            try:  # Read node type
                 nodeType = asciiLines[0][1].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node type')
-            # Read node name
-            try:
+            try:  # Read node name
                 nodeName = asciiLines[0][2].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
-            # Create an object with that type and name
-            try:
+            try:  # Create (node) object
                 node = Mdl.nodelookup[nodeType](nodeName)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
-            # Parse the rest and add to node list
+            # Parse and add to node list
             node.loadAscii(asciiLines, idx)
             nodelist.append(node)
 
@@ -159,15 +156,11 @@ class Mdl():
     @staticmethod
     def generateAsciiHeader(mdlRoot, asciiLines, options):
         """TODO: DOC."""
-        blendfile = os.path.basename(bpy.data.filepath)
-        if not blendfile:
-            blendfile = 'unknown'
         mdlname = mdlRoot.name
         mdlclass = mdlRoot.nvb.classification.upper()
         mdlsuper = mdlRoot.nvb.supermodel
         mdlanimscale = mdlRoot.nvb.animscale
 
-        asciiLines.append('filedependancy ' + blendfile)
         asciiLines.append('newmodel ' + mdlname)
         asciiLines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
         asciiLines.append('classification ' + mdlclass)
@@ -205,12 +198,12 @@ class Mdl():
     @staticmethod
     def generateAsciiMeta(mdlRoot, asciiLines, options):
         """Add creation time to a list of ascii lines."""
-        currentTime = datetime.now()
-        blendFileName = os.path.basename(bpy.data.filepath)
-        if not blendFileName:
-            blendFileName = 'unknown'
-        asciiLines.append('# Exported from blender at ' +
-                          currentTime.strftime('%A, %Y-%m-%d'))
+        ct = datetime.now()
+        asciiLines.append(ct.strftime('# Exported from blender %A, %Y-%m-%d'))
+        blend = os.path.basename(bpy.data.filepath)
+        if not blend:
+            blend = 'unknown'
+        asciiLines.append('filedependancy ' + blend)
 
     @staticmethod
     def generateAscii(mdlRoot, asciiLines, options):
@@ -239,7 +232,7 @@ class Mdl():
         wkmObjects = []
         if wkmtype == nvb_def.Walkmeshtype.WOK:
             # Walkmesh for tiles: Append only AABB mesh
-            wok = nvb_utils.findAABB(mdlRoot)
+            wok = nvb_utils.get_aabb(mdlRoot)
             if wok:
                 wkmObjects.append(wok)
         else:
@@ -247,10 +240,8 @@ class Mdl():
             wkmRoot = nvb_utils.findWkmRoot(mdlRoot, wkmtype)
             if wkmRoot:
                 wkmObjects = [c for c in wkmRoot.children]
-        # Abort if there is nothing to write
-        if not wkmObjects:
+        if not wkmObjects:  # Abort if there is nothing to write
             return
-        # Creation time
         Mdl.generateAsciiMeta(mdlRoot, asciiLines, options)
         # Write Data
         for obj in wkmObjects:
@@ -264,39 +255,35 @@ class Mdl():
 
     def createObjectLinks(self, nodelist, noderesolver, options):
         """Handles parenting and linking of objects to a scene."""
-        def getRoot(obj):
-            """Return the root of  obj."""
-            while obj:
-                if obj.parent is None:
-                    return obj
-                obj = obj.parent
-            return None
-
         obj = None
         for node in nodelist:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
             if obj:
-                if node.parent:  # obj == rootobj:
+                if node.parent:
                     parentobj = noderesolver.get_obj_parent(node.parent,
                                                             node.nodeidx)
                     obj.parent = parentobj
-                else:
+                else:  # potential mdl root
                     obj.parent = None
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
+                    obj.nvb.animcale = self.animscale
                 options.scene.objects.link(obj)
             else:
-                print('Neverblender: WARNING - Invalid object ' +
-                      node.name)
-        return getRoot(obj)
+                print('Neverblender: WARNING - Invalid object ' + node.name)
+        # Return the root
+        while obj:
+            if obj.parent is None:
+                return obj
+            obj = obj.parent
+        return None
 
     @staticmethod
     def createObjects(nodelist, noderesolver, options):
         """TODO: DOC."""
         for node in nodelist:
             obj = node.createObject(options)
-            # Save the imported objects for animation import
-            if obj:
+            if obj:  # Save the imported objects for animation import
                 noderesolver.insert_obj(node.name, node.nodeidx, obj.name)
             else:
                 print('Neverblender: WARNING - Invalid node: ' + node.name)
@@ -345,8 +332,6 @@ class Mdl():
                 wkmroot.emptytype = nvb_def.Emptytype.PWK
             wkmnodes.insert(0, wkmroot)
 
-        if options.customfps:
-            options.scene.render.fps = options.fps
         # Create mdl objects
         mdlresolver = nvb_utils.NodeResolver()
         Mdl.createObjects(self.mdlnodes, mdlresolver, options)
@@ -373,5 +358,7 @@ class Mdl():
             del wkmresolver
         # Create animations
         if options.importAnimations:
+            if options.customfps:
+                options.scene.render.fps = options.fps
             self.createAnimations(self.animations,
                                   mdlroot, mdlresolver, options)

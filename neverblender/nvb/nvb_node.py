@@ -8,7 +8,6 @@ import itertools
 # blender import
 import mathutils
 import bpy
-import bpy_extras.image_utils
 import bmesh
 from bpy_extras.io_utils import unpack_list, unpack_face_list
 # custom imports
@@ -119,56 +118,6 @@ class Material(object):
                                          for _ in range(idx+1-cnt)])
                 self.textures[idx] = nvb_utils.getAuroraTexture(line[1])
 
-    def loadMTR(self, options):
-        """Loads contents of the mtr file into the this material."""
-        self.mtr = None
-        namelist = [(self.materialname, True), (self.textures[0], False)]
-        for mtrname, alwayscreate in namelist:
-            if mtrname not in [nvb_def.null, '']:
-                if mtrname in options.mtrdb:
-                    self.mtr = options.mtrdb[mtrname]
-                else:  # Always load, use empty mtr if no file was found
-                    mtr_filename = mtrname + '.mtr'
-                    mdl_dir, _ = os.path.split(options.filepath)
-                    mtr_path = os.path.join(mdl_dir, mtr_filename)
-                    tmp = nvb_mtr.Mtr(mtrname)
-                    if tmp.loadFile(mtr_path) or alwayscreate:
-                        options.mtrdb[mtrname] = tmp
-                        self.mtr = tmp
-        # Merge values from mtr, overwrtite existing
-        if self.mtr:
-            self.renderhints = self.renderhints.union(self.mtr.renderhints)
-            if self.mtr.textures:  # Transfer texture names
-                l1 = len(self.textures)
-                l2 = len(self.mtr.textures)
-                if l2 > l1:
-                    self.textures.extend(['' for _ in range(l2-l1+1)])
-                for idx, txname in enumerate(self.mtr.textures):
-                    if txname:  # null value in mtr overwrites existing in mdl
-                        self.textures[idx] = txname
-
-    @staticmethod
-    def createTexture(texname, imgname, options):
-        """TODO: Doc."""
-        if texname in bpy.data.textures:
-            # Load the image for the texture
-            tex = bpy.data.textures[texname]
-        else:
-            tex = bpy.data.textures.new(texname, type='IMAGE')
-            if (imgname in bpy.data.images):
-                img = bpy.data.images[imgname]
-                tex.image = img
-            else:
-                texpath = os.path.dirname(options.filepath)
-                img = bpy_extras.image_utils.load_image(
-                    imgname + '.tga', texpath, recursive=options.tex_search,
-                    place_holder=False, ncase_cmp=True)
-                if img is None:
-                    img = bpy.data.images.new(imgname, 512, 512)
-                img.name = imgname
-                tex.image = img
-        return tex
-
     @staticmethod
     def applyNASMSettings(material, options):
         """Apply settings to material and texture slots for default shader."""
@@ -219,11 +168,39 @@ class Material(object):
         else:
             material.alpha = alpha
 
+    def createMtr(self, options):
+        """Loads contents of the mtr file into the this material."""
+        self.mtr = None
+        namelist = [(self.materialname, True), (self.textures[0], False)]
+        for mtrname, alwayscreate in namelist:
+            if mtrname not in [nvb_def.null, '']:
+                if mtrname in options.mtrdb:
+                    self.mtr = options.mtrdb[mtrname]
+                else:  # Always load, use empty mtr if no file was found
+                    mtr_filename = mtrname + '.mtr'
+                    mdl_dir, _ = os.path.split(options.filepath)
+                    mtr_path = os.path.join(mdl_dir, mtr_filename)
+                    tmp = nvb_mtr.Mtr(mtrname)
+                    if tmp.loadFile(mtr_path) or alwayscreate:
+                        options.mtrdb[mtrname] = tmp
+                        self.mtr = tmp
+        # Merge values from mtr, overwrite existing
+        if self.mtr:
+            self.renderhints = self.renderhints.union(self.mtr.renderhints)
+            if self.mtr.textures:  # Transfer texture names
+                l1 = len(self.textures)
+                l2 = len(self.mtr.textures)
+                if l2 > l1:
+                    self.textures.extend(['' for _ in range(l2-l1+1)])
+                for idx, txname in enumerate(self.mtr.textures):
+                    if txname:  # null value in mtr overwrites existing in mdl
+                        self.textures[idx] = txname
+
     def create(self, options, makeunique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values intro this material
         if options.mtr_import:
-            self.loadMTR(options)
+            self.createMtr(options)
         # If this material has no texture, no alpha and default values
         if self.isdefault():
             return None
@@ -251,8 +228,8 @@ class Material(object):
             for idx, txname in enumerate(self.textures):
                 if txname and txname is not nvb_def.null:
                     tslot = material.texture_slots.create(idx)
-                    tslot.texture = Material.createTexture(txname, txname,
-                                                           options)
+                    tslot.texture = nvb_utils.create_texture(
+                        txname, txname, options.filepath, options.tex_search)
             # Set Renderhint and set up textures accordingly
             if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
                 material.nvb.renderhint = 'NASM'
@@ -273,33 +250,6 @@ class Material(object):
         asciiLines.append('  bitmap ' + nvb_def.null)
 
     @staticmethod
-    def getAsciiTextures(material, options):
-        """Write names and indices of textures to ascii."""
-        def get_img_name(tslot):
-            """Get the texture name for this texture slot."""
-            imgname = ''
-            tex = tslot.texture
-            if tex.type == 'IMAGE':
-                img = tex.image
-                if img:
-                    if img.filepath:
-                        imgname = \
-                            os.path.splitext(os.path.basename(img.filepath))[0]
-                    elif img.name:
-                        imgname = \
-                            os.path.splitext(os.path.basename(img.name))[0]
-            # Last resort: Texture name
-            if not imgname:
-                imgname = tex.name
-            return imgname
-
-        # Generate a list of (texture_idx, texture_name, texture_alpha) tuples
-        texList = [(idx, get_img_name(tslot), tslot.alpha_factor)
-                   for idx, tslot in enumerate(material.texture_slots)
-                   if tslot and material.use_textures[idx]]
-        return texList
-
-    @staticmethod
     def generateAscii(obj, asciiLines, options):
         """Write Ascii lines from the objects material for a MDL file."""
         material = obj.active_material
@@ -313,11 +263,11 @@ class Material(object):
             fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
             asciiLines.append(fstr.format(*material.specular_color))
             # Get textures for this material
-            txlist = Material.getAsciiTextures(material, options)
+            txlist = nvb_utils.get_textures(material)
             if material.nvb.usemtr:
                 mtrname = material.nvb.mtrname
                 asciiLines.append('  ' + options.mtr_ref + ' ' + mtrname)
-                options.mtrdb.add(mtrname)
+                options.mtrdb.add(material.name)  # export later on demand
             else:
                 # Add Renderhint
                 if (material.nvb.renderhint == 'NASM') or \
@@ -329,8 +279,8 @@ class Material(object):
                 else:
                     asciiLines.append('  bitmap ' + nvb_def.null)
                 # Export texture1 and texture2
-                fstr = 'texture{:d} {:s}'
-                asciiLines.extend([fstr.format(i, n) for i, n, _ in txlist])
+                fs = '  texture{:d} {:s}'
+                asciiLines.extend([fs.format(i, n) for i, n, _ in txlist[1:2]])
             # Alpha value:
             # 1. Texture slots present: get alpha from 1st slot
             # 2. No texture slots: get alpha from material
@@ -1076,7 +1026,7 @@ class Trimesh(Node):
         asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
         # Add normals and tangents
         uvmap = me.uv_textures.active
-        if uvmap and options.exportNormals:
+        if uvmap and options.exportNormals and obj.nvb.render:
             generateNormals(me, asciiLines, uvmap)
         # Face vertex indices and face materials
         fcVertIds = [tuple(tf.vertices) for tf in me.tessfaces]

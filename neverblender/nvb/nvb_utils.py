@@ -2,8 +2,11 @@
 
 import mathutils
 import bpy
+import os
 import math
 import collections
+
+import bpy_extras.image_utils
 
 from . import nvb_def
 
@@ -60,7 +63,7 @@ class NodeResolver():
         return None
 
 
-def isMdlRoot(obj):
+def is_aurora_root(obj):
     """Return true if object obj is a rootdummy."""
     if not obj:
         return False
@@ -69,68 +72,39 @@ def isMdlRoot(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def findObjMdlRoot(obj):
-    """Return the objects mdlroot."""
+def get_obj_aurora_root(obj):
+    """Return the objects aurora root."""
     while obj:
-        if isMdlRoot(obj):
+        if is_aurora_root(obj):
             return obj
         obj = obj.parent
     return None
 
 
-def findMdlRoot(obj=None, scene=None):
-    """Return any mdlroot in the scene."""
+def get_aurora_root(obj=None, scene=None):
+    """Return any aurora root."""
     # 1. Check the object and its parents
-    match = findObjMdlRoot(obj)
+    match = get_obj_aurora_root(obj)
     if match:
         return match
     # 2. Nothing was found, try checking the objects in the scene
     if scene:
-        matches = [m for m in scene.objects if isMdlRoot(m)]
+        matches = [m for m in scene.objects if is_aurora_root(m)]
         if matches:
             return matches[0]
     # 3. Still nothing, try checking all objects
-    matches = [m for m in bpy.data.objects if isMdlRoot(m)]
+    matches = [m for m in bpy.data.objects if is_aurora_root(m)]
     if matches:
         return matches[0]
     return None
 
 
-def findObjRootDummy(obj):
-    """Deprecated: Return the rootdummy of this object."""
-    while obj:
-        if isMdlRoot(obj):
-            return obj
-        obj = obj.parent
-    return None
-
-
-def findRootDummy(obj=None):
-    """Deprecated: Return any rootdummy in any scene."""
-    # 1. Check the object and its parents
-    match = findObjRootDummy(obj)
-    if match:
-        return match
-    # 2. Nothing was found, try checking the objects in the current scene
-    if bpy.context.scene:
-        matches = [m for m in bpy.context.scene.objects if isMdlRoot(m)]
-        if matches:
-            return matches[0]
-    # 3. Still nothing, try checking all objects
-    matches = [m for m in bpy.data.objects if isMdlRoot(m)]
-    if matches:
-        return matches[0]
-    return None
-
-
-def isAABB(obj):
-    """Return true if object obj is an aabb mesh."""
-    return obj.type == 'MESH' and obj.nvb.meshtype == nvb_def.Meshtype.AABB
-
-
-def findAABB(mdlRoot):
+def get_aabb(aurora_root):
     """Find an AABB mesh for this mdlroot."""
-    ol = [c for c in mdlRoot.children if isAABB(c)]
+    def is_aabb(obj):
+        """Return true if object obj is an aabb mesh."""
+        return obj.type == 'MESH' and obj.nvb.meshtype == nvb_def.Meshtype.AABB
+    ol = [c for c in aurora_root.children if is_aabb(c)]
     if len(ol) > 0:
         return ol[0]
     return None
@@ -502,6 +476,54 @@ def setupMinimapRender(rootDummy, scene,
     scene.render.resolution_percentage = 100
     scene.render.image_settings.color_mode = 'RGB'
     scene.render.image_settings.file_format = 'TARGA_RAW'
+
+
+def get_textures(material):
+    """Get a list of (texture_idx, texture_name, texture_alpha) tuples."""
+    def get_img_name(tslot):
+        """Get the texture name for this texture slot."""
+        imgname = ''
+        tex = tslot.texture
+        if tex.type == 'IMAGE':
+            img = tex.image
+            if img:
+                if img.filepath:
+                    imgname = \
+                        os.path.splitext(os.path.basename(img.filepath))[0]
+                elif img.name:
+                    imgname = \
+                        os.path.splitext(os.path.basename(img.name))[0]
+        # Last resort: Texture name
+        if not imgname:
+            imgname = tex.name
+        return imgname
+
+    texList = [(idx, get_img_name(tslot), tslot.alpha_factor)
+               for idx, tslot in enumerate(material.texture_slots)
+               if tslot and material.use_textures[idx]]
+    return texList
+
+
+def create_texture(texname, imgname, filepath, tex_search):
+    """TODO: Doc."""
+    if texname in bpy.data.textures:
+        # Load the image for the texture
+        tex = bpy.data.textures[texname]
+    else:
+        tex = bpy.data.textures.new(texname, type='IMAGE')
+        if (imgname in bpy.data.images):
+            img = bpy.data.images[imgname]
+            tex.image = img
+        else:
+            texpath = os.path.dirname(filepath)
+            img = bpy_extras.image_utils.load_image(
+                imgname + '.tga', texpath, recursive=tex_search,
+                place_holder=False, ncase_cmp=True)
+            if img is None:
+                img = bpy.data.images.new(imgname, 512, 512)
+            img.name = imgname
+            tex.image = img
+    return tex
 
 
 def copyAnims2Armature(armature, source):

@@ -10,7 +10,6 @@ import mathutils
 
 from . import nvb_def
 from . import nvb_utils
-from . import nvb_node
 from . import nvb_mtr
 
 
@@ -365,12 +364,12 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no root was found."""
-        aurora_root = nvb_utils.findObjRootDummy(context.object)
+        aurora_root = nvb_utils.get_obj_aurora_root(context.object)
         return (aurora_root is not None)
 
     def execute(self, context):
         """Create the armature"""
-        aurora_root = nvb_utils.findObjRootDummy(context.object)
+        aurora_root = nvb_utils.get_obj_aurora_root(context.object)
         self.use_restpose = aurora_root.nvb.helper_amt_restpose
         self.copy_animations = aurora_root.nvb.helper_amt_copyani
         self.auto_connect = aurora_root.nvb.helper_amt_connect
@@ -424,7 +423,7 @@ class NVB_OT_anim_clone(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """Prevent execution if no rootdummy was found."""
-        rootdummy = nvb_utils.findObjRootDummy(context.object)
+        rootdummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootdummy is not None:
             return (len(rootdummy.nvb.animList) > 0)
         return False
@@ -459,7 +458,7 @@ class NVB_OT_anim_clone(bpy.types.Operator):
 
     def execute(self, context):
         """Clone the animation."""
-        rootd = nvb_utils.findObjRootDummy(context.object)
+        rootd = nvb_utils.get_obj_aurora_root(context.object)
         anim = rootd.nvb.animList[rootd.nvb.animListIdx]
         animStart = anim.frameStart
         animEnd = anim.frameEnd
@@ -510,7 +509,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """Prevent execution if no rootdummy was found."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
         return False
@@ -601,7 +600,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
             self.report({'INFO'}, 'Error: Nested animations.')
             return {'CANCELLED'}
@@ -685,7 +684,7 @@ class NVB_OT_anim_crop(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
         return False
@@ -752,7 +751,7 @@ class NVB_OT_anim_crop(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
@@ -842,7 +841,7 @@ class NVB_OT_anim_pad(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
         return False
@@ -883,7 +882,7 @@ class NVB_OT_anim_pad(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
@@ -951,14 +950,14 @@ class NVB_OT_anim_focus(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
     def execute(self, context):
         """Set the timeline to this animation."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         scene = context.scene
 
         nvb_utils.toggleAnimFocus(scene, rootDummy)
@@ -974,12 +973,12 @@ class NVB_OT_anim_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         return (rootDummy is not None)
 
     def execute(self, context):
         """Create the animation"""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         newanim = nvb_utils.createAnimListItem(rootDummy)
         newanim.root = rootDummy.name
         return {'FINISHED'}
@@ -994,7 +993,7 @@ class NVB_OT_anim_delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 0)
         return False
@@ -1016,7 +1015,7 @@ class NVB_OT_anim_delete(bpy.types.Operator):
 
     def execute(self, context):
         """Delete the animation."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         animList = rootDummy.nvb.animList
         animListIdx = rootDummy.nvb.animListIdx
         anim = animList[animListIdx]
@@ -1052,7 +1051,7 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 1)
         return False
@@ -1078,7 +1077,7 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
 
     def execute(self, context):
         """Move the animation to the end of the animation list."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if not nvb_utils.checkAnimBounds(rootDummy):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
@@ -1138,14 +1137,14 @@ class NVB_OT_anim_move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list has less than 2 elements."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             return (len(rootDummy.nvb.animList) > 1)
         return False
 
     def execute(self, context):
         """TODO: DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         animList = rootDummy.nvb.animList
 
         currentIdx = rootDummy.nvb.animListIdx
@@ -1251,14 +1250,14 @@ class NVB_OT_animevent_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if there is an animation."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         animList = rootDummy.nvb.animList
 
         return len(animList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
 
         eventList = anim.eventList
@@ -1280,7 +1279,7 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             animList = rootDummy.nvb.animList
             if len(animList) > 0:
@@ -1291,7 +1290,7 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         eventList = anim.eventList
         eventIdx = anim.eventListIdx
@@ -1315,7 +1314,7 @@ class NVB_OT_animevent_move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         if rootDummy is not None:
             animList = rootDummy.nvb.animList
             if len(animList) > 0:
@@ -1326,7 +1325,7 @@ class NVB_OT_animevent_move(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        rootDummy = nvb_utils.findObjRootDummy(context.object)
+        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
         anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
         eventList = anim.eventList
 
@@ -1360,7 +1359,7 @@ class NVB_OT_light_genname(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         obj = context.object
-        rootDummy = nvb_utils.findObjRootDummy(obj)
+        rootDummy = nvb_utils.get_obj_aurora_root(obj)
         if not rootDummy:
             self.report({'INFO'}, 'Failure: No rootdummy.')
             return {'CANCELLED'}
@@ -1676,7 +1675,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
-        mdlroot = nvb_utils.findObjRootDummy(context.object)
+        mdlroot = nvb_utils.get_obj_aurora_root(context.object)
         if not mdlroot:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
@@ -1705,7 +1704,7 @@ class NVB_OT_helper_mmsetup(bpy.types.Operator):
 
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
-        mdlRoot = nvb_utils.findObjRootDummy(context.object)
+        mdlRoot = nvb_utils.get_obj_aurora_root(context.object)
         if not mdlRoot:
             return {'CANCELLED'}
         scene = bpy.context.scene
@@ -1752,7 +1751,7 @@ class NVB_OT_helper_scale(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         # obj = context.object
-        # aur_root = nvb_utils.findRootDummy(obj)
+        # aur_root = nvb_utils.get_aurora_root(obj)
 
         # return {'CANCELLED'}
         return {'FINISHED'}
@@ -1853,22 +1852,14 @@ class NVB_OT_mtr_open(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
         mtrpath, mtrfilename = os.path.split(self.filepath)
-        mtrname = os.path.splitext(mtrfilename)[0]
         # Load mtr
-        mtr = nvb_mtr.Mtr(mtrname)
+        mtr = nvb_mtr.Mtr(material.name)
         if not mtr.loadFile(self.filepath):
             self.report({'ERROR'}, 'Error: Invalid file.')
             return {'CANCELLED'}
         options = nvb_def.ImportOptions()
+        options.filepath = self.filepath
         mtr.create(material, options)
-        for idx, tname in enumerate(mtr.textures):
-            if tname:  # might be ''
-                tslot = material.texture_slots[idx]
-                if not tslot:
-                    tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.Material.createTexture(
-                    tname, tname, options)
-        # Report
         self.report({'INFO'}, 'Loaded ' + mtrfilename)
         return {'FINISHED'}
 
@@ -1887,33 +1878,25 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
     bl_idname = "nvb.mtr_reload"
     bl_label = "Reload MTR"
 
-    def reloadFile(self, material):
+    def reload_file(self, material):
         """Reload mtr file from disk."""
-        # Get the previously stored filepath
         if not material.nvb.mtrpath:
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
-        # Load mtr
-        mtr = nvb_mtr.Mtr()
-        if not mtr.loadFile(material.nvb.mtrpath):
+        mtrpath = material.nvb.mtrpath
+        # Reload
+        mtr = nvb_mtr.Mtr(material.name)
+        if not mtr.loadFile(mtrpath):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
         options = nvb_def.ImportOptions()
-        options.filepath = material.nvb.mtrpath
-        # Add textures
-        for idx, tname in enumerate(mtr.textures):
-            if tname:
-                tslot = material.texture_slots[idx]
-                if not tslot:
-                    tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.Material.createTexture(
-                    tname, tname, options)
+        options.filepath = material.nvb.mtrpath  # for image search
         mtr.create(material, options)
-        _, mtrfilename = os.path.split(material.nvb.mtrpath)
-        self.report({'INFO'}, 'Reloaded ' + mtrfilename)
+        self.report({'INFO'}, 'Reloaded ' + os.path.split(mtrpath)[1])
         return {'FINISHED'}
 
-    def reloadTextBlock(self, material):
+    def reload_text(self, material):
+        """Reload mtr data from Blender text block."""
         if not material.nvb.mtrtext:
             self.report({'ERROR'}, 'Error: No text block.')
             return {'CANCELLED'}
@@ -1922,26 +1905,14 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
                         ' does not exist.')
             return {'CANCELLED'}
         txt_block = bpy.data.texts[material.nvb.mtrtext]
-        # Generate a name, strip trailing numbers (".001") and ".mtr"
-        match = re.match('([\w\-]+)[\.mtr]?[\.\d+]*', txt_block.name)
-        if match:
-            mtrname = match.group(1)
-        else:
-            mtrname = material.name
-        mtr = nvb_mtr.Mtr(mtrname)
+        # Reload data
+        mtr = nvb_mtr.Mtr(material.name)
         if not mtr.loadTextBlock(txt_block):
             self.report({'ERROR'}, 'Error: No data.')
             return {'CANCELLED'}
+        mtr.filepath = material.nvb.mtrpath  # Restore filepath
         options = nvb_def.ImportOptions()
-        options.filepath = material.nvb.mtrpath
-        # Add textures
-        for idx, tname in enumerate(mtr.textures):
-            if tname:
-                tslot = material.texture_slots[idx]
-                if not tslot:
-                    tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_node.Material.createTexture(
-                    tname, tname, options)
+        options.filepath = material.nvb.mtrpath  # for image search
         mtr.create(material, options)
         self.report({'INFO'}, 'Reloaded ' + txt_block.name)
         return {'FINISHED'}
@@ -1962,9 +1933,9 @@ class NVB_OT_mtr_reload(bpy.types.Operator):
             self.report({'ERROR'}, 'Error: No material.')
             return {'CANCELLED'}
         if material.nvb.mtrsrc == 'FILE':
-            return self.reloadFile(material)
+            return self.reload_file(material)
         elif material.nvb.mtrsrc == 'TEXT':
-            return self.reloadTextBlock(material)
+            return self.reload_text(material)
 
 
 class NVB_OT_mtrparam_new(bpy.types.Operator):
