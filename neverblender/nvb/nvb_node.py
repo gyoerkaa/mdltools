@@ -201,7 +201,7 @@ class Material(object):
         # Load mtr values intro this material
         if options.mtr_import:
             self.createMtr(options)
-        # If this material has no texture, no alpha and default values
+        # Do not create if this material has default values
         if self.isdefault():
             return None
         # Look for similar materials to avoid duplicates
@@ -212,7 +212,9 @@ class Material(object):
                 self.diffuse, self.specular, self.alpha)
         # Create new material as necessary
         if not material:
-            if self.textures[0] and self.textures[0] is not nvb_def.null:
+            if self.materialname:
+                matname = self.materialname
+            elif self.textures[0] and self.textures[0] is not nvb_def.null:
                 matname = self.textures[0].lower()
             else:
                 matname = self.name
