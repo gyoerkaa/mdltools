@@ -169,14 +169,6 @@ class Animnode():
                         # Unknown or unsupported single value
                         self.unknownvalue[label] = line[1:]
 
-    @staticmethod
-    def getCurve(action, data_path, index=0):
-        """TODO: DOC."""
-        fc = action.fcurves.find(data_path, index)
-        if not fc:
-            fc = action.fcurves.new(data_path=data_path, index=index)
-        return fc
-
     def createDataMaterial(self, mat, anim, options):
         """TODO: DOC."""
         fps = options.scene.render.fps
@@ -202,7 +194,7 @@ class Animnode():
         else:
             # No texture
             dp = 'alpha'
-        curve = Animnode.getCurve(action, dp)
+        curve = nvb_utils.get_fcurve(action, dp)
         if self.alphakey:
             for key in self.alphakey:
                 frame = fps * key[0] + frameStart
@@ -216,7 +208,8 @@ class Animnode():
         def create_values(frames, values, action, dp, dp_dim):
             """TODO: DOC."""
             if frames and values:
-                fcu = [Animnode.getCurve(action, dp, i) for i in range(dp_dim)]
+                fcu = [nvb_utils.get_fcurve(action, dp, i)
+                       for i in range(dp_dim)]
                 kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
                 nkfp = list(map(lambda x: len(x), kfp))
                 list(map(lambda x: x.add(len(values)), kfp))
@@ -455,9 +448,9 @@ class Animnode():
         dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
         for vertIdx in range(numVerts):
             dp = dpPrefix + str(vertIdx) + '].co'
-            curveX = Animnode.getCurve(action, dp, 0)
-            curveY = Animnode.getCurve(action, dp, 1)
-            curveZ = Animnode.getCurve(action, dp, 2)
+            curveX = nvb_utils.get_fcurve(action, dp, 0)
+            curveY = nvb_utils.get_fcurve(action, dp, 1)
+            curveZ = nvb_utils.get_fcurve(action, dp, 2)
             samples = self.animverts[vertIdx::numVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
@@ -512,8 +505,8 @@ class Animnode():
         # uvIdx = order in blender, tvertIdx = order in mdl
         for uvIdx, tvertIdx in enumerate(tvert_order):
             dp = dpPrefix + str(uvIdx) + '].uv'
-            curveU = Animnode.getCurve(action, dp, 0)
-            curveV = Animnode.getCurve(action, dp, 1)
+            curveU = nvb_utils.get_fcurve(action, dp, 0)
+            curveV = nvb_utils.get_fcurve(action, dp, 1)
             samples = self.animtverts[tvertIdx::numTVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
@@ -523,7 +516,6 @@ class Animnode():
     @staticmethod
     def createRestPose(obj, frame=1):
         """TODO: DOC."""
-
         def insert_kfp(fcurves, frame, val, dim):
             """TODO: DOC."""
             for j in range(dim):
@@ -703,8 +695,7 @@ class Animnode():
         time_fstr = '{:> 6.3f}'
         for key_name, keys, val_fstr in kdata:
             num_keys = len(keys)
-            if num_keys > 0:
-                # Create a key list
+            if num_keys > 0:  # Create a key list
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
@@ -734,7 +725,7 @@ class Animnode():
                 frame = float(label)
                 nwtime = round(nvb_utils.frame2nwtime(frame, fps), 5)
                 values = [float(v) for v in line[1:]]
-                formatStr = '      {: >6.5f}' + \
+                formatStr = '      {:> 6.3f}' + \
                             ' '.join(['{: > 6.5f}']*len(values))
                 s = formatStr.format(nwtime, *values)
                 asciiLines.append(s)

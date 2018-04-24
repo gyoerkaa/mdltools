@@ -342,10 +342,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         name='Copy Animations',
         description='Copy animations to the created armature',
         default=True)
-    helper_amt_restpose = bpy.props.BoolProperty(
-        name='Add Rest Pose',
-        description='Use current pose as rest pose',
-        default=False)
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

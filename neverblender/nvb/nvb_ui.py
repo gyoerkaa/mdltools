@@ -91,13 +91,13 @@ class NVB_PT_rootdummy(bpy.types.Panel):
         obj = context.object
         if not obj:
             return False
-        rd = nvb_utils.findObjRootDummy(obj)
+        rd = nvb_utils.get_obj_aurora_root(obj)
         return rd is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        obj = nvb_utils.findObjRootDummy(context.object)
+        obj = nvb_utils.get_obj_aurora_root(context.object)
 
         row = layout.row()
         split = row.split()
@@ -202,12 +202,13 @@ class NVB_PT_armature(bpy.types.Panel):
 
         # Armature Helper
         box = layout.box()
-        box.label(text='Armature Helper')
-        row = box.row()
-        row.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-        row = box.row()
-        row.operator('nvb.helper_amt2psb', text='Generate Pseudo Bones',
-                     icon='BONE_DATA')
+        box.label(text='Pseudo Bone Helper')
+        box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
+        box.operator('nvb.helper_amt2psb', icon='BONE_DATA')
+
+        box = layout.box()
+        box.label(text='Restpose Helper')
+        box.operator('nvb.helper_restpose', icon='POSE_DATA')
 
 
 class NVB_PT_material(bpy.types.Panel):
@@ -582,13 +583,13 @@ class NVB_PT_animlist(bpy.types.Panel):
         obj = context.object
         if not obj:
             return False
-        rd = nvb_utils.findObjRootDummy(obj)
+        rd = nvb_utils.get_obj_aurora_root(obj)
         return rd is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        obj = nvb_utils.findObjRootDummy(context.object)
+        obj = nvb_utils.get_obj_aurora_root(context.object)
         if obj:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
@@ -676,13 +677,13 @@ class NVB_PT_utils(bpy.types.Panel):
         """TODO: DOC."""
         if not context.object:
             return False
-        rd = nvb_utils.findObjRootDummy(context.object)
+        rd = nvb_utils.get_obj_aurora_root(context.object)
         return rd is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        obj = nvb_utils.findObjRootDummy(context.object)
+        obj = nvb_utils.get_obj_aurora_root(context.object)
         if obj:
             # Armature Helper
             box = layout.box()
@@ -692,16 +693,7 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(obj.nvb, 'helper_amt_source', expand=True)
             box.prop(obj.nvb, 'helper_amt_connect')
             box.prop(obj.nvb, 'helper_amt_copyani')
-            box.prop(obj.nvb, 'helper_amt_restpose')
             box.operator('nvb.helper_psb2amt', icon='BONE_DATA')
-            layout.separator()
-            # Minimap Helper
-            box = layout.box()
-            box.label(text='Minimap Helper')
-            box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
-            box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
-            box.operator('nvb.helper_minimap_setup', text='Render Minimap',
-                         icon='RENDER_STILL')
             layout.separator()
             # Scale Helper
             box = layout.box()
@@ -717,4 +709,12 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(obj.nvb, 'helper_node_mdltype', expand=True)
             box.operator('nvb.helper_node_setup', text='Generate Objects',
                          icon='OOPS')
+            layout.separator()
+            # Minimap Helper
+            box = layout.box()
+            box.label(text='Minimap Helper')
+            box.prop(obj.nvb, 'minimapzoffset', text='z Offset')
+            box.prop(obj.nvb, 'minimapsize', text='Minimap Size')
+            box.operator('nvb.helper_minimap_setup', text='Render Minimap',
+                         icon='RENDER_STILL')
             layout.separator()
