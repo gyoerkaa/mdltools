@@ -323,10 +323,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK)
-    helper_scale_fac = bpy.props.FloatVectorProperty(name='Scale',
-                                                     description='Scale',
-                                                     subtype='XYZ',
-                                                     default=(1.0, 1.0, 1.0))
     # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',

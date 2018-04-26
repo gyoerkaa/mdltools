@@ -169,7 +169,7 @@ class Mdl():
     @staticmethod
     def generateAsciiGeometry(obj, asciiLines, options):
         """TODO: DOC."""
-        if nvb_utils.isWkmRoot(obj):
+        if nvb_utils.is_wkm_root(obj):
             return
         nodeType = nvb_utils.getNodeType(obj)
         try:
@@ -237,7 +237,7 @@ class Mdl():
                 wkmObjects.append(wok)
         else:
             # Walkmesh for doors: Append all children of the walkmesh root
-            wkmRoot = nvb_utils.findWkmRoot(mdlRoot, wkmtype)
+            wkmRoot = nvb_utils.find_wkm_root(mdlRoot, wkmtype)
             if wkmRoot:
                 wkmObjects = [c for c in wkmRoot.children]
         if not wkmObjects:  # Abort if there is nothing to write

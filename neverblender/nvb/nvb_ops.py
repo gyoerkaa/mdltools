@@ -47,7 +47,7 @@ class NVB_OT_helper_restpose(bpy.types.Operator):
         def adjust_eul(amt, posebone, kfvalues, cmat):
             mats = [cmat * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
-            # Euler Filter
+            # Convert to Euler (with filter)
             euls = []
             e = posebone.rotation_euler
             for m in mats:
@@ -203,7 +203,7 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
                     for v in kfvalues]
             mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
                     'LOCAL') for m in mats]
-            # Euler Filter
+            # Convert to Euler (with filter)
             euls = []
             e = posebone.rotation_euler
             for m in mats:
@@ -408,7 +408,7 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
                     for v in kfvalues]
             mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
                     'LOCAL') for m in mats]
-            # Euler Filter
+            # Convert to Euler (with filter)
             euls = []
             e = posebone.rotation_euler
             for m in mats:
@@ -576,7 +576,7 @@ class NVB_OT_anim_clone(bpy.types.Operator):
 
 
 class NVB_OT_anim_scale(bpy.types.Operator):
-    """Open a dialog to scale a single animation"""
+    """Open a dialog to scale the length of a single animation"""
 
     bl_idname = 'nvb.anim_scale'
     bl_label = 'Scale animation'
@@ -1586,7 +1586,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
         prefix = get_prefix(mdlroot)
         # Find or create walkmesh root
-        wkmroot = nvb_utils.findWkmRoot(mdlroot, nvb_def.Walkmeshtype.PWK)
+        wkmroot = nvb_utils.find_wkm_root(mdlroot, nvb_def.Walkmeshtype.PWK)
         newname = mdlroot.name + '_pwk'
         if wkmroot:
             # Adjust existing object
@@ -1679,7 +1679,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
         prefix = mdlroot.name[-2:]
         # Find or create walkmesh root (wkmroot)
-        wkmroot = nvb_utils.findWkmRoot(mdlroot, nvb_def.Walkmeshtype.DWK)
+        wkmroot = nvb_utils.find_wkm_root(mdlroot, nvb_def.Walkmeshtype.DWK)
         print(wkmroot)
         newname = mdlroot.name + '_dwk'
         if wkmroot:
@@ -1751,7 +1751,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        return (context.object is not None)
+        return context.object is not None
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
@@ -1823,17 +1823,111 @@ class NVB_OT_helper_genskgr(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-class NVB_OT_helper_scale(bpy.types.Operator):
+class NVB_OT_helper_transform(bpy.types.Operator):
     """TODO: DOC"""
-    bl_idname = "nvb.helper_scale"
-    bl_label = "Scale"
+    bl_idname = "nvb.helper_transform"
+    bl_label = "Transform"
+
+    def adjust_animations(self, obj, adj_mat):
+        """TODO: DOC."""
+        def adjust_loc(obj, kfvalues, adj_mat):
+            trn, _, scl = adj_mat.decompose()
+            vecs = [mathutils.Vector(val) for val in kfvalues]
+            return [[x * y for x, y in zip(v + trn, scl)] for v in vecs]
+
+        def adjust_axan(obj, kfvalues, adj_mat):
+            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4() *
+                    adj_mat
+                    for v in kfvalues]
+            quats = [m.to_quaternion() for m in mats]
+            return [[q.angle, *q.axis] for q in quats]
+
+        def adjust_quat(obj, kfvalues, adj_mat):
+            mats = [mathutils.Quaternion(v).to_matrix().to_4x4() * adj_mat
+                    for v in kfvalues]
+            return [list(m.to_quaternion()) for m in mats]
+
+        def adjust_eul(obj, kfvalues, adj_mat):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4() * adj_mat
+                    for v in kfvalues]
+            # Euler Filter
+            euls = []
+            e = obj.rotation_euler
+            for m in mats:
+                e = m.to_euler('XYZ', e)
+                euls.append(e)
+            return euls
+
+        if not (obj.animation_data and obj.animation_data.action):
+            return
+        action = obj.animation_data.action
+        source_fcu = action.fcurves
+        dp_list = [('rotation_axis_angle', 4, adjust_axan),
+                   ('rotation_quaternion', 4, adjust_quat),
+                   ('rotation_euler', 3, adjust_eul),
+                   ('location', 3, adjust_loc)]
+        for dp, dp_dim, adjust_func in dp_list:
+            fcu = [source_fcu.find(dp, i)for i in range(dp_dim)]
+            if fcu.count(None) < 1:
+                frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)]))
+                frames.sort()
+                values = [[fcu[i].evaluate(f)
+                          for i in range(dp_dim)] for f in frames]
+                # Adjust kfp to new coordinates
+                values = adjust_func(obj, values, adj_mat)
+                # Write back adjusted kfp values
+                for i in range(dp_dim):
+                    single_vals = [v[i] for v in values]
+                    data = [d for z in zip(frames, single_vals) for d in z]
+                    fcu[i].keyframe_points.foreach_set('co', data)
+                    fcu[i].update()
+
+    def adjust_trans(self, obj, adj_mat):
+        """Apply translation to immediate children only."""
+        for c in obj.children:
+            c.matrix_basis = c.matrix_basis * adj_mat
+            self.adjust_animations(c, adj_mat)
+
+    def adjust_scale(self, obj, adj_mat):
+        """Apply scale to all children."""
+        for c in obj.children:
+            dcmp = c.matrix_basis.decompose()
+            trans = mathutils.Matrix.Translation(dcmp[0] * adj_mat)
+            rot = dcmp[1].to_matrix().to_4x4()
+            scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
+                   mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
+                   mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
+            c.matrix_basis = trans * rot * scl
+            # Apply to data
+            if c.type == 'MESH':
+                me = c.data
+                for v in me.vertices:
+                    v.co = v.co * adj_mat
+                me.update()
+            self.adjust_animations(c, adj_mat)
+            self.adjust_scale(c, adj_mat)
 
     def execute(self, context):
         """TODO: DOC."""
-        # obj = context.object
-        # aur_root = nvb_utils.get_aurora_root(obj)
-
-        # return {'CANCELLED'}
+        root = nvb_utils.get_aurora_root(context.object)
+        # Get translation and scale factors
+        if True:  # Use transformations from root
+            dcmp = root.matrix_basis.decompose()
+            trans = mathutils.Matrix.Translation(dcmp[0])
+            rot = dcmp[1].to_matrix().to_4x4()
+            scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
+                   mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
+                   mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
+            # Undo root Transformations
+            root.matrix_basis = rot
+        else:  # TODO: Use custom transformations
+            trans = mathutils.Matrix()
+            scl = mathutils.Matrix()
+        self.adjust_trans(root, trans)
+        self.adjust_scale(root, scl)
+        context.scene.update()
         return {'FINISHED'}
 
 

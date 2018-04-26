@@ -15,7 +15,7 @@ class NodeResolver():
     """Solves naming conflicts.
 
     There may be several nodes with the same name in the mdl.
-    However, Blender object names are unique, we need to fix this.
+    However, Blender object names are unique.
     """
 
     def __init__(self):
@@ -33,8 +33,7 @@ class NodeResolver():
         if node_name not in self.nodes:
             return None
         matches = self.nodes[node_name]
-        if len(matches) == 1:
-            # Only one object was created using this node name
+        if len(matches) == 1:  # Only one object was created using this name
             return bpy.data.objects[matches[0][0]]
         elif len(matches) > 1:
             # Return the node with the same index (position in the mdl)
@@ -118,7 +117,7 @@ def get_aabb(aurora_root):
     return None
 
 
-def isWkmRoot(obj):
+def is_wkm_root(obj):
     """Return true if object obj is a root object for walkmeshes."""
     if not obj:
         return False
@@ -128,7 +127,7 @@ def isWkmRoot(obj):
              obj.nvb.emptytype == nvb_def.Emptytype.DWK))
 
 
-def findWkmRoot(mdlRoot, wkmtype):
+def find_wkm_root(mdlRoot, wkmtype):
     """Find a walkmesh root."""
     emptytype = nvb_def.Emptytype.PWK
     if wkmtype == nvb_def.Walkmeshtype.DWK:
