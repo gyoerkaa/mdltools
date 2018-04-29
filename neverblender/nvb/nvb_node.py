@@ -5,12 +5,12 @@ import array
 import copy
 import os
 import itertools
-# blender import
+
 import mathutils
 import bpy
 import bmesh
 from bpy_extras.io_utils import unpack_list, unpack_face_list
-# custom imports
+
 from . import nvb_mtr
 from . import nvb_def
 from . import nvb_utils
@@ -573,7 +573,8 @@ class Trimesh(Node):
             if not self.verts:
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
-                self.verts = [tuple(map(float, v)) for v in tmp]
+                self.verts = [tuple(map(nvb_utils.str2float, v))
+                              for v in tmp]
         elif (label == 'faces'):
             if not self.facedef:
                 nvals = int(aline[1])
@@ -583,12 +584,14 @@ class Trimesh(Node):
             if not self.normals:
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
-                self.normals = [tuple(map(float, v)) for v in tmp]
+                self.normals = [tuple(map(nvb_utils.str2float, v))
+                                for v in tmp]
         elif (label == 'tangents'):
             if not self.tangents:
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
-                self.tangents = [tuple(map(float, v)) for v in tmp]
+                self.tangents = [tuple(map(nvb_utils.str2float, v))
+                                 for v in tmp]
         elif (label == 'colors'):
             if not self.colors:
                 nvals = int(aline[1])
@@ -855,8 +858,8 @@ class Trimesh(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.minimapMode:
-            if ((self.tilefade >= 1) and options.minimapSkipFade) or \
+        if options.mode_minimal:
+            if ((self.tilefade >= 1) and options.ignore_fading) or \
                (not self.render):
                 # Fading objects or shadow meshes won't be imported in
                 # minimap mode
@@ -878,12 +881,12 @@ class Trimesh(Node):
             numSmoothGroups = 0
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
-               (not options.exportSmoothGroups):
+               (not options.export_smoothgroups):
                 # 0 = Do not use smoothgroups
                 smoothGroups = [0] * len(mesh.polygons)
                 numSmoothGroups = 1
             elif (obj.nvb.smoothgroup == 'SING') or \
-                 (options.exportNormals):
+                 (options.export_normals):
                 # All faces belong to smooth group 1
                 smoothGroups = [1] * len(mesh.polygons)
                 numSmoothGroups = 1
@@ -1028,7 +1031,7 @@ class Trimesh(Node):
         asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
         # Add normals and tangents
         uvmap = me.uv_textures.active
-        if uvmap and options.exportNormals and obj.nvb.render:
+        if uvmap and options.export_normals and obj.nvb.render:
             generateNormals(me, asciiLines, uvmap)
         # Face vertex indices and face materials
         fcVertIds = [tuple(tf.vertices) for tf in me.tessfaces]
@@ -1441,7 +1444,7 @@ class Emitter(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.minimapMode:
+        if options.mode_minimal:
             return Node.createObject(self, options)
 
         mesh = self.createMesh(self.name, options)
@@ -1640,7 +1643,7 @@ class Light(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.minimapMode:
+        if options.mode_minimal:
             # We don't want lights in minimap mode
             # We may need it for the tree stucture, so import it as an empty
             return Node.createObject(self, options)
@@ -1840,7 +1843,7 @@ class Aabb(Trimesh):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.minimapMode:
+        if options.mode_minimal:
             # We don't want walkmeshes in minimap mode
             obj = bpy.data.objects.new(self.name, None)
         else:

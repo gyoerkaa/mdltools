@@ -1680,7 +1680,6 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         prefix = mdlroot.name[-2:]
         # Find or create walkmesh root (wkmroot)
         wkmroot = nvb_utils.find_wkm_root(mdlroot, nvb_def.Walkmeshtype.DWK)
-        print(wkmroot)
         newname = mdlroot.name + '_dwk'
         if wkmroot:
             # Adjust existing
@@ -1771,6 +1770,110 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class NVB_OT_render_minimap(bpy.types.Operator):
+    """Set up rendering for minimaps."""
+
+    bl_idname = "nvb.render_minimap"
+    bl_label = "Render Minimap"
+
+    render_dir = bpy.props.StringProperty(
+        name='Render Directory',
+        description='Directors to render images to',
+        default='')
+    img_size = bpy.props.IntProperty(
+        name='Image Size',
+        description='Image Size',
+        default=32, min=8)
+    z_offset = bpy.props.FloatProperty(
+        name='Camera Distance',
+        description='Camera distance to ground',
+        default=20.0, min=10.0)
+    light_color = bpy.props.FloatVectorProperty(
+        name='Light Color',
+        description='Light Color',
+        subtype='COLOR_GAMMA',
+        default=(1.0, 1.0, 1.0),
+        min=0.0, max=1.0,
+        soft_min=0.0, soft_max=1.0)
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        return True
+
+    def setup_objects(self, root, scene):
+        """Create camera and lamp objects."""
+        # Setup Lamp
+        lamp_name = 'mm_lamp'
+        if lamp_name in scene.objects:
+            mm_lamp = scene.objects[lamp_name]
+        else:   # Check if present in db
+            if lamp_name in bpy.data.objects:
+                mm_lamp = bpy.data.objects[lamp_name]
+            else:
+                lamp_data = bpy.data.lamps.new(lamp_name, 'POINT')
+                mm_lamp = bpy.data.objects.new(lamp_name, lamp_data)
+            scene.objects.link(mm_lamp)
+        mm_lamp.data.use_specular = False
+        mm_lamp.data.color = self.light_color
+        mm_lamp.data.falloff_type = 'CONSTANT'
+        mm_lamp.data.distance = self.z_offset * 2.0
+        mm_lamp.location = root.location
+        mm_lamp.location.z += self.z_offset
+        # Setup Camera
+        cam_name = 'mm_cam'
+        if cam_name in scene.objects:
+            mm_cam = scene.objects[cam_name]
+        else:   # Check if present in db
+            if cam_name in bpy.data.objects:
+                mm_cam = bpy.data.objects[cam_name]
+            else:
+                cam_data = bpy.data.cameras.new(cam_name)
+                mm_cam = bpy.data.objects.new(cam_name, cam_data)
+            scene.objects.link(mm_cam)
+        mm_cam.data.type = 'ORTHO'
+        mm_cam.data.ortho_scale = 10.0
+        mm_cam.location = root.location
+        mm_cam.location.z += self.z_offset
+
+        return mm_cam, mm_lamp
+
+    def setup_scene(self, scene):
+        """Setup scene settings."""
+        scene.render.alpha_mode = 'TRANSPARENT'
+        scene.render.use_antialiasing = True
+        scene.render.pixel_filter_type = 'BOX'
+        scene.render.antialiasing_samples = '16'
+        scene.render.use_shadows = False
+        scene.render.use_envmaps = False
+        scene.render.resolution_x = self.img_size
+        scene.render.resolution_y = self.img_size
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.color_mode = 'RGB'
+        scene.render.image_settings.file_format = 'TARGA_RAW'
+
+    def execute(self, context):
+        """Create camera + lamp and Renders Minimap."""
+        # Get mdl roots
+        root_list = []
+        obj_list = bpy.context.scene.objects
+        for obj in obj_list:
+            root = nvb_utils.get_obj_aurora_root(obj)
+            if root and (root not in root_list):
+                root_list.append(root)
+        # Render each mdl
+        scene = bpy.context.scene
+        self.setup_scene(scene)
+        for root in root_list:
+            img_name = 'mi_' + root.name
+            img_path = os.fsencode(os.path.join(self.render_dir, img_name))
+            scene.render.filepath = img_path
+            mm_cam, _ = self.setup_objects(root, scene)
+            scene.camera = mm_cam
+            bpy.ops.render.render(animation=False, write_still=True)
+        return {'FINISHED'}
+
+
 class NVB_OT_helper_mmsetup(bpy.types.Operator):
     """Set up rendering for minimaps."""
 
@@ -1780,16 +1883,16 @@ class NVB_OT_helper_mmsetup(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        return (context.object is not None)
+        return context.object is not None
 
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
-        mdlRoot = nvb_utils.get_obj_aurora_root(context.object)
-        if not mdlRoot:
+        root = nvb_utils.get_aurora_root(context.object)
+        if not root:
             return {'CANCELLED'}
         scene = bpy.context.scene
 
-        nvb_utils.setupMinimapRender(mdlRoot, scene)
+        nvb_utils.setupMinimapRender(root, scene)
         bpy.ops.render.render(use_viewport=True)
         # bpy.ops.render.view_show()
 
@@ -1824,9 +1927,9 @@ class NVB_OT_helper_genskgr(bpy.types.Operator):
 
 
 class NVB_OT_helper_transform(bpy.types.Operator):
-    """TODO: DOC"""
+    """Apply translation and scale to the whole model and its animations"""
     bl_idname = "nvb.helper_transform"
-    bl_label = "Transform"
+    bl_label = "Apply Transform"
 
     def adjust_animations(self, obj, adj_mat):
         """TODO: DOC."""
@@ -1867,7 +1970,7 @@ class NVB_OT_helper_transform(bpy.types.Operator):
                    ('rotation_euler', 3, adjust_eul),
                    ('location', 3, adjust_loc)]
         for dp, dp_dim, adjust_func in dp_list:
-            fcu = [source_fcu.find(dp, i)for i in range(dp_dim)]
+            fcu = [source_fcu.find(dp, i) for i in range(dp_dim)]
             if fcu.count(None) < 1:
                 frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
@@ -1899,15 +2002,15 @@ class NVB_OT_helper_transform(bpy.types.Operator):
             scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
-            c.matrix_basis = trans * rot * scl
+            c.matrix_basis = trans * rot
             # Apply to data
             if c.type == 'MESH':
                 me = c.data
                 for v in me.vertices:
-                    v.co = v.co * adj_mat
+                    v.co = v.co * adj_mat * scl
                 me.update()
-            self.adjust_animations(c, adj_mat)
-            self.adjust_scale(c, adj_mat)
+            self.adjust_animations(c, adj_mat * scl)
+            self.adjust_scale(c, adj_mat * scl)
 
     def execute(self, context):
         """TODO: DOC."""

@@ -165,6 +165,15 @@ def isNumber(s):
         return True
 
 
+def str2float(s):
+    """Custom float() conversion. Treat every error as 0.0."""
+    try:
+        f = float(s)
+    except ValueError:
+        f = 0.0
+    return f
+
+
 def getAuroraIdentifier(s):
     """Convert to lower case. Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):

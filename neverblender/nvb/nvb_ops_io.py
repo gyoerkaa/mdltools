@@ -80,6 +80,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Apply Modifiers',
             description='Apply Modifiers before exporting',
             default=True)
+    strip_trailing = bpy.props.BoolProperty(
+            name='Strip Trailing Numbers',
+            description='Strips trailing numbers from object names',
+            default=False)
     batch_mode = bpy.props.EnumProperty(
             name='Batch Mode',
             description='Export multiple MDLs',
@@ -116,6 +120,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.label(text='Blender Settings')
         sub = box.column()
         sub.prop(self, 'apply_modifiers')
+        # sub.prop(self, 'strip_trailing')
         sub.prop(self, 'batch_mode')
 
     def save_file(self, context, options):
@@ -158,7 +163,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     root_list.append((root, mdl_path, root.name))
         # Export MDLs
         for mdl_root, mdl_path, wkm_name in root_list:
-            # print([mdl_root, mdl_path])
             options.mdlname = mdl_root.name
             options.filepath = mdl_path
             options.classification = mdl_root.nvb.classification
@@ -168,7 +172,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             with open(os.fsencode(options.filepath), 'w') as f:
                 f.write('\n'.join(ascii_lines))
             # Export walkmesh for MDL
-            if options.exportWalkmesh:
+            if options.export_walkmesh:
                 wkm_type = get_walkmeshtype(mdl_root)
                 wkm_ext = '.' + wkm_type
                 ascii_lines = []
@@ -195,10 +199,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.filepath = self.filepath
         options.scene = context.scene
         # Misc Export Settings
-        options.exportAnimations = self.export_animations
-        options.exportWalkmesh = self.export_walkmesh
-        options.exportSmoothGroups = self.export_smoothgroups
-        options.exportNormals = self.export_normals
+        options.export_animations = self.export_animations
+        options.export_walkmesh = self.export_walkmesh
+        options.export_smoothgroups = self.export_smoothgroups
+        options.export_normals = self.export_normals
         # UV Map settings
         options.uvmapAutoJoin = self.uv_autojoin
         options.uvmapMode = self.uv_mode
@@ -208,6 +212,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.mtr_ref = self.mtr_ref
         # Blender Settings
         options.apply_modifiers = self.apply_modifiers
+        options.strip_trailing = self.strip_trailing
         options.batch_mode = self.batch_mode
         return self.save_file(context, options)
 
@@ -219,6 +224,11 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     bl_label = 'Import Aurora MDL'
     bl_options = {'UNDO', 'PRESET'}
 
+    files = bpy.props.CollectionProperty(
+        name="File Path",
+        description="File path used for importing the file",
+        type=bpy.types.OperatorFileListElement)
+    directory = bpy.props.StringProperty()
     filename_ext = '.mdl'
     filter_glob = bpy.props.StringProperty(default='*.mdl',
                                            options={'HIDDEN'})
@@ -239,14 +249,14 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Import Materials',
         description='Import materials and textures',
         default=True)
+    mat_automerge = bpy.props.BoolProperty(
+        name='Auto Merge Materials',
+        description='Merge materials with same settings',
+        default=True)
     mtr_import = bpy.props.BoolProperty(
         name='Load MTR files',
         description='Load external material files ' +
                     '(will overwride material in MDL)',
-        default=True)
-    mat_automerge = bpy.props.BoolProperty(
-        name='Auto Merge Materials',
-        description='Merge materials with same settings',
         default=True)
     tex_search = bpy.props.BoolProperty(
         name='Image Search',
@@ -258,34 +268,39 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Import Animations',
         description='Import animation data',
         default=True)
-    fps_use = bpy.props.BoolProperty(name='Use Custom fps',
-                                     description='Use custom fps value',
-                                     default=True)
-    fps = bpy.props.IntProperty(name='Scene Framerate',
-                                description='Custom fps value',
-                                default=30,
-                                min=1, max=60)
-    restpose = bpy.props.BoolProperty(
+    anim_fps_use = bpy.props.BoolProperty(name='Use Custom fps',
+                                          description='Use custom fps value',
+                                          default=True)
+    anim_fps = bpy.props.IntProperty(name='Scene Framerate',
+                                     description='Custom fps value',
+                                     default=30,
+                                     min=1, max=60)
+    anim_restpose = bpy.props.BoolProperty(
         name='Insert Rest Pose',
         description='Insert rest keyframe before every animation',
         default=True)
     # Blender Settings
     rotmode = bpy.props.EnumProperty(
-            name='Rotation Mode',
-            description='',
-            items=(('AXIS_ANGLE', 'Axis Angle', ''),
-                   ('QUATERNION', 'Quaternion', ''),
-                   ('XYZ', 'Euler XYZ', '')),
-            default='XYZ')
-    # Hidden settings for batch processing
-    minimapMode = bpy.props.BoolProperty(
-            name='Minimap Mode',
-            description='Ignore lights and fading objects',
-            default=False,
+        name='Rotation Mode',
+        description='',
+        items=(('AXIS_ANGLE', 'Axis Angle', ''),
+               ('QUATERNION', 'Quaternion', ''),
+               ('XYZ', 'Euler XYZ', '')),
+        default='XYZ')
+    mdl_location = bpy.props.FloatVectorProperty(
+            name='Location',
+            description='Location of newly imported model',
+            default=(0.0, 0.0, 0.0), size=3,
             options={'HIDDEN'})
-    minimapSkipFade = bpy.props.BoolProperty(
-            name='Minimap Mode: Import Fading Objects',
-            description='Ignore fading objects',
+    # Hidden settings for batch processing
+    mode_minimal = bpy.props.BoolProperty(
+        name='Minimal Mode',
+        description='Import lights, emitters and walkmeshes as Emptys',
+        default=False,
+        options={'HIDDEN'})
+    ignore_fading = bpy.props.BoolProperty(
+            name='Igore Fading Objects',
+            description='Import fading objects as Emptys',
             default=False,
             options={'HIDDEN'})
 
@@ -312,40 +327,41 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'anim_import')
         sub1 = box.column()
         sub1.enabled = self.anim_import
-        sub1.prop(self, 'restpose')
+        sub1.prop(self, 'anim_restpose')
         row = sub1.row(align=True)
-        row.prop(self, 'fps_use', text='')
+        row.prop(self, 'anim_fps_use', text='')
         sub2 = row.row(align=True)
-        sub2.enabled = self.fps_use
-        sub2.prop(self, 'fps')
+        sub2.enabled = self.anim_fps_use
+        sub2.prop(self, 'anim_fps')
 
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
         box.prop(self, 'rotmode')
 
-    def load_mdl(self, context, options):
-        """Called from blender ui."""
-        mdl_path, mdl_filename = os.path.split(options.filepath)
-        options.mdlname = os.path.splitext(mdl_filename)[0]
+    def load_file(self, context, options):
+        pathlist = [os.path.join(self.directory, f.name)
+                    for f in self.files]
+        if not pathlist:
+            pathlist.append(self.filepath)
+        for mdl_filepath in pathlist:
+            mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
+            mdl_name = os.path.splitext(mdl_filename)[0]
 
-        with open(os.fsencode(options.filepath), 'r') as mdlfile:
+            options.mdlname = mdl_name
+            options.filepath = mdl_filepath
             mdl = nvb_mdl.Mdl()
-            asciiData = mdlfile.read()
-            mdl.readAscii(asciiData, options)
-            # Try to load walkmeshes ... pwk (placeable) and dwk (door)
+            # Load mdl data
+            with open(os.fsencode(mdl_filepath), 'r') as f:
+                mdl.readAscii(f.read(), options)
+            # Load walkmesh data: pwk (placeable) and dwk (door)
             if options.importWalkmesh:
-                for wkmtype in nvb_def.Walkmeshtype.IMPORT:
-                    wkmFilename = options.mdlname + '.' + wkmtype
-                    wkmPath = os.fsencode(os.path.join(mdl_path, wkmFilename))
-                    try:
-                        wkmFile = open(wkmPath, 'r')
-                    except IOError:
-                        pass  # There is no such file
-                    else:
-                        asciiData = wkmFile.read()
-                        mdl.readAsciiWalkmesh(asciiData, wkmtype, options)
-                        wkmFile.close()
+                for wkm_type in nvb_def.Walkmeshtype.IMPORT:
+                    wkm_filename = mdl_name + '.' + wkm_type
+                    wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
+                    if os.path.isfile(os.fsencode(wkm_filepath)):
+                        with open(os.fsencode(wkm_filepath), 'r') as f:
+                            mdl.readAsciiWalkmesh(f.read(), wkm_type, options)
             mdl.create(options)
         return {'FINISHED'}
 
@@ -360,17 +376,18 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.importNormals = self.import_normals
         # Material Options
         options.importMaterials = self.mat_import
-        options.importMTR = self.mtr_import
         options.mat_automerge = self.mat_automerge
+        options.importMTR = self.mtr_import
         options.tex_search = self.tex_search
         # Animation Options
-        options.importAnimations = self.anim_import
-        options.restpose = self.restpose
-        options.customfps = self.fps_use
-        options.fps = self.fps
-        # Hidden settings for batch processing
-        options.minimapMode = self.minimapMode
-        options.minimapSkipFade = self.minimapSkipFade
+        options.anim_import = self.anim_import
+        options.anim_restpose = self.anim_restpose
+        options.anim_fps_use = self.anim_fps_use
+        options.anim_fps = self.anim_fps
+        # Hidden settings: Ignores Lights, Walkmeshes and Emitters
+        options.mode_minimal = self.mode_minimal
+        options.ignore_fading = self.ignore_fading
         # Blender Settings
         options.rotmode = self.rotmode
-        return self.load_mdl(context, options)
+        options.mdl_location = self.mdl_location
+        return self.load_file(context, options)

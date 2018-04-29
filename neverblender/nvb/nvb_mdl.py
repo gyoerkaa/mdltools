@@ -150,7 +150,7 @@ class Mdl():
         else:
             Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.mdlnodes)
         # Import Animations
-        if options.importAnimations and (animStart > 0):
+        if options.anim_import and (animStart > 0):
             self.readAsciiAnimations(asciiBlock[animStart:])
 
     @staticmethod
@@ -220,7 +220,7 @@ class Mdl():
         Mdl.generateAsciiGeometry(mdlRoot, asciiLines, options)
         asciiLines.append('endmodelgeom ' + mdlName)
         # Animations
-        if options.exportAnimations:
+        if options.export_animations:
             Mdl.generateAsciiAnimations(mdlRoot, asciiLines, options)
         # The End
         asciiLines.append('donemodel ' + mdlName)
@@ -357,8 +357,10 @@ class Mdl():
             wkmroot.parent = mdlroot
             del wkmresolver
         # Create animations
-        if options.importAnimations:
-            if options.customfps:
-                options.scene.render.fps = options.fps
+        if options.anim_import:
+            if options.anim_fps_use:
+                options.scene.render.fps = options.anim_fps
             self.createAnimations(self.animations,
                                   mdlroot, mdlresolver, options)
+        # Set mdl root position
+        mdlroot.location = options.mdl_location

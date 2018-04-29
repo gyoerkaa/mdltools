@@ -188,7 +188,7 @@ class NVB_PT_armature(bpy.types.Panel):
     bl_label = 'Aurora Armature Utilities'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    bl_context = 'object'
+    bl_context = 'data'
 
     @classmethod
     def poll(cls, context):

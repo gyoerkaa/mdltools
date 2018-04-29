@@ -42,7 +42,7 @@ class Animation():
             obj = noderesolver.get_obj(node.name, node.nodeidx)
             if obj:
                 node.create(obj, newAnim, self.length, options)
-                if options.restpose:
+                if options.anim_restpose:
                     Animation.createRestPose(obj, newAnim.frameStart-5)
 
     def loadAsciiAnimHeader(self, asciiBlock):

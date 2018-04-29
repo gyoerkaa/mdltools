@@ -226,15 +226,16 @@ class ImportOptions():
         self.mat_automerge = True
         self.tex_search = False
         # Animation Settings
-        self.importAnimations = True
-        self.customfps = True
-        self.fps = 30
-        self.restpose = True
+        self.anim_import = True
+        self.anim_fps_use = True
+        self.anim_fps = 30
+        self.anim_restpose = True
         # Blender Settings
         self.rotmode = 'XYZ'
+        self.mdl_location = (0.0, 0.0, 0.0)
         # for batch processing
-        self.minimapMode = False
-        self.minimapSkipFade = False
+        self.mode_minimal = False
+        self.ignore_fading = False
 
 
 class ExportOptions():
@@ -248,10 +249,10 @@ class ExportOptions():
         self.mtrdb = set()
         self.classification = Classification.UNKNOWN
         # Misc options
-        self.exportAnimations = True
-        self.exportWalkmesh = True
-        self.exportSmoothGroups = True
-        self.exportNormals = False
+        self.export_animations = True
+        self.export_walkmesh = True
+        self.export_smoothgroups = True
+        self.export_normals = False
         # UV Map Settings
         self.uvmapAutoJoin = True
         self.uvmapMode = 'REN'
@@ -263,3 +264,4 @@ class ExportOptions():
         self.apply_modifiers = True
         self.mesh_convert = 'RENDER'
         self.batch_mode = 'OFF'
+        self.strip_trailing = False
