@@ -1,3 +1,5 @@
+"""Contains Blender Operators for MDL Import/Export."""
+
 import os
 import bpy
 import bpy_extras

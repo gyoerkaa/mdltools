@@ -1,7 +1,5 @@
-"""TODO: DOC."""
+"""Contains misc. Blender Operators."""
 
-import math
-import copy
 import os
 import re
 
@@ -10,7 +8,6 @@ import mathutils
 
 from . import nvb_def
 from . import nvb_utils
-from . import nvb_mtr
 
 
 class NVB_OT_helper_restpose(bpy.types.Operator):
@@ -107,7 +104,6 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
     bl_label = 'Generate Pseudo Bones'
     bl_options = {'UNDO'}
 
-    prefix = ''
     generated = []
 
     def create_mesh(self, mvector, meshname):
@@ -140,16 +136,16 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
         mesh.update()
         return mesh
 
-    def generate_bones(self, amb, psb_parent=None):
+    def generate_bones(self, amt_bone, psb_parent=None):
         """Creates a pseusobone (mesh) object from an armature bone."""
         # name for newly created mesh = pseudo bone
-        psb_name = self.prefix + amb.name
-        if amb.parent:
-            psb_head = amb.head_local - amb.parent.head_local
-            psb_tail = amb.tail_local - amb.parent.head_local
+        psb_name = amt_bone.name
+        if amt_bone.parent:
+            psb_head = amt_bone.head_local - amt_bone.parent.head_local
+            psb_tail = amt_bone.tail_local - amt_bone.parent.head_local
         else:
-            psb_head = amb.head_local
-            psb_tail = amb.tail_local
+            psb_head = amt_bone.head_local
+            psb_tail = amt_bone.tail_local
         # Create the mesh for the pseudo bone
         mesh = self.create_mesh(psb_tail-psb_head, psb_name)
         # Create object holding the mesh
@@ -157,11 +153,17 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
         psb.location = psb_head
         psb.parent = psb_parent
         bpy.context.scene.objects.link(psb)
-        self.generated.append([amb.name, psb])
-        for c in amb.children:
+        # Create matrix for animation conversion
+        cmat = mathutils.Matrix()
+        if psb_parent:
+            cmat = psb_parent.matrix_world
+        cmat = cmat * psb.matrix_local
+        cmat = cmat * amt_bone.matrix_local.inverted()
+        self.generated.append([amt_bone.name, psb, cmat])
+        for c in amt_bone.children:
             self.generate_bones(c, psb)
 
-    def transfer_animations(self, armature, amt_bone_name, psb):
+    def transfer_animations(self, armature, amt_bone_name, psb, cmat):
         """TODO: DOC."""
         def insert_kfp(fcu, kfp_frames, kfp_data, dp, dp_dim):
             # Add keyframes to fcurves
@@ -177,13 +179,15 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
                     p.interpolation = 'LINEAR'
             list(map(lambda c: c.update(), fcu))
 
-        def convert_loc(amt, posebone, kfvalues, cmat=mathutils.Matrix()):
-            mats = [cmat * mathutils.Matrix.Translation(v) for v in kfvalues]
+        def convert_loc(amt, posebone, kfvalues, psb, cmat):
+            mats = [mathutils.Matrix.Translation(v) for v in kfvalues]
             mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
+                    'WORLD') for m in mats]
+            mats = [psb.convert_space(None, m, 'WORLD',
                     'LOCAL') for m in mats]
             return [list(m.to_translation()) for m in mats]
 
-        def convert_axan(amt, posebone, kfvalues, cmat=mathutils.Matrix()):
+        def convert_axan(amt, posebone, kfvalues, psb, cmat):
             mats = [cmat *
                     mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                     for v in kfvalues]
@@ -191,17 +195,19 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
                      'LOCAL').to_quaternion() for m in mats]
             return [[q.angle, *q.axis] for q in quats]
 
-        def convert_quat(amt, posebone, kfvalues, cmat=mathutils.Matrix()):
+        def convert_quat(amt, posebone, kfvalues, psb, cmat):
             mats = [cmat * mathutils.Quaternion(v).to_matrix().to_4x4()
                     for v in kfvalues]
             mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
                     'LOCAL') for m in mats]
             return [list(m.to_quaternion()) for m in mats]
 
-        def convert_eul(amt, posebone, kfvalues, cmat=mathutils.Matrix()):
-            mats = [cmat * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+        def convert_eul(amt, posebone, kfvalues, psb, cmat):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
             mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
+                    'WORLD') for m in mats]
+            mats = [psb.convert_space(None, m, 'WORLD',
                     'LOCAL') for m in mats]
             # Convert to Euler (with filter)
             euls = []
@@ -243,7 +249,7 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
                 values = [[amt_fcu[i].evaluate(f)
                           for i in range(dp_dim)] for f in frames]
                 # Convert from armature bone space to pseudobone space
-                convert_func(armature, amt_posebone, values)
+                convert_func(armature, amt_posebone, values, psb, cmat)
                 # Create fcurves for pseudo bone
                 psb_fcu = [psb_action.fcurves.new(psb_dp, i)
                            for i in range(dp_dim)]
@@ -257,7 +263,7 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
         return obj and (obj.type == 'ARMATURE')
 
     def execute(self, context):
-        """Create pseudo bones"""
+        """Create pseudo bones and copy animations"""
         armature = context.object
         # Create an extra root object for the armature
         psb_root = None
@@ -266,14 +272,16 @@ class NVB_OT_helper_amt2psb(bpy.types.Operator):
             psb_root.location = armature.location
             context.scene.objects.link(psb_root)
         # Create Pseudo bones
+        bpy.ops.object.mode_set(mode='EDIT')
         for amb in armature.data.bones:
             if not amb.parent:
                 self.generate_bones(amb, psb_root)
+        bpy.ops.object.mode_set(mode='OBJECT')
         # Transfer animations
         if armature.nvb.helper_amt_copyani:
             if armature.animation_data and armature.animation_data.action:
-                    for amb_name, psb in self.generated:
-                        self.transfer_animations(armature, amb_name, psb)
+                for amb_name, psb, cmat in self.generated:
+                    self.transfer_animations(armature, amb_name, psb, cmat)
         return {'FINISHED'}
 
 
@@ -494,757 +502,6 @@ class NVB_OT_helper_psb2amt(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_anim_clone(bpy.types.Operator):
-    """Clone animation and add it to the animation list"""
-
-    bl_idname = 'nvb.anim_clone'
-    bl_label = 'Clone animation'
-
-    @classmethod
-    def poll(cls, context):
-        """Prevent execution if no rootdummy was found."""
-        rootdummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootdummy is not None:
-            return (len(rootdummy.nvb.animList) > 0)
-        return False
-
-    def cloneEmitter(self, rawasciiID):
-        """Clone the animations's emitter data."""
-        txt = bpy.data.texts[rawasciiID].copy()
-        txt.name = bpy.data.texts[rawasciiID].name + '_copy'
-        txt.use_fake_user = True
-        return txt.name
-
-    def cloneFrames(self, target, an_start, an_end, clone_start):
-        """Clone the animations keyframes."""
-        if target.animation_data and target.animation_data.action:
-            # in_options = {'FAST'}
-            action = target.animation_data.action
-            offset = clone_start - an_start
-            for fc in action.fcurves:
-                # Get the keyframe points of the selected animation
-                vals = [(p.co[0] + offset, p.co[1]) for p in fc.keyframe_points
-                        if an_start <= p.co[0] <= an_end]
-                kfp = fc.keyframe_points
-                nkfp = len(kfp)
-                kfp.add(len(vals))
-                for i in range(len(vals)):
-                    kfp[nkfp+i].co = vals[i]
-                # For compatibility with older blender versions
-                try:
-                    fc.update()
-                except AttributeError:
-                    pass
-
-    def execute(self, context):
-        """Clone the animation."""
-        rootd = nvb_utils.get_obj_aurora_root(context.object)
-        anim = rootd.nvb.animList[rootd.nvb.animListIdx]
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
-        # Adds a new animation to the end of the list
-        clone = nvb_utils.createAnimListItem(rootd)
-        # Copy data
-        clone.frameEnd = clone.frameStart + (animEnd - animStart)
-        clone.ttime = anim.ttime
-        clone.root = anim.root
-        clone.name = anim.name + '_copy'
-        # Copy events
-        for e in anim.eventList:
-            clonedEvent = clone.eventList.add()
-            clonedEvent.frame = clone.frameStart + (e.frame - animStart)
-            clonedEvent.name = e.name
-        # Copy emitter data
-        rawascii = anim.rawascii
-        if rawascii and (rawascii in bpy.data.texts):
-            clone.rawascii = self.cloneEmitter(rawascii)
-        # Copy keyframes
-        objList = []
-        nvb_utils.getAllChildren(rootd, objList)
-        for obj in objList:
-            # Copy the objects animation
-            self.cloneFrames(obj, animStart, animEnd, clone.frameStart)
-            # Copy the object's material animation
-            if obj.active_material:
-                self.cloneFrames(obj.active_material,
-                                 animStart, animEnd, clone.frameStart)
-            # Copy the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.cloneFrames(obj.data.shape_keys,
-                                 animStart, animEnd, clone.frameStart)
-        return {'FINISHED'}
-
-
-class NVB_OT_anim_scale(bpy.types.Operator):
-    """Open a dialog to scale the length of a single animation"""
-
-    bl_idname = 'nvb.anim_scale'
-    bl_label = 'Scale animation'
-
-    scaleFactor = bpy.props.FloatProperty(name='scale',
-                                          description='Scale the animation',
-                                          min=0.1,
-                                          default=1.0)
-
-    @classmethod
-    def poll(cls, context):
-        """Prevent execution if no rootdummy was found."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
-        return False
-
-    def scaleFramesUp(self, target, animStart, animEnd, scaleFactor):
-        """TODO:DOC."""
-        if target.animation_data and target.animation_data.action:
-            oldSize = animEnd - animStart
-            newSize = scaleFactor * oldSize
-            padding = newSize - oldSize
-            action = target.animation_data.action
-            for fcurve in action.fcurves:
-                # Move keyframes back to create enough space
-                for p in reversed(fcurve.keyframe_points):
-                    if (p.co[0] > animEnd):
-                        p.co[0] += padding
-                        p.handle_left.x += padding
-                        p.handle_right.x += padding
-                # Now scale the animation
-                for p in fcurve.keyframe_points:
-                    if (animStart < p.co[0] <= animEnd):
-                        oldFrame = p.co[0]
-                        newFrame = (oldFrame - animStart + 1) * \
-                            scaleFactor + animStart - 1
-                        p.co[0] = newFrame
-                        p.handle_left.x = newFrame - \
-                            (oldFrame - p.handle_left.x)
-                        p.handle_right.x = newFrame + \
-                            (p.handle_right.x - oldFrame)
-                # For compatibility with older blender versions
-                try:
-                    fcurve.update()
-                except AttributeError:
-                    pass
-
-    def scaleFramesDown(self, target, animStart, animEnd, scaleFactor):
-        """TODO:DOC."""
-        if target.animation_data and target.animation_data.action:
-            oldSize = animEnd - animStart
-            newSize = scaleFactor * oldSize
-            padding = newSize - oldSize
-            action = target.animation_data.action
-            for fcurve in action.fcurves:
-                    # Scale the animation down first
-                    for p in fcurve.keyframe_points:
-                        if (animStart < p.co[0] <= animEnd):
-                            oldFrame = p.co[0]
-                            newFrame = (oldFrame - animStart + 1) * \
-                                scaleFactor + animStart - 1
-                            p.co[0] = newFrame
-                            p.handle_left.x = newFrame - \
-                                (oldFrame - p.handle_left.x)
-                            p.handle_right.x = newFrame + \
-                                (p.handle_right.x - oldFrame)
-                    # Move keyframes forward to close gaps
-                    for p in fcurve.keyframe_points:
-                        if (p.co[0] > animEnd):
-                            p.co[0] += padding
-                            p.handle_left.x += padding
-                            p.handle_right.x += padding
-                    # For compatibility with older blender versions
-                    try:
-                        fcurve.update()
-                    except AttributeError:
-                        pass
-
-    def scaleEmitter(self, anim, scaleFactor):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            txt = bpy.data.texts[anim.rawascii]
-            rawdata = copy.deepcopy(txt.as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(rawdata)
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
-                    for k in keys:
-                        k[0] = str(int(k[0]) * scaleFactor)
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, animData)
-
-    def scaleFrames(self, target, animStart, animEnd, scaleFactor):
-        """TODO:DOC."""
-        if target.animation_data and target.animation_data.action:
-            if scaleFactor > 1.0:
-                self.scaleFramesUp(target, animStart, animEnd, scaleFactor)
-            elif scaleFactor < 1.0:
-                self.scaleFramesDown(target, animStart, animEnd, scaleFactor)
-
-    def execute(self, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Error: Nested animations.')
-            return {'CANCELLED'}
-        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        # Check resulting length (has to be >= 1)
-        oldSize = ta.frameEnd - ta.frameStart + 1
-        newSize = self.scaleFactor * oldSize
-        if (newSize < 1):
-            self.report({'INFO'}, 'Error: Resulting size < 1.')
-            return {'CANCELLED'}
-        if (math.fabs(oldSize - newSize) < 1):
-            self.report({'INFO'}, 'Error: Same size.')
-            return {'CANCELLED'}
-        # Get a list of affected objects
-        objList = []
-        nvb_utils.getAllChildren(rootDummy, objList)
-        # Adjust Emitter data
-        self.scaleEmitter(ta, self.scaleFactor)
-        # Adjust keyframes
-        for obj in objList:
-            # Adjust the objects animation
-            self.scaleFrames(obj, ta.frameStart, ta.frameEnd, self.scaleFactor)
-            # Adjust the object's material animation
-            if obj.active_material:
-                self.scaleFrames(obj.active_material,
-                                 ta.frameStart, ta.frameEnd, self.scaleFactor)
-            # Adjust the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.scaleFrames(obj.data.shape_keys,
-                                 ta.frameStart, ta.frameEnd, self.scaleFactor)
-        # Adjust the bounds of animations coming after the
-        # target (scaled) animation
-        padding = newSize - oldSize
-        for a in reversed(rootDummy.nvb.animList):
-            if a.frameStart > ta.frameEnd:
-                a.frameStart += padding
-                a.frameEnd += padding
-                for e in a.eventList:
-                    e.frame += padding
-        # Adjust the target (scaled) animation itself
-        ta.frameEnd += padding
-        for e in ta.eventList:
-            e.frame = (e.frame - ta.frameStart + 1) * \
-                self.scaleFactor + ta.frameStart - 1
-        # Re-adjust the timeline to the new bounds
-        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
-        return {'FINISHED'}
-
-    def draw(self, context):
-        """TODO:DOC."""
-        layout = self.layout
-
-        row = layout.row()
-        row.label('Scaling: ')
-        row = layout.row()
-        row.prop(self, 'scaleFactor', text='Factor')
-
-        layout.separator()
-
-    def invoke(self, context, event):
-        """TODO:DOC."""
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-
-class NVB_OT_anim_crop(bpy.types.Operator):
-    """Open a dialog to crop a single animation"""
-
-    bl_idname = 'nvb.anim_crop'
-    bl_label = 'Crop animation'
-
-    cropFront = bpy.props.IntProperty(
-                    name='cropFront',
-                    min=0,
-                    description='Insert Frames before the first keyframe')
-    cropBack = bpy.props.IntProperty(
-                    name='cropBack',
-                    min=0,
-                    description='Insert Frames after the last keyframe')
-
-    @classmethod
-    def poll(cls, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
-        return False
-
-    def cropEmitter(self, anim):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawascii = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawascii.as_string())
-            oldData = []
-            oldData = nvb_utils.readRawAnimData(txt)
-            newData = []
-            # Grab some values for speed
-            cf = self.cropFront
-            cb = (anim.frameEnd - anim.frameStart) - self.cropBack
-            for nodeName, nodeType, oldKeyList in oldData:
-                newKeyList = []
-                for label, oldKeys in oldKeyList:
-                    newKeys = []
-                    for k in oldKeys:
-                        frame = int(k[0])
-                        if (cf < frame < cb):
-                            newKeys.append(k)
-                    newKeyList.append([label, newKeys])
-                newData.append([nodeName, nodeType, newKeyList])
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, newData)
-
-    def cropFrames(self, target, animStart, animEnd):
-        """TODO:DOC."""
-        if target.animation_data and target.animation_data.action:
-            # Grab some values for speed
-            cf = self.cropFront
-            cb = self.cropBack
-            # Find out which frames to delete
-            action = target.animation_data.action
-            framesToDelete = []
-            # Find out which ones to delete
-            for fcurve in target.animation_data.action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (animStart <= p.co[0] < animStart + cf) or \
-                       (animEnd - cb < p.co[0] <= animEnd):
-                        framesToDelete.append((fcurve.data_path, p.co[0]))
-            # Delete the frames by accessing them from the object.
-            # (Can't do it directly)
-            for dp, f in framesToDelete:
-                target.keyframe_delete(dp, frame=f)
-            # Move the keyframes to the front to remove gaps
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (p.co[0] >= animStart):
-                        p.co[0] -= cf
-                        p.handle_left.x -= cf
-                        p.handle_right.x -= cf
-                        if (p.co[0] >= animEnd):
-                            p.co[0] -= cb
-                            p.handle_left.x -= cb
-                            p.handle_right.x -= cb
-                # For compatibility with older blender versions
-                try:
-                    fcurve.update()
-                except AttributeError:
-                    pass
-
-    def execute(self, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Failure: Convoluted animations.')
-            return {'CANCELLED'}
-        animList = rootDummy.nvb.animList
-        currentAnimIdx = rootDummy.nvb.animListIdx
-        anim = animList[currentAnimIdx]
-        # Grab some values for speed
-        cf = self.cropFront
-        cb = self.cropBack
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
-        totalCrop = cf + cb
-        # Resulting length has to be at lest 1 frame
-        if totalCrop > (animEnd - animStart + 1):
-            self.report({'INFO'}, 'Failure: Resulting length < 1.')
-            return {'CANCELLED'}
-        # Get a list of affected objects
-        objList = []
-        nvb_utils.getAllChildren(rootDummy, objList)
-        # Crop Emitter
-        self.cropEmitter(anim)
-        # Pad keyframes
-        for obj in objList:
-            # Copy the objects animation
-            self.cropFrames(obj, animStart, animEnd)
-            # Copy the object's material animation
-            if obj.active_material:
-                self.cropFrames(obj.active_material, animStart, animEnd)
-            # Copy the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.cropFrames(obj.data.shape_keys, animStart, animEnd)
-        # Update the animations in the list
-        for a in rootDummy.nvb.animList:
-            if a.frameStart > animStart:
-                a.frameStart -= totalCrop
-                a.frameEnd -= totalCrop
-                for e in a.eventList:
-                    e.frame -= totalCrop
-        # Adjust the target animation itself
-        for idx, e in enumerate(anim.eventList):
-            if (animStart <= e.frame < animStart + cf) or \
-               (animEnd - cb < e.frame <= animEnd):
-                anim.eventList.remove(idx)
-                anim.eventListIdx = 0
-            else:
-                e.frame -= totalCrop
-        anim.frameEnd -= totalCrop
-        # Re-adjust the timeline to the new bounds
-        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
-        return {'FINISHED'}
-
-    def draw(self, context):
-        """TODO:DOC."""
-        layout = self.layout
-
-        row = layout.row()
-        row.label('Crop: ')
-        row = layout.row()
-        split = row.split()
-        col = split.column(align=True)
-        col.prop(self, 'cropFront', text='Front')
-        col.prop(self, 'cropBack', text='Back')
-
-        layout.separator()
-
-    def invoke(self, context, event):
-        """TODO:DOC."""
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-
-class NVB_OT_anim_pad(bpy.types.Operator):
-    """Open a dialog to pad a single animation"""
-
-    bl_idname = 'nvb.anim_pad'
-    bl_label = 'Pad animation'
-
-    padFront = bpy.props.IntProperty(
-                    name='padFront',
-                    min=0,
-                    description='Insert Frames before the first keyframe')
-    padBack = bpy.props.IntProperty(
-                    name='padBack',
-                    min=0,
-                    description='Insert Frames after the last keyframe')
-
-    @classmethod
-    def poll(cls, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
-        return False
-
-    def padEmitter(self, anim):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawdata = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawdata.as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(txt)
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
-                    for k in keys:
-                        k[0] = str(int(k[0]) + self.padFront)
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, animData)
-
-    def padFrames(self, target, animStart, animEnd):
-        """TODO:DOC."""
-        if target.animation_data and target.animation_data.action:
-            action = target.animation_data.action
-            for fcurve in action.fcurves:
-                for p in reversed(fcurve.keyframe_points):
-                    if p.co[0] > animEnd:
-                        p.co[0] += self.padBack
-                        p.handle_left.x += self.padBack
-                        p.handle_right.x += self.padBack
-                    if p.co[0] >= animStart:
-                        p.co[0] += self.padFront
-                        p.handle_left.x += self.padFront
-                        p.handle_right.x += self.padFront
-                # For compatibility with older blender versions
-                try:
-                    fcurve.update()
-                except AttributeError:
-                    pass
-
-    def execute(self, context):
-        """TODO:DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Failure: Convoluted animations.')
-            return {'CANCELLED'}
-        ta = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        # Cancel if padding is 0
-        if (self.padFront + self.padBack) <= 0:
-            self.report({'INFO'}, 'Failure: No changes.')
-            return {'CANCELLED'}
-        # Get a list of affected objects
-        objList = []
-        nvb_utils.getAllChildren(rootDummy, objList)
-        # Pad Emitter
-        self.padEmitter(ta)
-        # Pad keyframes
-        for obj in objList:
-            # Pad the objects animation
-            self.padFrames(obj, ta.frameStart, ta.frameEnd)
-            # Pad the object's material animation
-            if obj.active_material:
-                self.padFrames(obj.active_material, ta.frameStart, ta.frameEnd)
-            # Pad the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.padFrames(obj.data.shape_keys, ta.frameStart, ta.frameEnd)
-        # Update the animations in the list
-        totalPadding = self.padBack + self.padFront
-        for a in rootDummy.nvb.animList:
-            if a.frameStart > ta.frameEnd:
-                a.frameStart += totalPadding
-                a.frameEnd += totalPadding
-                for e in a.eventList:
-                    e.frame += totalPadding
-        # Update the target animation itself
-        ta.frameEnd += totalPadding
-        for e in ta.eventList:
-            e.frame += self.padFront
-        # Re-adjust the timeline to the new bounds
-        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
-        return {'FINISHED'}
-
-    def draw(self, context):
-        """TODO:DOC."""
-        layout = self.layout
-
-        row = layout.row()
-        row.label('Padding: ')
-        row = layout.row()
-        split = row.split()
-        col = split.column(align=True)
-        col.prop(self, 'padFront', text='Front')
-        col.prop(self, 'padBack', text='Back')
-        layout.separator()
-
-    def invoke(self, context, event):
-        """TODO:DOC."""
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-
-
-class NVB_OT_anim_focus(bpy.types.Operator):
-    """Set the Start and end frames of the timeline"""
-
-    bl_idname = 'nvb.anim_focus'
-    bl_label = 'Set start and end frame of the timeline to the animation'
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
-        return False
-
-    def execute(self, context):
-        """Set the timeline to this animation."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        scene = context.scene
-
-        nvb_utils.toggleAnimFocus(scene, rootDummy)
-        return {'FINISHED'}
-
-
-class NVB_OT_anim_new(bpy.types.Operator):
-    """Add a new animation to the animation list"""
-
-    bl_idname = 'nvb.anim_new'
-    bl_label = 'Create new animation'
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if no object is selected."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        return (rootDummy is not None)
-
-    def execute(self, context):
-        """Create the animation"""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        newanim = nvb_utils.createAnimListItem(rootDummy)
-        newanim.root = rootDummy.name
-        return {'FINISHED'}
-
-
-class NVB_OT_anim_delete(bpy.types.Operator):
-    """Delete the selected animation and its keyframes"""
-
-    bl_idname = 'nvb.anim_delete'
-    bl_label = 'Delete an animation'
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 0)
-        return False
-
-    def deleteFrames(self, target, frameStart, frameEnd):
-        """Delete the animation's keyframes."""
-        if target.animation_data and target.animation_data.action:
-            # Find out which frames to delete
-            action = target.animation_data.action
-            framesToDelete = []
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (frameStart <= p.co[0] <= frameEnd):
-                        framesToDelete.append((fcurve.data_path, p.co[0]))
-            # Delete them by accessing them from the object.
-            # (Can't do it directly)
-            for dp, f in framesToDelete:
-                target.keyframe_delete(dp, frame=f)
-
-    def execute(self, context):
-        """Delete the animation."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        animList = rootDummy.nvb.animList
-        animListIdx = rootDummy.nvb.animListIdx
-        anim = animList[animListIdx]
-        # Grab some data for speed
-        frameStart = anim.frameStart
-        frameEnd = anim.frameEnd
-        # Get a list of affected objects
-        objList = []
-        nvb_utils.getAllChildren(rootDummy, objList)
-        # Remove keyframes
-        for obj in objList:
-            # Delete the objects animation
-            self.deleteFrames(obj, frameStart, frameEnd)
-            # Delete the object's material animation
-            if obj.active_material:
-                self.deleteFrames(obj.active_material, frameStart, frameEnd)
-            # Delete the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.deleteFrames(obj.data.shape_keys, frameStart, frameEnd)
-        # Remove animation from List
-        animList.remove(animListIdx)
-        if animListIdx > 0:
-            rootDummy.nvb.animListIdx = animListIdx - 1
-        return {'FINISHED'}
-
-
-class NVB_OT_anim_moveback(bpy.types.Operator):
-    """Move an animation and its keyframes to the end of the animation list"""
-
-    bl_idname = 'nvb.anim_moveback'
-    bl_label = 'Move to end.'
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if animation list is empty."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 1)
-        return False
-
-    def moveFrames(self, target, oldStart, oldEnd, newStart):
-        """Move the animation's keyframes."""
-        if target.animation_data and target.animation_data.action:
-            insertionOptions = {'FAST'}
-            action = target.animation_data.action
-            framesToDelete = []
-            for fcurve in action.fcurves:
-                for p in fcurve.keyframe_points:
-                    if (oldStart <= p.co[0] <= oldEnd):
-                        framesToDelete.append((fcurve.data_path, p.co[0]))
-                        newFrame = p.co[0] + newStart - oldStart
-                        fcurve.keyframe_points.insert(newFrame, p.co[1],
-                                                      insertionOptions)
-                fcurve.update()
-            # Delete the frames by accessing them from the object.
-            # (Can't do it directly)
-            for dp, f in framesToDelete:
-                target.keyframe_delete(dp, frame=f)
-
-    def execute(self, context):
-        """Move the animation to the end of the animation list."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if not nvb_utils.checkAnimBounds(rootDummy):
-            self.report({'INFO'}, 'Failure: Convoluted animations.')
-            return {'CANCELLED'}
-        animList = rootDummy.nvb.animList
-        currentAnimIdx = rootDummy.nvb.animListIdx
-        anim = animList[currentAnimIdx]
-        # Grab some data for speed
-        oldStart = anim.frameStart
-        oldEnd = anim.frameEnd
-        # Get the end of the timeline
-        newStart = 0
-        for a in rootDummy.nvb.animList:
-            if a.frameEnd > newStart:
-                newStart = a.frameEnd
-        newStart = newStart + nvb_def.anim_offset
-        # Get a list of affected objects
-        objList = [rootDummy]
-        for o in objList:
-            for c in o.children:
-                objList.append(c)
-        # Move keyframes
-        for obj in objList:
-            # Delete the objects animation
-            self.moveFrames(obj, oldStart, oldEnd, newStart)
-            # Delete the object's material animation
-            if obj.active_material:
-                self.moveFrames(obj.active_material,
-                                oldStart, oldEnd, newStart)
-            # Delete the object's shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.moveFrames(obj.data.shape_keys,
-                                oldStart, oldEnd, newStart)
-
-        # Adjust animations in the list
-        for e in anim.eventList:
-            e.frame = newStart + (e.frame - oldStart)
-        anim.frameStart = newStart
-        anim.frameEnd = newStart + (oldEnd - oldStart)
-        # Set index
-        newAnimIdx = len(animList) - 1
-        animList.move(currentAnimIdx, newAnimIdx)
-        rootDummy.nvb.animListIdx = newAnimIdx
-        # Re-adjust the timeline to the new bounds
-        nvb_utils.toggleAnimFocus(context.scene, rootDummy)
-        return {'FINISHED'}
-
-
-class NVB_OT_anim_move(bpy.types.Operator):
-    """Move an item in the animation list, without affecting keyframes"""
-
-    bl_idname = 'nvb.anim_move'
-    bl_label = 'Move an animation in the list, without affecting keyframes'
-
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
-                                              ('DOWN', 'Down', '')))
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if animation list has less than 2 elements."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            return (len(rootDummy.nvb.animList) > 1)
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        animList = rootDummy.nvb.animList
-
-        currentIdx = rootDummy.nvb.animListIdx
-        newIdx = 0
-        maxIdx = len(animList) - 1
-        if self.direction == 'DOWN':
-            newIdx = currentIdx + 1
-        elif self.direction == 'UP':
-            newIdx = currentIdx - 1
-        else:
-            return {'CANCELLED'}
-
-        newIdx = max(0, min(newIdx, maxIdx))
-        if newIdx == currentIdx:
-            return {'CANCELLED'}
-        animList.move(currentIdx, newIdx)
-        rootDummy.nvb.animListIdx = newIdx
-        return {'FINISHED'}
-
-
 class NVB_OT_lensflare_new(bpy.types.Operator):
     """Add a new item to the flare list"""
 
@@ -1321,110 +578,6 @@ class NVB_OT_lensflare_move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_animevent_new(bpy.types.Operator):
-    """Add a new item to the event list"""
-
-    bl_idname = 'nvb.animevent_new'
-    bl_label = 'Add a new event to an animation'
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if there is an animation."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        animList = rootDummy.nvb.animList
-
-        return len(animList) > 0
-
-    def execute(self, context):
-        """TODO: DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-
-        eventList = anim.eventList
-        newEvent = eventList.add()
-        if anim.frameStart <= bpy.context.scene.frame_current <= anim.frameEnd:
-            newEvent.frame = bpy.context.scene.frame_current
-        else:
-            newEvent.frame = anim.frameStart
-
-        return {'FINISHED'}
-
-
-class NVB_OT_animevent_delete(bpy.types.Operator):
-    """Delete the selected item from the event list"""
-
-    bl_idname = 'nvb.animevent_delete'
-    bl_label = 'Deletes an event from an animation'
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if the list isn't empty."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            animList = rootDummy.nvb.animList
-            if len(animList) > 0:
-                anim = animList[rootDummy.nvb.animListIdx]
-                eventList = anim.eventList
-                return len(eventList) > 0
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        eventList = anim.eventList
-        eventIdx = anim.eventListIdx
-
-        eventList.remove(eventIdx)
-        if eventIdx > 0:
-            eventIdx = eventIdx - 1
-
-        return {'FINISHED'}
-
-
-class NVB_OT_animevent_move(bpy.types.Operator):
-    """Move an item in the event list"""
-
-    bl_idname = 'nvb.animevent_move'
-    bl_label = 'Move an item in the event  list'
-
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
-                                              ('DOWN', 'Down', '')))
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if the list isn't empty."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        if rootDummy is not None:
-            animList = rootDummy.nvb.animList
-            if len(animList) > 0:
-                anim = animList[rootDummy.nvb.animListIdx]
-                eventList = anim.eventList
-                return len(eventList) > 0
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        rootDummy = nvb_utils.get_obj_aurora_root(context.object)
-        anim = rootDummy.nvb.animList[rootDummy.nvb.animListIdx]
-        eventList = anim.eventList
-
-        currentIdx = anim.eventListIdx
-        newIdx = 0
-        maxIdx = len(eventList) - 1
-        if self.direction == 'DOWN':
-            newIdx = currentIdx + 1
-        elif self.direction == 'UP':
-            newIdx = currentIdx - 1
-        else:
-            return {'CANCELLED'}
-
-        newIdx = max(0, min(newIdx, maxIdx))
-        eventList.move(currentIdx, newIdx)
-        anim.eventListIdx = newIdx
-        return {'FINISHED'}
-
-
 class NVB_OT_light_genname(bpy.types.Operator):
     """Generate a name for the light based on type"""
 
@@ -1467,22 +620,22 @@ class NVB_OT_light_genname(bpy.types.Operator):
 class NVB_OT_helper_genwok(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
-    bl_idname = "nvb.helper_genwok"
-    bl_label = "Load walkmesh materials"
+    bl_idname = 'nvb.helper_genwok'
+    bl_label = 'Load walkmesh materials'
+
+    @classmethod
+    def poll(self, context):
+        """Enable only if a Lamp is selected."""
+        return (context.object and context.object.type == 'MESH')
 
     def execute(self, context):
         """Delete all current materials and add walkmesh materials."""
         obj = context.object
-        if obj and (obj.type == 'MESH'):
-            # Remove all material slots
-            for i in range(len(obj.material_slots)):
-                bpy.ops.object.material_slot_remove()
-            # Add wok materials
-            nvb_utils.create_wok_materials(obj.data)
-        else:
-            self.report({'ERROR'}, 'A mesh must be selected.')
-            return {'CANCELLED'}
-
+        # Remove all material slots
+        for i in range(len(obj.material_slots)):
+            bpy.ops.object.material_slot_remove()
+        # Add wok materials
+        nvb_utils.create_wok_materials(obj.data)
         return {'FINISHED'}
 
 
@@ -1543,7 +696,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         obj.parent = mdlroot
         scene.objects.link(obj)
 
-    def create_pwk(self, mdlroot, scene):
+    def create_pwk(self, mdl_root, scene):
         """Adds necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdlroot):
             basename = mdlroot.name
@@ -1584,36 +737,36 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             mesh.update()
             return mesh
 
-        prefix = get_prefix(mdlroot)
+        prefix = get_prefix(mdl_root)
         # Find or create walkmesh root
-        wkmroot = nvb_utils.find_wkm_root(mdlroot, nvb_def.Walkmeshtype.PWK)
-        newname = mdlroot.name + '_pwk'
+        wkmroot = nvb_utils.find_wkm_root(mdl_root, nvb_def.Walkmeshtype.PWK)
+        newname = mdl_root.name + '_pwk'
         if wkmroot:
             # Adjust existing object
             if wkmroot.name != newname:
                 wkmroot.name = newname
-            wkmroot.parent = mdlroot
+            wkmroot.parent = mdl_root
         else:
             # make a new one
             wkmroot = bpy.data.objects.new(newname, None)
             wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
-            wkmroot.parent = mdlroot
+            wkmroot.parent = mdl_root
             scene.objects.link(wkmroot)
         # Get all children of the mdlroot (to check existing objects)
-        obj_list = []
-        nvb_utils.getAllChildren(mdlroot, obj_list)
+        obj_list = [mdl_root]
+        nvb_utils.get_children_recursive(mdl_root, obj_list)
         # FROM HERE ON: Walkmesh objects - all parented to wkmroot
         # Adjust name and parent of exising mesh(es)
         meshlist = [o for o in obj_list if o.name.endswith('_wg')]
         for obj in meshlist:
-            newname = mdlroot.name + '_wg'
+            newname = mdl_root.name + '_wg'
             if obj.name != newname:
                 obj.name = newname
             obj.parent = wkmroot
         # Create missing mesh
-        meshname = mdlroot.name + '_wg'
+        meshname = mdl_root.name + '_wg'
         if meshname not in bpy.data.objects:
-            verts, faces = get_mdl_bbox(mdlroot)
+            verts, faces = get_mdl_bbox(mdl_root)
             mesh = create_pwk_mesh(meshname, verts, faces)
             obj = bpy.data.objects.new(meshname, mesh)
             obj.parent = wkmroot
@@ -1629,9 +782,9 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_head_hit', (0.0, 0.0, 2.2)],
                       ['_impact', (0.0, 0.0, 1.0)],
                       ['_ground', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdlroot, scene, obj_list)
+        self.create_dummys(dummy_data, prefix, mdl_root, scene, obj_list)
 
-    def create_dwk(self, mdlroot, scene):
+    def create_dwk(self, mdl_root, scene):
         """Add necessary (walkmesh) objects to mdlRoot."""
         def create_dwk_mesh(meshname):
             """Generate the default (walk)mesh for a generic door."""
@@ -1677,25 +830,25 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             mesh.update()
             return mesh
 
-        prefix = mdlroot.name[-2:]
+        prefix = mdl_root.name[-2:]
         # Find or create walkmesh root (wkmroot)
-        wkmroot = nvb_utils.find_wkm_root(mdlroot, nvb_def.Walkmeshtype.DWK)
-        newname = mdlroot.name + '_dwk'
+        wkmroot = nvb_utils.find_wkm_root(mdl_root, nvb_def.Walkmeshtype.DWK)
+        newname = mdl_root.name + '_dwk'
         if wkmroot:
             # Adjust existing
             if wkmroot.name != newname:
                 # Avoid renaming to same name (results in '.001' suffix)
                 wkmroot.name = newname
-            wkmroot.parent = mdlroot
+            wkmroot.parent = mdl_root
         else:
             # Make a new one
             wkmroot = bpy.data.objects.new(newname, None)
             wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
-            wkmroot.parent = mdlroot
+            wkmroot.parent = mdl_root
             scene.objects.link(wkmroot)
         # Get all children of the mdlroot (to check existing objects)
-        obj_list = []
-        nvb_utils.getAllChildren(mdlroot, obj_list)
+        obj_list = [mdl_root]
+        nvb_utils.get_children_recursive(mdl_root, obj_list)
         # FROM HERE ON: Walkmesh objects - all parented to wkmroot
         # Create walkmesh dummys
         # Parented to wkmroot!
@@ -1737,7 +890,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             obj = bpy.data.objects.new('sam', mesh)
             obj.location = (0.0, 0.0, 0.0)
             scene.objects.link(obj)
-        obj.parent = mdlroot
+        obj.parent = mdl_root
         obj.nvb.shadow = False
         # Create special dummys
         dummy_data = [['_hand', (0.0, 0.0, 1.0)],
@@ -1745,7 +898,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_hhit', (0.0, 0.0, 3.0)],
                       ['_impc', (0.0, 0.0, 1.5)],
                       ['_grnd', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdlroot, scene, obj_list)
+        self.create_dummys(dummy_data, prefix, mdl_root, scene, obj_list)
 
     @classmethod
     def poll(self, context):
@@ -1754,18 +907,18 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
-        mdlroot = nvb_utils.get_obj_aurora_root(context.object)
-        if not mdlroot:
+        mdl_root = nvb_utils.get_obj_aurora_root(context.object)
+        if not mdl_root:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
         scene = bpy.context.scene
-        wkmtype = mdlroot.nvb.helper_node_mdltype
-        if wkmtype == nvb_def.Walkmeshtype.PWK:
-            self.create_pwk(mdlroot, scene)
-        elif wkmtype == nvb_def.Walkmeshtype.DWK:
-            self.create_dwk(mdlroot, scene)
-        elif wkmtype == nvb_def.Walkmeshtype.WOK:
-            self.create_wok(mdlroot, scene)
+        wkm_type = mdl_root.nvb.helper_node_mdltype
+        if wkm_type == nvb_def.Walkmeshtype.PWK:
+            self.create_pwk(mdl_root, scene)
+        elif wkm_type == nvb_def.Walkmeshtype.DWK:
+            self.create_dwk(mdl_root, scene)
+        elif wkm_type == nvb_def.Walkmeshtype.WOK:
+            self.create_wok(mdl_root, scene)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
@@ -1776,6 +929,10 @@ class NVB_OT_render_minimap(bpy.types.Operator):
     bl_idname = "nvb.render_minimap"
     bl_label = "Render Minimap"
 
+    batch_mode = bpy.props.BoolProperty(
+        name='Batch Mode',
+        description='Renders pictures directly to render_dir',
+        default=False)
     render_dir = bpy.props.StringProperty(
         name='Render Directory',
         description='Directors to render images to',
@@ -1854,49 +1011,39 @@ class NVB_OT_render_minimap(bpy.types.Operator):
 
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
-        # Get mdl roots
-        root_list = []
-        obj_list = bpy.context.scene.objects
-        for obj in obj_list:
-            root = nvb_utils.get_obj_aurora_root(obj)
-            if root and (root not in root_list):
-                root_list.append(root)
-        # Render each mdl
-        scene = bpy.context.scene
-        self.setup_scene(scene)
-        for root in root_list:
-            img_name = 'mi_' + root.name
-            img_path = os.fsencode(os.path.join(self.render_dir, img_name))
-            scene.render.filepath = img_path
+        if self.batch_mode:
+            # Get mdl roots
+            root_list = []
+            obj_list = bpy.context.scene.objects
+            for obj in obj_list:
+                root = nvb_utils.get_obj_aurora_root(obj)
+                if root and (root not in root_list):
+                    root_list.append(root)
+            # Render each mdl
+            scene = bpy.context.scene
+            self.setup_scene(scene)
+            for root in root_list:
+                img_name = 'mi_' + root.name
+                img_path = os.fsencode(os.path.join(self.render_dir, img_name))
+                scene.render.filepath = img_path
+                mm_cam, _ = self.setup_objects(root, scene)
+                scene.camera = mm_cam
+                bpy.ops.render.render(animation=False, write_still=True)
+        else:
+            # Get root from active mdl
+            if not context.object:
+                return {'CANCELLED'}
+            root = nvb_utils.get_aurora_root(context.object)
+            if not root:
+                return {'CANCELLED'}
+            # Setup Render
+            scene = bpy.context.scene
+            self.img_size = scene.render.resolution_x
+            self.setup_scene(scene)
             mm_cam, _ = self.setup_objects(root, scene)
             scene.camera = mm_cam
-            bpy.ops.render.render(animation=False, write_still=True)
-        return {'FINISHED'}
 
-
-class NVB_OT_helper_mmsetup(bpy.types.Operator):
-    """Set up rendering for minimaps."""
-
-    bl_idname = "nvb.helper_minimap_setup"
-    bl_label = "Render Minimap"
-
-    @classmethod
-    def poll(self, context):
-        """Prevent execution if no object is selected."""
-        return context.object is not None
-
-    def execute(self, context):
-        """Create camera + lamp and Renders Minimap."""
-        root = nvb_utils.get_aurora_root(context.object)
-        if not root:
-            return {'CANCELLED'}
-        scene = bpy.context.scene
-
-        nvb_utils.setupMinimapRender(root, scene)
-        bpy.ops.render.render(use_viewport=True)
-        # bpy.ops.render.view_show()
-
-        self.report({'INFO'}, 'Ready to render')
+            self.report({'INFO'}, 'Ready to render')
         return {'FINISHED'}
 
 
@@ -2031,235 +1178,4 @@ class NVB_OT_helper_transform(bpy.types.Operator):
         self.adjust_trans(root, trans)
         self.adjust_scale(root, scl)
         context.scene.update()
-        return {'FINISHED'}
-
-
-class NVB_OT_mtr_generate(bpy.types.Operator):
-    """Generate a new Text Block containing from the current material."""
-    bl_idname = "nvb.mtr_generate"
-    bl_label = "Generate MTR"
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if mtrs are used and in text mode."""
-        mat = context.material
-        return mat is not None and mat.nvb.usemtr and mat.nvb.mtrsrc == 'TEXT'
-
-    def execute(self, context):
-        """TODO: DOC."""
-        material = context.material
-        if not material:
-            self.report({'ERROR'}, 'Error: No material.')
-            return {'CANCELLED'}
-        mtr = nvb_mtr.Mtr()
-        # Either change existing or create new text block
-        if material.nvb.mtrtext and material.nvb.mtrtext in bpy.data.texts:
-            txtBlock = bpy.data.texts[material.nvb.mtrtext]
-            mtr.loadTextBlock(txtBlock)
-        else:
-            if material.nvb.mtrname:
-                txtname = material.nvb.mtrname + '.mtr'
-            else:
-                txtname = material.name + '.mtr'
-            txtBlock = bpy.data.texts.new(txtname)
-            material.nvb.mtrtext = txtBlock.name
-        options = nvb_def.ExportOptions()
-        asciiLines = nvb_mtr.Mtr.generateAscii(material, options)
-        txtBlock.clear()
-        txtBlock.write('\n'.join(asciiLines))
-        # Report
-        self.report({'INFO'}, 'Created ' + txtBlock.name)
-        return {'FINISHED'}
-
-
-class NVB_OT_mtr_embed(bpy.types.Operator):
-    """Embed the MTR file into the blend file by creating a Text block"""
-    bl_idname = "nvb.mtr_embed"
-    bl_label = "Embed MTR"
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if mtrs are used and a path is set."""
-        mat = context.material
-        if mat is not None and mat.nvb.usemtr:
-            return mat.nvb.mtrpath != ''
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        material = context.material
-        if not material:
-            self.report({'ERROR'}, 'Error: No material.')
-            return {'CANCELLED'}
-        # Get the previously stored filepath
-        if not material.nvb.mtrpath:
-            self.report({'ERROR'}, 'Error: No path to file.')
-            return {'CANCELLED'}
-        bpy.ops.text.open(filepath=material.nvb.mtrpath, internal=True)
-        return {'FINISHED'}
-
-
-class NVB_OT_mtr_open(bpy.types.Operator):
-    """Open material file"""
-    bl_idname = "nvb.mtr_open"
-    bl_label = "Open MTR"
-
-    filename_ext = '.mtr'
-    filter_glob = bpy.props.StringProperty(default='*.mtr', options={'HIDDEN'})
-    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if mtrs are used and in file mode."""
-        mat = context.material
-        if mat is not None:
-            return mat.nvb.usemtr and mat.nvb.mtrsrc == 'FILE'
-        return False
-
-    def execute(self, context):
-        material = context.material
-        if not material:
-            self.report({'ERROR'}, 'Error: No material.')
-            return {'CANCELLED'}
-        if material.nvb.mtrsrc != 'FILE':
-            self.report({'ERROR'}, 'Error: Wrong MTR mode.')
-            return {'CANCELLED'}
-        if not self.filepath:
-            self.report({'ERROR'}, 'Error: No path to file.')
-            return {'CANCELLED'}
-        mtrpath, mtrfilename = os.path.split(self.filepath)
-        # Load mtr
-        mtr = nvb_mtr.Mtr(material.name)
-        if not mtr.loadFile(self.filepath):
-            self.report({'ERROR'}, 'Error: Invalid file.')
-            return {'CANCELLED'}
-        options = nvb_def.ImportOptions()
-        options.filepath = self.filepath
-        mtr.create(material, options)
-        self.report({'INFO'}, 'Loaded ' + mtrfilename)
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-        # Open browser, take reference to 'self'
-        # read the path to selected file,
-        # put path in declared string type data structure self.filepath
-
-        return {'RUNNING_MODAL'}
-
-
-class NVB_OT_mtr_reload(bpy.types.Operator):
-    """Reload MTR, update current material"""
-    bl_idname = "nvb.mtr_reload"
-    bl_label = "Reload MTR"
-
-    def reload_file(self, material):
-        """Reload mtr file from disk."""
-        if not material.nvb.mtrpath:
-            self.report({'ERROR'}, 'Error: No path to file.')
-            return {'CANCELLED'}
-        mtrpath = material.nvb.mtrpath
-        # Reload
-        mtr = nvb_mtr.Mtr(material.name)
-        if not mtr.loadFile(mtrpath):
-            self.report({'ERROR'}, 'Error: No data.')
-            return {'CANCELLED'}
-        options = nvb_def.ImportOptions()
-        options.filepath = material.nvb.mtrpath  # for image search
-        mtr.create(material, options)
-        self.report({'INFO'}, 'Reloaded ' + os.path.split(mtrpath)[1])
-        return {'FINISHED'}
-
-    def reload_text(self, material):
-        """Reload mtr data from Blender text block."""
-        if not material.nvb.mtrtext:
-            self.report({'ERROR'}, 'Error: No text block.')
-            return {'CANCELLED'}
-        if material.nvb.mtrtext not in bpy.data.texts:
-            self.report({'ERROR'}, 'Error: ' + material.nvb.mtrtext +
-                        ' does not exist.')
-            return {'CANCELLED'}
-        txt_block = bpy.data.texts[material.nvb.mtrtext]
-        # Reload data
-        mtr = nvb_mtr.Mtr(material.name)
-        if not mtr.loadTextBlock(txt_block):
-            self.report({'ERROR'}, 'Error: No data.')
-            return {'CANCELLED'}
-        mtr.filepath = material.nvb.mtrpath  # Restore filepath
-        options = nvb_def.ImportOptions()
-        options.filepath = material.nvb.mtrpath  # for image search
-        mtr.create(material, options)
-        self.report({'INFO'}, 'Reloaded ' + txt_block.name)
-        return {'FINISHED'}
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if mtrs are used."""
-        mat = context.material
-        if mat is not None and mat.nvb.usemtr:
-            return (mat.nvb.mtrsrc == 'FILE' and mat.nvb.mtrpath != '') or \
-                   (mat.nvb.mtrsrc == 'TEXT' and mat.nvb.mtrtext != '')
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        material = context.material
-        if not material:
-            self.report({'ERROR'}, 'Error: No material.')
-            return {'CANCELLED'}
-        if material.nvb.mtrsrc == 'FILE':
-            return self.reload_file(material)
-        elif material.nvb.mtrsrc == 'TEXT':
-            return self.reload_text(material)
-
-
-class NVB_OT_mtrparam_new(bpy.types.Operator):
-    """Add a new item to the parameter list"""
-
-    bl_idname = 'nvb.mtrparam_new'
-    bl_label = 'Add a new parameter'
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if there is a material."""
-        mat = context.material
-        return mat is not None and mat.nvb.usemtr
-
-    def execute(self, context):
-        """TODO: DOC."""
-        material = context.material
-        plist = material.nvb.mtrparam_list
-
-        param = plist.add()
-        if param.ptype == 'int':
-            param.pvalue = '1'
-        elif param.ptype == 'float':
-            param.pvalue = '1.0 1.0 1.0'
-        return {'FINISHED'}
-
-
-class NVB_OT_mtrparam_delete(bpy.types.Operator):
-    """Delete the selected parameter from the parameter list"""
-
-    bl_idname = 'nvb.mtrparam_delete'
-    bl_label = 'Delete a parameter'
-
-    @classmethod
-    def poll(self, context):
-        """Enable only if the list isn't empty."""
-        mat = context.material
-        if mat is not None and mat.nvb.usemtr:
-            return len(mat.nvb.mtrparam_list) > 0
-        return False
-
-    def execute(self, context):
-        """TODO: DOC."""
-        mat = context.material
-        plist = mat.nvb.mtrparam_list
-        plist_idx = mat.nvb.mtrparam_list_idx
-
-        plist.remove(plist_idx)
-        if plist_idx > 0:
-            plist_idx = plist_idx - 1
         return {'FINISHED'}

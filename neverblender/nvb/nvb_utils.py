@@ -155,6 +155,27 @@ def create_wok_materials(mesh):
         mesh.materials.append(mat)
 
 
+def get_children_recursive(obj, obj_list):
+    """Generate a list of ths objects children."""
+    for c in obj.children:
+        obj_list.append(c)
+        get_children_recursive(c, obj_list)
+
+
+def get_last_frame(obj):
+    """Get the last keyed frame of this object and its children."""
+    obj_list = [obj]
+    get_children_recursive(obj, obj_list)
+    frame = 0
+    for o in obj_list:
+        if o.animation_data and o.animation_data.action:
+            action = o.animation_data.action
+            for fcu in action.fcurves:
+                frame = max(max([p.co[0] for p in fcu.keyframe_points],
+                                default=0), frame)
+    return frame
+
+
 def isNumber(s):
     """Check if the string s is a number."""
     try:
@@ -267,7 +288,7 @@ def adjustRawAnimBounds(txtBlock, scaleFactor):
     writeRawAnimData(txtBlock, animData)
 
 
-def toggleAnimFocus(scene, rootDummy):
+def toggle_anim_focus(scene, rootDummy):
     """Set the Start and end frames of the timeline."""
     animList = rootDummy.nvb.animList
     animIdx = rootDummy.nvb.animListIdx
@@ -287,16 +308,6 @@ def toggleAnimFocus(scene, rootDummy):
         scene.frame_start = anim.frameStart
         scene.frame_end = anim.frameEnd
     scene.frame_current = scene.frame_start
-
-
-def getAllChildren(obj, objList):
-    """Generate a list of ths objects children."""
-    # TODO: Speed this one up, maybe with childrenRecursive(), check whether
-    #       read only is ok first
-    if obj:
-        objList.append(obj)
-        for c in obj.children:
-            getAllChildren(c, objList)
 
 
 def checkAnimBounds(rootDummy):
@@ -364,13 +375,7 @@ def getAuroraScale(obj):
     scale = obj.scale
     if (scale[0] == scale[1] == scale[2]):
         return scale[0]
-
     return 1.0
-
-
-def nwtime2frame(time, fps):
-    """Convert key time to frame number."""
-    return round(fps*time)
 
 
 def frame2nwtime(frame, fps):
@@ -430,68 +435,6 @@ def eulerFilter(currEul, prevEul):
         return flipEul
     else:
         return eul
-
-
-def setupMinimapRender(rootDummy, scene,
-                       lamp_color=(1.0, 1.0, 1.0),
-                       alpha_mode='TRANSPARENT'):
-    """TODO: DOC."""
-    # Create the lamp if not already present in scene
-    lampName = 'MinimapLamp'
-    camName = 'MinimapCamera'
-
-    if lampName in scene.objects:
-        minimapLamp = scene.objects[lampName]
-    else:
-        # Check if present in db
-        if lampName in bpy.data.objects:
-            minimapLamp = bpy.data.objects[lampName]
-        else:
-            if lampName in bpy.data.lamps:
-                lampData = bpy.data.lamps[lampName]
-            else:
-                lampData = bpy.data.lamps.new(lampName, 'POINT')
-            minimapLamp = bpy.data.objects.new(lampName, lampData)
-        scene.objects.link(minimapLamp)
-    # Adjust lamp properties
-    minimapLamp.data.use_specular = False
-    minimapLamp.data.color = lamp_color
-    minimapLamp.data.falloff_type = 'CONSTANT'
-    minimapLamp.data.distance = (rootDummy.nvb.minimapzoffset+20.0)*2.0
-    minimapLamp.location.z = rootDummy.nvb.minimapzoffset+20.0
-
-    # Create the cam if not already present in scene
-    if camName in scene.objects:
-        minimapCam = scene.objects[camName]
-    else:
-        # Check if present in db
-        if camName in bpy.data.objects:
-            minimapCam = bpy.data.objects[camName]
-        else:
-            if camName in bpy.data.cameras:
-                camData = bpy.data.cameras[camName]
-            else:
-                camData = bpy.data.cameras.new(camName)
-            minimapCam = bpy.data.objects.new(camName, camData)
-        scene.objects.link(minimapCam)
-    # Adjust cam properties
-    minimapCam.data.type = 'ORTHO'
-    minimapCam.data.ortho_scale = 10.0
-    minimapCam.location.z = rootDummy.nvb.minimapzoffset+20.0
-
-    scene.camera = minimapCam
-    # Adjust render settings
-    scene.render.alpha_mode = alpha_mode
-    scene.render.use_antialiasing = True
-    scene.render.pixel_filter_type = 'BOX'
-    scene.render.antialiasing_samples = '16'
-    scene.render.use_shadows = False
-    scene.render.use_envmaps = False
-    scene.render.resolution_x = rootDummy.nvb.minimapsize
-    scene.render.resolution_y = rootDummy.nvb.minimapsize
-    scene.render.resolution_percentage = 100
-    scene.render.image_settings.color_mode = 'RGB'
-    scene.render.image_settings.file_format = 'TARGA_RAW'
 
 
 def get_textures(material):

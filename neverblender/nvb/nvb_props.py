@@ -37,10 +37,6 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
                 name='Mute',
                 description='Ignore animation during export',
                 default=False)
-    markerStart = bpy.props.StringProperty(
-                name='Start Marker',
-                description='Start marker in the timeline',
-                default='')
     rawascii = bpy.props.StringProperty(
                 name='Emitter Data',
                 description='Incompatible Emitter data loaded as plain text',
@@ -78,6 +74,43 @@ class NVB_PG_mtrparameter(bpy.types.PropertyGroup):
                                       default='')
 
 
+class NVB_PG_set_element(bpy.types.PropertyGroup):
+    """Properties for a single flare in the flare list."""
+    el_name = bpy.props.StringProperty(
+        name='Supermodel',
+        description='Name of the MDL for this tile',
+        default='')
+    cols = bpy.props.IntProperty(name='Columns', default=1)
+    rows = bpy.props.IntProperty(name='Rows', default=1)
+
+
+class NVB_PG_scene(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """
+    # Set loading (mass tile loading)
+    set_filepath = bpy.props.StringProperty(name='Filepath',
+                                            description='Path to SET file',
+                                            default='')
+    set_mode = bpy.props.EnumProperty(
+        name='Set View Mode',
+        items=[('GP', 'Groups', 'Display Groups.', 0),
+               ('TR', 'Terrains', 'Display terrain types.', 1),
+               ('CR', 'Crossers', 'Display crosser types.', 2)],
+        default='GP')
+    set_group_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
+    set_group_list_idx = bpy.props.IntProperty(name='SET Group list index',
+                                               default=0)
+    set_crosser_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
+    set_crosser_list_idx = bpy.props.IntProperty(name='SET Crosser list index',
+                                                 default=0)
+    set_terrain_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
+    set_terrain_list_idx = bpy.props.IntProperty(name='SET Terrain list index',
+                                                 default=0)
+
+
 class NVB_PG_material(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
@@ -99,15 +132,6 @@ class NVB_PG_material(bpy.types.PropertyGroup):
         default=1.0,
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
-    ambient_shader = bpy.props.EnumProperty(
-        name='Ambient Shader Model',
-        description='Ambient Shader Model',
-        items=[('LAMBERT', 'Lambert', 'Use a Lambertian shader', 0)],
-        default='LAMBERT')
-    use_ambient_ramp = bpy.props.BoolProperty(
-        name='Ramp',
-        description='Toggle ambient ramp options',
-        default=False)
     renderhint = bpy.props.EnumProperty(
         name='Renderhint',
         items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
@@ -140,7 +164,7 @@ class NVB_PG_material(bpy.types.PropertyGroup):
                                         description='Specify Fragment shader',
                                         default='')
     mtrparam_list = bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
-    mtrparam_list_idx = bpy.props.IntProperty(name='Index for parameter list',
+    mtrparam_list_idx = bpy.props.IntProperty(name='MTR parameter list index',
                                               default=0)
 
 
@@ -229,15 +253,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     format. It hold the properties for meshes, lamps and empties.
     """
 
-    # For all objects
-    wirecolor = bpy.props.FloatVectorProperty(
-                name='Wirecolor',
-                description='Color of the wireframe, Unused',
-                subtype='COLOR_GAMMA',
-                default=(1.0, 1.0, 1.0),
-                min=0.0, max=1.0,
-                soft_min=0.0, soft_max=1.0)
-
     # Helper properties to store additional values. Cannot be edited.
     imporder = bpy.props.IntProperty(name='Original position in MDL',
                                      default=0)
@@ -304,14 +319,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                                         default='fx_ref')
     reattachable = bpy.props.BoolProperty(name='Reattachable',
                                           default=False)
-
-    # Minimap Helper
-    minimapzoffset = bpy.props.FloatProperty(name='Minimap Z Offset',
-                                             default=0.00,
-                                             min=0.00)
-    minimapsize = bpy.props.IntProperty(name='Size',
-                                        default=32,
-                                        min=16)
     # Object & Dummy Helper
     helper_node_mdltype = bpy.props.EnumProperty(
         name='Type',

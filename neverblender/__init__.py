@@ -33,6 +33,9 @@ from .nvb import nvb_mtr
 from .nvb import nvb_props
 from .nvb import nvb_ops
 from .nvb import nvb_ops_io
+from .nvb import nvb_ops_mtr
+from .nvb import nvb_ops_anim
+from .nvb import nvb_ops_set
 from .nvb import nvb_ui
 
 if 'bpy' in locals():
@@ -49,6 +52,9 @@ if 'bpy' in locals():
         importlib.reload(nvb_props)
         importlib.reload(nvb_ops)
         importlib.reload(nvb_ops_io)
+        importlib.reload(nvb_ops_mtr)
+        importlib.reload(nvb_ops_anim)
+        importlib.reload(nvb_ops_set)
         importlib.reload(nvb_ui)
         print('Neverblender: Ready')
 
@@ -129,6 +135,8 @@ def register():
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_material)
     bpy.types.Lamp.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_lamp)
+    bpy.types.Scene.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_scene)
     # bpy.types.Bone.nvb = \
     #     bpy.props.PointerProperty(type=nvb_props.NVB_PG_bone)
 
@@ -146,6 +154,9 @@ def unregister():
         unregister_class(cl)
     """
     del bpy.types.Object.nvb
+    del bpy.types.Material.nvb
+    del bpy.types.Lamp.nvb
+    del bpy.types.Scene.nvb
 
     bpy.utils.unregister_module(__name__)
 

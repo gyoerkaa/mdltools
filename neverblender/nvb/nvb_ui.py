@@ -72,6 +72,40 @@ class NVB_UL_mtrparams(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
+class NVB_UL_set_group(bpy.types.UIList):
+    """TODO: DOC."""
+
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
+        """TODO: DOC."""
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(item.el_name, icon=custom_icon)
+            layout.label(str(item.rows) + 'x' + str(item.cols))
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon=custom_icon)
+
+
+class NVB_UL_set_terrain(bpy.types.UIList):
+    """TODO: DOC."""
+
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
+        """TODO: DOC."""
+        custom_icon = 'NONE'
+
+        # Supports all 3 layout types
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(item.el_name, icon=custom_icon)
+            layout.label(str(item.rows))
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon=custom_icon)
+
+
 class NVB_PT_rootdummy(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
@@ -100,7 +134,7 @@ class NVB_PT_rootdummy(bpy.types.Panel):
         obj = nvb_utils.get_obj_aurora_root(context.object)
 
         row = layout.row()
-        split = row.split()
+        split = row.split(percentage=0.33)
         col = split.column()
         col.label(text='Classification:')
         col.label(text='Supermodel:')
@@ -135,9 +169,7 @@ class NVB_PT_dummy(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        box = layout.box()
-        box.prop(obj.nvb, 'emptytype', text='Type')
-        box.row().prop(obj.nvb, 'wirecolor')
+        layout.prop(obj.nvb, 'emptytype', text='Type')
 
         # Display properties depending on type of the empty
         if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
@@ -229,19 +261,64 @@ class NVB_PT_material(bpy.types.Panel):
         layout = self.layout
 
         # Ambient color parameters
-        split = layout.split()
+        box = layout.box()
+        box.label('Ambient')
+        split = box.split(percentage=0.5)
         col = split.column()
         col.prop(mat.nvb, 'ambient_color', text='')
         sub = col.column()
         sub.active = (not mat.use_shadeless)
         sub.prop(mat.nvb, 'ambient_intensity')
         col = split.column()
-        col.active = False  # (not mat.use_shadeless)
-        col.prop(mat.nvb, 'ambient_shader', text='')
-        col.prop(mat.nvb, 'use_ambient_ramp')
 
         layout.separator()
-        layout.prop(mat.nvb, 'renderhint')
+        box = layout.box()
+        box.prop(mat.nvb, 'renderhint')
+
+
+class NVB_PT_set(bpy.types.Panel):
+    bl_idname = 'nvb.propertypanel.setfile'
+    bl_label = 'Aurora Set File'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'scene'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return context.scene is not None
+
+    def draw(self, context):
+        """TODO: DOC."""
+        scene = context.scene
+        layout = self.layout
+
+        row = layout.row(align=True)
+        row.prop(scene.nvb, 'set_filepath', text='')
+        row.operator('nvb.set_open', icon='FILESEL', text='')
+        row.operator('nvb.set_reload', icon='FILE_REFRESH', text='')
+
+        layout.separator()
+        row = layout.row()
+        row.prop(scene.nvb, 'set_mode', expand=True)
+
+        layout.separator()
+        box = layout.box()
+        row = box.row()
+        if scene.nvb.set_mode == 'GP':
+            row.template_list('NVB_UL_set_group', 'TheGroupList',
+                              scene.nvb, 'set_group_list',
+                              scene.nvb, 'set_group_list_idx')
+        elif scene.nvb.set_mode == 'TR':
+            row.template_list('NVB_UL_set_terrain', 'TheTerrainList',
+                              scene.nvb, 'set_terrain_list',
+                              scene.nvb, 'set_terrain_list_idx')
+        elif scene.nvb.set_mode == 'CR':
+            row.template_list('NVB_UL_set_terrain', 'TheCrosserList',
+                              scene.nvb, 'set_crosser_list',
+                              scene.nvb, 'set_crosser_list_idx')
+        row = box.row()
+        row.operator('nvb.set_massimport', icon='IMPORT', text='Mass Import')
 
 
 class NVB_PT_mtr(bpy.types.Panel):
@@ -431,8 +508,6 @@ class NVB_PT_lamp_object(bpy.types.Panel):
         row = box.row(align=True)
         row.prop(obj.nvb, 'lighttype', text='Type')
         row.operator('nvb.light_generatename', icon='SORTALPHA', text='')
-        row = box.row()
-        row.prop(obj.nvb, 'wirecolor', text='Wirecolor')
 
 
 class NVB_PT_mesh_object(bpy.types.Panel):
@@ -462,7 +537,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         box = layout.box()
         box.prop(obj.nvb, 'meshtype', text='Type')
         row = box.row()
-        row.prop(obj.nvb, 'wirecolor')
+        row.prop(obj, 'color', text='Wirecolor')
         # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             layout.separator()
@@ -683,40 +758,55 @@ class NVB_PT_utils(bpy.types.Panel):
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        root = nvb_utils.get_obj_aurora_root(context.object)
-        if root:
+        mdl_root = nvb_utils.get_obj_aurora_root(context.object)
+        render = context.scene.render
+        if mdl_root:
             # Armature Helper
             box = layout.box()
             box.label(text='Armature Helper')
             row = box.row()
             row.label(text='Source: ')
-            row.prop(root.nvb, 'helper_amt_source', expand=True)
-            box.prop(root.nvb, 'helper_amt_connect')
-            box.prop(root.nvb, 'helper_amt_copyani')
+            row.prop(mdl_root.nvb, 'helper_amt_source', expand=True)
+            box.prop(mdl_root.nvb, 'helper_amt_connect')
+            box.prop(mdl_root.nvb, 'helper_amt_copyani')
             box.operator('nvb.helper_psb2amt', icon='BONE_DATA')
             layout.separator()
+
             # Scale Helper
             box = layout.box()
             box.label(text='Transform Helper')
             row = box.row()
-            row.column().prop(root, 'location')
-            row.column().prop(root, 'scale')
+            row.column().prop(mdl_root, 'location')
+            row.column().prop(mdl_root, 'scale')
             box.operator('nvb.helper_transform', icon='SORTSIZE')
             layout.separator()
+
             # Walkmesh & Dummy Helper
             box = layout.box()
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(root.nvb, 'helper_node_mdltype', expand=True)
+            row.prop(mdl_root.nvb, 'helper_node_mdltype', expand=True)
             box.operator('nvb.helper_node_setup', text='Generate Objects',
                          icon='OOPS')
             layout.separator()
+
             # Minimap Helper
             box = layout.box()
             box.label(text='Minimap Helper')
-            box.prop(root.nvb, 'minimapzoffset', text='z Offset')
-            box.prop(root.nvb, 'minimapsize', text='Minimap Size')
-            box.operator('nvb.helper_minimap_setup', text='Render Minimap',
-                         icon='RENDER_STILL')
+
+            split = box.split(percentage=0.33)
+            col = split.column()
+            col.label(text='Size:')
+            col.label(text='Display:')
+            col = split.column()
+            col.prop(render, 'resolution_x', text='')
+            row = col.row(align=True)
+            row.prop(render, 'display_mode', text='')
+            row.prop(render, 'use_lock_interface', icon_only=True)
+
+            row = box.row(align=True)
+            row.operator('nvb.render_minimap', text='Setup Scene',
+                         icon='SCENE_DATA').batch_mode = False
+            row.operator('render.render', text='Render', icon='RENDER_STILL')
             layout.separator()

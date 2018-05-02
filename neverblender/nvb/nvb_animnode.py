@@ -54,9 +54,9 @@ class Animnode():
         """Return false if the node is empty, i.e. no anims attached."""
         return self.objdata or self.matdata or self.rawdata
 
-    def loadAscii(self, asciiLines, nodeidx=-1):
+    def load_ascii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
-        def findEnd(asciiLines):
+        def find_end(asciiLines):
             """Find the end of a key list.
 
             We don't know when a list of keys of keys will end. We'll have to
@@ -105,28 +105,28 @@ class Animnode():
                 self.radius = float(line[1])
                 self.objdata = True
             elif label == 'positionkey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.positionkey = [list(map(float, v[:4]))
                                     for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
             elif label == 'orientationkey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.orientationkey = [list(map(float, v[:5]))
                                        for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
             elif label == 'scalekey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.scalekey = [list(map(float, v[:2]))
                                  for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
             elif label == 'alphakey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.alphakey = [list(map(float, v[:2]))
                                  for v in asciiLines[i+1:i+keycnt+1]]
                 self.matdata = True
             elif (label == 'selfillumcolorkey' or
                   label == 'setfillumcolorkey'):
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.selfillumcolorkey = [list(map(float, v[:4]))
                                           for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
@@ -146,30 +146,28 @@ class Animnode():
                                        for v in asciiLines[i+1:i+valcnt+1]]
                     self.uvdata = True
             elif label == 'colorkey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.colorkey = [list(map(float, v[:4]))
                                  for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
             elif label == 'radiuskey':
-                keycnt = findEnd(asciiLines[i+1:])
+                keycnt = find_end(asciiLines[i+1:])
                 self.radiuskey = [list(map(float, v[:2]))
                                   for v in asciiLines[i+1:i+keycnt+1]]
                 self.objdata = True
             # Unknown or unsupported label  for emitters, import as text
             elif self.nodetype == nvb_def.Nodetype.EMITTER:
-                if not label.startswith('#'):
-                    if label.endswith('key') and \
-                       label not in self.unknownkey:
-                        # Unknown or unsupported keyed animation
-                        keycnt = findEnd(asciiLines[i+1:])
-                        self.unknownkey[label] = \
-                            [list(map(float, v))
-                             for v in asciiLines[i+1:i+keycnt+1]]
-                    elif label not in self.unknownvalue:
-                        # Unknown or unsupported single value
-                        self.unknownvalue[label] = line[1:]
+                if label.endswith('key') and label not in self.unknownkey:
+                    # Unknown or unsupported keyed animation
+                    keycnt = find_end(asciiLines[i+1:])
+                    self.unknownkey[label] = \
+                        [list(map(float, v))
+                         for v in asciiLines[i+1:i+keycnt+1]]
+                elif label not in self.unknownvalue:
+                    # Unknown or unsupported single value
+                    self.unknownvalue[label] = line[1:]
 
-    def createDataMaterial(self, mat, anim, options):
+    def create_data_material(self, mat, anim, options):
         """TODO: DOC."""
         fps = options.scene.render.fps
         # Add everything to a single action.
@@ -203,7 +201,7 @@ class Animnode():
             curve.keyframe_points.insert(frameStart, self.alpha)
             curve.keyframe_points.insert(frameEnd, self.alpha)
 
-    def createDataObject(self, obj, anim, options):
+    def create_data_object(self, obj, anim, options):
         """TODO: DOC."""
         def create_values(frames, values, action, dp, dp_dim):
             """TODO: DOC."""
@@ -369,7 +367,7 @@ class Animnode():
                     values.append(v)
             create_values(frames, values, action, dp, dp_dim)
 
-    def createDataUnkown(self, obj, anim, options):
+    def create_data_unkown(self, obj, anim, options):
         """Add incompatible animations (usually emitters) as plain text."""
         fps = options.scene.render.fps
         # Get or create the text object
@@ -394,7 +392,7 @@ class Animnode():
                 txt.write(fstr.format(frm, *val))
         txt.write('endnode\n')
 
-    def createDataShape(self, obj, anim, animlength, options):
+    def create_data_shape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
         fps = options.scene.render.fps
         if not obj.data:
@@ -413,7 +411,7 @@ class Animnode():
             print("Neverblender: WARNING - animvert sample size mismatch: " +
                   obj.name)
             return
-        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod, fps)
+        sampleDistance = fps * self.sampleperiod
         # Get the shape key name
         if obj.nvb.aurorashapekey:
             shapekeyname = obj.nvb.aurorashapekey
@@ -458,7 +456,7 @@ class Animnode():
                 curveY.keyframe_points.insert(frame, co[1], kfOptions)
                 curveZ.keyframe_points.insert(frame, co[2], kfOptions)
 
-    def createDataUV(self, obj, anim, animlength, options):
+    def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
         fps = options.scene.render.fps
         if not obj.data:
@@ -485,7 +483,7 @@ class Animnode():
             print("Neverblender: WARNING - animtvert sample size mismatch: " +
                   obj.name)
             return
-        sampleDistance = nvb_utils.nwtime2frame(self.sampleperiod, fps)
+        sampleDistance = fps * self.sampleperiod
 
         # Get animation data, create it if necessary
         animData = obj.data.animation_data
@@ -514,7 +512,7 @@ class Animnode():
                 curveV.keyframe_points.insert(frame, co[1], kfOptions)
 
     @staticmethod
-    def createRestPose(obj, frame=1):
+    def create_restpose(obj, frame=1):
         """TODO: DOC."""
         def insert_kfp(fcurves, frame, val, dim):
             """TODO: DOC."""
@@ -554,26 +552,26 @@ class Animnode():
     def create(self, obj, anim, animlength, options):
         """TODO:Doc."""
         if self.objdata:
-            self.createDataObject(obj, anim, options)
+            self.create_data_object(obj, anim, options)
         if self.matdata and obj.active_material:
-            self.createDataMaterial(obj.active_material, anim, options)
+            self.create_data_material(obj.active_material, anim, options)
         if self.uvdata:
-            self.createDataUV(obj, anim, animlength, options)
+            self.create_data_uv(obj, anim, animlength, options)
         if self.shapedata:
-            self.createDataShape(obj, anim, animlength, options)
+            self.create_data_shape(obj, anim, animlength, options)
         if (self.unknownkey or self.unknownvalue) and \
            (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
-            self.createDataUnkown(obj, anim, options)
+            self.create_data_unkown(obj, anim, options)
 
     @staticmethod
-    def getKeysMaterial(mat, anim, key_data, options):
+    def get_keys_material(mat, anim, key_data, options):
         """TODO: DOC."""
         action = mat.animation_data.action
         if not action:
             return
         # Build data paths
         # [value name, value dimension, value format,
-        #  data path dimension, data path, conversion function]
+        #  data path dimension, data path]
         exports = [['ambient', 3, ' {: >3.2f}', 3, 'nvb.ambient_color']]
         # Aplha can be animated with the following data paths
         # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
@@ -582,9 +580,9 @@ class Animnode():
         dp_alpha_factor = [fc.data_path for fc in action.fcurves
                            if fc.data_path.endswith('.alpha_factor')]
         if dp_alpha_factor:
-            exports.append(['alpha', 1, ' {: >3.2f}', dp_alpha_factor[0]])
+            exports.append(['alpha', 1, ' {: >3.2f}', 1, dp_alpha_factor[0]])
         else:
-            exports.append(['alpha', 1, ' {: >3.2f}', 'alpha'])
+            exports.append(['alpha', 1, ' {: >3.2f}', 1, 'alpha'])
         fps = options.scene.render.fps
         animStart = anim.frameStart
         animEnd = anim.frameEnd
@@ -607,7 +605,7 @@ class Animnode():
                 key_data.append([val_name, kfp, val_dim * val_fstr])
 
     @staticmethod
-    def getKeysObject(obj, anim, key_data, options):
+    def get_keys_object(obj, anim, key_data, options):
         """TODO: DOC."""
         def convert_loc(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
@@ -682,15 +680,16 @@ class Animnode():
                 key_data.append([val_name, kfp, val_dim * val_fstr])
 
     @staticmethod
-    def generateAsciiKeys(obj, anim, asciiLines, options):
+    def generate_ascii_keys(obj, anim, asciiLines, options):
         """TODO: DOC."""
         kdata = []
         # 1. Object animation data
         if obj.animation_data:
-            Animnode.getKeysObject(obj, anim, kdata, options)
+            Animnode.get_keys_object(obj, anim, kdata, options)
         # 2. Material animation data
         if obj.active_material and obj.active_material.animation_data:
-            Animnode.getKeysMaterial(obj.active_material, anim, kdata, options)
+            Animnode.get_keys_material(obj.active_material,
+                                       anim, kdata, options)
         # Add keys to ascii lines
         time_fstr = '{:> 6.3f}'
         for key_name, keys, val_fstr in kdata:
@@ -701,7 +700,7 @@ class Animnode():
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
 
     @staticmethod
-    def generateAsciiRawData(obj, anim, asciiLines, options):
+    def generate_ascii_unknown(obj, anim, asciiLines, options):
         """TODO: DOC."""
         if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
             return
@@ -733,8 +732,8 @@ class Animnode():
                 asciiLines.append('    ' + ' '.join(line))
 
     @staticmethod
-    def generateAsciiAnimeshShapes(obj, anim, asciiLines, options,
-                                   numAnimUVs=0):
+    def generate_ascii_animesh_shapes(obj, anim, asciiLines, options,
+                                      numAnimUVs=0):
         """Add data for animated vertices."""
         shapekeyname = obj.nvb.aurorashapekey
         if not shapekeyname:
@@ -812,7 +811,8 @@ class Animnode():
         return -1
 
     @staticmethod
-    def generateAsciiAnimeshUV(obj, anim, asciiLines, options, numAnimVerts=0):
+    def generate_ascii_animesh_uv(obj, anim, asciiLines, options,
+                                  numAnimVerts=0):
         """Add data for animated texture coordinates."""
         if not obj.active_material:
             return
@@ -888,7 +888,7 @@ class Animnode():
         return -1
 
     @staticmethod
-    def generateAsciiAnimmesh(obj, anim, asciiLines, options):
+    def generate_ascii_animesh(obj, anim, asciiLines, options):
         """TODO:Doc."""
         if not obj.data:
             return
@@ -900,13 +900,13 @@ class Animnode():
         nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines, options, True)
         asciiLines.extend(['  ' + l for l in tmpLines])
         maxsamples = -1  # Samples > 0 also means not to write metadata (again)
-        maxsamples = Animnode.generateAsciiAnimeshUV(obj, anim, asciiLines,
-                                                     options, maxsamples)
-        Animnode.generateAsciiAnimeshShapes(obj, anim, asciiLines,
-                                            options, maxsamples)
+        maxsamples = Animnode.generate_ascii_animesh_uv(obj, anim, asciiLines,
+                                                        options, maxsamples)
+        Animnode.generate_ascii_animesh_shapes(obj, anim, asciiLines,
+                                               options, maxsamples)
 
     @staticmethod
-    def generateAscii(obj, anim, asciiLines, options):
+    def generate_ascii(obj, anim, asciiLines, options):
         """TODO:Doc."""
         if not obj:
             return
@@ -918,7 +918,7 @@ class Animnode():
             asciiLines.append('    parent ' + obj.parent.name)
         else:
             asciiLines.append('    parent null')
-        Animnode.generateAsciiAnimmesh(obj, anim, asciiLines, options)
-        Animnode.generateAsciiRawData(obj, anim, asciiLines, options)
-        Animnode.generateAsciiKeys(obj, anim, asciiLines, options)
+        Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
+        Animnode.generate_ascii_unknown(obj, anim, asciiLines, options)
+        Animnode.generate_ascii_keys(obj, anim, asciiLines, options)
         asciiLines.append('  endnode')

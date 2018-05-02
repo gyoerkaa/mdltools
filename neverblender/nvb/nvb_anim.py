@@ -19,7 +19,7 @@ class Animation():
     @staticmethod
     def createRestPose(obj, frame=1):
         """TODO: DOC."""
-        nvb_animnode.Animnode.createRestPose(obj, frame)
+        nvb_animnode.Animnode.create_restpose(obj, frame)
 
     def create(self, rootDummy, noderesolver, options):
         """Create animations with a list of imported objects."""
@@ -29,14 +29,12 @@ class Animation():
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
-        newAnim.frameEnd = newAnim.frameStart + \
-            nvb_utils.nwtime2frame(self.length, fps)
+        newAnim.frameEnd = fps * self.length + newAnim.frameStart
         # Add events for new animation
         for ev in self.events:
             newEvent = newAnim.eventList.add()
             newEvent.name = ev[1]
-            newEvent.frame = newAnim.frameStart + \
-                nvb_utils.nwtime2frame(ev[0], fps)
+            newEvent.frame = fps * ev[0] + newAnim.frameStart
         # Load the animation into the objects/actions
         for node in self.nodes:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
@@ -73,9 +71,9 @@ class Animation():
         nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
         for idx, asciiNode in enumerate(nodeList):
             asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
-            node = nvb_animnode.Animnode()
-            node.loadAscii(asciiLines, idx)
-            self.nodes.append(node)
+            animnode = nvb_animnode.Animnode()
+            animnode.load_ascii(asciiLines, idx)
+            self.nodes.append(animnode)
 
     def loadAscii(self, asciiData):
         """Load an animation from a block from an ascii mdl file."""
@@ -89,7 +87,7 @@ class Animation():
     @staticmethod
     def generateAsciiNodes(obj, anim, asciiLines, options):
         """TODO: Doc."""
-        nvb_animnode.Animnode.generateAscii(obj, anim, asciiLines, options)
+        nvb_animnode.Animnode.generate_ascii(obj, anim, asciiLines, options)
 
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)

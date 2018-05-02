@@ -382,7 +382,6 @@ class Node(object):
         obj.scale = (self.scale, self.scale, self.scale)
         obj.location = self.position
         obj.nvb.restloc = obj.location
-        obj.nvb.wirecolor = self.wirecolor
         obj.nvb.imporder = self.nodeidx
 
     def createObject(self, options):
@@ -855,6 +854,7 @@ class Trimesh(Node):
         obj.nvb.transparencyhint = self.transparencyhint
         obj.nvb.selfillumcolor = self.selfillumcolor
         obj.nvb.shininess = self.shininess
+        obj.color = (*self.wirecolor, 1.0)
 
     def createObject(self, options):
         """TODO: Doc."""
@@ -1108,8 +1108,7 @@ class Trimesh(Node):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
-        col = obj.nvb.wirecolor
-        s = '  wirecolor {:3.2f} {:3.2f} {:3.2f}'.format(*col)
+        s = '  wirecolor {:3.2f} {:3.2f} {:3.2f}'.format(*obj.color[:3])
         asciiLines.append(s)
 
         hastexture = False
@@ -1450,6 +1449,7 @@ class Emitter(Node):
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.nvb.imporder = self.nodeidx
+        obj.hide_render = True
         self.createObjectData(obj, options)
         return obj
 
@@ -1628,7 +1628,9 @@ class Light(Node):
             data.nvb.fadinglight = (self.fadinglight >= 1)
             data.nvb.isdynamic = (self.isdynamic >= 1)
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
-
+            # Disable rendering in blender if tile light (color may be black)
+            if obj.name.endswith('ml1') or obj.name.endswith('ml2'):
+                obj.hide_render = True
             # Create lensflares
             numflares = min(self.flareNumValues)
             if (self.flareradius > 0) or (numflares > 0):
@@ -1843,13 +1845,9 @@ class Aabb(Trimesh):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.mode_minimal:
-            # We don't want walkmeshes in minimap mode
-            obj = bpy.data.objects.new(self.name, None)
-        else:
-            mesh = self.createMesh(self.name, options)
-            obj = bpy.data.objects.new(self.name, mesh)
-            obj.hide_render = True
-            self.createObjectData(obj, options)
+        mesh = self.createMesh(self.name, options)
+        obj = bpy.data.objects.new(self.name, mesh)
+        obj.hide_render = True
+        self.createObjectData(obj, options)
         obj.nvb.imporder = self.nodeidx
         return obj
