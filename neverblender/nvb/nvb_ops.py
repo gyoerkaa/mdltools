@@ -1038,7 +1038,7 @@ class NVB_OT_render_minimap(bpy.types.Operator):
                 return {'CANCELLED'}
             # Setup Render
             scene = bpy.context.scene
-            self.img_size = scene.render.resolution_x
+            self.img_size = scene.render.resolution_y
             self.setup_scene(scene)
             mm_cam, _ = self.setup_objects(root, scene)
             scene.camera = mm_cam

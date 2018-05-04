@@ -233,9 +233,8 @@ class ImportOptions():
         # Blender Settings
         self.rotmode = 'XYZ'
         self.mdl_location = (0.0, 0.0, 0.0)
-        # for batch processing
-        self.mode_minimal = False
-        self.ignore_fading = False
+        self.render_lights = False
+        self.render_fading = True
 
 
 class ExportOptions():

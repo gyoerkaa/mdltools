@@ -72,7 +72,7 @@ class NVB_UL_mtrparams(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
-class NVB_UL_set_group(bpy.types.UIList):
+class NVB_UL_set_element(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
@@ -83,24 +83,7 @@ class NVB_UL_set_group(bpy.types.UIList):
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(item.el_name, icon=custom_icon)
-            layout.label(str(item.rows) + 'x' + str(item.cols))
-        elif self.layout_type in {'GRID'}:
-            layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
-
-
-class NVB_UL_set_terrain(bpy.types.UIList):
-    """TODO: DOC."""
-
-    def draw_item(self, context, layout, data, item, icon,
-                  active_data, active_propname, index):
-        """TODO: DOC."""
-        custom_icon = 'NONE'
-
-        # Supports all 3 layout types
-        if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.el_name, icon=custom_icon)
-            layout.label(str(item.rows))
+            layout.label(item.el_size)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label('', icon=custom_icon)
@@ -306,15 +289,15 @@ class NVB_PT_set(bpy.types.Panel):
         box = layout.box()
         row = box.row()
         if scene.nvb.set_mode == 'GP':
-            row.template_list('NVB_UL_set_group', 'TheGroupList',
+            row.template_list('NVB_UL_set_element', 'TheGroupList',
                               scene.nvb, 'set_group_list',
                               scene.nvb, 'set_group_list_idx')
         elif scene.nvb.set_mode == 'TR':
-            row.template_list('NVB_UL_set_terrain', 'TheTerrainList',
+            row.template_list('NVB_UL_set_element', 'TheTerrainList',
                               scene.nvb, 'set_terrain_list',
                               scene.nvb, 'set_terrain_list_idx')
         elif scene.nvb.set_mode == 'CR':
-            row.template_list('NVB_UL_set_terrain', 'TheCrosserList',
+            row.template_list('NVB_UL_set_element', 'TheCrosserList',
                               scene.nvb, 'set_crosser_list',
                               scene.nvb, 'set_crosser_list_idx')
         row = box.row()
@@ -800,7 +783,7 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Size:')
             col.label(text='Display:')
             col = split.column()
-            col.prop(render, 'resolution_x', text='')
+            col.prop(render, 'resolution_y', text='')
             row = col.row(align=True)
             row.prop(render, 'display_mode', text='')
             row.prop(render, 'use_lock_interface', icon_only=True)

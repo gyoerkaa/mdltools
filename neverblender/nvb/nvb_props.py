@@ -80,8 +80,10 @@ class NVB_PG_set_element(bpy.types.PropertyGroup):
         name='Supermodel',
         description='Name of the MDL for this tile',
         default='')
-    cols = bpy.props.IntProperty(name='Columns', default=1)
-    rows = bpy.props.IntProperty(name='Rows', default=1)
+    el_size = bpy.props.StringProperty(
+        name='Size',
+        description='Size of this element (only for diplay)',
+        default='')
 
 
 class NVB_PG_scene(bpy.types.PropertyGroup):

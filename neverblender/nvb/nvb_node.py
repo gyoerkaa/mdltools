@@ -311,7 +311,7 @@ class Node(object):
         self.name = name
         self.parent = ''
         self.position = (0.0, 0.0, 0.0)
-        self.orientation = (0.0, 0.0, 0.0, 0.0)
+        self.orientation = [0.0, 0.0, 0.0, 0.0]
         self.scale = 1.0
         self.wirecolor = (1.0, 1.0, 1.0)
 
@@ -359,7 +359,7 @@ class Node(object):
         elif (label == 'position'):
             self.position = tuple([float(v) for v in line[1:4]])
         elif (label == 'orientation'):
-            self.orientation = tuple([float(v) for v in line[1:5]])
+            self.orientation = [float(v) for v in line[1:5]]
         elif (label == 'scale'):
             self.scale = float(line[1])
         elif (label == 'wirecolor'):
@@ -413,7 +413,8 @@ class Node(object):
     @classmethod
     def generateAscii(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
-        asciiLines.append('node ' + cls.nodetype + ' ' + obj.name)
+        node_name = nvb_utils.generate_node_name(obj, options.strip_trailing)
+        asciiLines.append('node ' + cls.nodetype + ' ' + node_name)
         if obj.parent:
             asciiLines.append('  parent ' + obj.parent.name)
         else:
@@ -846,7 +847,11 @@ class Trimesh(Node):
             obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
         else:
             obj.nvb.tilefade = nvb_def.Tilefade.NONE
-        obj.nvb.render = (self.render >= 1)
+        if (self.tilefade >= 1) and not options.render_fading:
+            obj.hide_render = True
+        if self.render == 0:
+            obj.nvb.render = False
+            obj.hide_render = True
         obj.nvb.shadow = (self.shadow >= 1)
         obj.nvb.beaming = (self.beaming >= 1)
         obj.nvb.inheritcolor = (self.inheritcolor >= 1)
@@ -858,15 +863,6 @@ class Trimesh(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.mode_minimal:
-            if ((self.tilefade >= 1) and options.ignore_fading) or \
-               (not self.render):
-                # Fading objects or shadow meshes won't be imported in
-                # minimap mode
-                # might need them for the tree stucture, so import it
-                # as an empty
-                return Node.createObject(self, options)
-
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         self.createObjectData(obj, options)
@@ -1443,9 +1439,6 @@ class Emitter(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.mode_minimal:
-            return Node.createObject(self, options)
-
         mesh = self.createMesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.nvb.imporder = self.nodeidx
@@ -1629,7 +1622,8 @@ class Light(Node):
             data.nvb.isdynamic = (self.isdynamic >= 1)
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
             # Disable rendering in blender if tile light (color may be black)
-            if obj.name.endswith('ml1') or obj.name.endswith('ml2'):
+            if obj.name.endswith('ml1') or obj.name.endswith('ml2') or \
+               not options.render_lights:
                 obj.hide_render = True
             # Create lensflares
             numflares = min(self.flareNumValues)
@@ -1645,10 +1639,6 @@ class Light(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        if options.mode_minimal:
-            # We don't want lights in minimap mode
-            # We may need it for the tree stucture, so import it as an empty
-            return Node.createObject(self, options)
         lamp = self.createLamp(self.name)
         obj = bpy.data.objects.new(self.name, lamp)
         obj.nvb.imporder = self.nodeidx
@@ -1766,7 +1756,7 @@ class Aabb(Trimesh):
                 return
 
         aabbTree = []
-        nvb_aabb.generateTree(aabbTree, faceList)
+        nvb_aabb.generate_tree(aabbTree, faceList)
 
         if aabbTree:
             fstr = '  aabb ' + \

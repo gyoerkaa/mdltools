@@ -122,7 +122,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.label(text='Blender Settings')
         sub = box.column()
         sub.prop(self, 'apply_modifiers')
-        # sub.prop(self, 'strip_trailing')
+        sub.prop(self, 'strip_trailing')
         sub.prop(self, 'batch_mode')
 
     def save_file(self, context, options):
@@ -266,10 +266,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                      (Warning: May be slow)',
         default=False)
     # Animation Options
-    anim_import = bpy.props.BoolProperty(
-        name='Import Animations',
-        description='Import animation data',
-        default=True)
+    anim_import = bpy.props.BoolProperty(name='Import Animations',
+                                         description='Import animation data',
+                                         default=True)
     anim_fps_use = bpy.props.BoolProperty(name='Use Custom fps',
                                           description='Use custom fps value',
                                           default=True)
@@ -290,21 +289,15 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                ('XYZ', 'Euler XYZ', '')),
         default='XYZ')
     mdl_location = bpy.props.FloatVectorProperty(
-            name='Location',
-            description='Location of newly imported model',
-            default=(0.0, 0.0, 0.0), size=3,
-            options={'HIDDEN'})
-    # Hidden settings for batch processing
-    mode_minimal = bpy.props.BoolProperty(
-        name='Minimal Mode',
-        description='Import lights, emitters and walkmeshes as Emptys',
-        default=False,
-        options={'HIDDEN'})
-    ignore_fading = bpy.props.BoolProperty(
-            name='Igore Fading Objects',
-            description='Import fading objects as Emptys',
-            default=False,
-            options={'HIDDEN'})
+        name='Location',
+        description='Location of newly imported model',
+        default=(0.0, 0.0, 0.0), size=3, options={'HIDDEN'})
+    render_lights = bpy.props.BoolProperty(name='Render Lights',
+                                           description='Render Lights',
+                                           default=False, options={'HIDDEN'})
+    render_fading = bpy.props.BoolProperty(name='Render Fading Objects',
+                                           description='Render Fading Objects',
+                                           default=True, options={'HIDDEN'})
 
     def draw(self, context):
         """Draw the export UI."""
@@ -386,10 +379,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.anim_restpose = self.anim_restpose
         options.anim_fps_use = self.anim_fps_use
         options.anim_fps = self.anim_fps
-        # Hidden settings: Ignores Lights, Walkmeshes and Emitters
-        options.mode_minimal = self.mode_minimal
-        options.ignore_fading = self.ignore_fading
         # Blender Settings
         options.rotmode = self.rotmode
         options.mdl_location = self.mdl_location
+        options.render_lights = self.render_lights
+        options.render_fading = self.render_fading
         return self.load_file(context, options)

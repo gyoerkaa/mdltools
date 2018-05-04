@@ -102,9 +102,8 @@ class Animation():
         if anim.mute:
             # Don't export mute animations
             return
-
-        animLength = nvb_utils.frame2nwtime(anim.frameEnd-anim.frameStart,
-                                            options.scene.render.fps)
+        fps = options.scene.render.fps
+        animLength = (anim.frameEnd-anim.frameStart) / fps
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
         asciiLines.append('  length ' + str(round(animLength, 5)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
@@ -114,8 +113,7 @@ class Animation():
             asciiLines.append('  animroot ' + rootDummy.name)
 
         for event in anim.eventList:
-            eventTime = nvb_utils.frame2nwtime(event.frame-anim.frameStart,
-                                               options.scene.render.fps)
+            eventTime = (event.frame-anim.frameStart) / fps
             asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
                               event.name)
 

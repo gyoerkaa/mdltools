@@ -4,6 +4,7 @@ import mathutils
 import bpy
 import os
 import math
+import re
 import collections
 
 import bpy_extras.image_utils
@@ -166,7 +167,7 @@ def get_last_frame(obj):
     """Get the last keyed frame of this object and its children."""
     obj_list = [obj]
     get_children_recursive(obj, obj_list)
-    frame = 0
+    frame = nvb_def.anim_globstart
     for o in obj_list:
         if o.animation_data and o.animation_data.action:
             action = o.animation_data.action
@@ -174,6 +175,15 @@ def get_last_frame(obj):
                 frame = max(max([p.co[0] for p in fcu.keyframe_points],
                                 default=0), frame)
     return frame
+
+
+def generate_node_name(obj, strip_trailing=False):
+    """Return a name for node/objects for use in the mdl."""
+    name = obj.name
+    if strip_trailing:
+        name = re.fullmatch(r'(.+?)(\.\d+)?$', obj.name)[1]
+    name.replace(' ', '_')
+    return name
 
 
 def isNumber(s):
@@ -358,16 +368,12 @@ def setObjAuroraRot(obj, nwangle):
     """TODO: DOC."""
     rotmode = obj.rotation_mode
     if rotmode == 'QUATERNION':
-        q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]),
-                                 nwangle[3])
-        obj.rotation_quaternion = q
+        obj.rotation_quaternion = mathutils.Quaternion(nwangle[:3], nwangle[3])
     elif rotmode == 'AXIS_ANGLE':
-        obj.rotation_axis_angle = [nwangle[3],
-                                   nwangle[0],
-                                   nwangle[1],
-                                   nwangle[2]]
+        obj.rotation_axis_angle = [nwangle[3]] + nwangle[:3]
     else:  # Has to be euler
-        obj.rotation_euler = nwangle2euler(nwangle, rotmode)
+        q = mathutils.Quaternion(nwangle[:3], nwangle[3])
+        obj.rotation_euler = q.to_euler(rotmode)
 
 
 def getAuroraScale(obj):
@@ -376,23 +382,6 @@ def getAuroraScale(obj):
     if (scale[0] == scale[1] == scale[2]):
         return scale[0]
     return 1.0
-
-
-def frame2nwtime(frame, fps):
-    """TODO: DOC."""
-    return round(frame/fps, 7)
-
-
-def euler2nwangle(eul):
-    """TODO: DOC."""
-    q = eul.to_quaternion()
-    return [q.axis[0], q.axis[1], q.axis[2], q.angle]
-
-
-def nwangle2euler(nwangle, rotmode='XYZ'):
-    """TODO: DOC."""
-    q = mathutils.Quaternion((nwangle[0], nwangle[1], nwangle[2]), nwangle[3])
-    return q.to_euler(rotmode)
 
 
 def eulerFilter(currEul, prevEul):

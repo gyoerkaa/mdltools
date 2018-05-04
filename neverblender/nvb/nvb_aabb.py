@@ -3,7 +3,7 @@
 import mathutils
 
 
-def generateTree(aabb_tree, face_list, rlevel=0):
+def generate_tree(aabb_tree, face_list, rlevel=0):
     """TODO: DOC."""
     if (rlevel > 128):
         print('Neverblender - ERROR: Could not generate aabb.\
@@ -119,5 +119,5 @@ def generateTree(aabb_tree, face_list, rlevel=0):
                     aabb_tree = []
                     return
 
-        generateTree(aabb_tree, face_list_left, rlevel+1)
-        generateTree(aabb_tree, face_list_right, rlevel+1)
+        generate_tree(aabb_tree, face_list_left, rlevel+1)
+        generate_tree(aabb_tree, face_list_right, rlevel+1)

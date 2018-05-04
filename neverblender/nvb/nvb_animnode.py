@@ -271,14 +271,17 @@ class Animnode():
                 dp_dim = 3
                 if frames:  # Keyed animation
                     # Run an euler filer
-                    prev_eul = 0
+                    prev_eul = mathutils.Euler()
                     for k in self.orientationkey:
-                        eul = nvb_utils.eulerFilter(
-                            nvb_utils.nwangle2euler(k[1:5]), prev_eul)
+                        quat = mathutils.Quaternion(k[1:4], k[4])
+                        eul = quat.to_euler('XYZ', prev_eul)
+                        #  eul = nvb_utils.eulerFilter(quat.to_euler(),
+                        #  prev_eul)
                         values.append(eul)
                         prev_eul = eul
                 else:  # "Static" animation (single value)
-                    v = nvb_utils.nwangle2euler(self.orientation)
+                    v = mathutils.Quaternion(self.orientation[:3],
+                                             self.orientation[3]).to_euler()
                     frames.append(frameStart)
                     values.append(v)
                     if frameEnd > frameStart:
@@ -543,7 +546,8 @@ class Animnode():
             dp = 'rotation_euler'
             fcu = [action.fcurves.find(dp, i) for i in range(3)]
             if fcu.count(None) < 1:
-                eul = nvb_utils.nwangle2euler(obj.nvb.restrot)
+                eul = mathutils.Quaternion(obj.nvb.restrot[:3],
+                                           obj.nvb.restrot[3]).to_euler()
                 insert_kfp(fcu, frame, eul, 3)
         fcu = [action.fcurves.find('location', i) for i in range(3)]
         if fcu.count(None) < 1:
@@ -599,8 +603,7 @@ class Animnode():
                 frames.sort()
                 values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
                           for f in frames]
-                times = [nvb_utils.frame2nwtime(f - animStart, fps)
-                         for f in frames]
+                times = [(f - animStart) / fps for f in frames]
                 kfp = list(zip(times, values))
                 key_data.append([val_name, kfp, val_dim * val_fstr])
 
@@ -674,8 +677,7 @@ class Animnode():
                           for f in frames]
                 if convert_func is not None:
                     values = convert_func(obj, values)
-                times = [nvb_utils.frame2nwtime(f - animStart, fps)
-                         for f in frames]
+                times = [(f - animStart) / fps for f in frames]
                 kfp = list(zip(times, values))
                 key_data.append([val_name, kfp, val_dim * val_fstr])
 
@@ -722,11 +724,10 @@ class Animnode():
             # Lines starting with numbers are keys
             if l_isNumber(label):
                 frame = float(label)
-                nwtime = round(nvb_utils.frame2nwtime(frame, fps), 5)
                 values = [float(v) for v in line[1:]]
                 formatStr = '      {:> 6.3f}' + \
                             ' '.join(['{: > 6.5f}']*len(values))
-                s = formatStr.format(nwtime, *values)
+                s = formatStr.format(frame / fps, *values)
                 asciiLines.append(s)
             else:
                 asciiLines.append('    ' + ' '.join(line))
@@ -796,7 +797,7 @@ class Animnode():
                               "WARNING - animvert sample size mismatch: " +
                               obj.name)
                         return
-                    animlength = nvb_utils.frame2nwtime(animEnd-animStart, fps)
+                    animlength = (animEnd-animStart) / fps
                     sampleperiod = animlength / (numSamples-1)
                     # Add some meta data
                     asciiLines.append('    sampleperiod ' +
@@ -873,7 +874,7 @@ class Animnode():
                               "WARNING - animvert sample size mismatch: " +
                               obj.name)
                         return
-                    animlength = nvb_utils.frame2nwtime(animEnd-animStart, fps)
+                    animlength = (animEnd-animStart) / fps
                     sampleperiod = animlength / (numSamples-1)
                     # Add meta data
                     asciiLines.append('    sampleperiod ' +
@@ -911,8 +912,9 @@ class Animnode():
         if not obj:
             return
         # Type + Name
-        asciiLines.append('  node ' +
-                          nvb_utils.getNodeType(obj) + ' ' + obj.name)
+        node_type = nvb_utils.getNodeType(obj)
+        node_name = nvb_utils.generate_node_name(obj, options.strip_trailing)
+        asciiLines.append('  node ' + node_type + ' ' + node_name)
         # Parent
         if obj.parent:
             asciiLines.append('    parent ' + obj.parent.name)
