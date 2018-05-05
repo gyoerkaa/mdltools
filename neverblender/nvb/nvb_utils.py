@@ -181,7 +181,7 @@ def generate_node_name(obj, strip_trailing=False):
     """Return a name for node/objects for use in the mdl."""
     name = obj.name
     if strip_trailing:
-        name = re.fullmatch(r'(.+?)(\.\d+)?$', obj.name)[1]
+        name = re.fullmatch(r'(.+?)(\.\d+)?$', obj.name).group(1)
     name.replace(' ', '_')
     return name
 

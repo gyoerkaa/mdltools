@@ -48,7 +48,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
                 if block:
                     match = reg.search(block)
                     if match:
-                        terrains.append(match[1])
+                        terrains.append(match.group(1))
             return terrains
 
         def parse_crosser_names(ascii_block):
@@ -59,7 +59,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
                 if block:
                     match = reg.search(block)
                     if match:
-                        crossers.append(match[1])
+                        crossers.append(match.group(1))
             return crossers
 
         def parse_tiles(ascii_block, terrain_names=[], crosser_names=[]):
@@ -95,9 +95,9 @@ class NVB_OT_set_reload(bpy.types.Operator):
                 if block:
                     match = reg_name.search(block)
                     if match:
-                        group_name = match[1]
-                        rows = int(reg_rows.search(block)[1])
-                        cols = int(reg_cols.search(block)[1])
+                        group_name = match.group(1)
+                        rows = int(reg_rows.search(block).group(1))
+                        cols = int(reg_cols.search(block).group(1))
                         # Add to group list, list_idx = actual group_id
                         groups.append([group_name, rows, cols])
             return groups
@@ -175,9 +175,9 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                     if model_match:
                         if terrain_name:
                             if reg_terrain.search(block):
-                                tiles.append(model_match[1])
+                                tiles.append(model_match.group(1))
                         else:
-                            tiles.append(model_match[1])
+                            tiles.append(model_match.group(1))
             return tiles
 
         def get_group_tiles(ascii_block, group_name):
@@ -192,11 +192,12 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                     if block:
                         name_match = reg_name.search(block)
                         if name_match:
-                            rows = int(reg_rows.search(block)[1])
-                            cols = int(reg_cols.search(block)[1])
+                            rows = int(reg_rows.search(block).group(1))
+                            cols = int(reg_cols.search(block).group(1))
                             tiles = [-1] * rows * cols
                             for tile_match in reg_tiles.finditer(block):
-                                tiles[int(tile_match[1])] = int(tile_match[2])
+                                tiles[int(tile_match.group(1))] = \
+                                    int(tile_match.group(2))
                             return rows, cols, tiles
             return 0, 0, []
 
