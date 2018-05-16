@@ -57,7 +57,7 @@ class Mdl():
                     print("Neverblender: WARNING - Unable to read model name.")
             elif label == 'setsupermodel':
                 try:  # should be ['setsupermodel', modelname, supermodelname]
-                    self.supermodel = line[2]
+                    self.supermodel = line[2].lower()
                 except (ValueError, IndexError):
                     print("Neverblender: WARNING - Unable to read supermodel. \
                            Using default value " + self.supermodel)
@@ -181,18 +181,19 @@ class Mdl():
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)
         children = [c for c in obj.children]
+        children.sort(key=lambda c: c.name)
         children.sort(key=lambda c: c.nvb.imporder)
         for c in children:
             Mdl.generateAsciiGeometry(c, asciiLines, options)
 
     @staticmethod
-    def generateAsciiAnimations(mdlRoot, asciiLines, options):
+    def generateAsciiAnimations(mdl_root, asciiLines, options):
         """TODO: DOC."""
-        if mdlRoot.nvb.animList:
+        if mdl_root.nvb.animList:
             asciiLines.append('')
             asciiLines.append('# ANIM ASCII')
-            for anim in mdlRoot.nvb.animList:
-                nvb_anim.Animation.generateAscii(mdlRoot, anim,
+            for anim in mdl_root.nvb.animList:
+                nvb_anim.Animation.generateAscii(mdl_root, anim,
                                                  asciiLines, options)
 
     @staticmethod
@@ -267,7 +268,7 @@ class Mdl():
                     obj.parent = None
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
-                    obj.nvb.animcale = self.animscale
+                    obj.nvb.animscale = self.animscale
                 options.scene.objects.link(obj)
             else:
                 print('Neverblender: WARNING - Invalid object ' + node.name)

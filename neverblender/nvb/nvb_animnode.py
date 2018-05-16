@@ -401,7 +401,7 @@ class Animnode():
         if not obj.data:
             return
         # Sanity check: Sample period can't be 0
-        if self.sampleperiod <= 0.00001:
+        if self.sampleperiod < 0.001:
             return
         # Sanity check: animation length has to be a multiple of
         #               sampleperiod

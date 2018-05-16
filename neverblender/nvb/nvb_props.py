@@ -7,65 +7,53 @@ from . import nvb_def
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
-    name = bpy.props.StringProperty(
-                name='Name',
-                description='Name for this event',
-                default='Unnamed')
-
+    name = bpy.props.StringProperty(name='Name',
+                                    description='Name for this event',
+                                    default='Unnamed')
     frame = bpy.props.IntProperty(
-                name='Frame',
-                description='Frame at which the event should fire',
-                default=1)
+        name='Frame',
+        description='Frame at which the event should fire',
+        default=1)
 
 
 class NVB_PG_anim(bpy.types.PropertyGroup):
     """Properties for a single animation in the animation list."""
 
-    name = bpy.props.StringProperty(
-                name='Name',
-                description='Name for this event',
-                default='Unnamed')
-    ttime = bpy.props.FloatProperty(
-                name='Transitiontime',
-                description='Used for for animations only',
-                default=0.25, min=0.0)
-    root = bpy.props.StringProperty(
-                name='Root',
-                description='Entry point of the animation',
-                default='')
-    mute = bpy.props.BoolProperty(
-                name='Mute',
-                description='Ignore animation during export',
-                default=False)
+    name = bpy.props.StringProperty(name='Name',
+                                    description='Name for this event',
+                                    default='Unnamed')
+    ttime = bpy.props.FloatProperty(name='Transitiontime',
+                                    description='Used for for animations only',
+                                    default=0.25, min=0.0)
+    root = bpy.props.StringProperty(name='Root',
+                                    description='Entry point of the animation',
+                                    default='')
+    mute = bpy.props.BoolProperty(name='Mute',
+                                  description='Ignore animation during export',
+                                  default=False)
     rawascii = bpy.props.StringProperty(
-                name='Emitter Data',
-                description='Incompatible Emitter data loaded as plain text',
-                default='')
-    frameStart = bpy.props.IntProperty(
-                name='Start',
-                description='Animation Start',
-                default=0,
-                min=0)
-    frameEnd = bpy.props.IntProperty(
-                name='End',
-                description='Animation End',
-                default=0,
-                min=0)
+        name='Emitter Data',
+        description='Incompatible Emitter data loaded as plain text',
+        default='')
+    frameStart = bpy.props.IntProperty(name='Start',
+                                       description='Animation Start',
+                                       default=0, min=0)
+    frameEnd = bpy.props.IntProperty(name='End',
+                                     description='Animation End',
+                                     default=0, min=0)
 
     eventList = bpy.props.CollectionProperty(type=NVB_PG_animevent)
-    eventListIdx = bpy.props.IntProperty(
-        name='Index for event List',
-        default=0)
+    eventListIdx = bpy.props.IntProperty(name='Index for event List',
+                                         default=0)
 
 
 class NVB_PG_mtrparameter(bpy.types.PropertyGroup):
     """Properties for a single parameter in the flare list."""
-    ptype = bpy.props.EnumProperty(
-        name='Type',
-        description='Parameter type',
-        items=[('float', 'float', 'float', 0),
-               ('int', 'int', 'int', 1)],
-        default='int')
+    ptype = bpy.props.EnumProperty(name='Type',
+                                   description='Parameter type',
+                                   items=[('float', 'float', 'float', 0),
+                                          ('int', 'int', 'int', 1)],
+                                   default='int')
     pname = bpy.props.StringProperty(name='Name',
                                      description='Parameter name',
                                      default='name')
@@ -256,14 +244,16 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     """
 
     # Helper properties to store additional values. Cannot be edited.
-    imporder = bpy.props.IntProperty(name='Original position in MDL',
-                                     default=99999)
     restrot = bpy.props.FloatVectorProperty(name='Rest Pose Rotation',
                                             size=4,
                                             default=(0.0, 0.0, 0.0, 0.0))
     restloc = bpy.props.FloatVectorProperty(name='Rest Pose Location',
                                             size=3,
                                             default=(0.0, 0.0, 0.0))
+    imporder = bpy.props.IntProperty(
+        name='Position in MDL',
+        description='Position of this object in the MDL file',
+        default=1000)
     # For all emptys
     emptytype = bpy.props.EnumProperty(
                 name='Type',

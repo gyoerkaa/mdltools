@@ -92,6 +92,7 @@ class Animation():
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)
         children = [c for c in obj.children]
+        children.sort(key=lambda c: c.name)
         children.sort(key=lambda c: c.nvb.imporder)
         for c in children:
             Animation.generateAsciiNodes(c, anim, asciiLines, options)
@@ -103,9 +104,9 @@ class Animation():
             # Don't export mute animations
             return
         fps = options.scene.render.fps
-        animLength = (anim.frameEnd-anim.frameStart) / fps
+        anim_length = (anim.frameEnd - anim.frameStart) / fps
         asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
-        asciiLines.append('  length ' + str(round(animLength, 5)))
+        asciiLines.append('  length ' + str(round(anim_length, 3)))
         asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
         if anim.root:
             asciiLines.append('  animroot ' + anim.root)
@@ -113,8 +114,8 @@ class Animation():
             asciiLines.append('  animroot ' + rootDummy.name)
 
         for event in anim.eventList:
-            eventTime = (event.frame-anim.frameStart) / fps
-            asciiLines.append('  event ' + str(round(eventTime, 5)) + ' ' +
+            eventTime = (event.frame - anim.frameStart) / fps
+            asciiLines.append('  event ' + str(round(eventTime, 3)) + ' ' +
                               event.name)
 
         Animation.generateAsciiNodes(rootDummy, anim, asciiLines, options)

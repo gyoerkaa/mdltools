@@ -37,6 +37,7 @@ from .nvb import nvb_ops_io
 from .nvb import nvb_ops_mtr
 from .nvb import nvb_ops_anim
 from .nvb import nvb_ops_set
+from .nvb import nvb_ops_amt
 from .nvb import nvb_ui
 
 if 'bpy' in locals():
@@ -56,6 +57,7 @@ if 'bpy' in locals():
         importlib.reload(nvb_ops_mtr)
         importlib.reload(nvb_ops_anim)
         importlib.reload(nvb_ops_set)
+        importlib.reload(nvb_ops_amt)
         importlib.reload(nvb_ui)
         print('Neverblender: Ready')
 
@@ -63,7 +65,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 7, 222),
+    'version': (2, 7, 224),
     "blender": (2, 7, 9),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -73,7 +75,7 @@ bl_info = {
     "category": "Import-Export"}
 
 
-classes = [
+classes = (
     nvb_props.NVB_PG_animevent,
     nvb_props.NVB_PG_anim,
     nvb_props.NVB_PG_material,
@@ -84,29 +86,21 @@ classes = [
     nvb_ui.NVB_UL_lensflares,
     nvb_ui.NVB_UL_anims,
     nvb_ui.NVB_UL_animevents,
+    nvb_ui.NVB_UL_set_element,
     nvb_ui.NVB_PT_rootdummy,
     nvb_ui.NVB_PT_dummy,
     nvb_ui.NVB_PT_armature,
     nvb_ui.NVB_PT_material,
+    nvb_ui.NVB_PT_set,
     nvb_ui.NVB_PT_mtr,
     nvb_ui.NVB_PT_lamp_data,
     nvb_ui.NVB_PT_lamp_object,
-    nvb_ui.NVB_PT_lensflares,
+    nvb_ui.NVB_PT_lamp_lensflares,
     nvb_ui.NVB_PT_mesh_object,
     nvb_ui.NVB_MT_animlist_specials,
     nvb_ui.NVB_PT_animlist,
-    nvb_ui.NVB_PT_utils
-]
-
-"""
-def menu_func_create_mdl(self, context):
-    layout = self.layout
-    layout.operator_context = 'INVOKE_REGION_WIN'
-    layout.operator(nvb_ops.NVB_OT_mdlcreate_plc.bl_idname,
-                    text='Placeable', icon='MESH_DATA')
-    layout.operator(nvb_ops.NVB_OT_mdlcreate_door.bl_idname,
-                    text='Door (Generic)', icon='MESH_DATA')
-"""
+    nvb_ui.NVB_PT_utils,
+)
 
 
 def menu_func_export(self, context):
@@ -126,9 +120,8 @@ def register():
     bpy.utils.register_module(__name__)
 
     """
-    from bpy.utils import register_class
     for cl in classes:
-        register_class(cl)
+        bpy.utils.register_class(cl)
     """
     bpy.types.Object.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_object)
@@ -150,9 +143,8 @@ def unregister():
     bpy.types.INFO_MT_file_export.remove(menu_func_export)
     bpy.types.INFO_MT_file_import.remove(menu_func_import)
     """
-    from bpy.utils import unregister_class
     for cl in reversed(classes):
-        unregister_class(cl)
+        bpy.utils.unregister_class(cl)
     """
     del bpy.types.Object.nvb
     del bpy.types.Material.nvb

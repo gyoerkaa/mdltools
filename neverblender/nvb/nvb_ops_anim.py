@@ -704,6 +704,7 @@ class NVB_OT_anim_move(bpy.types.Operator):
 
     bl_idname = 'nvb.anim_move'
     bl_label = 'Move an animation in the list, without affecting keyframes'
+    bl_options = {'UNDO'}
 
     direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
                                               ('DOWN', 'Down', '')))
@@ -744,6 +745,7 @@ class NVB_OT_animevent_new(bpy.types.Operator):
 
     bl_idname = 'nvb.animevent_new'
     bl_label = 'Add a new event to an animation'
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(self, context):
@@ -773,6 +775,7 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
 
     bl_idname = 'nvb.animevent_delete'
     bl_label = 'Deletes an event from an animation'
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(self, context):
@@ -805,6 +808,7 @@ class NVB_OT_animevent_move(bpy.types.Operator):
 
     bl_idname = 'nvb.animevent_move'
     bl_label = 'Move an item in the event  list'
+    bl_options = {'UNDO'}
 
     direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
                                               ('DOWN', 'Down', '')))

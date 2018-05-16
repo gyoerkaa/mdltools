@@ -219,11 +219,18 @@ class NVB_PT_armature(bpy.types.Panel):
         box = layout.box()
         box.label(text='Pseudo Bone Helper')
         box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
-        box.operator('nvb.helper_amt2psb', icon='BONE_DATA')
+        box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
+        layout.separator()
 
         box = layout.box()
         box.label(text='Restpose Helper')
-        box.operator('nvb.helper_restpose', icon='POSE_DATA')
+        box.operator('nvb.amt_apply_pose', icon='POSE_DATA')
+        layout.separator()
+
+        box = layout.box()
+        box.label(text='Animation Transfer')
+        box.operator('nvb.amt_anims2psb', icon='NODETREE')
+        layout.separator()
 
 
 class NVB_PT_material(bpy.types.Panel):
@@ -408,7 +415,7 @@ class NVB_PT_lamp_data(bpy.types.Panel):
         col.prop(data.nvb, 'affectdynamic', text='Affect dynamic')
 
 
-class NVB_PT_lensflares(bpy.types.Panel):
+class NVB_PT_lamp_lensflares(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
@@ -519,8 +526,8 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         # Properties for all types of meshes
         box = layout.box()
         box.prop(obj.nvb, 'meshtype', text='Type')
-        row = box.row()
-        row.prop(obj, 'color', text='Wirecolor')
+        box.row().prop(obj, 'color', text='Wirecolor')
+        box.prop(obj.nvb, 'imporder', text='Order')
         # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             layout.separator()
@@ -752,7 +759,7 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(mdl_root.nvb, 'helper_amt_source', expand=True)
             box.prop(mdl_root.nvb, 'helper_amt_connect')
             box.prop(mdl_root.nvb, 'helper_amt_copyani')
-            box.operator('nvb.helper_psb2amt', icon='BONE_DATA')
+            box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
             # Scale Helper

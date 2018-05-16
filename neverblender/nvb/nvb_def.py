@@ -232,6 +232,7 @@ class ImportOptions():
         self.anim_restpose = True
         # Blender Settings
         self.rotmode = 'XYZ'
+        self.fix_uvs = False
         self.mdl_location = (0.0, 0.0, 0.0)
         self.render_lights = False
         self.render_fading = True

@@ -612,18 +612,24 @@ class Trimesh(Node):
             self.material.loadAsciiLine(aline)
         return aline
 
+    def fix_degenrated_uvs(self):
+        """TODO: Doc."""
+        for f in self.facedef:
+            uvs = self.tverts
+            pass
+
     @staticmethod
-    def createUVlayer2(mesh, uvcoords, faceuvs, uvname, uvimg=None):
+    def createUVlayer2(mesh, tverts, faceuvs, uvname, uvimg=None):
         """TODO: Doc."""
         uvlay = None
-        if uvcoords and mesh.polygons:
+        if tverts and mesh.polygons:
             uvtex = mesh.uv_textures.new(uvname)
             uvlay = mesh.uv_layers[uvtex.name].data
             for fidx, poly in enumerate(mesh.polygons):
                 v1, v2, v3 = faceuvs[fidx]
-                uvlay[poly.loop_start].uv = uvcoords[v1]
-                uvlay[poly.loop_start + 1].uv = uvcoords[v2]
-                uvlay[poly.loop_start + 2].uv = uvcoords[v3]
+                uvlay[poly.loop_start].uv = tverts[v1]
+                uvlay[poly.loop_start + 1].uv = tverts[v2]
+                uvlay[poly.loop_start + 2].uv = tverts[v3]
                 uvtex.data[fidx].image = uvimg
         # For blender 2.8:
         # for uvf in mesh.data.uv_textures.active.data:
