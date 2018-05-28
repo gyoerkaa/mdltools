@@ -156,19 +156,16 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         if not obj_list:
             return
         for suffix, loc in ddata:
+            dummy_name = prefix + suffix
             existing = [o for o in obj_list if o.name.endswith(suffix)]
-            existing_names = [o.name for o in existing]
-            newname = prefix + suffix
-            if newname in existing_names:
-                # Adjust name and parent for existing objects
+            if existing:  # Adjust name and parent for existing objects
                 for obj in existing:
-                    if obj.name != newname:
+                    if obj.name != dummy_name:
                         # Avoid renaming to same name (results in .001 suffix)
-                        obj.name = newname
+                        obj.name = dummy_name
                     obj.parent = parent
-            else:
-                # Create missing dummies
-                obj = bpy.data.objects.new(newname, None)
+            else:  # Create missing dummies
+                obj = bpy.data.objects.new(dummy_name, None)
                 obj.location = loc
                 obj.parent = parent
                 scene.objects.link(obj)
@@ -585,27 +582,30 @@ class NVB_OT_helper_transform(bpy.types.Operator):
     bl_idname = "nvb.helper_transform"
     bl_label = "Apply Transform"
 
-    def adjust_animations(self, obj, adj_mat):
+    def apply_parent_inverse_animations(self, obj):
         """TODO: DOC."""
-        def adjust_loc(obj, kfvalues, adj_mat):
-            trn, _, scl = adj_mat.decompose()
-            vecs = [mathutils.Vector(val) for val in kfvalues]
-            return [[x * y for x, y in zip(v + trn, scl)] for v in vecs]
+        def adjust_loc(obj, kfvalues):
+            pinv = obj.matrix_parent_inverse
+            mats = [pinv * mathutils.Matrix.Translation(v) for v in kfvalues]
+            return [m.to_translation() for m in mats]
 
-        def adjust_axan(obj, kfvalues, adj_mat):
-            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4() *
-                    adj_mat
+        def adjust_axan(obj, kfvalues):
+            pinv = obj.matrix_parent_inverse
+            mats = [pinv *
+                    mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                     for v in kfvalues]
             quats = [m.to_quaternion() for m in mats]
             return [[q.angle, *q.axis] for q in quats]
 
-        def adjust_quat(obj, kfvalues, adj_mat):
-            mats = [mathutils.Quaternion(v).to_matrix().to_4x4() * adj_mat
+        def adjust_quat(obj, kfvalues):
+            pinv = obj.matrix_parent_inverse
+            mats = [pinv * mathutils.Quaternion(v).to_matrix().to_4x4()
                     for v in kfvalues]
             return [list(m.to_quaternion()) for m in mats]
 
-        def adjust_eul(obj, kfvalues, adj_mat):
-            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4() * adj_mat
+        def adjust_eul(obj, kfvalues):
+            pinv = obj.matrix_parent_inverse
+            mats = [pinv * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
             # Euler Filter
             euls = []
@@ -633,7 +633,7 @@ class NVB_OT_helper_transform(bpy.types.Operator):
                 values = [[fcu[i].evaluate(f)
                           for i in range(dp_dim)] for f in frames]
                 # Adjust kfp to new coordinates
-                values = adjust_func(obj, values, adj_mat)
+                values = adjust_func(obj, values)
                 # Write back adjusted kfp values
                 for i in range(dp_dim):
                     single_vals = [v[i] for v in values]
@@ -641,48 +641,110 @@ class NVB_OT_helper_transform(bpy.types.Operator):
                     fcu[i].keyframe_points.foreach_set('co', data)
                     fcu[i].update()
 
-    def adjust_trans(self, obj, adj_mat):
-        """Apply translation to immediate children only."""
+    def apply_parent_inverse(self, obj):
+        self.apply_parent_inverse_animations(obj)
+        obj.matrix_basis = obj.matrix_parent_inverse * obj.matrix_basis
+        obj.matrix_parent_inverse.identity()
         for c in obj.children:
-            c.matrix_basis = c.matrix_basis * adj_mat
-            self.adjust_animations(c, adj_mat)
+            self.apply_parent_inverse(c)
 
-    def adjust_scale(self, obj, adj_mat):
-        """Apply scale to all children."""
+    def adjust_animations(self, obj, scl_mat, trn_mat):
+        """TODO: DOC."""
+        def adjust_loc(obj, kfvalues, scl_mat, trn_mat):
+            vecs = [mathutils.Vector(v) for v in kfvalues]
+            mats = [mathutils.Matrix.Translation(v * scl_mat) * trn_mat
+                    for v in vecs]
+            return [m.to_translation() for m in mats]
+
+        def adjust_axan(obj, kfvalues, scl_mat, trn_mat):
+            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4() *
+                    scl_mat
+                    for v in kfvalues]
+            quats = [m.to_quaternion() for m in mats]
+            return [[q.angle, *q.axis] for q in quats]
+
+        def adjust_quat(obj, kfvalues, scl_mat, trn_mat):
+            mats = [mathutils.Quaternion(v).to_matrix().to_4x4() * scl_mat
+                    for v in kfvalues]
+            return [list(m.to_quaternion()) for m in mats]
+
+        def adjust_eul(obj, kfvalues, scl_mat, trn_mat):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4() * scl_mat
+                    for v in kfvalues]
+            # Euler Filter
+            euls = []
+            e = obj.rotation_euler
+            for m in mats:
+                e = m.to_euler('XYZ', e)
+                euls.append(e)
+            return euls
+
+        if not (obj.animation_data and obj.animation_data.action):
+            return
+        action = obj.animation_data.action
+        source_fcu = action.fcurves
+        dp_list = [('rotation_axis_angle', 4, adjust_axan),
+                   ('rotation_quaternion', 4, adjust_quat),
+                   ('rotation_euler', 3, adjust_eul),
+                   ('location', 3, adjust_loc)]
+        for dp, dp_dim, adjust_func in dp_list:
+            fcu = [source_fcu.find(dp, i) for i in range(dp_dim)]
+            if fcu.count(None) < 1:
+                frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)]))
+                frames.sort()
+                values = [[fcu[i].evaluate(f)
+                          for i in range(dp_dim)] for f in frames]
+                # Adjust kfp to new coordinates
+                values = adjust_func(obj, values, scl_mat, trn_mat)
+                # Write back adjusted kfp values
+                for i in range(dp_dim):
+                    single_vals = [v[i] for v in values]
+                    data = [d for z in zip(frames, single_vals) for d in z]
+                    fcu[i].keyframe_points.foreach_set('co', data)
+                    fcu[i].update()
+
+    def adjust_objects(self, obj, scl_mat, trn_mat):
         for c in obj.children:
             dcmp = c.matrix_basis.decompose()
-            trans = mathutils.Matrix.Translation(dcmp[0] * adj_mat)
-            rot = dcmp[1].to_matrix().to_4x4()
-            scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
-                   mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
-                   mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
-            c.matrix_basis = trans * rot
+            # Adjust translation, keep rotation, ditch scale
+            new_trn = mathutils.Matrix.Translation(dcmp[0] * scl_mat) * trn_mat
+            c.matrix_basis = new_trn * dcmp[1].to_matrix().to_4x4()
+            # Get scale matrix
+            new_scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
+                       mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
+                       mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
             # Apply to data
             if c.type == 'MESH':
                 me = c.data
                 for v in me.vertices:
-                    v.co = v.co * adj_mat * scl
+                    v.co = v.co * scl_mat * new_scl
                 me.update()
-            self.adjust_animations(c, adj_mat * scl)
-            self.adjust_scale(c, adj_mat * scl)
+            # Apply to animations
+            self.adjust_animations(c, scl_mat, trn_mat)
+            # Only immediate children have their translation adjusted
+            self.adjust_objects(c, scl_mat * new_scl, mathutils.Matrix())
 
     def execute(self, context):
         """TODO: DOC."""
         root = nvb_utils.get_aurora_root(context.object)
         # Get translation and scale factors
-        if True:  # Use transformations from root
+        if not root:
+            self.report({'ERROR'}, 'Error: No Aurora Root.')
+            return {'CANCELLED'}
+        else:
+            # Apply parent inverses
+            self.apply_parent_inverse(root)
+            # Decompose to get root transforms
             dcmp = root.matrix_basis.decompose()
-            trans = mathutils.Matrix.Translation(dcmp[0])
-            rot = dcmp[1].to_matrix().to_4x4()
+            # Undo root transformations
+            root.matrix_basis = dcmp[1].to_matrix().to_4x4()  # keep rotation
+            # Apply translation to immediate children and scale to all
+            trn = mathutils.Matrix.Translation(dcmp[0]).to_4x4()
             scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
-            # Undo root Transformations
-            root.matrix_basis = rot
-        else:  # TODO: Use custom transformations
-            trans = mathutils.Matrix()
-            scl = mathutils.Matrix()
-        self.adjust_trans(root, trans)
-        self.adjust_scale(root, scl)
-        context.scene.update()
-        return {'FINISHED'}
+            self.adjust_objects(root, scl, trn)
+            context.scene.update()
+            return {'FINISHED'}

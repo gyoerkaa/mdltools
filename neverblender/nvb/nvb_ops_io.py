@@ -288,6 +288,10 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                ('QUATERNION', 'Quaternion', ''),
                ('XYZ', 'Euler XYZ', '')),
         default='XYZ')
+    fix_uvs = bpy.props.BoolProperty(
+        name='Fix degenerated UVs',
+        description='Fix degeneratet UV coordinates (tverts)',
+        default=False)
     mdl_location = bpy.props.FloatVectorProperty(
         name='Location',
         description='Location of newly imported model',
@@ -333,6 +337,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box = layout.box()
         box.label(text='Blender Settings')
         box.prop(self, 'rotmode')
+        box.prop(self, 'fix_uvs')
 
     def load_file(self, context, options):
         pathlist = [os.path.join(self.directory, f.name)
@@ -381,6 +386,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.anim_fps = self.anim_fps
         # Blender Settings
         options.rotmode = self.rotmode
+        options.fix_uvs = self.fix_uvs
         options.mdl_location = self.mdl_location
         options.render_lights = self.render_lights
         options.render_fading = self.render_fading

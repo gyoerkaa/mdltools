@@ -59,7 +59,7 @@ class Animation():
                 self.transtime = float(line[1])
             elif (label == 'animroot'):
                 try:
-                    self.animroot = line[1]
+                    self.animroot = line[1].lower()
                 except (ValueError, IndexError):
                     self.animroot = ''
             elif (label == 'event'):

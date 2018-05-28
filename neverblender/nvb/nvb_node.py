@@ -282,7 +282,7 @@ class Material(object):
                     asciiLines.append('  bitmap ' + nvb_def.null)
                 # Export texture1 and texture2
                 fs = '  texture{:d} {:s}'
-                asciiLines.extend([fs.format(i, n) for i, n, _ in txlist[1:2]])
+                asciiLines.extend([fs.format(i, n) for i, n, _ in txlist[1:3]])
             # Alpha value:
             # 1. Texture slots present: get alpha from 1st slot
             # 2. No texture slots: get alpha from material
@@ -394,8 +394,7 @@ class Node(object):
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: DOC."""
-        # Rootdummys get no data at all
-        if obj.parent is None:
+        if obj.parent is None:  # Rootdummys get no data at all
             return
         mat = obj.matrix_parent_inverse * obj.matrix_basis
 
@@ -612,11 +611,28 @@ class Trimesh(Node):
             self.material.loadAsciiLine(aline)
         return aline
 
-    def fix_degenrated_uvs(self):
-        """TODO: Doc."""
-        for f in self.facedef:
-            uvs = self.tverts
-            pass
+    def fix_degenerated_uvs(self):
+        """Fixes degenrated UVs by adding dummy coordinates."""
+        def distance(p0, p1):
+            """Euclidean Distance between two points."""
+            return math.sqrt(sum([(a - b)**2 for a, b in list(zip(p0, p1))]))
+
+        tvert_cnt = len(self.tverts[0])
+        if tvert_cnt > 0:
+            add_dummy_uvs = False
+            for f in self.facedef:
+                uvs = self.tverts[0][f[4]], \
+                      self.tverts[0][f[5]], \
+                      self.tverts[0][f[6]]
+                min_distance = distance(uvs[0], uvs[1])
+                for p0, p1 in itertools.combinations(uvs, 2):
+                    min_distance = min(min_distance, distance(p0, p1))
+                # tverts are too close == degenerated
+                if min_distance <= 0.001:
+                    add_dummy_uvs = True
+                    f[4], f[5], f[6] = tvert_cnt, tvert_cnt + 1, tvert_cnt + 2
+            if add_dummy_uvs:
+                self.tverts[0].extend([(0, 0), (0, 1), (1, 1)])
 
     @staticmethod
     def createUVlayer2(mesh, tverts, faceuvs, uvname, uvimg=None):
@@ -759,6 +775,8 @@ class Trimesh(Node):
 
     def createMesh(self, name, options):
         """TODO: Doc."""
+        if options.fix_uvs:
+            self.fix_degenerated_uvs()
         # Create the mesh itself
         me = bpy.data.meshes.new(name)
         # Create vertices
