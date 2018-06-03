@@ -188,7 +188,66 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     bl_label = 'Generate Pseudo Bones'
     bl_options = {'UNDO'}
 
-    generated = []
+    mats_edit_bone = dict()  # armature bone name => edit_bone.matrix
+    amb_psb_pairs = []  # (armature bone name, pseudo bone name) tuples
+    scene = None
+
+    def get_mw_list(self, amt, posebone, frames):
+        def convert_loc(amt, posebone, kfvalues, mat_ebi):
+            mats = [mathutils.Matrix.Translation(v) for v in kfvalues]
+            return [amt.convert_space(posebone, m, 'LOCAL', 'WORLD') * mat_ebi
+                    for m in mats]
+
+        def convert_axan(amt, posebone, kfvalues, mat_ebi):
+            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+                    for v in kfvalues]
+            return [amt.convert_space(posebone, m, 'LOCAL', 'WORLD') * mat_ebi
+                    for m in mats]
+
+        def convert_quat(amt, posebone, kfvalues, mat_ebi):
+            mats = [mathutils.Quaternion(v).to_matrix().to_4x4()
+                    for v in kfvalues]
+            return [amt.convert_space(posebone, m, 'LOCAL', 'WORLD') * mat_ebi
+                    for m in mats]
+
+        def convert_eul(amt, posebone, kfvalues, mat_ebi):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+                    for v in kfvalues]
+            return [amt.convert_space(posebone, m, 'LOCAL', 'WORLD') * mat_ebi
+                    for m in mats]
+
+        if not posebone:
+            return [mathutils.Matrix()] * len(frames)
+        mat_ebi = \
+            self.mats_edit_bone[posebone.name].to_3x3().to_4x4().inverted()
+
+        amt_action = amt.animation_data.action
+        amt_fcu = amt_action.fcurves
+
+        dp, dp_dim, convert_func = ('location', 3, convert_loc)
+        amt_dp = 'pose.bones["' + posebone.name + '"].' + dp
+        fcu = [amt_fcu.find(amt_dp, i) for i in range(dp_dim)]
+        if fcu.count(None) < 1:
+            vals = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                    for f in frames]
+            tmats = convert_func(amt, posebone, vals, mat_ebi)
+        else:
+            tmats = [mathutils.Matrix()] * len(frames)
+
+        rot_dp = {'AXIS_ANGLE': ('rotation_axis_angle', 4, convert_axan),
+                  'QUATERNION': ('rotation_quaternion', 4, convert_quat)}
+        dp, dp_dim, convert_func = rot_dp.get(
+            posebone.rotation_mode, ('rotation_euler', 3, convert_eul))
+        amt_dp = 'pose.bones["' + posebone.name + '"].' + dp
+        fcu = [amt_fcu.find(amt_dp, i) for i in range(dp_dim)]
+        if fcu.count(None) < 1:
+            vals = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                    for f in frames]
+            rmats = convert_func(amt, posebone, vals, mat_ebi)
+        else:
+            rmats = [mathutils.Matrix()] * len(frames)
+
+        return [t * r for t, r in zip(tmats, rmats)]
 
     def create_mesh(self, mvector, meshname):
         """TODO: DOC."""
@@ -220,30 +279,31 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         mesh.update()
         return mesh
 
-    def generate_bones(self, amt_bone, psb_parent=None):
+    def generate_bones(self, amb, psb_parent=None):
         """Creates a pseusobone (mesh) object from an armature bone."""
         # name for newly created mesh = pseudo bone
-        psb_name = amt_bone.name
-        if amt_bone.parent:
-            psb_head = amt_bone.head_local - amt_bone.parent.head_local
-            psb_tail = amt_bone.tail_local - amt_bone.parent.head_local
+        if amb.parent:
+            psb_head = amb.head_local - amb.parent.head_local
+            psb_tail = amb.tail_local - amb.parent.head_local
         else:
-            psb_head = amt_bone.head_local
-            psb_tail = amt_bone.tail_local
+            psb_head = amb.head_local
+            psb_tail = amb.tail_local
         # Create the mesh for the pseudo bone
-        mesh = self.create_mesh(psb_tail-psb_head, psb_name)
+        mesh = self.create_mesh(psb_tail-psb_head, amb.name)
         # Create object holding the mesh
-        psb = bpy.data.objects.new(psb_name, mesh)
+        psb = bpy.data.objects.new(amb.name, mesh)
         psb.location = psb_head
         psb.parent = psb_parent
         bpy.context.scene.objects.link(psb)
         # Create matrix for animation conversion
-        amt_bone_ml = amt_bone.matrix_local.copy()
-        self.generated.append([amt_bone.name, psb, amt_bone_ml])
-        for c in amt_bone.children:
+        # amt_eb = amt.data.edit_bones[amt_bone.name]
+        # amt_eb_m = amt_eb.matrix.to_3x3().to_4x4().copy()
+        self.amb_psb_pairs.append([amb.name, psb.name])
+        self.mats_edit_bone[amb.name] = amb.matrix_local.copy()
+        for c in amb.children:
             self.generate_bones(c, psb)
 
-    def transfer_animations(self, amt, amt_bone_name, psb, cmat):
+    def transfer_animations(self, amt, amb_name, psb_name):
         """TODO: DOC."""
         def insert_kfp(fcu, kfp_frames, kfp_data, dp, dp_dim):
             # Add keyframes to fcurves
@@ -259,32 +319,40 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                     p.interpolation = 'LINEAR'
             list(map(lambda c: c.update(), fcu))
 
-        def convert_loc(amt, posebone, kfvalues, psb, cmat):
+        def convert_loc(amt, posebone, kfvalues, mat_eb):
             mats = [mathutils.Matrix.Translation(v) for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                    'LOCAL') for m in mats]
+            if posebone.parent:
+                cmat = mathutils.Matrix.Translation((0, 0, -1))
+            else:
+                cmat = mathutils.Matrix()
+            mats = [mat_eb * m * mat_eb.to_3x3().to_4x4().inverted() * cmat
+                    for m in mats]
+            # mats = [amt.convert_space(posebone, m, 'LOCAL', 'WORLD') *
+            #         mat_eb.to_3x3().to_4x4().inverted() for m in mats]
+            # mats = [pw.inverted() * m for pw, m in zip(mats_pw, mats)]
             return [list(m.to_translation()) for m in mats]
 
-        def convert_axan(amt, posebone, kfvalues, psb, cmat):
-            mats = [cmat *
-                    mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+        def convert_axan(amt, posebone, kfvalues, mat_eb):
+            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                     for v in kfvalues]
-            quats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                     'LOCAL').to_quaternion() for m in mats]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
+            quats = [m.to_quaternion() for m in mats]
             return [[q.angle, *q.axis] for q in quats]
 
-        def convert_quat(amt, posebone, kfvalues, psb, cmat):
-            mats = [cmat * mathutils.Quaternion(v).to_matrix().to_4x4()
+        def convert_quat(amt, posebone, kfvalues, mat_eb):
+            mats = [mathutils.Quaternion(v).to_matrix().to_4x4()
                     for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                    'LOCAL') for m in mats]
-            return [list(m.to_quaternion()) for m in mats]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
+            quats = [m.to_quaternion() for m in mats]
+            return quats
 
-        def convert_eul(amt, posebone, kfvalues, psb, cmat):
-            mats = [cmat * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+        def convert_eul(amt, posebone, kfvalues, mat_eb):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'POSE', 'WORLD') * cmat
-                    for m in mats]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
             # Convert to Euler (with filter)
             euls = []
             e = posebone.rotation_euler
@@ -294,9 +362,9 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             return euls
 
         amt_action = amt.animation_data.action
-        # Get posebone for coordinate transformation
-        amt_posebone = amt.pose.bones[amt_bone_name]
-        psb.rotation_mode = amt_posebone.rotation_mode
+        # Get posebone and pseudobone
+        amt_posebone = amt.pose.bones[amb_name]
+        psb = bpy.data.objects[psb_name]
         # Get animation data, create if needed.
         if not psb.animation_data:
             psb.animation_data_create()
@@ -304,17 +372,21 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         psb_action = psb.animation_data.action
         if not psb_action:
             psb_action = bpy.data.actions.new(name=psb.name)
-            psb_action.use_fake_user = True
+            # psb_action.use_fake_user = True
             psb.animation_data.action = psb_action
         # All fcurves of the armature
         source_fcu = amt_action.fcurves
-        # Copy rotation keyframes
-        dp_list = [('rotation_axis_angle', 4, convert_axan),
-                   ('rotation_quaternion', 4, convert_quat),
-                   ('rotation_euler', 3, convert_eul),
-                   ('location', 3, convert_loc)]
+        # Build data paths depending on rotation mode
+        psb.rotation_mode = amt_posebone.rotation_mode
+        dp_list = [('location', 3, convert_loc)]
+        rot_dp = {'AXIS_ANGLE': ('rotation_axis_angle', 4, convert_axan),
+                  'QUATERNION': ('rotation_quaternion', 4, convert_quat)}
+        dp_list.append(rot_dp.get(
+            psb.rotation_mode, ('rotation_euler', 3, convert_eul)))
+        # Transfer keyframes
+        mat_eb = self.mats_edit_bone[amb_name]
         for psb_dp, dp_dim, convert_func in dp_list:
-            amt_dp = 'pose.bones["' + amt_bone_name + '"].' + psb_dp
+            amt_dp = 'pose.bones["' + amb_name + '"].' + psb_dp
             amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
             if amt_fcu.count(None) < 1:
                 # Get keyed frames
@@ -322,10 +394,12 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                     *[[k.co[0] for k in amt_fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
                 frames.sort()
+                values = []
                 values = [[amt_fcu[i].evaluate(f)
                           for i in range(dp_dim)] for f in frames]
+                # mats_pw = self.get_mw_list(amt, amt_posebone.parent, frames)
                 # Convert from armature bone space to pseudobone space
-                convert_func(amt, amt_posebone, values, psb, cmat)
+                values = convert_func(amt, amt_posebone, values, mat_eb)
                 # Create fcurves for pseudo bone
                 psb_fcu = [psb_action.fcurves.new(psb_dp, i)
                            for i in range(dp_dim)]
@@ -335,13 +409,6 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     def add_constraints(self, amt, amt_bone_name, psb):
         """Apply transform constraint to pseudo bone from armature bone."""
         con = psb.constraints.new('COPY_TRANSFORMS')
-        # con = psb.constraints.new('COPY_LOCATION')
-        con.target = amt
-        con.subtarget = amt_bone_name
-        con.target_space = 'WORLD'
-        con.owner_space = 'WORLD'
-
-        # con = psb.constraints.new('COPY_ROTATION')
         con.target = amt
         con.subtarget = amt_bone_name
         con.target_space = 'WORLD'
@@ -356,6 +423,9 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     def execute(self, context):
         """Create pseudo bones and copy animations"""
         armature = context.object
+        self.scene = context.scene
+        self.amb_psb_pairs = []
+        self.mats_edit_bone = dict()
         # Create an extra root object for the armature
         psb_root = None
         if False:
@@ -368,13 +438,13 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             if not amb.parent:
                 self.generate_bones(amb, psb_root)
         bpy.ops.object.mode_set(mode='OBJECT')
+        context.scene.update()
         # Transfer animations
         if armature.nvb.helper_amt_copyani:
             if armature.animation_data and armature.animation_data.action:
-                for amb_name, psb, cmat in self.generated:
-                    self.transfer_animations(armature, amb_name, psb, cmat)
-                    # self.add_constraints(armature, amb_name, psb)
-
+                for amb_name, psb_name in self.amb_psb_pairs:
+                    self.transfer_animations(armature, amb_name, psb_name)
+                context.scene.update()
         return {'FINISHED'}
 
 

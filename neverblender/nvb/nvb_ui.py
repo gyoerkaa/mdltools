@@ -227,10 +227,10 @@ class NVB_PT_armature(bpy.types.Panel):
         box.operator('nvb.amt_apply_pose', icon='POSE_DATA')
         layout.separator()
 
-        box = layout.box()
-        box.label(text='Animation Transfer')
-        box.operator('nvb.amt_anims2psb', icon='NODETREE')
-        layout.separator()
+        # box = layout.box()
+        # box.label(text='Animation Transfer')
+        # box.operator('nvb.amt_anims2psb', icon='NODETREE')
+        # layout.separator()
 
 
 class NVB_PT_material(bpy.types.Panel):

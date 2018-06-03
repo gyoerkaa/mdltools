@@ -595,7 +595,7 @@ class Trimesh(Node):
             if not self.colors:
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
-                self.colors = [tuple(map(float, v)) for v in tmp]
+                self.colors = [tuple(map(float, v + [0])) for v in tmp]
         elif (label.startswith('tverts')):
             tvid = 0
             if label[6:]:  # might be '', which we interpret as 0
