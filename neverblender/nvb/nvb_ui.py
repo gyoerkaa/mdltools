@@ -96,7 +96,7 @@ class NVB_PT_rootdummy(bpy.types.Panel):
     It is located under the object panel in the properties window,
     """
 
-    bl_idname = 'nvb.propertypanel.rootdummy'
+    bl_idname = 'NVB_PT_rootdummy'
     bl_label = 'Aurora Root Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -135,7 +135,7 @@ class NVB_PT_dummy(bpy.types.Panel):
     It is located under the object panel in the properties window,
     """
 
-    bl_idname = 'nvb.propertypanel.dummy'
+    bl_idname = 'NVB_PT_dummy'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -169,7 +169,7 @@ class NVB_PT_bone(bpy.types.Panel):
     animation from a models meshes.
     """
 
-    bl_idname = 'nvb.propertypanel.bone'
+    bl_idname = 'NVB_PT_bone'
     bl_label = 'Aurora Bone Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -199,7 +199,7 @@ class NVB_PT_armature(bpy.types.Panel):
     animation from a models meshes.
     """
 
-    bl_idname = 'nvb.propertypanel.armature'
+    bl_idname = 'NVB_PT_armature'
     bl_label = 'Aurora Armature Utilities'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -234,7 +234,11 @@ class NVB_PT_armature(bpy.types.Panel):
 
 
 class NVB_PT_material(bpy.types.Panel):
-    bl_idname = 'nvb.propertypanel.material'
+    """Property panel for material properties.
+
+    """
+
+    bl_idname = 'NVB_PT_material'
     bl_label = 'Aurora Material Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -267,7 +271,7 @@ class NVB_PT_material(bpy.types.Panel):
 
 
 class NVB_PT_set(bpy.types.Panel):
-    bl_idname = 'nvb.propertypanel.setfile'
+    bl_idname = 'NVB_PT_set'
     bl_label = 'Aurora Set File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -312,7 +316,7 @@ class NVB_PT_set(bpy.types.Panel):
 
 
 class NVB_PT_mtr(bpy.types.Panel):
-    bl_idname = 'nvb.propertypanel.mtrfile'
+    bl_idname = 'NVB_PT_mtr'
     bl_label = 'Aurora MTR File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -388,7 +392,7 @@ class NVB_PT_lamp_data(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'nvb.propertypanel.lamp'
+    bl_idname = 'NVB_PT_lamp_data'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -423,7 +427,7 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'nvb.propertypanel.lampflare'
+    bl_idname = 'NVB_PT_lamp_lensflares'
     bl_label = 'Aurora Lensflares'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -478,7 +482,7 @@ class NVB_PT_lamp_object(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'nvb.propertypanel.light'
+    bl_idname = 'NVB_PT_lamp_object'
     bl_label = 'Aurora Lamp Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -508,7 +512,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'nvb.propertypanel.mesh'
+    bl_idname = 'NVB_PT_mesh_object'
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -610,7 +614,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 class NVB_MT_animlist_specials(bpy.types.Menu):
     """Animation List Specials."""
 
-    bl_idname = 'nvb.menu.animspecials'
+    bl_idname = 'NVB_MT_animlist_specials'
     bl_label = "Animation List Specials"
 
     def draw(self, context):
@@ -636,7 +640,7 @@ class NVB_PT_animlist(bpy.types.Panel):
     It is located under the object data panel in the properties window
     """
 
-    bl_idname = 'nvb.propertypanel.anim'
+    bl_idname = 'NVB_PT_animlist'
     bl_label = 'Aurora Animations'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -673,7 +677,7 @@ class NVB_PT_animlist(bpy.types.Panel):
             col.separator()
             col.operator('nvb.anim_focus',
                          icon='RENDER_ANIMATION', text='')
-            col.menu('nvb.menu.animspecials',
+            col.menu('NVB_MT_animlist_specials',
                      icon='DOWNARROW_HLT', text="")
             if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
                 anim = obj.nvb.animList[obj.nvb.animListIdx]
@@ -731,7 +735,7 @@ class NVB_PT_utils(bpy.types.Panel):
     Property panel with utilities to render minimaps
     """
 
-    bl_idname = 'nvb.propertypanel.utils'
+    bl_idname = 'NVB_PT_utils'
     bl_label = 'Aurora Utilities'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
