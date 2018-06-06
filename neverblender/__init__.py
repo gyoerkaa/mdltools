@@ -131,6 +131,8 @@ def register():
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_lamp)
     bpy.types.Scene.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_scene)
+    bpy.types.Particle.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_emitter)
     # bpy.types.Bone.nvb = \
     #     bpy.props.PointerProperty(type=nvb_props.NVB_PG_bone)
 

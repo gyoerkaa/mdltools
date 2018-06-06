@@ -96,7 +96,6 @@ class NVB_PT_rootdummy(bpy.types.Panel):
     It is located under the object panel in the properties window,
     """
 
-    bl_idname = 'NVB_PT_rootdummy'
     bl_label = 'Aurora Root Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -135,7 +134,6 @@ class NVB_PT_dummy(bpy.types.Panel):
     It is located under the object panel in the properties window,
     """
 
-    bl_idname = 'NVB_PT_dummy'
     bl_label = 'Aurora Dummy Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -169,7 +167,6 @@ class NVB_PT_bone(bpy.types.Panel):
     animation from a models meshes.
     """
 
-    bl_idname = 'NVB_PT_bone'
     bl_label = 'Aurora Bone Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -199,7 +196,6 @@ class NVB_PT_armature(bpy.types.Panel):
     animation from a models meshes.
     """
 
-    bl_idname = 'NVB_PT_armature'
     bl_label = 'Aurora Armature Utilities'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -238,7 +234,6 @@ class NVB_PT_material(bpy.types.Panel):
 
     """
 
-    bl_idname = 'NVB_PT_material'
     bl_label = 'Aurora Material Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -271,7 +266,6 @@ class NVB_PT_material(bpy.types.Panel):
 
 
 class NVB_PT_set(bpy.types.Panel):
-    bl_idname = 'NVB_PT_set'
     bl_label = 'Aurora Set File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -316,7 +310,6 @@ class NVB_PT_set(bpy.types.Panel):
 
 
 class NVB_PT_mtr(bpy.types.Panel):
-    bl_idname = 'NVB_PT_mtr'
     bl_label = 'Aurora MTR File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -392,7 +385,6 @@ class NVB_PT_lamp_data(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'NVB_PT_lamp_data'
     bl_label = 'Aurora Light Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -427,7 +419,6 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'NVB_PT_lamp_lensflares'
     bl_label = 'Aurora Lensflares'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -482,7 +473,6 @@ class NVB_PT_lamp_object(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'NVB_PT_lamp_object'
     bl_label = 'Aurora Lamp Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -512,7 +502,6 @@ class NVB_PT_mesh_object(bpy.types.Panel):
     It is located under the object panel in the properties window.
     """
 
-    bl_idname = 'NVB_PT_mesh_object'
     bl_label = 'Aurora Mesh Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -614,7 +603,6 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 class NVB_MT_animlist_specials(bpy.types.Menu):
     """Animation List Specials."""
 
-    bl_idname = 'NVB_MT_animlist_specials'
     bl_label = "Animation List Specials"
 
     def draw(self, context):
@@ -640,7 +628,6 @@ class NVB_PT_animlist(bpy.types.Panel):
     It is located under the object data panel in the properties window
     """
 
-    bl_idname = 'NVB_PT_animlist'
     bl_label = 'Aurora Animations'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -730,12 +717,11 @@ class NVB_PT_animlist(bpy.types.Panel):
 
 
 class NVB_PT_utils(bpy.types.Panel):
-    """Property panel for minimap render.
+    """Property panel for Tools.
 
-    Property panel with utilities to render minimaps
+    Property panel with utilities
     """
 
-    bl_idname = 'NVB_PT_utils'
     bl_label = 'Aurora Utilities'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -804,3 +790,112 @@ class NVB_PT_utils(bpy.types.Panel):
                          icon='SCENE_DATA').batch_mode = False
             row.operator('render.render', text='Render', icon='RENDER_STILL')
             layout.separator()
+
+
+class NVB_PT_emitter(bpy.types.Panel):
+    """Property panel for emitter properties.
+
+    Property holding additional propeties for particle systems
+    """
+    bl_label = 'Aurora Emitter'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'particle'
+    COMPAT_ENGINES = {'BLENDER_RENDER'}
+
+    @classmethod
+    def particle_panel_poll(cls, context):
+        psys = context.particle_system
+        engine = context.scene.render.engine
+        settings = 0
+
+        if psys:
+            settings = psys.settings
+        elif isinstance(context.space_data.pin_id, bpy.types.ParticleSettings):
+            settings = context.space_data.pin_id
+
+        if not settings:
+            return False
+        return settings.is_fluid is False and (engine in cls.COMPAT_ENGINES)
+
+    @classmethod
+    def particle_get_settings(cls, context):
+        if context.particle_system:
+            return context.particle_system.settings
+        elif isinstance(context.space_data.pin_id, bpy.types.ParticleSettings):
+            return context.space_data.pin_id
+        return None
+
+    @classmethod
+    def particle_panel_enabled(cls, context, psys):
+        if psys is None:
+            return True
+        phystype = psys.settings.physics_type
+        if psys.settings.type in {'EMITTER', 'REACTOR'} and \
+           phystype in {'NO', 'KEYED'}:
+            return True
+        else:
+            return (psys.point_cache.is_baked is False) and \
+                   (not psys.is_edited) and \
+                   (not context.particle_system_editable)
+
+    @classmethod
+    def poll(cls, context):
+        part = NVB_PT_emitter.particle_get_settings(context)
+        if part:
+            return not part.is_fluid
+        return False
+
+    def draw(self, context):
+        layout = self.layout
+
+        psys = context.particle_system
+        part = NVB_PT_emitter.particle_get_settings(context)
+
+        layout.enabled = \
+            NVB_PT_emitter.particle_panel_enabled(context, psys) and \
+            (psys is None or not psys.has_multiple_caches) and \
+            part.type == 'EMITTER'
+
+        row = layout.row()
+        # row.active = part.emit_from == 'VERT' or part.distribution != 'GRID'
+        # row.prop(part, "count")
+
+        if part.type != 'HAIR':
+            split = layout.split()
+
+            col = split.column(align=True)
+            col.prop(part, "frame_start")
+            col.prop(part, "frame_end")
+
+            col = split.column(align=True)
+            col.prop(part, "lifetime")
+            col.prop(part, "lifetime_random", slider=True)
+
+        layout.label(text="Emit From:")
+        layout.row().prop(part, "emit_from", expand=True)
+
+        row = layout.row()
+        if part.emit_from == 'VERT':
+            row.prop(part, "use_emit_random")
+        elif part.distribution == 'GRID':
+            row.prop(part, "invert_grid")
+            row.prop(part, "hexagonal_grid")
+        else:
+            row.prop(part, "use_emit_random")
+            row.prop(part, "use_even_distribution")
+
+        if part.emit_from == 'FACE' or part.emit_from == 'VOLUME':
+            layout.row().prop(part, "distribution", expand=True)
+
+            row = layout.row()
+            if part.distribution == 'JIT':
+                row.prop(part, "userjit", text="Particles/Face")
+                row.prop(part, "jitter_factor", text="Jittering Amount",
+                         slider=True)
+            elif part.distribution == 'GRID':
+                row.prop(part, "grid_resolution")
+                row.prop(part, "grid_random", text="Random", slider=True)
+
+        row = layout.row()
+        row.prop(part, "use_modifier_stack")

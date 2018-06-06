@@ -9,11 +9,11 @@ class NVB_PG_animevent(bpy.types.PropertyGroup):
 
     name = bpy.props.StringProperty(name='Name',
                                     description='Name for this event',
-                                    default='Unnamed')
+                                    default='Unnamed', options=set())
     frame = bpy.props.IntProperty(
         name='Frame',
         description='Frame at which the event should fire',
-        default=1)
+        default=1, options=set())
 
 
 class NVB_PG_anim(bpy.types.PropertyGroup):
@@ -37,41 +37,38 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
         default='')
     frameStart = bpy.props.IntProperty(name='Start',
                                        description='Animation Start',
-                                       default=0, min=0)
+                                       default=0, min=0, options=set())
     frameEnd = bpy.props.IntProperty(name='End',
                                      description='Animation End',
-                                     default=0, min=0)
+                                     default=0, min=0, options=set())
 
     eventList = bpy.props.CollectionProperty(type=NVB_PG_animevent)
     eventListIdx = bpy.props.IntProperty(name='Index for event List',
-                                         default=0)
+                                         default=0, options=set())
 
 
 class NVB_PG_mtrparameter(bpy.types.PropertyGroup):
     """Properties for a single parameter in the flare list."""
-    ptype = bpy.props.EnumProperty(name='Type',
-                                   description='Parameter type',
+    ptype = bpy.props.EnumProperty(name='Type', description='Parameter type',
                                    items=[('float', 'float', 'float', 0),
                                           ('int', 'int', 'int', 1)],
-                                   default='int')
+                                   default='int', options=set())
     pname = bpy.props.StringProperty(name='Name',
                                      description='Parameter name',
-                                     default='name')
+                                     default='name', options=set())
     pvalue = bpy.props.StringProperty(name='Value',
                                       description='Parameter value',
-                                      default='')
+                                      default='', options=set())
 
 
 class NVB_PG_set_element(bpy.types.PropertyGroup):
     """Properties for a single flare in the flare list."""
     el_name = bpy.props.StringProperty(
-        name='Supermodel',
-        description='Name of the MDL for this tile',
-        default='')
+        name='Supermodel', description='Name of the MDL for this tile',
+        default='', options=set())
     el_size = bpy.props.StringProperty(
-        name='Size',
-        description='Size of this element (only for diplay)',
-        default='')
+        name='Size', description='Size of this element (only for diplay)',
+        default='', options=set())
 
 
 class NVB_PG_scene(bpy.types.PropertyGroup):
@@ -83,22 +80,22 @@ class NVB_PG_scene(bpy.types.PropertyGroup):
     # Set loading (mass tile loading)
     set_filepath = bpy.props.StringProperty(name='Filepath',
                                             description='Path to SET file',
-                                            default='')
+                                            default='', options=set())
     set_mode = bpy.props.EnumProperty(
         name='Set View Mode',
         items=[('GP', 'Groups', 'Display Groups.', 0),
                ('TR', 'Terrains', 'Display terrain types.', 1),
                ('CR', 'Crossers', 'Display crosser types.', 2)],
-        default='GP')
+        default='GP', options=set())
     set_group_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
     set_group_list_idx = bpy.props.IntProperty(name='SET Group list index',
-                                               default=0)
+                                               default=0, options=set())
     set_crosser_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
     set_crosser_list_idx = bpy.props.IntProperty(name='SET Crosser list index',
-                                                 default=0)
+                                                 default=0, options=set())
     set_terrain_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
     set_terrain_list_idx = bpy.props.IntProperty(name='SET Terrain list index',
-                                                 default=0)
+                                                 default=0, options=set())
 
 
 class NVB_PG_material(bpy.types.PropertyGroup):
@@ -108,69 +105,59 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     format. It hold the properties for meshes, lamps and empties.
     """
     ambient_color = bpy.props.FloatVectorProperty(
-        name='Ambient',
-        description='Ambient color of the material',
         subtype='COLOR_GAMMA',
-        default=(1.0, 1.0, 1.0),
-        min=0.0, max=1.0,
-        soft_min=0.0, soft_max=1.0)
+        name='Ambient', description='Ambient color of the material',
+        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
     ambient_intensity = bpy.props.FloatProperty(
-        subtype='FACTOR',
-        name='Intensity',
-        description='Amount of ambient color',
-        precision=3,
-        default=1.0,
-        min=0.0, max=1.0,
-        soft_min=0.0, soft_max=1.0)
+        subtype='FACTOR', precision=3,
+        name='Intensity', description='Amount of ambient color',
+        default=1.0, min=0.0, max=1.0)
     renderhint = bpy.props.EnumProperty(
         name='Renderhint',
         items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
                ('NONE', 'None', 'No renderhint', 1),
                ('NASM', 'NormalAndSpecMapped', 'Normal & Specular Mapped', 2)],
-        default='AUTO')
+        default='AUTO', options=set())
     # MTR Panel
     usemtr = bpy.props.BoolProperty(name='Use MTR',
                                     description='Use external MTR file',
-                                    default=False)
+                                    default=False, options=set())
     mtrname = bpy.props.StringProperty(name='Name',
                                        description='Data name',
-                                       default='')
+                                       default='', options=set())
     mtrsrc = bpy.props.EnumProperty(
         name='Source',
         items=[('TEXT', 'Text', 'From text block', 0),
                ('FILE', 'File', 'From file', 1)],
-        default='FILE')
+        default='FILE', options=set())
     mtrtext = bpy.props.StringProperty(name='Text Block',
                                        description='Blender Text Block',
-                                       default='')
+                                       default='', options=set())
     mtrpath = bpy.props.StringProperty(name='Filepath',
                                        description='Path to MTR file',
-                                       default='')
+                                       default='', options=set())
     # For gui editing
     shadervs = bpy.props.StringProperty(name='Vertex Shader',
                                         description='Specify Vertex shader',
-                                        default='')
+                                        default='', options=set())
     shaderfs = bpy.props.StringProperty(name='Fragment Shader',
                                         description='Specify Fragment shader',
-                                        default='')
+                                        default='', options=set())
     mtrparam_list = bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
     mtrparam_list_idx = bpy.props.IntProperty(name='MTR parameter list index',
-                                              default=0)
+                                              default=0, options=set())
 
 
 class NVB_PG_flare(bpy.types.PropertyGroup):
     """Properties for a single flare in the flare list."""
     texture = bpy.props.StringProperty(name='Texture',
                                        description='Texture name',
-                                       default=nvb_def.null)
-    size = bpy.props.FloatProperty(name='Size',
-                                   description='Flare size',
-                                   default=1,
-                                   min=0)
+                                       default=nvb_def.null, options=set())
+    size = bpy.props.FloatProperty(name='Size', description='Flare size',
+                                   default=1, min=0)
     position = bpy.props.FloatProperty(name='Position',
                                        description='Flare position',
-                                       default=1,
-                                       min=-1.0, max=1.0)
+                                       default=1, min=-1.0, max=1.0)
     colorshift = bpy.props.FloatVectorProperty(name='Colorshift',
                                                description='Colorshift',
                                                subtype='COLOR_GAMMA',
@@ -191,7 +178,41 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
         items=[('EMT', 'Empty', 'Bone will be converted to an empty.', 0),
                ('ME1', 'Mesh', 'Bone will be converted to a mesh.', 1)
                ],
-        default='ME1')
+        default='ME1', options=set())
+
+
+class NVB_PG_emitter(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    This class defines all additional properties needed by the mdl file
+    format for emitters.
+    """
+    birthrate = bpy.props.IntProperty(name='birthrate',
+                                      default=1)
+    texture = bpy.props.StringProperty(name='Texture',
+                                       description='Texture name',
+                                       default=nvb_def.null, options=set())
+    grid = bpy.props.IntVectorProperty(name='grid', description='Texture grid',
+                                       subtype='XYZ', size=2,
+                                       default=(0, 0), options=set())
+    twosidedtex = bpy.props.BoolProperty(
+        name='Two Sided Texture',
+        description='Use external MTR file',
+        default=False, options=set())
+    colorstart = bpy.props.FloatVectorProperty(
+        name='Color Start', description='Particle color at birth',
+        subtype='COLOR_GAMMA',
+        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
+    colorend = bpy.props.FloatVectorProperty(
+        name='Color Start', description='Particle color at death',
+        subtype='COLOR_GAMMA',
+        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
+    alphastart = bpy.props.FloatProperty(
+        name='Alpha Start', description='Particle color at birth',
+        default=1, min=0.0, max=1.0)
+    alphaend = bpy.props.FloatProperty(
+        name='Alpha Start', description='Particle color at birth',
+        default=1, min=0.0, max=1.0)
 
 
 class NVB_PG_lamp(bpy.types.PropertyGroup):
@@ -200,40 +221,34 @@ class NVB_PG_lamp(bpy.types.PropertyGroup):
     This class defines all additional properties needed by the mdl file
     format. It hold the properties for lamps.
     """
-    shadow = bpy.props.BoolProperty(
-                name='Shadow',
-                description='Whether to cast shadows',
-                default=True)
+    shadow = bpy.props.BoolProperty(name='Shadow',
+                                    description='Whether to cast shadows',
+                                    default=True, options=set())
     ambientonly = bpy.props.BoolProperty(
                 name='Ambient Only',
                 description='Light will be ignored for shadow casting',
-                default=False)
-    lightpriority = bpy.props.IntProperty(
-                name='Lightpriority',
-                default=3, min=1, max=5)
-    fadinglight = bpy.props.BoolProperty(
-                name='Fading light',
-                default=False)
-    isdynamic = bpy.props.BoolProperty(
-                name='Is Dynamic',
-                default=False)
+                default=False, options=set())
+    lightpriority = bpy.props.IntProperty(name='Lightpriority',
+                                          default=3, min=1, max=5,
+                                          options=set())
+    fadinglight = bpy.props.BoolProperty(name='Fading light',
+                                         default=False, options=set())
+    isdynamic = bpy.props.BoolProperty(name='Is Dynamic',
+                                       default=False, options=set())
     affectdynamic = bpy.props.BoolProperty(
                 name='Affect Dynamic',
                 description='Affect dynamic objects',
-                default=False)
-    negativelight = bpy.props.BoolProperty(
-                name='Negative Light',
-                default=False)
-    uselensflares = bpy.props.BoolProperty(
-                name='Lensflares',
-                default=False)
+                default=False, options=set())
+    negativelight = bpy.props.BoolProperty(name='Negative Light',
+                                           default=False, options=set())
+    uselensflares = bpy.props.BoolProperty(name='Lensflares',
+                                           default=False, options=set())
     flareradius = bpy.props.FloatProperty(
                 name='Flare Radius',
-                default=0.0, min=0.0, max=100.0)
+                default=0.0, min=0.0, max=100.0, options=set())
     flareList = bpy.props.CollectionProperty(type=NVB_PG_flare)
-    flareListIdx = bpy.props.IntProperty(
-                name='Index for flare list',
-                default=0)
+    flareListIdx = bpy.props.IntProperty(name='Index for flare list',
+                                         default=0, options=set())
 
 
 class NVB_PG_object(bpy.types.PropertyGroup):
@@ -246,14 +261,16 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     # Helper properties to store additional values. Cannot be edited.
     restrot = bpy.props.FloatVectorProperty(name='Rest Pose Rotation',
                                             size=4,
-                                            default=(0.0, 0.0, 0.0, 0.0))
+                                            default=(0.0, 0.0, 0.0, 0.0),
+                                            options=set())
     restloc = bpy.props.FloatVectorProperty(name='Rest Pose Location',
                                             size=3,
-                                            default=(0.0, 0.0, 0.0))
+                                            default=(0.0, 0.0, 0.0),
+                                            options=set())
     imporder = bpy.props.IntProperty(
         name='Position in MDL',
         description='Position of this object in the MDL file',
-        default=1000)
+        default=1000, options={'SKIP_SAVE'})
     # For all emptys
     emptytype = bpy.props.EnumProperty(
                 name='Type',
@@ -272,12 +289,12 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        (nvb_def.Emptytype.PWK,
                         'PWK Root (Placeable Walkmesh)',
                         'All children are part of the walkmesh', 4)],
-                default=nvb_def.Emptytype.DUMMY)
+                default=nvb_def.Emptytype.DUMMY, options=set())
     # For Aurora Root
     supermodel = bpy.props.StringProperty(
         name='Supermodel',
         description='Name of the model to inherit animations from',
-        default=nvb_def.null)
+        default=nvb_def.null, options=set())
     classification = bpy.props.EnumProperty(
                 name='Classification',
                 items=[(nvb_def.Classification.UNKNOWN,
@@ -295,22 +312,22 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        (nvb_def.Classification.ITEM,
                         'Item', 'Items or placeables', 6)
                        ],
-                default=nvb_def.Classification.UNKNOWN)
+                default=nvb_def.Classification.UNKNOWN, options=set())
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
                 description='Animation scale for all animations',
-                default=1.00, min=0.0)
+                default=1.00, min=0.0, options=set())
     # Animation Data (for being able to seperate them)
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
-                                        default=0)
+                                        default=0, options=set())
 
     # For reference emptys
     refmodel = bpy.props.StringProperty(name='Reference Model',
                                         description='Name of MDL file',
-                                        default='fx_ref')
+                                        default='fx_ref', options=set())
     reattachable = bpy.props.BoolProperty(name='Reattachable',
-                                          default=False)
+                                          default=False, options=set())
     # Object & Dummy Helper
     helper_node_mdltype = bpy.props.EnumProperty(
         name='Type',
@@ -321,22 +338,22 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                # (nvb_def.Walkmeshtype.TILE,
                # 'Tile', 'Setup objects for tiles', 2),
                ],
-        default=nvb_def.Walkmeshtype.PWK)
+        default=nvb_def.Walkmeshtype.PWK, options={'SKIP_SAVE'})
     # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',
         items=[('ALL', 'All', 'All objects in the mdl.', 0),
                ('ACT', 'Active', 'Active object and its children.', 1),
                ],
-        default='ALL')
+        default='ALL', options={'SKIP_SAVE'})
     helper_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect',
         description='Automatically connect bones when possible',
-        default=True)
+        default=True, options={'SKIP_SAVE'})
     helper_amt_copyani = bpy.props.BoolProperty(
         name='Copy Animations',
         description='Copy animations to the created armature',
-        default=True)
+        default=True, options={'SKIP_SAVE'})
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(
@@ -353,7 +370,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        'desc', 4),
                        (nvb_def.Meshtype.ANIMMESH, 'Animesh',
                        'Mesh with animatable uv coordinates or vertices', 5)],
-                default=nvb_def.Meshtype.TRIMESH)
+                default=nvb_def.Meshtype.TRIMESH, options=set())
     smoothgroup = bpy.props.EnumProperty(
                 name='Smoothgroup',
                 items=[('SEPR',
@@ -363,15 +380,13 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        ('AUTO',
                         'Auto', 'Generate groups from sharp edges', 2)
                        ],
-                default='AUTO')
-    shadow = bpy.props.BoolProperty(
-                name='Shadow',
-                description='Whether to cast shadows',
-                default=True)
-    render = bpy.props.BoolProperty(
-                name='Render',
-                description='Whether to render this object in the scene',
-                default=True)
+                default='AUTO', options=set())
+    shadow = bpy.props.BoolProperty(name='Shadow',
+                                    description='Whether to cast shadows',
+                                    default=True, options=set())
+    render = bpy.props.BoolProperty(name='Render',
+                                    description='Render object',
+                                    default=True, options=set())
     tilefade = bpy.props.EnumProperty(
                 name='Tilefade',
                 items=[(nvb_def.Tilefade.NONE,
@@ -383,39 +398,35 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        (nvb_def.Tilefade.NEIGHBOUR,
                         'Neighbour', 'Tilefade if Neighbouring Tile fades', 3)
                        ],
-                default=nvb_def.Tilefade.NONE)
-    beaming = bpy.props.BoolProperty(
-                name='beaming',
-                description='Object casts beams (?)',
-                default=False)
-    inheritcolor = bpy.props.BoolProperty(
-                name='Inheritcolor',
-                description='Unused (?)',
-                default=False)
+                default=nvb_def.Tilefade.NONE, options=set())
+    beaming = bpy.props.BoolProperty(name='beaming',
+                                     description='Object casts beams',
+                                     default=False, options=set())
+    inheritcolor = bpy.props.BoolProperty(name='Inheritcolor',
+                                          description='Unused',
+                                          default=False, options=set())
     rotatetexture = bpy.props.BoolProperty(
                 name='Rotatetexture',
                 description='Automatically rotates texture to prevent seams',
-                default=False)
+                default=False, options=set())
     transparencyhint = bpy.props.IntProperty(
                 name='Transparency Hint',
                 description='Order of transparency evaluation',
-                default=0,
-                min=0, max=32)
+                default=0, min=0, max=32, options=set())
     selfillumcolor = bpy.props.FloatVectorProperty(
                 name='Selfilluminationcolor',
                 description='Makes the object glow but does not emit light',
                 subtype='COLOR_GAMMA',
-                default=(0.0, 0.0, 0.0),
-                min=0.0, max=1.0,
-                soft_min=0.0, soft_max=1.0)
+                default=(0.0, 0.0, 0.0), options={'ANIMATABLE'},
+                min=0.0, max=1.0, soft_min=0.0, soft_max=1.0)
     shininess = bpy.props.IntProperty(name='Shininess',
                                       description='Used with txi file',
-                                      default=1, min=0, max=32)
+                                      default=1, min=0, max=32, options=set())
     # For Animeshes
     aurorashapekey = bpy.props.StringProperty(
         name='Shapekey',
         description='Shape key to use for animated vertices',
-        default='')
+        default='', options=set())
     # For danglymeshes
     period = bpy.props.FloatProperty(name='Period',
                                      default=1.0, min=0.0, max=32.0)
@@ -426,12 +437,12 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     constraints = bpy.props.StringProperty(
                 name='Danglegroup',
                 description='Name of the vertex group to use for the weights',
-                default='')
+                default='', options=set())
     # For skingroups
     skingroup_obj = bpy.props.StringProperty(
                 name='Bone',
                 description='Name of the bone to create the skingroup for',
-                default='')
+                default='', options=set())
     # For lamps
     lighttype = bpy.props.EnumProperty(
                 name='Type',
@@ -441,9 +452,9 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                         'Mainlight 1', 'For tiles (Editable in toolset)', 1),
                        (nvb_def.Lighttype.MAIN2,
                         'Mainlight 2', 'For tiles (Editable in toolset)', 2)],
-                default=nvb_def.Lighttype.DEFAULT)
+                default=nvb_def.Lighttype.DEFAULT, options=set())
     # For emitters
     rawascii = bpy.props.StringProperty(
         name='Text node',
         description='Name of the raw text node',
-        default='')
+        default='', options=set())
