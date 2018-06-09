@@ -83,9 +83,9 @@ class NVB_PG_scene(bpy.types.PropertyGroup):
                                             default='', options=set())
     set_mode = bpy.props.EnumProperty(
         name='Set View Mode',
-        items=[('GP', 'Groups', 'Display Groups.', 0),
-               ('TR', 'Terrains', 'Display terrain types.', 1),
-               ('CR', 'Crossers', 'Display crosser types.', 2)],
+        items=[('GP', 'Groups', 'Display Groups', 0),
+               ('TR', 'Terrains', 'Display terrain types', 1),
+               ('CR', 'Crossers', 'Display crosser types', 2)],
         default='GP', options=set())
     set_group_list = bpy.props.CollectionProperty(type=NVB_PG_set_element)
     set_group_list_idx = bpy.props.IntProperty(name='SET Group list index',
@@ -175,8 +175,8 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
     # Armature Helper
     helper_amt_ctype = bpy.props.EnumProperty(
         name='Source',
-        items=[('EMT', 'Empty', 'Bone will be converted to an empty.', 0),
-               ('ME1', 'Mesh', 'Bone will be converted to a mesh.', 1)
+        items=[('EMT', 'Empty', 'Bone will be converted to an empty', 0),
+               ('ME1', 'Mesh', 'Bone will be converted to a mesh', 1)
                ],
         default='ME1', options=set())
 
@@ -342,18 +342,27 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',
-        items=[('ALL', 'All', 'All objects in the mdl.', 0),
-               ('ACT', 'Active', 'Active object and its children.', 1),
+        description='Source to take objects from',
+        items=[('ALL', 'All', 'All objects in the mdl', 0),
+               ('ACT', 'Active', 'Active object and its children', 1),
                ],
         default='ALL', options={'SKIP_SAVE'})
     helper_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect',
-        description='Automatically connect bones when possible',
+        description='Connect bones when possible',
         default=True, options={'SKIP_SAVE'})
-    helper_amt_copyani = bpy.props.BoolProperty(
+    helper_amt_animcopy = bpy.props.BoolProperty(
         name='Copy Animations',
-        description='Copy animations to the created armature',
+        description='Copy animations to newly created meshes',
         default=True, options={'SKIP_SAVE'})
+    helper_amt_animode = bpy.props.EnumProperty(
+        name='Animations',
+        description='Transfer animations to newly created armature',
+        items=[('OFF', 'None', 'No animations transfer', 0),
+               ('KFP', 'Keyframes', 'Copy keyframes', 1),
+               ('CON', 'Constraints', 'Create constraints', 2),
+               ],
+        default='KFP', options={'SKIP_SAVE'})
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

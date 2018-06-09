@@ -214,7 +214,7 @@ class NVB_PT_armature(bpy.types.Panel):
         # Armature Helper
         box = layout.box()
         box.label(text='Pseudo Bone Helper')
-        box.prop(obj.nvb, 'helper_amt_copyani', text='Copy Animations')
+        box.prop(obj.nvb, 'helper_amt_animcopy')
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
@@ -520,7 +520,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         box = layout.box()
         box.prop(obj.nvb, 'meshtype', text='Type')
         box.row().prop(obj, 'color', text='Wirecolor')
-        box.prop(obj.nvb, 'imporder', text='Order')
+        # box.prop(obj.nvb, 'imporder', text='Order')
         # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             layout.separator()
@@ -747,8 +747,8 @@ class NVB_PT_utils(bpy.types.Panel):
             row = box.row()
             row.label(text='Source: ')
             row.prop(mdl_root.nvb, 'helper_amt_source', expand=True)
+            box.prop(mdl_root.nvb, 'helper_amt_animode')
             box.prop(mdl_root.nvb, 'helper_amt_connect')
-            box.prop(mdl_root.nvb, 'helper_amt_copyani')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
@@ -841,6 +841,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        return False
         part = NVB_PT_emitter.particle_get_settings(context)
         if part:
             return not part.is_fluid
