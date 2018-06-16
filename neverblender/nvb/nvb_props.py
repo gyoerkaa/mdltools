@@ -363,6 +363,10 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                ('CON', 'Constraints', 'Create constraints', 2),
                ],
         default='KFP', options={'SKIP_SAVE'})
+    helper_amt_animtarget = bpy.props.StringProperty(
+        name='Target',
+        description='Specify target to copy animations to',
+        default='', options=set())
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

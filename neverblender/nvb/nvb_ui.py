@@ -89,14 +89,14 @@ class NVB_UL_set_element(bpy.types.UIList):
             layout.label('', icon=custom_icon)
 
 
-class NVB_PT_rootdummy(bpy.types.Panel):
+class NVB_PT_aurorabase(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
     This is only available for EMPTY objects without a parent.
     It is located under the object panel in the properties window,
     """
 
-    bl_label = 'Aurora Root Properties'
+    bl_label = 'Aurora Base Properties'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'object'
@@ -213,20 +213,21 @@ class NVB_PT_armature(bpy.types.Panel):
 
         # Armature Helper
         box = layout.box()
-        box.label(text='Pseudo Bone Helper')
+        box.label(text='Generate Pseudo Bones')
         box.prop(obj.nvb, 'helper_amt_animcopy')
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
         box = layout.box()
-        box.label(text='Restpose Helper')
+        box.label(text='Apply Restpose')
         box.operator('nvb.amt_apply_pose', icon='POSE_DATA')
         layout.separator()
 
-        # box = layout.box()
-        # box.label(text='Animation Transfer')
-        # box.operator('nvb.amt_anims2psb', icon='NODETREE')
-        # layout.separator()
+        box = layout.box()
+        box.label(text='Animation Transfer')
+        box.prop(obj.nvb, 'helper_amt_animtarget')
+        box.operator('nvb.amt_anims2psb', icon='NODETREE')
+        layout.separator()
 
 
 class NVB_PT_material(bpy.types.Panel):

@@ -838,11 +838,16 @@ class Trimesh(Node):
                     me.edges[edgeIdx].use_edge_sharp = True
             bm.free()
             del bm
+            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
+            me.use_auto_smooth = True
+            me.auto_smooth_angle = 1.570796
         # Create Vertex colors
         Trimesh.createVColors(me, self.colors, 'colors')
         # Import custom normals
         me.update()
         if self.normals and me.loops and options.importNormals:
+            # TODO: Test this... faster?
+            # me.normals_split_custom_set_from_vertices(self.normals)
             for l in me.loops:
                 l.normal[:] = self.normals[l.vertex_index]
             me.validate(clean_customdata=False)
@@ -854,6 +859,7 @@ class Trimesh(Node):
             me.use_auto_smooth = True
             me.show_edge_sharp = True
         else:
+
             me.validate()
         # me.update()
         return me

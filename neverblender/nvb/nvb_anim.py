@@ -98,27 +98,34 @@ class Animation():
             Animation.generateAsciiNodes(c, anim, asciiLines, options)
 
     @staticmethod
-    def generateAscii(rootDummy, anim, asciiLines, options):
+    def generateAscii(aurora_base, anim, ascii_lines, options):
         """TODO: Doc."""
         if anim.mute:
             # Don't export mute animations
             return
         fps = options.scene.render.fps
         anim_length = (anim.frameEnd - anim.frameStart) / fps
-        asciiLines.append('newanim ' + anim.name + ' ' + rootDummy.name)
-        asciiLines.append('  length ' + str(round(anim_length, 3)))
-        asciiLines.append('  transtime ' + str(round(anim.ttime, 3)))
+        ascii_lines.append('newanim ' + anim.name + ' ' + aurora_base.name)
+        ascii_lines.append('  length ' + str(round(anim_length, 3)))
+        ascii_lines.append('  transtime ' + str(round(anim.ttime, 3)))
         if anim.root:
-            asciiLines.append('  animroot ' + anim.root)
+            ab_children = []
+            nvb_utils.get_children_recursive(aurora_base, ab_children)
+            if anim.root in ab_children:
+                ascii_lines.append('  animroot ' + anim.root)
+            else:
+                print('Neverblender - WARNING: Invalid Animation Root. (' +
+                      + anim.name + ')')
+                ascii_lines.append('  animroot ' + aurora_base.name)
         else:
-            asciiLines.append('  animroot ' + rootDummy.name)
+            ascii_lines.append('  animroot ' + aurora_base.name)
 
         for event in anim.eventList:
             eventTime = (event.frame - anim.frameStart) / fps
-            asciiLines.append('  event ' + str(round(eventTime, 3)) + ' ' +
-                              event.name)
+            ascii_lines.append('  event ' + str(round(eventTime, 3)) + ' ' +
+                               event.name)
 
-        Animation.generateAsciiNodes(rootDummy, anim, asciiLines, options)
+        Animation.generateAsciiNodes(aurora_base, anim, ascii_lines, options)
 
-        asciiLines.append('doneanim ' + anim.name + ' ' + rootDummy.name)
-        asciiLines.append('')
+        ascii_lines.append('doneanim ' + anim.name + ' ' + aurora_base.name)
+        ascii_lines.append('')

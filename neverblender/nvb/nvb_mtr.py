@@ -136,6 +136,7 @@ class Mtr(object):
                 if pa.pname.lower() not in existing_params:  # Keep unique
                     existing_params.append(pa.pname.lower())
                     vals = Mtr.readParamValues(pa.pvalue.strip().split())
+                    line = ''
                     if len(vals) > 0:
                         if pa.ptype == 'int':  # a single int
                             sv = str(int(vals[0]))
