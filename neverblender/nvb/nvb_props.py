@@ -268,8 +268,8 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                                             default=(0.0, 0.0, 0.0),
                                             options=set())
     imporder = bpy.props.IntProperty(
-        name='Position in MDL',
-        description='Position of this object in the MDL file',
+        name='Export Order',
+        description='Custom Position of this object within the MDL file',
         default=1000, options={'SKIP_SAVE'})
     # For all emptys
     emptytype = bpy.props.EnumProperty(

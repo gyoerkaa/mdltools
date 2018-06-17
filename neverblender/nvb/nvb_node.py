@@ -838,14 +838,10 @@ class Trimesh(Node):
                     me.edges[edgeIdx].use_edge_sharp = True
             bm.free()
             del bm
-            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
-            me.use_auto_smooth = True
-            me.auto_smooth_angle = 1.570796
-        # Create Vertex colors
-        Trimesh.createVColors(me, self.colors, 'colors')
         # Import custom normals
         me.update()
         if self.normals and me.loops and options.importNormals:
+            # Use normals for shading
             # TODO: Test this... faster?
             # me.normals_split_custom_set_from_vertices(self.normals)
             for l in me.loops:
@@ -858,9 +854,23 @@ class Trimesh(Node):
             me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
             me.use_auto_smooth = True
             me.show_edge_sharp = True
-        else:
-
-            me.validate()
+        elif options.importSmoothGroups:
+            # Use shading groups for shading
+            sgr_list = set([fd[3] for fd in self.facedef])
+            if len(sgr_list) == 1 and sgr_list.pop() == 0:
+                # single smoothgroup 0 means non-smooth
+                me.polygons.foreach_set('use_smooth',
+                                        [False] * len(me.polygons))
+                me.use_auto_smooth = False
+                me.auto_smooth_angle = 0.523599
+            else:
+                me.polygons.foreach_set('use_smooth',
+                                        [True] * len(me.polygons))
+                me.use_auto_smooth = True
+                me.auto_smooth_angle = 1.570796
+        # Create Vertex colors
+        Trimesh.createVColors(me, self.colors, 'colors')
+        me.validate()
         # me.update()
         return me
 

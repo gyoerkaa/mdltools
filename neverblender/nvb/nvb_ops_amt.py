@@ -10,7 +10,7 @@ from . import nvb_utils
 
 
 class NVB_OT_amt_anims2psb(bpy.types.Operator):
-    """Copy animations to pseudobones."""
+    """Copy animations to pseudobones"""
 
     bl_idname = 'nvb.amt_anims2psb'
     bl_label = 'Copy Animations'
@@ -19,19 +19,16 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
     mats_edit_bone = dict()  # armature bone name => edit_bone.matrix
     amb_psb_pairs = []  # (armature bone name, pseudo bone name) tuples
 
-    def get_psb_name(self, amb_name, psb_root):
-        """Return the name of the matching pseudobone."""
-        return 'abc'
-
-    def get_psb_list(self, amb, psb_parent=None):
+    def get_psb_list(self, amb, psb_root):
         """Creates a list of pseudobones for this armature."""
-        # Create object holding the mesh
-        psb = self.get_psb_name(amb.name, psb_parent)
-        # Create matrix for animation conversion
-        self.amb_psb_pairs.append([amb.name, psb.name])
-        self.mats_edit_bone[amb.name] = amb.matrix_local.copy()
+        psb_list = [psb_root]
+        nvb_utils.get_children_recursive(psb_root, psb_list)
+        if amb.name in [n.name for n in psb_list]:
+            # Create matrix for animation conversion
+            self.amb_psb_pairs.append([amb.name, amb.name])
+            self.mats_edit_bone[amb.name] = amb.matrix_local.copy()
         for c in amb.children:
-            self.get_psb_list(c, psb_parent)
+            self.get_psb_list(c, psb_root)
 
     def transfer_animations(self, amt, amb_name, psb_name):
         """TODO: DOC."""
@@ -92,9 +89,9 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
         # Get posebone and pseudobone
         amt_posebone = amt.pose.bones[amb_name]
         psb = bpy.data.objects[psb_name]
-        # Get animation data, create if needed.
-        if not psb.animation_data:
-            psb.animation_data_create()
+        # Clear animation data and create new one
+        psb.animation_data_clear()
+        psb.animation_data_create()
         # Get action, create if needed.
         psb_action = psb.animation_data.action
         if not psb_action:
@@ -140,24 +137,25 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
 
     def execute(self, context):
         """Create pseudo bones"""
-        armature = context.object
+        amt = context.object
         self.scene = context.scene
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
-        psb_root = armature.nvb.helper_amt_animtarget
+        psb_root = None
+        if amt.nvb.helper_amt_animtarget in bpy.data.objects:
+            psb_root = nvb_utils.get_obj_aurora_root(
+                bpy.data.objects[amt.nvb.helper_amt_animtarget])
         # Get Pseudo bones
         bpy.ops.object.mode_set(mode='EDIT')
-        for amb in armature.data.bones:
+        for amb in amt.data.bones:
             if not amb.parent:
                 self.get_psb_list(amb, psb_root)
         bpy.ops.object.mode_set(mode='OBJECT')
-        context.scene.update()
         # Transfer animations
-        if armature.nvb.helper_amt_animcopy:
-            if armature.animation_data and armature.animation_data.action:
-                for amb_name, psb_name in self.amb_psb_pairs:
-                    self.transfer_animations(armature, amb_name, psb_name)
-                context.scene.update()
+        if amt.animation_data and amt.animation_data.action:
+            for amb_name, psb_name in self.amb_psb_pairs:
+                self.transfer_animations(amt, amb_name, psb_name)
+            context.scene.update()
         return {'FINISHED'}
 
 

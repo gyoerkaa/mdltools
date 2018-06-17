@@ -108,16 +108,14 @@ class Animation():
         ascii_lines.append('newanim ' + anim.name + ' ' + aurora_base.name)
         ascii_lines.append('  length ' + str(round(anim_length, 3)))
         ascii_lines.append('  transtime ' + str(round(anim.ttime, 3)))
-        if anim.root:
-            ab_children = []
-            nvb_utils.get_children_recursive(aurora_base, ab_children)
-            if anim.root in ab_children:
-                ascii_lines.append('  animroot ' + anim.root)
-            else:
-                print('Neverblender - WARNING: Invalid Animation Root. (' +
-                      + anim.name + ')')
-                ascii_lines.append('  animroot ' + aurora_base.name)
+        # Check anim root
+        node_list = [aurora_base]
+        nvb_utils.get_children_recursive(aurora_base, node_list)
+        if anim.root and anim.root in [n.name for n in node_list]:
+            ascii_lines.append('  animroot ' + anim.root)
         else:
+            print('Neverblender - WARNING: Invalid Animation Root for ' +
+                  anim.name)
             ascii_lines.append('  animroot ' + aurora_base.name)
 
         for event in anim.eventList:

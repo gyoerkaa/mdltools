@@ -225,7 +225,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
-        box.prop(obj.nvb, 'helper_amt_animtarget')
+        box.prop_search(obj.nvb, 'helper_amt_animtarget', bpy.data, 'objects')
         box.operator('nvb.amt_anims2psb', icon='NODETREE')
         layout.separator()
 
@@ -517,11 +517,17 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         """TODO: DOC."""
         obj = context.object
         layout = self.layout
-        # Properties for all types of meshes
+        # Common properties for all types of meshes
         box = layout.box()
-        box.prop(obj.nvb, 'meshtype', text='Type')
-        box.row().prop(obj, 'color', text='Wirecolor')
-        # box.prop(obj.nvb, 'imporder', text='Order')
+        split = box.split(percentage=0.33)
+        col = split.column()
+        col.label(text='Type:')
+        col.label(text='Wirecolor:')
+        col = split.column()
+        col.prop(obj.nvb, 'meshtype', text='')
+        col.prop(obj, 'color', text='')
+        box.row().prop(obj.nvb, 'imporder')
+
         # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             layout.separator()
@@ -575,16 +581,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 
             # Additional props for skins
             elif (obj.nvb.meshtype == nvb_def.Meshtype.SKIN):
-                layout.separator()
-                box = layout.box()
-                box.label(text='Skinmesh Properties')
-
-                row = box.row()
-                row.label(text='Create vertex group: ')
-                row = box.row(align=True)
-                row.prop_search(obj.nvb, 'skingroup_obj',
-                                context.scene, 'objects')
-                row.operator('nvb.skingroup_add', text='', icon='ZOOMIN')
+                pass
 
             # Additional props for Animmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
