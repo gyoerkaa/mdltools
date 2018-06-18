@@ -595,7 +595,7 @@ class Trimesh(Node):
             if not self.colors:
                 nvals = int(aline[1])
                 tmp = [next(itlines) for _ in range(nvals)]
-                self.colors = [tuple(map(float, v + [0])) for v in tmp]
+                self.colors = [tuple(map(float, v)) for v in tmp]
         elif (label.startswith('tverts')):
             tvid = 0
             if label[6:]:  # might be '', which we interpret as 0
@@ -681,9 +681,18 @@ class Trimesh(Node):
                 else:
                     vert_loop_map[l.vertex_index] = [l.index]
             # Set color for each vertex (in every loop)
-            for vidx in vert_loop_map:
-                for lidx in vert_loop_map[vidx]:
-                    cmap.data[lidx].color = vcolors[vidx]
+            # BUGFIX: colors have dim 4 on some systems
+            #         (should be 3 as per documentation)
+            color_dim = len(cmap.data[0].color)
+            if color_dim > 3:
+                for vidx in vert_loop_map:
+                    for lidx in vert_loop_map[vidx]:
+                        cmap.data[lidx].color = \
+                            (*vcolors[vidx], *[0]*(color_dim-3))
+            else:  # Keep the right way separate for speed
+                for vidx in vert_loop_map:
+                    for lidx in vert_loop_map[vidx]:
+                        cmap.data[lidx].color = vcolors[vidx]
         return cmap
 
     def createMesh2(self, name, options):
@@ -986,7 +995,7 @@ class Trimesh(Node):
                 # Get color for each vertex (in every loop)
                 for vidx in vert_loop_map:
                     for lidx in vert_loop_map[vidx]:
-                        vcolors[vidx] = cmap.data[lidx].color
+                        vcolors[vidx] = cmap.data[lidx].color[:3]
                 asciiLines.append('  colors ' + str(len(mesh.vertices)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
                 asciiLines.extend([fstr.format(*vc) for vc in vcolors])
