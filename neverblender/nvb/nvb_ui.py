@@ -104,16 +104,13 @@ class NVB_PT_aurorabase(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        obj = context.object
-        if not obj:
-            return False
-        rd = nvb_utils.get_obj_aurora_root(obj)
-        return rd is not None
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
+        return aurora_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        obj = nvb_utils.get_obj_aurora_root(context.object)
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
 
         row = layout.row()
         split = row.split(percentage=0.33)
@@ -122,9 +119,9 @@ class NVB_PT_aurorabase(bpy.types.Panel):
         col.label(text='Supermodel:')
         col.label(text='Animation Scale:')
         col = split.column()
-        col.prop(obj.nvb, 'classification', text='')
-        col.prop(obj.nvb, 'supermodel', text='')
-        col.prop(obj.nvb, 'animscale', text='')
+        col.prop(aurora_base.nvb, 'classification', text='')
+        col.prop(aurora_base.nvb, 'supermodel', text='')
+        col.prop(aurora_base.nvb, 'animscale', text='')
 
 
 class NVB_PT_dummy(bpy.types.Panel):
@@ -214,7 +211,9 @@ class NVB_PT_armature(bpy.types.Panel):
         # Armature Helper
         box = layout.box()
         box.label(text='Generate Pseudo Bones')
-        box.prop(obj.nvb, 'helper_amt_animcopy')
+        row = box.row()
+        row.prop(obj.nvb, 'helper_psb_anicopy')
+        row.prop(obj.nvb, 'helper_psb_insertroot')
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
@@ -225,7 +224,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
-        box.prop_search(obj.nvb, 'helper_amt_animtarget', bpy.data, 'objects')
+        box.prop_search(obj.nvb, 'helper_psb_anitarget', bpy.data, 'objects')
         box.operator('nvb.amt_anims2psb', icon='NODETREE')
         layout.separator()
 
@@ -634,22 +633,19 @@ class NVB_PT_animlist(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        obj = context.object
-        if not obj:
-            return False
-        rd = nvb_utils.get_obj_aurora_root(obj)
-        return rd is not None
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
+        return aurora_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        obj = nvb_utils.get_obj_aurora_root(context.object)
-        if obj:
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
+        if aurora_base:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
             row.template_list('NVB_UL_anims', 'TheAnimList',
-                              obj.nvb, 'animList',
-                              obj.nvb, 'animListIdx',
+                              aurora_base.nvb, 'animList',
+                              aurora_base.nvb, 'animListIdx',
                               rows=7)
             col = row.column(align=True)
             col.operator('nvb.anim_new', icon='ZOOMIN', text='')
@@ -664,8 +660,10 @@ class NVB_PT_animlist(bpy.types.Panel):
                          icon='RENDER_ANIMATION', text='')
             col.menu('NVB_MT_animlist_specials',
                      icon='DOWNARROW_HLT', text="")
-            if obj.nvb.animListIdx >= 0 and len(obj.nvb.animList) > 0:
-                anim = obj.nvb.animList[obj.nvb.animListIdx]
+            anim_list = aurora_base.nvb.animList
+            anim_list_idx = aurora_base.nvb.animListIdx
+            if anim_list_idx >= 0 and len(anim_list) > 0:
+                anim = anim_list[anim_list_idx]
                 row = layout.row()
                 row.prop(anim, 'name')
                 row = layout.row()
@@ -728,25 +726,30 @@ class NVB_PT_utils(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        if not context.object:
-            return False
-        rd = nvb_utils.get_obj_aurora_root(context.object)
-        return rd is not None
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
+        return aurora_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        mdl_root = nvb_utils.get_obj_aurora_root(context.object)
+        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
         render = context.scene.render
-        if mdl_root:
+        if aurora_base:
             # Armature Helper
             box = layout.box()
             box.label(text='Armature Helper')
+
+            split = box.split(percentage=0.33)
+            col = split.column()
+            col.label(text='Source: ')
+            col.label(text='Animations: ')
+            col = split.column()
+            col.row().prop(aurora_base.nvb, 'helper_amt_source', expand=True)
+            col.prop(aurora_base.nvb, 'helper_amt_animode', text='')
+
             row = box.row()
-            row.label(text='Source: ')
-            row.prop(mdl_root.nvb, 'helper_amt_source', expand=True)
-            box.prop(mdl_root.nvb, 'helper_amt_animode')
-            box.prop(mdl_root.nvb, 'helper_amt_connect')
+            row.prop(aurora_base.nvb, 'helper_amt_connect')
+            row.prop(aurora_base.nvb, 'helper_amt_striptr')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
@@ -754,8 +757,8 @@ class NVB_PT_utils(bpy.types.Panel):
             box = layout.box()
             box.label(text='Transform Helper')
             row = box.row()
-            row.column().prop(mdl_root, 'location')
-            row.column().prop(mdl_root, 'scale')
+            row.column().prop(aurora_base, 'location')
+            row.column().prop(aurora_base, 'scale')
             box.operator('nvb.helper_transform', icon='SORTSIZE')
             layout.separator()
 
@@ -764,7 +767,7 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(mdl_root.nvb, 'helper_node_mdltype', expand=True)
+            row.prop(aurora_base.nvb, 'helper_node_mdltype', expand=True)
             box.operator('nvb.helper_node_setup', text='Generate Objects',
                          icon='OOPS')
             layout.separator()

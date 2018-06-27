@@ -1,6 +1,7 @@
 """Contains Blender Operators for MDL Import/Export."""
 
 import os
+import math
 import bpy
 import bpy_extras
 
@@ -125,7 +126,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         sub.prop(self, 'strip_trailing')
         sub.prop(self, 'batch_mode')
 
-    def save_file(self, context, options):
+    def mdl_export(self, context, options):
         """TODO: DOC."""
         def get_filepath(old_path, new_name, new_ext):
             """Creates filenames for walkmeshes and batch export."""
@@ -216,7 +217,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.apply_modifiers = self.apply_modifiers
         options.strip_trailing = self.strip_trailing
         options.batch_mode = self.batch_mode
-        return self.save_file(context, options)
+        return self.mdl_export(context, options)
 
 
 class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
@@ -227,8 +228,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     bl_options = {'UNDO', 'PRESET'}
 
     files = bpy.props.CollectionProperty(
-        name="File Path",
-        description="File path used for importing the file",
+        name='File Path',
+        description='Path used for importing the file',
         type=bpy.types.OperatorFileListElement)
     directory = bpy.props.StringProperty()
     filename_ext = '.mdl'
@@ -296,6 +297,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Location',
         description='Location of newly imported model',
         default=(0.0, 0.0, 0.0), size=3, options={'HIDDEN'})
+    import_geometry = bpy.props.BoolProperty(name='Import Geometry',
+                                             description='Render Lights',
+                                             default=True, options={'HIDDEN'})
     render_lights = bpy.props.BoolProperty(name='Render Lights',
                                            description='Render Lights',
                                            default=False, options={'HIDDEN'})
@@ -339,12 +343,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'rotmode')
         box.prop(self, 'fix_uvs')
 
-    def load_file(self, context, options):
-        pathlist = [os.path.join(self.directory, f.name)
-                    for f in self.files]
-        if not pathlist:
-            pathlist.append(self.filepath)
-        for mdl_filepath in pathlist:
+    def mdl_import(self, context, options):
+        def load_file(mdl_filepath, options):
             mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
             mdl_name = os.path.splitext(mdl_filename)[0]
 
@@ -355,7 +355,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             with open(os.fsencode(mdl_filepath), 'r') as f:
                 mdl.readAscii(f.read(), options)
             # Load walkmesh data: pwk (placeable) and dwk (door)
-            if options.importWalkmesh:
+            if options.import_walkmesh:
                 for wkm_type in nvb_def.Walkmeshtype.IMPORT:
                     wkm_filename = mdl_name + '.' + wkm_type
                     wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
@@ -363,6 +363,23 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                         with open(os.fsencode(wkm_filepath), 'r') as f:
                             mdl.readAsciiWalkmesh(f.read(), wkm_type, options)
             mdl.create(options)
+
+        def get_location(idx):
+            k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
+            return (10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
+                    10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
+        # Build list of files
+        pathlist = [os.path.join(self.directory, f.name)
+                    for f in self.files]
+        if not pathlist:
+            pathlist.append(self.filepath)
+        # Import models
+        if len(pathlist) == 1:  # single model => use location from options
+            load_file(pathlist[0], options)
+        else:  # multiple models => place in a spiral
+            for i, fp in enumerate(pathlist):
+                options.mdl_location = get_location(i)
+                load_file(fp, options)
         return {'FINISHED'}
 
     def execute(self, context):
@@ -371,9 +388,10 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.filepath = self.filepath
         options.scene = context.scene
         # Misc Import Settings
-        options.importWalkmesh = self.import_walkmesh
+        options.import_geometry = self.import_geometry
+        options.import_walkmesh = self.import_walkmesh
         options.importSmoothGroups = self.import_smoothgroups
-        options.importNormals = self.import_normals
+        options.import_normals = self.import_normals
         # Material Options
         options.importMaterials = self.mat_import
         options.mat_automerge = self.mat_automerge
@@ -390,4 +408,4 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.mdl_location = self.mdl_location
         options.render_lights = self.render_lights
         options.render_fading = self.render_fading
-        return self.load_file(context, options)
+        return self.mdl_import(context, options)

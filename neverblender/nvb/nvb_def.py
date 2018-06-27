@@ -217,9 +217,10 @@ class ImportOptions():
         self.mdlname = 'unnamed'
         self.mtrdb = dict()
         # What to import
-        self.importWalkmesh = True
+        self.import_geometry = True
+        self.import_walkmesh = True
         self.importSmoothGroups = True
-        self.importNormals = True
+        self.import_normals = True
         self.importMaterials = True
         # Additional options for textures and materials
         self.mtr_import = True

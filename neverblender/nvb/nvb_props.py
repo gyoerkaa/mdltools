@@ -339,7 +339,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK, options={'SKIP_SAVE'})
-    # Armature Helper
+    # Armature Helpers
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',
         description='Source to take objects from',
@@ -347,26 +347,35 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                ('ACT', 'Active', 'Active object and its children', 1),
                ],
         default='ALL', options={'SKIP_SAVE'})
-    helper_amt_connect = bpy.props.BoolProperty(
-        name='Auto Connect',
-        description='Connect bones when possible',
-        default=True, options={'SKIP_SAVE'})
-    helper_amt_animcopy = bpy.props.BoolProperty(
-        name='Copy Animations',
-        description='Copy animations to newly created meshes',
-        default=True, options={'SKIP_SAVE'})
     helper_amt_animode = bpy.props.EnumProperty(
         name='Animations',
-        description='Transfer animations to newly created armature',
+        description='Transfer animations to newly created objects',
         items=[('OFF', 'None', 'No animations transfer', 0),
                ('KFP', 'Keyframes', 'Copy keyframes', 1),
                ('CON', 'Constraints', 'Create constraints', 2),
                ],
         default='KFP', options={'SKIP_SAVE'})
-    helper_amt_animtarget = bpy.props.StringProperty(
+    helper_amt_connect = bpy.props.BoolProperty(
+        name='Auto Connect',
+        description='Connect bones when possible',
+        default=True, options={'SKIP_SAVE'})
+    helper_amt_striptr = bpy.props.BoolProperty(
+        name='Strip Trailing',
+        description='Strip trailing numbers from names',
+        default=False, options={'SKIP_SAVE'})
+    # Pseudo Bones Helpers
+    helper_psb_anicopy = bpy.props.BoolProperty(
+        name='Copy Animations',
+        description='Copy Animation to newly created pseudo-bones (meshes)',
+        default=True, options={'SKIP_SAVE'})
+    helper_psb_insertroot = bpy.props.BoolProperty(
+        name='Add Rootdummy',
+        description='Add an animation root (Empty) as a parent for all bones.',
+        default=False, options={'SKIP_SAVE'})
+    helper_psb_anitarget = bpy.props.StringProperty(
         name='Target',
         description='Specify target to copy animations to',
-        default='', options=set())
+        default='', options={'SKIP_SAVE'})
 
     # For mesh objects
     meshtype = bpy.props.EnumProperty(

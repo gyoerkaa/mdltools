@@ -2,6 +2,7 @@
 
 import os
 import re
+import math
 
 import bpy
 
@@ -42,7 +43,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
         """Reload set file from disk."""
         def parse_terrain_names(ascii_block):
             """Return a list of terrain names."""
-            reg = re.compile('Name=([\w\-]+)\s?', re.IGNORECASE)
+            reg = re.compile('Name=([\\w\\-]+)\\s?', re.IGNORECASE)
             terrains = []
             for block in ascii_block.strip().split('[TERRAIN'):
                 if block:
@@ -53,7 +54,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
 
         def parse_crosser_names(ascii_block):
             """Return a list of crosser names."""
-            reg = re.compile('Name=([\w\-]+)\s?', re.IGNORECASE)
+            reg = re.compile('Name=([\\w\\-]+)\\s?', re.IGNORECASE)
             crossers = []
             for block in ascii_block.strip().split('[CROSSER'):
                 if block:
@@ -65,11 +66,9 @@ class NVB_OT_set_reload(bpy.types.Operator):
         def parse_tiles(ascii_block, terrain_names=[], crosser_names=[]):
             """Return two lists with tile counts for each crosser/ terrain."""
             reg_model = re.compile(r'Model=([\w\-]+)\s?', re.IGNORECASE)
-            print(terrain_names)
-            print(crosser_names)
-            reg_terrains = [(n, re.compile('=' + n + '\s?', re.IGNORECASE))
+            reg_terrains = [(n, re.compile('=' + n + '\\s?', re.IGNORECASE))
                             for n in terrain_names]
-            reg_crossers = [(n, re.compile('=' + n + '\s?', re.IGNORECASE))
+            reg_crossers = [(n, re.compile('=' + n + '\\s?', re.IGNORECASE))
                             for n in crosser_names]
             terrains = {key: 0 for key in terrain_names}
             crossers = {key: 0 for key in crosser_names}
@@ -167,7 +166,8 @@ class NVB_OT_set_massimport(bpy.types.Operator):
         def get_tiles(ascii_block, terrain_name=''):
             """Returns a list of tile model as list of strings."""
             reg_model = re.compile(r'Model=([\w\-]+)\s?', re.IGNORECASE)
-            reg_terrain = re.compile('=' + terrain_name + '\s?', re.IGNORECASE)
+            reg_terrain = re.compile('=' + terrain_name + '\\s?',
+                                     re.IGNORECASE)
             tiles = []
             for block in ascii_block.strip().split('[TILE'):
                 if block:
@@ -183,7 +183,7 @@ class NVB_OT_set_massimport(bpy.types.Operator):
         def get_group_tiles(ascii_block, group_name):
             """Returns rows, columns and a list of tile ids for the group."""
             if group_name:
-                reg_name = re.compile('Name=' + group_name + '\s?',
+                reg_name = re.compile('Name=' + group_name + '\\s?',
                                       re.IGNORECASE)
                 reg_rows = re.compile(r'Rows=(\d+)\s?', re.IGNORECASE)
                 reg_cols = re.compile(r'Columns=(\d+)\s?', re.IGNORECASE)
@@ -221,18 +221,27 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                 rows = len(mdl_names)
         return rows, cols, mdl_names
 
-    def mass_load_mdl(self, mdl_dir, mdl_list, row_cnt, col_cnt):
+    def mass_load_mdl(self, mdl_dir, mdl_list, set_mode, row_cnt, col_cnt):
         """Import all mdl in list."""
-        def get_location(idx, row_cnt, col_cnt):
+        def get_group_location(idx, row_cnt, col_cnt):
             """Generate a location for the tile from its row and column."""
-            row = idx % row_cnt
-            col = idx % col_cnt
-            return (10.0 * col, 10.0 * row, 0.0)
+            return (10.0 * (idx % col_cnt), 10.0 * (idx % row_cnt), 0.0)
 
-        for i, mdl_name in enumerate(mdl_list):
+        def get_spiral_location(idx):
+            k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
+            return (10.0 * min(k, max(-k, -2*k + abs(idx-(4*k*k)-k))),
+                    10.0 * min(k, max(-k, -2*k + abs(idx-(4*k*k)+k))), 0.0)
+
+        # Build a list of locations for the models
+        if set_mode == 'TR':
+            loc_list = [get_spiral_location(i) for i in range(len(mdl_list))]
+        else:
+            loc_list = [get_group_location(i, row_cnt, col_cnt)
+                        for i in range(len(mdl_list))]
+        for mdl_loc, mdl_name in zip(loc_list, mdl_list):
             if mdl_name:  # '' == don't import
                 filename = mdl_name + '.mdl'
-                mdl_loc = get_location(i, row_cnt, col_cnt)
+                # mdl_loc = get_group_location(i, row_cnt, col_cnt)
                 filepath = os.path.join(mdl_dir, filename)
                 if os.path.isfile(os.fsencode(filepath)):
                     bpy.ops.nvb.mdlimport(filepath=filepath,
@@ -277,5 +286,6 @@ class NVB_OT_set_massimport(bpy.types.Operator):
 
         rows, cols, mdl_list = \
             self.get_mdl_list(set_path, set_mode, itm.el_name)
-        self.mass_load_mdl(os.path.dirname(set_path), mdl_list, rows, cols)
+        self.mass_load_mdl(os.path.dirname(set_path), mdl_list,
+                           set_mode, rows, cols)
         return {'FINISHED'}

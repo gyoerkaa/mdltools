@@ -670,7 +670,7 @@ class Animnode():
                 frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
                        if animStart <= k.co[0] <= animEnd]
-                      for i in range(dp_dim)]))
+                      for i in range(dp_dim) if fcu[i]]))
                 frames.sort()
                 # Get values at keyed frames and convert
                 values = [[fcu[i].evaluate(f) for i in range(dp_dim)]

@@ -88,10 +88,7 @@ class Material(object):
 
     def loadAsciiLine(self, line):
         """TODO: Doc."""
-        try:
-            label = line[0].lower()
-        except (IndexError, AttributeError):
-            return line  # Probably empty line or comment
+        label = line[0].lower()
         if label == 'ambient':
             self.ambient = tuple([float(v) for v in line[1:4]])
         elif label == 'diffuse':
@@ -350,29 +347,29 @@ class Node(object):
             return line  # Probably empty line or comment
         if nvb_utils.isNumber(label):
             return line
-        if (label == 'node'):
+        if label == 'node':
             self.name = nvb_utils.getAuroraIdentifier(line[2])
-        elif (label == 'endnode'):
+        elif label == 'endnode':
             return line
-        elif (label == 'parent'):
+        elif label == 'parent':
             self.parent = nvb_utils.getAuroraIdentifier(line[1])
-        elif (label == 'position'):
+        elif label == 'position':
             self.position = tuple([float(v) for v in line[1:4]])
-        elif (label == 'orientation'):
+        elif label == 'orientation':
             self.orientation = [float(v) for v in line[1:5]]
-        elif (label == 'scale'):
+        elif label == 'scale':
             self.scale = float(line[1])
-        elif (label == 'wirecolor'):
+        elif label == 'wirecolor':
             self.wirecolor = tuple([float(v) for v in line[1:4]])
         return line
 
-    def loadAscii(self, asciiLines, nodeidx=-1):
+    def loadAscii(self, ascii_lines, nodeidx=-1):
         """TODO: DOC."""
         self.nodeidx = nodeidx
-        iterable = iter(asciiLines)
-        aline = True
-        while aline is not None:
-            aline = self.loadAsciiLine(iterable)
+        iterable = iter(ascii_lines)
+        line = True
+        while line is not None:
+            line = self.loadAsciiLine(iterable)
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -474,19 +471,15 @@ class Reference(Node):
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
         line = Node.loadAsciiLine(self, itlines)
-        if not line:
-            return line
-        try:
+        if line:
             label = line[0].lower()
-        except (IndexError, AttributeError):
-            return line  # Probably empty line or comment
-        if (label == 'refmodel'):
-            self.refmodel = nvb_utils.getAuroraIdentifier(line[1])
-        elif (label == 'reattachable'):
-            try:
-                self.reattachable = int(line[1])
-            except (ValueError, IndexError):
-                pass
+            if label == 'refmodel':
+                self.refmodel = nvb_utils.getAuroraIdentifier(line[1])
+            elif label == 'reattachable':
+                try:
+                    self.reattachable = int(line[1])
+                except (ValueError, IndexError):
+                    pass
         return line
 
     def createObjectData(self, obj, options):
@@ -536,80 +529,77 @@ class Trimesh(Node):
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = Node.loadAsciiLine(self, itlines)
-        if not aline:
-            return aline
-        try:
-            label = aline[0].lower()
-        except (IndexError, AttributeError):
-            return aline  # Probably empty line, skip it
-        if (label == 'tilefade'):
-            self.tilefade = int(aline[1])
-        elif (label == 'render'):
-            try:
-                self.render = int(aline[1])
-            except (ValueError, IndexError):
-                pass
-        elif (label == 'shadow'):
-            try:
-                self.shadow = int(aline[1])
-            except (ValueError, IndexError):
-                pass
-        elif (label == 'beaming'):
-            self.beaming = int(aline[1])
-        elif (label == 'inheritcolor'):
-            self.inheritcolor = int(aline[1])
-        elif (label == 'rotatetexture'):
-            self.rotatetexture = int(aline[1])
-        elif (label == 'transparencyhint'):
-            self.transparencyhint = int(aline[1])
-        elif ((label == 'selfillumcolor') or
-              (label == 'setfillumcolor')):
-            self.selfillumcolor = tuple([float(v) for v in aline[1:4]])
-        elif (label == 'shininess'):
-            self.shininess = int(float(aline[1]))
-        elif (label == 'verts'):
-            if not self.verts:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.verts = [tuple(map(nvb_utils.str2float, v))
-                              for v in tmp]
-        elif (label == 'faces'):
-            if not self.facedef:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.facedef = [list(map(int, v)) for v in tmp]
-        elif (label == 'normals'):
-            if not self.normals:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.normals = [tuple(map(nvb_utils.str2float, v))
-                                for v in tmp]
-        elif (label == 'tangents'):
-            if not self.tangents:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.tangents = [tuple(map(nvb_utils.str2float, v))
-                                 for v in tmp]
-        elif (label == 'colors'):
-            if not self.colors:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.colors = [tuple(map(float, v)) for v in tmp]
-        elif (label.startswith('tverts')):
-            tvid = 0
-            if label[6:]:  # might be '', which we interpret as 0
-                tvid = int(label[6:])
-                tvcnt = len(self.tverts)
-                if tvid+1 > tvcnt:
-                    self.tverts.extend([[] for _ in range(tvid-tvcnt+1)])
-            if not self.tverts[tvid]:
-                nvals = int(aline[1])
-                tmp = [next(itlines) for _ in range(nvals)]
-                self.tverts[tvid] = [(float(v[0]), float(v[1])) for v in tmp]
-        else:
-            self.material.loadAsciiLine(aline)
-        return aline
+        line = Node.loadAsciiLine(self, itlines)
+        if line:
+            label = line[0].lower()
+            if label == 'tilefade':
+                self.tilefade = int(line[1])
+            elif label == 'render':
+                try:
+                    self.render = int(line[1])
+                except (ValueError, IndexError):
+                    pass
+            elif label == 'shadow':
+                try:
+                    self.shadow = int(line[1])
+                except (ValueError, IndexError):
+                    pass
+            elif label == 'beaming':
+                self.beaming = int(line[1])
+            elif label == 'inheritcolor':
+                self.inheritcolor = int(line[1])
+            elif label == 'rotatetexture':
+                self.rotatetexture = int(line[1])
+            elif label == 'transparencyhint':
+                self.transparencyhint = int(line[1])
+            elif ((label == 'selfillumcolor') or
+                  (label == 'setfillumcolor')):
+                self.selfillumcolor = tuple([float(v) for v in line[1:4]])
+            elif label == 'shininess':
+                self.shininess = int(float(line[1]))
+            elif label == 'verts':
+                if not self.verts:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.verts = [tuple(map(nvb_utils.str2float, v))
+                                  for v in tmp]
+            elif label == 'faces':
+                if not self.facedef:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.facedef = [list(map(int, v)) for v in tmp]
+            elif label == 'normals':
+                if not self.normals:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.normals = [tuple(map(nvb_utils.str2float, v))
+                                    for v in tmp]
+            elif label == 'tangents':
+                if not self.tangents:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.tangents = [tuple(map(nvb_utils.str2float, v))
+                                     for v in tmp]
+            elif label == 'colors':
+                if not self.colors:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.colors = [tuple(map(float, v)) for v in tmp]
+            elif label.startswith('tverts'):
+                tvid = 0
+                if label[6:]:  # might be '', which we interpret as 0
+                    tvid = int(label[6:])
+                    tvcnt = len(self.tverts)
+                    if tvid+1 > tvcnt:
+                        self.tverts.extend([[] for _ in range(tvid-tvcnt+1)])
+                if not self.tverts[tvid]:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.tverts[tvid] = [(float(v[0]), float(v[1]))
+                                         for v in tmp]
+            else:
+                self.material.loadAsciiLine(line)
+        return line
 
     def fix_degenerated_uvs(self):
         """Fixes degenrated UVs by adding dummy coordinates."""
@@ -712,7 +702,7 @@ class Trimesh(Node):
         me.polygons.foreach_set('loop_total', (3,) * face_cnt)
         me.loops.foreach_set('vertex_index', unpack_list(face_vids))
         # Create per-Vertex normals
-        if self.normals and options.importNormals:
+        if self.normals and options.import_normals:
             me.vertices.foreach_set('normal', unpack_list(self.normals))
             me.create_normals_split()
         # Create material
@@ -768,7 +758,7 @@ class Trimesh(Node):
         Trimesh.createVColors(me, self.colors, 'colors')
         # Import custom normals
         me.update()
-        if self.normals and me.loops and options.importNormals:
+        if self.normals and me.loops and options.import_normals:
             for l in me.loops:
                 l.normal[:] = self.normals[l.vertex_index]
             me.validate(clean_customdata=False)
@@ -792,7 +782,7 @@ class Trimesh(Node):
         me.vertices.add(len(self.verts))
         me.vertices.foreach_set('co', unpack_list(self.verts))
         # Create per-Vertex normals
-        if self.normals and options.importNormals:
+        if self.normals and options.import_normals:
             me.vertices.foreach_set('normal', unpack_list(self.normals))
         # Create faces
         face_vids = [v[0:3] for v in self.facedef]
@@ -849,7 +839,7 @@ class Trimesh(Node):
             del bm
         # Import custom normals
         me.update()
-        if self.normals and me.loops and options.importNormals:
+        if self.normals and me.loops and options.import_normals:
             # Use normals for shading
             # TODO: Test this... faster?
             # me.normals_split_custom_set_from_vertices(self.normals)
@@ -1229,25 +1219,21 @@ class Danglymesh(Trimesh):
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = Trimesh.loadAsciiLine(self, itlines)
-        if not aline:
-            return aline
-        try:
-            label = aline[0].lower()
-        except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
-        if (label == 'period'):
-            self.period = float(aline[1])
-        elif (label == 'tightness'):
-            self.tightness = float(aline[1])
-        elif (label == 'displacement'):
-            self.displacement = float(aline[1])
-        elif (label == 'constraints'):
-            if not self.constraints:
-                vcnt = int(aline[1])
-                tmp = [next(itlines) for _ in range(vcnt)]
-                self.constraints = [float(v[0]) for v in tmp]
-        return aline
+        line = Trimesh.loadAsciiLine(self, itlines)
+        if line:
+            label = line[0].lower()
+            if label == 'period':
+                self.period = float(line[1])
+            elif label == 'tightness':
+                self.tightness = float(line[1])
+            elif label == 'displacement':
+                self.displacement = float(line[1])
+            elif label == 'constraints':
+                if not self.constraints:
+                    vcnt = int(line[1])
+                    tmp = [next(itlines) for _ in range(vcnt)]
+                    self.constraints = [float(v[0]) for v in tmp]
+        return line
 
     def createConstraints(self, obj):
         """Create a vertex group for the object."""
@@ -1346,18 +1332,14 @@ class Skinmesh(Trimesh):
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = Trimesh.loadAsciiLine(self, itlines)
-        if not aline:
-            return aline
-        try:
-            label = aline[0].lower()
-        except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
-        if (label == 'weights'):
-            vcnt = int(aline[1])
-            tmp = [next(itlines) for _ in range(vcnt)]
-            self.loadAsciiWeights(tmp)
-        return aline
+        line = Trimesh.loadAsciiLine(self, itlines)
+        if line:
+            label = line[0].lower()
+            if label == 'weights':
+                cnt = int(line[1])
+                tmp = [next(itlines) for _ in range(cnt)]
+                self.loadAsciiWeights(tmp)
+        return line
 
     def createSkinGroups(self, obj):
         """TODO: Doc."""
@@ -1648,8 +1630,6 @@ class Light(Node):
         """TODO: Doc."""
         lamp = bpy.data.lamps.new(name, 'POINT')
 
-        # TODO: Check for negative color values and do something
-        # (works fine in blender though)
         lamp.color = self.color
         lamp.energy = self.multiplier
         lamp.distance = self.radius

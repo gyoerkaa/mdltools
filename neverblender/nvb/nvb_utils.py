@@ -101,14 +101,14 @@ def get_aurora_root(obj=None, scene=None):
 
 def get_fcurve(action, data_path, index=0):
     """Get the fcurve with specified properties or create one."""
-    fc = action.fcurves.find(data_path, index)
-    if not fc:
-        fc = action.fcurves.new(data_path=data_path, index=index)
-    return fc
+    fcu = action.fcurves.find(data_path, index)
+    if not fcu:
+        fcu = action.fcurves.new(data_path=data_path, index=index)
+    return fcu
 
 
 def get_aabb(aurora_root):
-    """Find an AABB mesh for this mdlroot."""
+    """Find an AABB mesh for this mdl base."""
     def is_aabb(obj):
         """Return true if object obj is an aabb mesh."""
         return obj.type == 'MESH' and obj.nvb.meshtype == nvb_def.Meshtype.AABB
@@ -177,13 +177,18 @@ def get_last_frame(obj):
     return frame
 
 
+def strip_trailing_numbers(s):
+    """Removes trailing numbers resulting from duplicate object names."""
+    return re.fullmatch(r'(.+?)(\.\d+)?$', s).group(1)
+
+
 def generate_node_name(obj, strip_trailing=False):
     """Return a name for node/objects for use in the mdl."""
-    name = obj.name
+    new_name = obj.name
     if strip_trailing:
-        name = re.fullmatch(r'(.+?)(\.\d+)?$', obj.name).group(1)
-    name.replace(' ', '_')
-    return name
+        new_name = strip_trailing_numbers(obj.name)
+    new_name.replace(' ', '_')
+    return new_name
 
 
 def isNumber(s):

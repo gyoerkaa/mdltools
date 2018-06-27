@@ -132,8 +132,8 @@ class NVB_OT_anim_scale(bpy.types.Operator):
                 for p in fcurve.keyframe_points:
                     if (animStart < p.co[0] <= animEnd):
                         oldFrame = p.co[0]
-                        newFrame = (oldFrame - animStart + 1) * \
-                            scaleFactor + animStart - 1
+                        newFrame = (oldFrame - animStart) * \
+                            scaleFactor + animStart
                         p.co[0] = newFrame
                         p.handle_left.x = newFrame - \
                             (oldFrame - p.handle_left.x)
@@ -149,8 +149,8 @@ class NVB_OT_anim_scale(bpy.types.Operator):
                     for p in fcurve.keyframe_points:
                         if (animStart < p.co[0] <= animEnd):
                             oldFrame = p.co[0]
-                            newFrame = (oldFrame - animStart + 1) * \
-                                scaleFactor + animStart - 1
+                            newFrame = (oldFrame - animStart) * \
+                                scaleFactor + animStart
                             p.co[0] = newFrame
                             p.handle_left.x = newFrame - \
                                 (oldFrame - p.handle_left.x)
@@ -188,7 +188,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
             return {'CANCELLED'}
         anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
         # Check resulting length (has to be >= 1)
-        oldSize = anim.frameEnd - anim.frameStart + 1
+        oldSize = anim.frameEnd - anim.frameStart
         newSize = self.scaleFactor * oldSize
         if (newSize < 1):
             self.report({'INFO'}, 'Error: Resulting size < 1.')
@@ -229,8 +229,8 @@ class NVB_OT_anim_scale(bpy.types.Operator):
         # Adjust the target (scaled) animation itself
         anim.frameEnd += padding
         for e in anim.eventList:
-            e.frame = (e.frame - anim.frameStart + 1) * \
-                self.scaleFactor + anim.frameStart - 1
+            e.frame = (e.frame - anim.frameStart) * \
+                self.scaleFactor + anim.frameStart
         # Re-adjust the timeline to the new bounds
         nvb_utils.toggle_anim_focus(context.scene, mdl_root)
         return {'FINISHED'}

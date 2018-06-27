@@ -51,7 +51,7 @@ class Mtr(object):
         if not txt_block:
             return False
         # Generate a name, strip trailing numbers (".001") and ".mtr"
-        match = re.match('([\w\-]+)[\.mtr]?[\.\d+]*', txt_block.name)
+        match = re.match('([\\w\\-]+)[\\.mtr]?[\\.\\d+]*', txt_block.name)
         if match:
             self.name = match.group(1)
         ascii_data = txt_block.as_string()

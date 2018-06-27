@@ -21,11 +21,11 @@ class Animation():
         """TODO: DOC."""
         nvb_animnode.Animnode.create_restpose(obj, frame)
 
-    def create(self, rootDummy, noderesolver, options):
+    def create(self, aurora_base, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Add new animation to list
         fps = options.scene.render.fps
-        newAnim = nvb_utils.createAnimListItem(rootDummy)
+        newAnim = nvb_utils.createAnimListItem(aurora_base)
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
@@ -43,10 +43,10 @@ class Animation():
                 if options.anim_restpose:
                     Animation.createRestPose(obj, newAnim.frameStart-5)
 
-    def loadAsciiAnimHeader(self, asciiBlock):
+    def loadAsciiAnimHeader(self, ascii_data):
         """TODO: DOC."""
-        asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
-        for line in asciiLines:
+        ascii_lines = [l.strip().split() for l in ascii_data.splitlines()]
+        for line in ascii_lines:
             try:
                 label = line[0].lower()
             except (IndexError, AttributeError):
@@ -65,29 +65,29 @@ class Animation():
             elif (label == 'event'):
                 self.events.append((float(line[1]), line[2]))
 
-    def loadAsciiAnimNodes(self, asciiData):
+    def loadAsciiAnimNodes(self, ascii_data):
         """TODO: DOC."""
         dlm = 'node '
-        nodeList = [dlm+block for block in asciiData.split(dlm) if block != '']
-        for idx, asciiNode in enumerate(nodeList):
-            asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
-            animnode = nvb_animnode.Animnode()
-            animnode.load_ascii(asciiLines, idx)
-            self.nodes.append(animnode)
+        node_list = [dlm + s for s in ascii_data.split(dlm) if s != '']
+        for idx, ascii_node in enumerate(node_list):
+            ascii_lines = [l.strip().split() for l in ascii_node.splitlines()]
+            node = nvb_animnode.Animnode()
+            node.load_ascii(ascii_lines, idx)
+            self.nodes.append(node)
 
-    def loadAscii(self, asciiData):
+    def loadAscii(self, ascii_data):
         """Load an animation from a block from an ascii mdl file."""
-        animNodesStart = asciiData.find('node ')
+        animNodesStart = ascii_data.find('node ')
         if (animNodesStart > -1):
-            self.loadAsciiAnimHeader(asciiData[:animNodesStart-1])
-            self.loadAsciiAnimNodes(asciiData[animNodesStart:])
+            self.loadAsciiAnimHeader(ascii_data[:animNodesStart-1])
+            self.loadAsciiAnimNodes(ascii_data[animNodesStart:])
         else:
             print('Neverblender - WARNING: Failed to load an animation.')
 
     @staticmethod
-    def generateAsciiNodes(obj, anim, asciiLines, options):
+    def generateAsciiNodes(obj, anim, ascii_lines, options):
         """TODO: Doc."""
-        nvb_animnode.Animnode.generate_ascii(obj, anim, asciiLines, options)
+        nvb_animnode.Animnode.generate_ascii(obj, anim, ascii_lines, options)
 
         # Sort children to restore original order before import
         # (important for supermodels/animations to work)
@@ -95,7 +95,7 @@ class Animation():
         children.sort(key=lambda c: c.name)
         children.sort(key=lambda c: c.nvb.imporder)
         for c in children:
-            Animation.generateAsciiNodes(c, anim, asciiLines, options)
+            Animation.generateAsciiNodes(c, anim, ascii_lines, options)
 
     @staticmethod
     def generateAscii(aurora_base, anim, ascii_lines, options):
