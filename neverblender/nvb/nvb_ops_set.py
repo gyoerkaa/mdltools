@@ -8,7 +8,7 @@ import bpy
 
 
 class NVB_OT_set_open(bpy.types.Operator):
-    """Open material file"""
+    """Open set file"""
     bl_idname = "nvb.set_open"
     bl_label = "Open SET"
 
@@ -25,7 +25,6 @@ class NVB_OT_set_open(bpy.types.Operator):
         # Use the reload ops to actually do the loading
         bpy.context.scene.nvb.set_filepath = self.filepath
         return bpy.ops.nvb.set_reload()
-        return {'FINISHED'}
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -35,7 +34,7 @@ class NVB_OT_set_open(bpy.types.Operator):
 
 
 class NVB_OT_set_reload(bpy.types.Operator):
-    """Reload MTR, update current material"""
+    """Reload set, update current data"""
     bl_idname = "nvb.set_reload"
     bl_label = "Reload SET"
 
@@ -149,7 +148,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
         """Reload the set file."""
         scene = bpy.context.scene
         set_path = scene.nvb.set_filepath
-        set_dir, set_filename = os.path.split(set_path)
+        # set_dir, set_filename = os.path.split(set_path)
         with open(os.fsencode(set_path), 'r') as f:
             self.load_set(f.read())
         return {'FINISHED'}

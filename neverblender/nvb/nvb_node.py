@@ -602,9 +602,9 @@ class Trimesh(Node):
         return line
 
     def fix_degenerated_uvs(self):
-        """Fixes degenrated UVs by adding dummy coordinates."""
+        """Fixes degenerated UVs by adding dummy coordinates."""
         def distance(p0, p1):
-            """Euclidean Distance between two points."""
+            """Euclidean Distance."""
             return math.sqrt(sum([(a - b)**2 for a, b in list(zip(p0, p1))]))
 
         tvert_cnt = len(self.tverts[0])
@@ -642,6 +642,7 @@ class Trimesh(Node):
         #     uvf.image = timg
         return uvlay
 
+    @staticmethod
     def createUVlayer(mesh, tverts, faceuvs, uvname, uvimg=None):
         """TODO: Doc."""
         uvmap = None
@@ -913,20 +914,17 @@ class Trimesh(Node):
 
         def getSmoothGroups(obj, mesh, options):
             smoothGroups = []
-            numSmoothGroups = 0
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.export_smoothgroups):
                 # 0 = Do not use smoothgroups
                 smoothGroups = [0] * len(mesh.polygons)
-                numSmoothGroups = 1
             elif (obj.nvb.smoothgroup == 'SING') or \
                  (options.export_normals):
                 # All faces belong to smooth group 1
                 smoothGroups = [1] * len(mesh.polygons)
-                numSmoothGroups = 1
             else:
-                (smoothGroups, numSmoothGroups) = mesh.calc_smooth_groups()
+                smoothGroups, _ = mesh.calc_smooth_groups()
             return smoothGroups
 
         def getFaceUVs(faceData, uvMapData, join=True):
@@ -1195,11 +1193,6 @@ class Animmesh(Trimesh):
         """TODO: Doc."""
         Trimesh.__init__(self, name)
         self.meshtype = nvb_def.Meshtype.ANIMMESH
-
-    def createMaterial(self, options, makeunique=False):
-        """TODO: Doc."""
-        # Material is always unique
-        return Trimesh.createMaterial(self, options, True)
 
 
 class Danglymesh(Trimesh):

@@ -339,7 +339,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK, options={'SKIP_SAVE'})
-    # Armature Helpers
+    # Armature Helper
     helper_amt_source = bpy.props.EnumProperty(
         name='Source',
         description='Source to take objects from',
@@ -363,7 +363,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         name='Strip Trailing',
         description='Strip trailing numbers from names',
         default=False, options={'SKIP_SAVE'})
-    # Pseudo Bones Helpers
+    # Pseudo Bones Helper
     helper_psb_anicopy = bpy.props.BoolProperty(
         name='Copy Animations',
         description='Copy Animation to newly created pseudo-bones (meshes)',

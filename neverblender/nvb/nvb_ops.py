@@ -139,7 +139,7 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
         """Delete all current materials and add walkmesh materials."""
         obj = context.object
         # Remove all material slots
-        for i in range(len(obj.material_slots)):
+        for _ in range(len(obj.material_slots)):
             bpy.ops.object.material_slot_remove()
         # Add wok materials
         nvb_utils.create_wok_materials(obj.data)

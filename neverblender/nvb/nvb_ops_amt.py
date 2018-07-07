@@ -398,7 +398,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         psb.rotation_mode = amt_posebone.rotation_mode
         dp_list = get_data_paths(psb.rotation_mode)
         # Transfer keyframes
-        for psb_dp, dp_dim, convert_func, dfl_val in dp_list:
+        for psb_dp, dp_dim, kfp_convert, kfp_dfl in dp_list:
             amt_dp = 'pose.bones["' + amb_name + '"].' + psb_dp
             amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
             if amt_fcu.count(None) < dp_dim:  # disregard empty animations
@@ -407,12 +407,12 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                     *[[k.co[0] for k in amt_fcu[i].keyframe_points]
                       for i in range(dp_dim) if amt_fcu[i]]))
                 frames.sort()
-                values = [[amt_fcu[i].evaluate(f) if amt_fcu[i] else dfl_val[i]
+                values = [[amt_fcu[i].evaluate(f) if amt_fcu[i] else kfp_dfl[i]
                            for i in range(dp_dim)] for f in frames]
                 # values = [[amt_fcu[i].evaluate(f) for i in range(dp_dim)]
                 #           for f in frames]
                 # Convert from armature bone space to pseudobone space
-                values = convert_func(amt, amt_posebone, psb, values, mat_eb)
+                values = kfp_convert(amt, amt_posebone, psb, values, mat_eb)
                 # Create fcurves for pseudo bone
                 psb_fcu = [psb_action.fcurves.new(psb_dp, i)
                            for i in range(dp_dim)]
@@ -662,26 +662,26 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no root was found."""
-        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
-        return (aurora_base is not None)
+        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        return (mdl_base is not None)
 
     def execute(self, context):
         """Create the armature"""
-        aurora_base = nvb_utils.get_obj_aurora_root(context.object)
-        self.auto_connect = aurora_base.nvb.helper_amt_connect
-        self.strip_trailing = aurora_base.nvb.helper_amt_striptr
+        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        self.auto_connect = mdl_base.nvb.helper_amt_connect
+        self.strip_trailing = mdl_base.nvb.helper_amt_striptr
         self.generated = []
 
         # Get source for armature
-        if aurora_base.nvb.helper_amt_source == 'ALL':
-            psb_root = aurora_base
+        if mdl_base.nvb.helper_amt_source == 'ALL':
+            psb_root = mdl_base
         else:
             psb_root = context.object
 
         # Create armature
         bpy.ops.object.add(type='ARMATURE', location=psb_root.location)
         armature = context.scene.objects.active
-        armature.name = aurora_base.name + '.armature'
+        armature.name = mdl_base.name + '.armature'
         armature.rotation_mode = psb_root.rotation_mode
         # Create the bones
         bpy.ops.object.mode_set(mode='EDIT')
@@ -692,7 +692,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # Copy animations
-        anim_mode = aurora_base.nvb.helper_amt_animode
+        anim_mode = mdl_base.nvb.helper_amt_animode
         if anim_mode != 'OFF':
             bpy.ops.object.mode_set(mode='POSE')
             # Get or create animation data and action

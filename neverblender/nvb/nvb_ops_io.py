@@ -95,37 +95,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ('SCN', 'Scene', 'Export all MDLs in active scene')),
             default='OFF')
 
-    def draw(self, context):
-        """Draw the export UI."""
-        layout = self.layout
-        # Misc Export Settings
-        box = layout.box()
-        box.prop(self, 'export_animations')
-        box.prop(self, 'export_walkmesh')
-        box.prop(self, 'export_smoothgroups')
-        box.prop(self, 'export_normals')
-        # UV Map settings
-        box = layout.box()
-        box.label(text='UV Map Settings')
-        sub = box.column()
-        sub.prop(self, 'uv_autojoin')
-        sub.prop(self, 'uv_mode')
-        sub.prop(self, 'uv_order')
-        # Material Export Settings
-        box = layout.box()
-        box.label(text='Material Settings')
-        box.prop(self, 'mtr_export')
-        sub = box.row(align=True)
-        sub.active = self.mtr_export
-        sub.prop(self, 'mtr_ref')
-        # Blender Settings
-        box = layout.box()
-        box.label(text='Blender Settings')
-        sub = box.column()
-        sub.prop(self, 'apply_modifiers')
-        sub.prop(self, 'strip_trailing')
-        sub.prop(self, 'batch_mode')
-
     def mdl_export(self, context, options):
         """TODO: DOC."""
         def get_filepath(old_path, new_name, new_ext):
@@ -196,6 +165,37 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     f.write('\n'.join(ascii_lines))
         return {'FINISHED'}
 
+    def draw(self, context):
+        """Draw the export UI."""
+        layout = self.layout
+        # Misc Export Settings
+        box = layout.box()
+        box.prop(self, 'export_animations')
+        box.prop(self, 'export_walkmesh')
+        box.prop(self, 'export_smoothgroups')
+        box.prop(self, 'export_normals')
+        # UV Map settings
+        box = layout.box()
+        box.label(text='UV Map Settings')
+        sub = box.column()
+        sub.prop(self, 'uv_autojoin')
+        sub.prop(self, 'uv_mode')
+        sub.prop(self, 'uv_order')
+        # Material Export Settings
+        box = layout.box()
+        box.label(text='Material Settings')
+        box.prop(self, 'mtr_export')
+        sub = box.row(align=True)
+        sub.active = self.mtr_export
+        sub.prop(self, 'mtr_ref')
+        # Blender Settings
+        box = layout.box()
+        box.label(text='Blender Settings')
+        sub = box.column()
+        sub.prop(self, 'apply_modifiers')
+        sub.prop(self, 'strip_trailing')
+        sub.prop(self, 'batch_mode')
+
     def execute(self, context):
         """TODO: DOC."""
         options = nvb_def.ExportOptions()
@@ -232,9 +232,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         description='Path used for importing the file',
         type=bpy.types.OperatorFileListElement)
     directory = bpy.props.StringProperty()
+    filter_glob = bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
     filename_ext = '.mdl'
-    filter_glob = bpy.props.StringProperty(default='*.mdl',
-                                           options={'HIDDEN'})
+
     import_walkmesh = bpy.props.BoolProperty(
         name='Import Walkmesh',
         description='Load placeable and door walkmeshes',
@@ -307,6 +307,45 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                                            description='Render Fading Objects',
                                            default=True, options={'HIDDEN'})
 
+    def mdl_import(self, context, options):
+        def load_file(mdl_filepath, options):
+            mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
+            mdl_name = os.path.splitext(mdl_filename)[0]
+
+            options.mdlname = mdl_name
+            options.filepath = mdl_filepath
+            mdl = nvb_mdl.Mdl()
+            # Load mdl data
+            with open(os.fsencode(mdl_filepath), 'r') as f:
+                mdl.readAscii(f.read(), options)
+            # Load walkmesh data: pwk (placeable) and dwk (door)
+            if options.import_walkmesh:
+                for wkm_type in nvb_def.Walkmeshtype.IMPORT:
+                    wkm_filename = mdl_name + '.' + wkm_type
+                    wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
+                    if os.path.isfile(os.fsencode(wkm_filepath)):
+                        with open(os.fsencode(wkm_filepath), 'r') as f:
+                            mdl.readAsciiWalkmesh(f.read(), wkm_type, options)
+            mdl.create(options)
+
+        def get_location(idx):
+            k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
+            return (10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
+                    10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
+
+        # Build list of files
+        pathlist = [os.path.join(self.directory, f.name) for f in self.files]
+        if not pathlist:
+            pathlist.append(self.filepath)
+        # Import models
+        if len(pathlist) == 1:  # single model => use location from options
+            load_file(pathlist[0], options)
+        else:  # multiple models => place in a spiral
+            for i, fp in enumerate(pathlist):
+                options.mdl_location = get_location(i)
+                load_file(fp, options)
+        return {'FINISHED'}
+
     def draw(self, context):
         """Draw the export UI."""
         layout = self.layout
@@ -343,45 +382,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'rotmode')
         box.prop(self, 'fix_uvs')
 
-    def mdl_import(self, context, options):
-        def load_file(mdl_filepath, options):
-            mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
-            mdl_name = os.path.splitext(mdl_filename)[0]
-
-            options.mdlname = mdl_name
-            options.filepath = mdl_filepath
-            mdl = nvb_mdl.Mdl()
-            # Load mdl data
-            with open(os.fsencode(mdl_filepath), 'r') as f:
-                mdl.readAscii(f.read(), options)
-            # Load walkmesh data: pwk (placeable) and dwk (door)
-            if options.import_walkmesh:
-                for wkm_type in nvb_def.Walkmeshtype.IMPORT:
-                    wkm_filename = mdl_name + '.' + wkm_type
-                    wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
-                    if os.path.isfile(os.fsencode(wkm_filepath)):
-                        with open(os.fsencode(wkm_filepath), 'r') as f:
-                            mdl.readAsciiWalkmesh(f.read(), wkm_type, options)
-            mdl.create(options)
-
-        def get_location(idx):
-            k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
-            return (10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
-                    10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
-        # Build list of files
-        pathlist = [os.path.join(self.directory, f.name)
-                    for f in self.files]
-        if not pathlist:
-            pathlist.append(self.filepath)
-        # Import models
-        if len(pathlist) == 1:  # single model => use location from options
-            load_file(pathlist[0], options)
-        else:  # multiple models => place in a spiral
-            for i, fp in enumerate(pathlist):
-                options.mdl_location = get_location(i)
-                load_file(fp, options)
-        return {'FINISHED'}
-
     def execute(self, context):
         """TODO: DOC."""
         options = nvb_def.ImportOptions()
@@ -409,3 +409,90 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.render_lights = self.render_lights
         options.render_fading = self.render_fading
         return self.mdl_import(context, options)
+
+
+class NVB_OT_mdl_superimport(bpy.types.Operator,
+                             bpy_extras.io_utils.ImportHelper):
+    """Import animations from supermodel onto existing mdl"""
+    bl_idname = 'nvb.mdl_superimport'
+    bl_label = 'Import Supermodel'
+
+    files = bpy.props.CollectionProperty(
+        name='File Path',
+        description='Path used for importing the file',
+        type=bpy.types.OperatorFileListElement)
+    directory = bpy.props.StringProperty()
+    filter_glob = bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
+    filename_ext = '.mdl'
+
+    anim_fps_use = bpy.props.BoolProperty(name='Use Custom fps',
+                                          description='Use custom fps value',
+                                          default=False)
+    anim_fps = bpy.props.IntProperty(name='Scene Framerate',
+                                     description='Custom fps value',
+                                     default=30,
+                                     min=1, max=60)
+    anim_restpose = bpy.props.BoolProperty(
+        name='Insert Rest Pose',
+        description='Insert rest keyframe before every animation',
+        default=True)
+    anim_ignore_existing = bpy.props.BoolProperty(
+        name='Ignore Existing',
+        description='Do not import already existing animations',
+        default=True)
+
+    def mdl_import(self, context, options):
+        def load_file(mdl_filepath, mdl_base, options):
+            mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
+            mdl_name = os.path.splitext(mdl_filename)[0]
+
+            options.mdlname = mdl_name
+            options.filepath = mdl_filepath
+            mdl = nvb_mdl.Mdl()
+            # Load mdl data
+            with open(os.fsencode(mdl_filepath), 'r') as f:
+                mdl.readAscii(f.read(), options)
+            mdl.create_super(mdl_base, options)
+
+        # Build list of files
+        pathlist = [os.path.join(self.directory, f.name) for f in self.files]
+        # Import models
+        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        for filepath in pathlist:
+            load_file(filepath, mdl_base, options)
+        return {'FINISHED'}
+
+    @classmethod
+    def poll(self, context):
+        """Check presence of aurora base."""
+        return nvb_utils.get_obj_aurora_root(context.object) is not None
+
+    def draw(self, context):
+        """Draw the export UI."""
+        layout = self.layout
+
+        # Animation Import Settings
+        box = layout.box()
+        box.prop(self, 'anim_ignore_existing')
+        box.prop(self, 'anim_restpose')
+        row = box.row(align=True)
+        row.prop(self, 'anim_fps_use', text='')
+        sub = row.row(align=True)
+        sub.enabled = self.anim_fps_use
+        sub.prop(self, 'anim_fps')
+
+    def execute(self, context):
+        options = nvb_def.ImportOptions()
+        options.scene = context.scene
+
+        options.anim_fps_use = self.anim_fps_use
+        options.anim_fps = self.anim_fps
+        options.anim_restpose = self.anim_restpose
+        options.anim_ignore_existing = self.anim_ignore_existing
+        return self.mdl_import(context, options)
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+
+        return {'RUNNING_MODAL'}

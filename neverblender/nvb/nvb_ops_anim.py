@@ -165,8 +165,8 @@ class NVB_OT_anim_scale(bpy.types.Operator):
             rawdata = copy.deepcopy(txt.as_string())
             animData = []
             animData = nvb_utils.readRawAnimData(rawdata)
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
+            for _, _, keyList in animData:  # node_name, node_type, key_list
+                for _, keys in keyList:  # label, keys
                     for k in keys:
                         k[0] = str(int(k[0]) * scaleFactor)
             txt.clear()
@@ -439,8 +439,8 @@ class NVB_OT_anim_pad(bpy.types.Operator):
             txt = copy.deepcopy(rawdata.as_string())
             animData = []
             animData = nvb_utils.readRawAnimData(txt)
-            for nodeName, nodeType, keyList in animData:
-                for label, keys in keyList:
+            for _, _, keyList in animData:
+                for _, keys in keyList:
                     for k in keys:
                         k[0] = str(int(k[0]) + self.pad_front)
             txt.clear()

@@ -21,11 +21,15 @@ class Animation():
         """TODO: DOC."""
         nvb_animnode.Animnode.create_restpose(obj, frame)
 
-    def create(self, aurora_base, noderesolver, options):
+    def create(self, mdl_base, noderesolver, options):
         """Create animations with a list of imported objects."""
+        # Check for existing animations:
+        if options.anim_ignore_existing and \
+                self.name in mdl_base.nvb.animList.keys():
+            return
         # Add new animation to list
         fps = options.scene.render.fps
-        newAnim = nvb_utils.createAnimListItem(aurora_base)
+        newAnim = nvb_utils.createAnimListItem(mdl_base)
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
@@ -98,32 +102,32 @@ class Animation():
             Animation.generateAsciiNodes(c, anim, ascii_lines, options)
 
     @staticmethod
-    def generateAscii(aurora_base, anim, ascii_lines, options):
+    def generateAscii(mdl_base, anim, ascii_lines, options):
         """TODO: Doc."""
         if anim.mute:
             # Don't export mute animations
             return
         fps = options.scene.render.fps
         anim_length = (anim.frameEnd - anim.frameStart) / fps
-        ascii_lines.append('newanim ' + anim.name + ' ' + aurora_base.name)
+        ascii_lines.append('newanim ' + anim.name + ' ' + mdl_base.name)
         ascii_lines.append('  length ' + str(round(anim_length, 3)))
         ascii_lines.append('  transtime ' + str(round(anim.ttime, 3)))
         # Check anim root
-        node_list = [aurora_base]
-        nvb_utils.get_children_recursive(aurora_base, node_list)
+        node_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, node_list)
         if anim.root and anim.root in [n.name for n in node_list]:
             ascii_lines.append('  animroot ' + anim.root)
         else:
             print('Neverblender - WARNING: Invalid Animation Root for ' +
                   anim.name)
-            ascii_lines.append('  animroot ' + aurora_base.name)
+            ascii_lines.append('  animroot ' + mdl_base.name)
 
         for event in anim.eventList:
             eventTime = (event.frame - anim.frameStart) / fps
             ascii_lines.append('  event ' + str(round(eventTime, 3)) + ' ' +
                                event.name)
 
-        Animation.generateAsciiNodes(aurora_base, anim, ascii_lines, options)
+        Animation.generateAsciiNodes(mdl_base, anim, ascii_lines, options)
 
-        ascii_lines.append('doneanim ' + anim.name + ' ' + aurora_base.name)
+        ascii_lines.append('doneanim ' + anim.name + ' ' + mdl_base.name)
         ascii_lines.append('')

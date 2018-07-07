@@ -107,12 +107,12 @@ def get_fcurve(action, data_path, index=0):
     return fcu
 
 
-def get_aabb(aurora_root):
+def get_aabb(mdl_base):
     """Find an AABB mesh for this mdl base."""
     def is_aabb(obj):
         """Return true if object obj is an aabb mesh."""
         return obj.type == 'MESH' and obj.nvb.meshtype == nvb_def.Meshtype.AABB
-    ol = [c for c in aurora_root.children if is_aabb(c)]
+    ol = [c for c in mdl_base.children if is_aabb(c)]
     if len(ol) > 0:
         return ol[0]
     return None
@@ -128,12 +128,12 @@ def is_wkm_root(obj):
              obj.nvb.emptytype == nvb_def.Emptytype.DWK))
 
 
-def find_wkm_root(mdlRoot, wkmtype):
+def find_wkm_root(mdl_base, wkmtype):
     """Find a walkmesh root."""
     emptytype = nvb_def.Emptytype.PWK
     if wkmtype == nvb_def.Walkmeshtype.DWK:
         emptytype = nvb_def.Emptytype.DWK
-    ol = [c for c in mdlRoot.children
+    ol = [c for c in mdl_base.children
           if c.type == 'EMPTY' and c.nvb.emptytype == emptytype]
     if len(ol) > 0:
         return ol[0]
@@ -226,7 +226,7 @@ def getAuroraTexture(s):
 
 def readRawAnimData(txtBlock):
     """TODO: DOC."""
-    def findEnd(self, asciiBlock):
+    def findEnd(asciiBlock):
         """Find the end of a key list.
 
         We don't know when a list of keys of keys will end. We'll have to
@@ -294,8 +294,8 @@ def writeRawAnimData(txt, animData, frameStart=0):
 def adjustRawAnimBounds(txtBlock, scaleFactor):
     """TODO: DOC."""
     animData = readRawAnimData(txtBlock)
-    for nodeName, nodeType, keyList in animData:
-        for label, keys in keyList:
+    for _, _, keyList in animData:  # name, type, keylist
+        for _, keys in keyList:  # label, keys
             for k in keys:
                 frame = int(k[0]) * scaleFactor
                 k[0] = str(frame)
@@ -303,10 +303,10 @@ def adjustRawAnimBounds(txtBlock, scaleFactor):
     writeRawAnimData(txtBlock, animData)
 
 
-def toggle_anim_focus(scene, rootDummy):
+def toggle_anim_focus(scene, mdl_base):
     """Set the Start and end frames of the timeline."""
-    animList = rootDummy.nvb.animList
-    animIdx = rootDummy.nvb.animListIdx
+    animList = mdl_base.nvb.animList
+    animIdx = mdl_base.nvb.animListIdx
 
     anim = animList[animIdx]
     if (scene.frame_start == anim.frameStart) and \
@@ -325,17 +325,17 @@ def toggle_anim_focus(scene, rootDummy):
     scene.frame_current = scene.frame_start
 
 
-def checkAnimBounds(rootDummy):
+def checkAnimBounds(mdl_base):
     """
-    Check for animations of this rootDummy.
+    Check for animations of this mdl base.
 
     Returns true, if are non-overlapping and only use by one object.
     """
-    if len(rootDummy.nvb.animList) < 2:
+    if len(mdl_base.nvb.animList) < 2:
         return True
     # TODO: Interval tree
     animBounds = [(a.frameStart, a.frameEnd, idx) for idx, a in
-                  enumerate(rootDummy.nvb.animList)]
+                  enumerate(mdl_base.nvb.animList)]
     for a1 in animBounds:
         for a2 in animBounds:
             if (a1[0] <= a2[1]) and (a2[0] <= a1[1]) and (a1[2] != a2[2]):
@@ -343,14 +343,14 @@ def checkAnimBounds(rootDummy):
     return True
 
 
-def createAnimListItem(mdl_root):
+def createAnimListItem(mdl_base):
     """Append a new animation at the and of the animation list."""
     lastAnimEnd = nvb_def.anim_globstart
-    for anim in mdl_root.nvb.animList:
+    for anim in mdl_base.nvb.animList:
         if anim.frameEnd > lastAnimEnd:
             lastAnimEnd = anim.frameEnd
-    newAnim = mdl_root.nvb.animList.add()
-    newAnim.root = mdl_root.name
+    newAnim = mdl_base.nvb.animList.add()
+    newAnim.root = mdl_base.name
     start = int(math.ceil((lastAnimEnd + nvb_def.anim_offset) / 10.0)) * 10
     newAnim.frameStart = start
     newAnim.frameEnd = start

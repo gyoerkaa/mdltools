@@ -160,7 +160,10 @@ class Mdl():
         mdlanimscale = mdl_base.nvb.animscale
 
         ascii_lines.append('newmodel ' + mdlname)
-        ascii_lines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
+        if mdlsuper:
+            ascii_lines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
+        else:
+            ascii_lines.append('setsupermodel ' + mdlname + ' null')
         ascii_lines.append('classification ' + mdlclass)
         ascii_lines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
 
@@ -362,8 +365,8 @@ class Mdl():
         # Set mdl root position
         mdl_base.location = options.mdl_location
 
-    def create_supermodel(self, mdl_base, options):
-        """Import animation onto existing (imported) MDL."""
+    def create_super(self, mdl_base, options):
+        """Import animation onto existing MDL."""
         def setup_resolver(resolver, obj):
             node_name = nvb_utils.strip_trailing_numbers(obj.name)
             resolver.insert_obj(node_name, obj.nvb.imporder, obj.name)

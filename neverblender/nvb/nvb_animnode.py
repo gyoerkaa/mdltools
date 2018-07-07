@@ -20,6 +20,35 @@ class Animnode():
         self.name = name
         self.parent = nvb_def.null
 
+        # Keys for object properties
+        self.object_key_dict = {'position': [],
+                                'orientation': [],
+                                'scale': [],
+                                'selfillumcolor': [],
+                                'setfillumcolor': [],
+                                'color': [],
+                                'radius': []}
+        # Keys for material properties
+        self.material_key_dict = {'alpha': []}
+        # Keys for particle properties
+        self.particle_key_dict = {'birthrate': []}
+        # For easier parsing:
+        self.key_dict_list = [self.object_key_dict,
+                              self.material_key_dict,
+                              self.particle_key_dict]
+        # Conversion info: nwn keys => blender data
+        self.dp_dict = \
+            {'position': (dict(), ('location', 3, None)),
+             'orientation': ({'AXIS_ANGLE': ('rotation_axis_angle', 4, None),
+                              'QUATERNION': ('rotation_quaternion', 4, None)},
+                             ('rotation_euler', 3, None)),
+             'scale': (dict(), ('scale', 1, None)),
+             'alpha': (dict(), ('alpha', 1, None)),
+             'selfillumcolor': (dict(), ('nvb.selfillumcolor', 3, None)),
+             'setfillumcolor': (dict(), ('nvb.selfillumcolor', 3, None)),
+             'color': (dict(), ('color', 3, None)),
+             'radius': (dict(), ('distance', 1, None))}
+
         # All objects
         self.position = None
         self.positionkey = []
@@ -47,6 +76,7 @@ class Animnode():
 
         self.objdata = False  # Object animations present (loc, rot, scale ...)
         self.matdata = False  # Material animations present
+        self.emitterdata = False  # Emitter animations present
         self.uvdata = False  # Animmesh, uv animations present
         self.shapedata = False  # Animmesh, vertex animations present
 
@@ -167,8 +197,62 @@ class Animnode():
                     # Unknown or unsupported single value
                     self.unknownvalue[label] = line[1:]
 
+    def load_ascii2(self, ascii_lines, nodeidx=-1):
+        self.nodeidx = nodeidx
+        itlines = iter(ascii_lines)
+        line = []
+        keep_current_line = False
+        while line is not None:
+            # Get next line
+            if not keep_current_line:
+                line = next(itlines, [])
+            keep_current_line = False
+            # First element is the label
+            label = ''
+            try:
+                label = line[0].lower()
+            except (IndexError, AttributeError):
+                continue  # Probably empty line or comment
+            if label == 'node':
+                self.nodetype = line[1].lower()
+                self.name = nvb_utils.getAuroraIdentifier(line[2])
+            elif label == 'endnode':
+                break
+            elif label == 'parent':
+                self.parentName = nvb_utils.getAuroraIdentifier(line[1])
+            elif label == 'sampleperiod':  # animmesh data
+                self.sampleperiod = float(line[1])
+            elif label == 'animverts':  # animmesh data
+                if not self.animverts:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.animverts = [list(map(nvb_utils.str2float, v))
+                                      for v in tmp]
+                    self.shapedata = True
+            elif label == 'animtverts':  # animmesh data
+                if not self.animtverts:
+                    nvals = int(line[1])
+                    tmp = [next(itlines) for _ in range(nvals)]
+                    self.animverts = [list(map(nvb_utils.str2float, v))
+                                      for v in tmp]
+                    self.uvdata = True
+            else:   # must be keys
+                key_name = label
+                if key_name.endswith('key'):
+                    key_name = key_name[:-3]
+                    for key_dict in self.key_dict_list:
+                        if key_name in key_dict:
+                            key_dict[key_name] = []
+                            keep_current_line = True
+                else:
+                    for key_dict in self.key_dict_list:
+                        if key_name in key_dict and len(key_dict[key_name]):
+                            tmp = [nvb_utils.str2float(v) for v in line[1:]]
+                            key_dict[key_name] = []
+                            keep_current_line = True
+
     def create_data_material(self, mat, anim, options):
-        """TODO: DOC."""
+        """Creates animations in material actions."""
         fps = options.scene.render.fps
         # Add everything to a single action.
         frameStart = anim.frameStart
@@ -202,7 +286,7 @@ class Animnode():
             curve.keyframe_points.insert(frameEnd, self.alpha)
 
     def create_data_object(self, obj, anim, options):
-        """TODO: DOC."""
+        """Creates animations in object actions."""
         def create_values(frames, values, action, dp, dp_dim):
             """TODO: DOC."""
             if frames and values:
@@ -569,47 +653,86 @@ class Animnode():
 
     @staticmethod
     def get_keys_material(mat, anim, key_data, options):
-        """TODO: DOC."""
+        """Get keys from material actions."""
+        def get_exports(action):
+            """Get a list of data paths to export."""
+            # [value name, value dimension, value format,
+            #  data path name, data path dimension, conversion func., default]
+            exports = [['ambient', 3, ' {: >3.2f}',
+                        'nvb.ambient_color', 3, None, [0.0, 0.0, 0.0]]]
+            # Aplha can be animated with the following data paths
+            # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
+            # 2. 'alpha' - which is material alpha
+            # We only want one of those, alpha_factor takes precendence
+            dp_alpha_factor = [fc.data_path for fc in action.fcurves
+                               if fc.data_path.endswith('.alpha_factor')]
+            if dp_alpha_factor:
+                exports.append(['alpha', 1, ' {: >3.2f}',
+                                dp_alpha_factor[0], 1, None, [0.0]])
+            else:
+                exports.append(['alpha', 1, ' {: >3.2f}',
+                                'alpha', 1, None, [0.0]])
+            return exports
+
         action = mat.animation_data.action
         if not action:
             return
-        # Build data paths
-        # [value name, value dimension, value format,
-        #  data path dimension, data path]
-        exports = [['ambient', 3, ' {: >3.2f}', 3, 'nvb.ambient_color']]
-        # Aplha can be animated with the following data paths
-        # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
-        # 2. 'alpha' - which is material alpha
-        # We only want one of those, alpha_factor takes precendence
-        dp_alpha_factor = [fc.data_path for fc in action.fcurves
-                           if fc.data_path.endswith('.alpha_factor')]
-        if dp_alpha_factor:
-            exports.append(['alpha', 1, ' {: >3.2f}', 1, dp_alpha_factor[0]])
-        else:
-            exports.append(['alpha', 1, ' {: >3.2f}', 1, 'alpha'])
+        # List of exportable data paths with formats and conversion functions
+        exports = get_exports(action)
         fps = options.scene.render.fps
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
+        anim_start = anim.frameStart
+        anim_end = anim.frameEnd
         # Get keyframe data
-        fcurves = action.fcurves
-        for val_name, val_dim, val_fstr, dp_dim, dp in exports:
-            fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
-            if fcu.count(None) < 1:
-                # Get keyed frames
-                frames = list(set().union(
+        all_fcurves = action.fcurves
+        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, _, \
+                default_val in exports:
+            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            if fcu.count(None) < dp_dim:  # ignore empty fcurves
+                keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if animStart <= k.co[0] <= animEnd]
+                       if anim_start <= k.co[0] <= anim_end]
                       for i in range(dp_dim)]))
-                frames.sort()
-                values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
-                          for f in frames]
-                times = [(f - animStart) / fps for f in frames]
-                kfp = list(zip(times, values))
-                key_data.append([val_name, kfp, val_dim * val_fstr])
+                keyed_frames.sort()
+                aur_values = [[fcu[i].evaluate(f) if fcu[i] else default_val[i]
+                              for i in range(dp_dim)] for f in keyed_frames]
+                # values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                #           for f in frames]
+                aur_times = [(f - anim_start) / fps for f in keyed_frames]
+                aur_keys = list(zip(aur_times, aur_values))
+                key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
 
     @staticmethod
     def get_keys_object(obj, anim, key_data, options):
-        """TODO: DOC."""
+        """Get keys from object actions."""
+        def get_exports(rot_mode):
+            """Get a list of data paths to export."""
+            # [value name, value dimension, value format,
+            #  data path, data path dimension, conversion function, default]
+            exports = [
+                ['scale', 1, ' {:> 6.5f}',
+                 'scale', 1, None, [1.0]],
+                ['selfillumcolor', 3, ' {:>3.2f}',
+                 'nvb.selfillumcolor', 3, None, [0.0, 0.0, 0.0]],
+                ['color', 3, ' {:>3.2f}',
+                 'color', 3, None, [0.0, 0.0, 0.0]],
+                ['radius', 1, ' {:>6.5f}',
+                 'distance', 1, None, [1.0]],
+                ['position', 3, ' {:> 6.5f}',
+                 'location', 3, convert_loc, [0.0, 0.0, 0.0]]]
+            if obj.rotation_mode == 'AXIS_ANGLE':
+                exports.append(['orientation', 4, ' {:> 6.5f}',
+                                'rotation_axis_angle', 4, convert_axan,
+                                [1.0, 0.0, 0.0, 0.0]])
+            elif obj.rotation_mode == 'QUATERNION':
+                exports.append(['orientation', 4, ' {:> 6.5f}',
+                                'rotation_quaternion', 4, convert_quat,
+                                [1.0, 0.0, 0.0, 0.0]])
+            else:
+                exports.append(['orientation', 4, ' {:> 6.5f}',
+                                'rotation_euler', 3, convert_eul,
+                                [0.0, 0.0, 0.0]])
+            return exports
+
         def convert_loc(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
             return [(pinv * mathutils.Matrix.Translation(v)).to_translation()
@@ -640,46 +763,33 @@ class Animnode():
         action = obj.animation_data.action
         if not action:
             return
-        # Build data paths
-        # [value name, value dimension, value format,
-        #  data path dimension, data path, conversion function]
-        exports = [
-            ['scale', 1, ' {:> 6.5f}', 1, 'scale', None],
-            ['selfillumcolor', 3, ' {:>3.2f}', 3, 'nvb.selfillumcolor', None],
-            ['color', 3, ' {:>3.2f}', 3, 'color', None],
-            ['radius', 1, ' {:>6.5f}', 1, 'distance', None],
-            ['position', 3, ' {:> 6.5f}', 3, 'location', convert_loc]]
-        if obj.rotation_mode == 'AXIS_ANGLE':
-            exports.append(['orientation', 4, ' {:> 6.5f}',
-                            4, 'rotation_axis_angle', convert_axan])
-        elif obj.rotation_mode == 'QUATERNION':
-            exports.append(['orientation', 4, ' {:> 6.5f}',
-                            4, 'rotation_quaternion', convert_quat])
-        else:
-            exports.append(['orientation', 4, ' {:> 6.5f}',
-                            3, 'rotation_euler', convert_eul])
+        # List of exportable data paths with formats and conversion functions
+        exports = get_exports(obj.rotation_mode)
         fps = options.scene.render.fps
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
+        anim_start = anim.frameStart
+        anim_end = anim.frameEnd
         # Get keyframe data
-        fcurves = action.fcurves
-        for val_name, val_dim, val_fstr, dp_dim, dp, convert_func in exports:
-            fcu = [fcurves.find(dp, i) for i in range(dp_dim)]
-            if fcu.count(None) < 1:
-                # Get keyed frames
-                frames = list(set().union(
+        all_fcurves = action.fcurves
+        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, dp_conversion, \
+                default_val in exports:
+            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            if fcu.count(None) < dp_dim:  # ignore empty fcurves
+                keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if animStart <= k.co[0] <= animEnd]
+                       if anim_start <= k.co[0] <= anim_end]
                       for i in range(dp_dim) if fcu[i]]))
-                frames.sort()
+                keyed_frames.sort()
                 # Get values at keyed frames and convert
-                values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
-                          for f in frames]
-                if convert_func is not None:
-                    values = convert_func(obj, values)
-                times = [(f - animStart) / fps for f in frames]
-                kfp = list(zip(times, values))
-                key_data.append([val_name, kfp, val_dim * val_fstr])
+                values = [[fcu[i].evaluate(f) if fcu[i] else default_val[i]
+                           for i in range(dp_dim)] for f in keyed_frames]
+                # values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                #           for f in frames]
+                # Convert to the format used by MDLs
+                if dp_conversion is not None:
+                    aur_values = dp_conversion(obj, values)
+                aur_times = [(f - anim_start) / fps for f in keyed_frames]
+                aur_keys = list(zip(aur_times, aur_values))
+                key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
 
     @staticmethod
     def generate_ascii_keys(obj, anim, asciiLines, options):

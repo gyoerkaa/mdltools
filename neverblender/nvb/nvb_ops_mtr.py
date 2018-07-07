@@ -101,7 +101,7 @@ class NVB_OT_mtr_open(bpy.types.Operator):
         if not self.filepath:
             self.report({'ERROR'}, 'Error: No path to file.')
             return {'CANCELLED'}
-        mtrpath, mtrfilename = os.path.split(self.filepath)
+        _, mtrfilename = os.path.split(self.filepath)
         # Load mtr
         mtr = nvb_mtr.Mtr(material.name)
         if not mtr.loadFile(self.filepath):
