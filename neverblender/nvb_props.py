@@ -1,13 +1,13 @@
 """TODO: DOC."""
 
-import bpy
+from . import bpy
 from . import nvb_def
 
 
 class NVB_AddOn_Properties(bpy.types.AddonPreferences):
     # this must match the addon name, use '__package__'
     # when defining this in a submodule of a python package.
-    bl_idname = nvb_def.addon_name
+    bl_idname = __package__
 
     compiler_path = bpy.props.StringProperty(name="Path to compiler",
                                              subtype='FILE_PATH')

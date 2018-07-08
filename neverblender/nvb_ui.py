@@ -210,7 +210,7 @@ class NVB_PT_armature(bpy.types.Panel):
     def draw(self, context):
         """TODO: DOC."""
         obj = context.object
-        addon = context.user_preferences.addons[nvb_def.addon_name]
+        addon = context.user_preferences.addons[__package__]
         layout = self.layout
 
         # Armature Helper
@@ -738,7 +738,7 @@ class NVB_PT_utils(bpy.types.Panel):
         """TODO: DOC."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_aurora_root(context.object)
-        add_on = context.user_preferences.addons[nvb_def.addon_name]
+        add_on = context.user_preferences.addons[__package__]
         render = context.scene.render
         if mdl_base:
             # Armature Helper

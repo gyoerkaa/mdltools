@@ -23,22 +23,22 @@
 
 import bpy
 
-from .nvb import nvb_def
-from .nvb import nvb_utils
-from .nvb import nvb_mdl
-from .nvb import nvb_node
-from .nvb import nvb_anim
-from .nvb import nvb_animnode
-from .nvb import nvb_mtr
+from . import nvb_def
+from . import nvb_utils
+from . import nvb_mdl
+from . import nvb_node
+from . import nvb_anim
+from . import nvb_animnode
+from . import nvb_mtr
 
-from .nvb import nvb_props
-from .nvb import nvb_ops
-from .nvb import nvb_ops_io
-from .nvb import nvb_ops_mtr
-from .nvb import nvb_ops_anim
-from .nvb import nvb_ops_set
-from .nvb import nvb_ops_amt
-from .nvb import nvb_ui
+from . import nvb_props
+from . import nvb_ops
+from . import nvb_ops_io
+from . import nvb_ops_mtr
+from . import nvb_ops_anim
+from . import nvb_ops_set
+from . import nvb_ops_amt
+from . import nvb_ui
 
 if 'bpy' in locals():
     import importlib
@@ -118,7 +118,6 @@ def menu_func_import(self, context):
 def register():
     """TODO:Doc."""
     bpy.utils.register_module(__name__)
-    nvb_def.addon_name = __name__
     """
     for cl in classes:
         bpy.utils.register_class(cl)

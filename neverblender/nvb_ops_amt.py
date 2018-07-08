@@ -438,7 +438,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     def execute(self, context):
         """Create pseudo bones and copy animations"""
         armature = context.object
-        add_on = context.user_preferences.addons[nvb_def.addon_name]
+        add_on = context.user_preferences.addons[__package__]
         self.scene = context.scene
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
@@ -661,7 +661,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     def execute(self, context):
         """Create the armature"""
         mdl_base = nvb_utils.get_obj_aurora_root(context.object)
-        add_on = context.user_preferences.addons[nvb_def.addon_name]
+        add_on = context.user_preferences.addons[__package__]
         self.auto_connect = add_on.preferences.helper_amt_connect
         self.strip_trailing = add_on.preferences.helper_amt_strip
         self.generated = []

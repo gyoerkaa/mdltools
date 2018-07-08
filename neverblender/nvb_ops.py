@@ -412,7 +412,7 @@ class NVB_OT_util_nodes(bpy.types.Operator):
     def execute(self, context):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_aurora_root(context.object)
-        add_on = context.user_preferences.addons[nvb_def.addon_name]
+        add_on = context.user_preferences.addons[__package__]
         scene = bpy.context.scene
         if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
