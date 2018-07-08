@@ -148,7 +148,10 @@ class NVB_PT_dummy(bpy.types.Panel):
         obj = context.object
         layout = self.layout
 
-        layout.prop(obj.nvb, 'emptytype', text='Type')
+        # Common properties for all types of Dummies
+        box = layout.box()
+        box.prop(obj.nvb, 'emptytype', text='Type')
+        box.row().prop(obj.nvb, 'imporder')
 
         # Display properties depending on type of the empty
         if (obj.nvb.emptytype == nvb_def.Emptytype.REFERENCE):
@@ -207,14 +210,15 @@ class NVB_PT_armature(bpy.types.Panel):
     def draw(self, context):
         """TODO: DOC."""
         obj = context.object
+        addon = context.user_preferences.addons[nvb_def.addon_name]
         layout = self.layout
 
         # Armature Helper
         box = layout.box()
         box.label(text='Generate Pseudo Bones')
         row = box.row()
-        row.prop(obj.nvb, 'helper_psb_anicopy')
-        row.prop(obj.nvb, 'helper_psb_insertroot')
+        row.prop(addon.preferences, 'helper_psb_anicopy')
+        row.prop(addon.preferences, 'helper_psb_insertroot')
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
@@ -540,7 +544,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             box = layout.box()
             box.label(text='AABB Properties')
 
-            box.operator('nvb.helper_genwok',
+            box.operator('nvb.util_genwok',
                          text='Setup Materials', icon='MATERIAL')
             box.label(text='(Warning: Removes current materials)')
         # Trimesh, danglymesh, skin
@@ -734,6 +738,7 @@ class NVB_PT_utils(bpy.types.Panel):
         """TODO: DOC."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        add_on = context.user_preferences.addons[nvb_def.addon_name]
         render = context.scene.render
         if mdl_base:
             # Armature Helper
@@ -745,12 +750,12 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Source: ')
             col.label(text='Animations: ')
             col = split.column()
-            col.row().prop(mdl_base.nvb, 'helper_amt_source', expand=True)
-            col.prop(mdl_base.nvb, 'helper_amt_animode', text='')
+            col.row().prop(add_on.preferences, 'helper_amt_src', expand=True)
+            col.prop(add_on.preferences, 'helper_amt_mode', text='')
 
             row = box.row()
-            row.prop(mdl_base.nvb, 'helper_amt_connect')
-            row.prop(mdl_base.nvb, 'helper_amt_striptr')
+            row.prop(add_on.preferences, 'helper_amt_connect')
+            row.prop(add_on.preferences, 'helper_amt_strip')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
@@ -760,7 +765,7 @@ class NVB_PT_utils(bpy.types.Panel):
             row = box.row()
             row.column().prop(mdl_base, 'location')
             row.column().prop(mdl_base, 'scale')
-            box.operator('nvb.helper_transform', icon='SORTSIZE')
+            box.operator('nvb.util_transform', icon='SORTSIZE')
             layout.separator()
 
             # Walkmesh & Dummy Helper
@@ -768,8 +773,8 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(mdl_base.nvb, 'helper_node_mdltype', expand=True)
-            box.operator('nvb.helper_node_setup', text='Generate Objects',
+            row.prop(add_on.preferences, 'helper_node_mdltype', expand=True)
+            box.operator('nvb.util_nodes', text='Generate Objects',
                          icon='OOPS')
             layout.separator()
 
@@ -788,7 +793,7 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(render, 'use_lock_interface', icon_only=True)
 
             row = box.row(align=True)
-            row.operator('nvb.render_minimap', text='Setup Scene',
+            row.operator('nvb.util_minimap', text='Setup Scene',
                          icon='SCENE_DATA').batch_mode = False
             row.operator('render.render', text='Render', icon='RENDER_STILL')
             layout.separator()

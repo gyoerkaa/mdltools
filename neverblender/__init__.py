@@ -65,7 +65,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 7, 227),
+    'version': (2, 7, 228),
     "blender": (2, 7, 9),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -118,7 +118,7 @@ def menu_func_import(self, context):
 def register():
     """TODO:Doc."""
     bpy.utils.register_module(__name__)
-
+    nvb_def.addon_name = __name__
     """
     for cl in classes:
         bpy.utils.register_class(cl)

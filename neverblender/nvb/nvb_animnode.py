@@ -287,20 +287,18 @@ class Animnode():
 
     def create_data_object(self, obj, anim, options):
         """Creates animations in object actions."""
-        def create_values(frames, values, action, dp, dp_dim):
+        def insert_kfp(frames, values, action, dp, dp_dim):
             """TODO: DOC."""
             if frames and values:
                 fcu = [nvb_utils.get_fcurve(action, dp, i)
                        for i in range(dp_dim)]
                 kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
-                nkfp = list(map(lambda x: len(x), kfp))
+                kfp_cnt = list(map(lambda x: len(x), kfp))
                 list(map(lambda x: x.add(len(values)), kfp))
-                for i in range(len(values)):
-                    frm = frames[i]
-                    val = values[i]
-                    for j in range(dp_dim):
-                        p = kfp[j][nkfp[j]+i]
-                        p.co = frm, val[j]
+                for i, (frm, val) in enumerate(zip(frames, values)):
+                    for d in range(dp_dim):
+                        p = kfp[d][kfp_cnt[d]+i]
+                        p.co = frm, val[d]
                         p.interpolation = 'LINEAR'
                 list(map(lambda c: c.update(), fcu))
 
@@ -372,7 +370,7 @@ class Animnode():
                         frames.append(frameEnd)
                         values.append(v)
             # Generate animation
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
         if self.positionkey or self.position is not None:
             values = []
@@ -388,7 +386,7 @@ class Animnode():
                 if frameEnd > frameStart:
                     frames.append(frameEnd)
                     values.append(v)
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
         if self.scalekey or self.scale is not None:
             values = []
@@ -404,7 +402,7 @@ class Animnode():
                 if frameEnd > frameStart:
                     frames.append(frameEnd)
                     values.append(v)
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
         if self.selfillumcolorkey or self.selfillumcolor is not None:
             values = []
@@ -420,7 +418,7 @@ class Animnode():
                 if frameEnd > frameStart:
                     frames.append(frameEnd)
                     values.append(v)
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
         if self.colorkey or self.color is not None:
             values = []
@@ -436,7 +434,7 @@ class Animnode():
                 if frameEnd > frameStart:
                     frames.append(frameEnd)
                     values.append(v)
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
         if self.radiuskey or self.radius is not None:
             values = []
@@ -452,7 +450,7 @@ class Animnode():
                 if frameEnd > frameStart:
                     frames.append(frameEnd)
                     values.append(v)
-            create_values(frames, values, action, dp, dp_dim)
+            insert_kfp(frames, values, action, dp, dp_dim)
 
     def create_data_unkown(self, obj, anim, options):
         """Add incompatible animations (usually emitters) as plain text."""

@@ -4,6 +4,8 @@
 anim_globstart = 1
 # Offset between two imported animations (minimum)
 anim_offset = 60
+# Save during initialzation
+addon_name = 'neverblender'
 # Save order of tverts for each objects {objectName:[p1, p2, ... pN]}
 tvert_order = dict()
 # Shapekey name (for import)

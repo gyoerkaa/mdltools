@@ -124,10 +124,10 @@ class NVB_OT_light_genname(bpy.types.Operator):
         return {'CANCELLED'}
 
 
-class NVB_OT_helper_genwok(bpy.types.Operator):
+class NVB_OT_util_genwok(bpy.types.Operator):
     """Load all materials for aabb walkmeshes for the selected object"""
 
-    bl_idname = 'nvb.helper_genwok'
+    bl_idname = 'nvb.util_genwok'
     bl_label = 'Load walkmesh materials'
 
     @classmethod
@@ -146,10 +146,10 @@ class NVB_OT_helper_genwok(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_helper_node_setup(bpy.types.Operator):
+class NVB_OT_util_nodes(bpy.types.Operator):
     """Helper to add missing walkmesh objects and dummys."""
 
-    bl_idname = "nvb.helper_node_setup"
+    bl_idname = "nvb.util_nodes"
     bl_label = "Setup Nodes"
 
     def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
@@ -200,7 +200,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
         obj.parent = mdlroot
         scene.objects.link(obj)
 
-    def create_pwk(self, mdl_root, scene):
+    def create_pwk(self, mdl_base, scene):
         """Adds necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdlroot):
             basename = mdlroot.name
@@ -241,36 +241,36 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             mesh.update()
             return mesh
 
-        prefix = get_prefix(mdl_root)
+        prefix = get_prefix(mdl_base)
         # Find or create walkmesh root
-        wkmroot = nvb_utils.find_wkm_root(mdl_root, nvb_def.Walkmeshtype.PWK)
-        newname = mdl_root.name + '_pwk'
+        wkmroot = nvb_utils.find_wkm_root(mdl_base, nvb_def.Walkmeshtype.PWK)
+        newname = mdl_base.name + '_pwk'
         if wkmroot:
             # Adjust existing object
             if wkmroot.name != newname:
                 wkmroot.name = newname
-            wkmroot.parent = mdl_root
+            wkmroot.parent = mdl_base
         else:
             # make a new one
             wkmroot = bpy.data.objects.new(newname, None)
             wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
-            wkmroot.parent = mdl_root
+            wkmroot.parent = mdl_base
             scene.objects.link(wkmroot)
         # Get all children of the mdlroot (to check existing objects)
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         # FROM HERE ON: Walkmesh objects - all parented to wkmroot
         # Adjust name and parent of exising mesh(es)
         meshlist = [o for o in obj_list if o.name.endswith('_wg')]
         for obj in meshlist:
-            newname = mdl_root.name + '_wg'
+            newname = mdl_base.name + '_wg'
             if obj.name != newname:
                 obj.name = newname
             obj.parent = wkmroot
         # Create missing mesh
-        meshname = mdl_root.name + '_wg'
+        meshname = mdl_base.name + '_wg'
         if meshname not in bpy.data.objects:
-            verts, faces = get_mdl_bbox(mdl_root)
+            verts, faces = get_mdl_bbox(mdl_base)
             mesh = create_pwk_mesh(meshname, verts, faces)
             obj = bpy.data.objects.new(meshname, mesh)
             obj.parent = wkmroot
@@ -286,9 +286,9 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_head_hit', (0.0, 0.0, 2.2)],
                       ['_impact', (0.0, 0.0, 1.0)],
                       ['_ground', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdl_root, scene, obj_list)
+        self.create_dummys(dummy_data, prefix, mdl_base, scene, obj_list)
 
-    def create_dwk(self, mdl_root, scene):
+    def create_dwk(self, mdl_base, scene):
         """Add necessary (walkmesh) objects to mdlRoot."""
         def create_dwk_mesh(meshname):
             """Generate the default (walk)mesh for a generic door."""
@@ -334,25 +334,25 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             mesh.update()
             return mesh
 
-        prefix = mdl_root.name[-2:]
+        prefix = mdl_base.name[-2:]
         # Find or create walkmesh root (wkmroot)
-        wkmroot = nvb_utils.find_wkm_root(mdl_root, nvb_def.Walkmeshtype.DWK)
-        newname = mdl_root.name + '_dwk'
+        wkmroot = nvb_utils.find_wkm_root(mdl_base, nvb_def.Walkmeshtype.DWK)
+        newname = mdl_base.name + '_dwk'
         if wkmroot:
             # Adjust existing
             if wkmroot.name != newname:
                 # Avoid renaming to same name (results in '.001' suffix)
                 wkmroot.name = newname
-            wkmroot.parent = mdl_root
+            wkmroot.parent = mdl_base
         else:
             # Make a new one
             wkmroot = bpy.data.objects.new(newname, None)
             wkmroot.nvb.emptytype = nvb_def.Emptytype.DWK
-            wkmroot.parent = mdl_root
+            wkmroot.parent = mdl_base
             scene.objects.link(wkmroot)
         # Get all children of the mdlroot (to check existing objects)
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         # FROM HERE ON: Walkmesh objects - all parented to wkmroot
         # Create walkmesh dummys
         # Parented to wkmroot!
@@ -394,7 +394,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
             obj = bpy.data.objects.new('sam', mesh)
             obj.location = (0.0, 0.0, 0.0)
             scene.objects.link(obj)
-        obj.parent = mdl_root
+        obj.parent = mdl_base
         obj.nvb.shadow = False
         # Create special dummys
         dummy_data = [['_hand', (0.0, 0.0, 1.0)],
@@ -402,7 +402,7 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
                       ['_hhit', (0.0, 0.0, 3.0)],
                       ['_impc', (0.0, 0.0, 1.5)],
                       ['_grnd', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdl_root, scene, obj_list)
+        self.create_dummys(dummy_data, prefix, mdl_base, scene, obj_list)
 
     @classmethod
     def poll(self, context):
@@ -411,26 +411,27 @@ class NVB_OT_helper_node_setup(bpy.types.Operator):
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
-        mdl_root = nvb_utils.get_obj_aurora_root(context.object)
-        if not mdl_root:
+        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        add_on = context.user_preferences.addons[nvb_def.addon_name]
+        scene = bpy.context.scene
+        if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
-        scene = bpy.context.scene
-        wkm_type = mdl_root.nvb.helper_node_mdltype
+        wkm_type = add_on.preferences.helper_node_mdltype
         if wkm_type == nvb_def.Walkmeshtype.PWK:
-            self.create_pwk(mdl_root, scene)
+            self.create_pwk(mdl_base, scene)
         elif wkm_type == nvb_def.Walkmeshtype.DWK:
-            self.create_dwk(mdl_root, scene)
+            self.create_dwk(mdl_base, scene)
         elif wkm_type == nvb_def.Walkmeshtype.WOK:
-            self.create_wok(mdl_root, scene)
+            self.create_wok(mdl_base, scene)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
 
-class NVB_OT_render_minimap(bpy.types.Operator):
+class NVB_OT_util_minimap(bpy.types.Operator):
     """Set up rendering for minimaps."""
 
-    bl_idname = "nvb.render_minimap"
+    bl_idname = "nvb.util_minimap"
     bl_label = "Render Minimap"
 
     batch_mode = bpy.props.BoolProperty(
@@ -551,35 +552,9 @@ class NVB_OT_render_minimap(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_helper_genskgr(bpy.types.Operator):
-    """TODO: DOC"""
-    bl_idname = "nvb.skingroup_add"
-    bl_label = "Add new Skingroup"
-
-    def execute(self, context):
-        """TODO: DOC."""
-        obj = context.object
-        skingrName = obj.nvb.skingroup_obj
-        # Check if there is already a vertex group with this name
-        if skingrName:
-            if (skingrName not in obj.vertex_groups.keys()):
-                # Create the vertex group
-                obj.vertex_groups.new(skingrName)
-                obj.nvb.skingroup_obj = ''
-
-                self.report({'INFO'}, 'Created vertex group ' + skingrName)
-                return {'FINISHED'}
-            else:
-                self.report({'INFO'}, 'Duplicate Name')
-                return {'CANCELLED'}
-        else:
-            self.report({'INFO'}, 'Empty Name')
-            return {'CANCELLED'}
-
-
-class NVB_OT_helper_transform(bpy.types.Operator):
+class NVB_OT_util_transform(bpy.types.Operator):
     """Apply translation and scale to the whole model and its animations"""
-    bl_idname = "nvb.helper_transform"
+    bl_idname = "nvb.util_transform"
     bl_label = "Apply Transform"
 
     def apply_parent_inverse_animations(self, obj):

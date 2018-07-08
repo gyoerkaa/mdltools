@@ -4,6 +4,69 @@ import bpy
 from . import nvb_def
 
 
+class NVB_AddOn_Properties(bpy.types.AddonPreferences):
+    # this must match the addon name, use '__package__'
+    # when defining this in a submodule of a python package.
+    bl_idname = nvb_def.addon_name
+
+    compiler_path = bpy.props.StringProperty(name="Path to compiler",
+                                             subtype='FILE_PATH')
+    decompiler_path = bpy.props.StringProperty(name="Path to de-compiler",
+                                               subtype='FILE_PATH')
+    # Object & Dummy Helper
+    helper_node_mdltype = bpy.props.EnumProperty(
+        name='Type',
+        items=[(nvb_def.Walkmeshtype.PWK,
+                'Placeable', 'Setup objects for placeables', 0),
+               (nvb_def.Walkmeshtype.DWK,
+                'Door', 'Setup objects for doors', 1),
+               # (nvb_def.Walkmeshtype.TILE,
+               # 'Tile', 'Setup objects for tiles', 2),
+               ],
+        default=nvb_def.Walkmeshtype.PWK)
+
+    # Armature Helper
+    helper_amt_src = bpy.props.EnumProperty(
+        name='Source',
+        description='Source to take objects from',
+        items=[('ALL', 'All', 'All objects in the mdl', 0),
+               ('ACT', 'Active', 'Active object and its children', 1),
+               ],
+        default='ALL')
+    helper_amt_mode = bpy.props.EnumProperty(
+        name='Animations',
+        description='Transfer animations to newly created objects',
+        items=[('OFF', 'None', 'No animations transfer', 0),
+               ('KFP', 'Keyframes', 'Copy keyframes', 1),
+               ('CON', 'Constraints', 'Create constraints', 2),
+               ],
+        default='KFP')
+    helper_amt_connect = bpy.props.BoolProperty(
+        name='Auto Connect',
+        description='Connect bones when possible',
+        default=True)
+    helper_amt_strip = bpy.props.BoolProperty(
+        name='Strip Trailing',
+        description='Strip trailing numbers from names',
+        default=False)
+
+    # Pseudo Bones Helper
+    helper_psb_anicopy = bpy.props.BoolProperty(
+        name='Copy Animations',
+        description='Copy Animation to newly created pseudo-bones (meshes)',
+        default=True)
+    helper_psb_insertroot = bpy.props.BoolProperty(
+        name='Add Rootdummy',
+        description='Add an animation root (Empty) as a parent for all bones.',
+        default=False)
+
+    def draw(self, context):
+        pass
+        # layout = self.layout
+        # layout.prop(self, 'compiler_path')
+        # layout.prop(self, 'decompiler_path')
+
+
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
@@ -328,50 +391,8 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                                         default='fx_ref', options=set())
     reattachable = bpy.props.BoolProperty(name='Reattachable',
                                           default=False, options=set())
-    # Object & Dummy Helper
-    helper_node_mdltype = bpy.props.EnumProperty(
-        name='Type',
-        items=[(nvb_def.Walkmeshtype.PWK,
-                'Placeable', 'Setup objects for placeables', 0),
-               (nvb_def.Walkmeshtype.DWK,
-                'Door', 'Setup objects for doors', 1),
-               # (nvb_def.Walkmeshtype.TILE,
-               # 'Tile', 'Setup objects for tiles', 2),
-               ],
-        default=nvb_def.Walkmeshtype.PWK, options={'SKIP_SAVE'})
-    # Armature Helper
-    helper_amt_source = bpy.props.EnumProperty(
-        name='Source',
-        description='Source to take objects from',
-        items=[('ALL', 'All', 'All objects in the mdl', 0),
-               ('ACT', 'Active', 'Active object and its children', 1),
-               ],
-        default='ALL', options={'SKIP_SAVE'})
-    helper_amt_animode = bpy.props.EnumProperty(
-        name='Animations',
-        description='Transfer animations to newly created objects',
-        items=[('OFF', 'None', 'No animations transfer', 0),
-               ('KFP', 'Keyframes', 'Copy keyframes', 1),
-               ('CON', 'Constraints', 'Create constraints', 2),
-               ],
-        default='KFP', options={'SKIP_SAVE'})
-    helper_amt_connect = bpy.props.BoolProperty(
-        name='Auto Connect',
-        description='Connect bones when possible',
-        default=True, options={'SKIP_SAVE'})
-    helper_amt_striptr = bpy.props.BoolProperty(
-        name='Strip Trailing',
-        description='Strip trailing numbers from names',
-        default=False, options={'SKIP_SAVE'})
+
     # Pseudo Bones Helper
-    helper_psb_anicopy = bpy.props.BoolProperty(
-        name='Copy Animations',
-        description='Copy Animation to newly created pseudo-bones (meshes)',
-        default=True, options={'SKIP_SAVE'})
-    helper_psb_insertroot = bpy.props.BoolProperty(
-        name='Add Rootdummy',
-        description='Add an animation root (Empty) as a parent for all bones.',
-        default=False, options={'SKIP_SAVE'})
     helper_psb_anitarget = bpy.props.StringProperty(
         name='Target',
         description='Specify target to copy animations to',
@@ -459,11 +480,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     constraints = bpy.props.StringProperty(
                 name='Danglegroup',
                 description='Name of the vertex group to use for the weights',
-                default='', options=set())
-    # For skingroups
-    skingroup_obj = bpy.props.StringProperty(
-                name='Bone',
-                description='Name of the bone to create the skingroup for',
                 default='', options=set())
     # For lamps
     lighttype = bpy.props.EnumProperty(
