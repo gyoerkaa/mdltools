@@ -562,7 +562,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         for c in valid_children:
             self.generate_bones(amt, c, amb, psb_mat)
 
-    def transfer_animations(self, amt, amt_bone_name, psb, cmat):
+    def transfer_animations(self, amt, amt_bone_name, amt_action, psb,
+                            cmat):
         """TODO: DOC."""
         def insert_kfp(fcu, frames, values, dp, dp_dim):
             # Add keyframes to fcurves
@@ -614,9 +615,6 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             return
         amt_posebone = amt.pose.bones[amt_bone_name]
         amt_posebone.rotation_mode = psb.rotation_mode
-        # Gather rotation and location keyframe points
-        # Their coordinates need to be adjusted to use them with bones
-        amt_action = amt.animation_data.action
         if psb.animation_data and psb.animation_data.action:
             source_fcu = psb.animation_data.action.fcurves
             # Copy rotation keyframes
@@ -708,14 +706,16 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                 # Get or create animation data and action
                 if not amt.animation_data:
                     amt.animation_data_create()
-                if not amt.animation_data.action:
+                amt_action = amt.animation_data.action
+                if amt_action:
                     amt_action = bpy.data.actions.new(name=amt.name)
                     amt.animation_data.action = amt_action
-                for psb, amb_name, cmat in self.generated:
-                    self.transfer_animations(amt, amb_name, psb, cmat)
+                for psb, amt_bone_name, cmat in self.generated:
+                    self.transfer_animations(amt, amt_bone_name, amt_action,
+                                             psb, cmat)
             elif anim_mode == 'CON':  # Add constraints to bones
-                for psb, amb_name, _ in self.generated:
-                    self.add_constraints(amt, amb_name, psb)
+                for psb, amt_bone_name, _ in self.generated:
+                    self.add_constraints(amt, amt_bone_name, psb)
             bpy.ops.object.mode_set(mode='OBJECT')
         del self.generated
         return {'FINISHED'}
