@@ -136,9 +136,9 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
         mdl_base = None
-        if amt.nvb.helper_psb_anitarget in bpy.data.objects:
-            mdl_base = nvb_utils.get_obj_aurora_root(
-                bpy.data.objects[amt.nvb.helper_psb_anitarget])
+        if amt.nvb.util_psb_anitarget in bpy.data.objects:
+            mdl_base = nvb_utils.get_obj_mdl_base(
+                bpy.data.objects[amt.nvb.util_psb_anitarget])
         else:
             self.report({'INFO'}, 'Invalid Target')
             return {'FINISHED'}
@@ -255,7 +255,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     scene = None
 
     def create_mesh(self, mvector, meshname):
-        """TODO: DOC."""
+        """Create a mesh with the shape of a blender bone."""
         verts = [+0.0, +0.0, 0.0,
                  -0.1, -0.1, 0.1,
                  -0.1, +0.1, 0.1,
@@ -286,7 +286,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
 
     def generate_bones(self, amb, psb_parent=None):
         """Creates a pseusobone (mesh) object from an armature bone."""
-        # name for newly created mesh = pseudo bone
+        # name for newly created mesh = pseudo-bone
         if amb.parent:
             psb_head = amb.head_local - amb.parent.head_local
             psb_tail = amb.tail_local - amb.parent.head_local
@@ -294,7 +294,9 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             psb_head = amb.head_local
             psb_tail = amb.tail_local
         # Create the mesh for the pseudo bone
-        mesh = self.create_mesh(psb_tail-psb_head, amb.name)
+        mesh = None
+        if amb.nvb.util_psb_btype != 'EMT':
+            mesh = self.create_mesh(psb_tail-psb_head, amb.name)
         # Create object holding the mesh
         psb = bpy.data.objects.new(amb.name, mesh)
         psb.location = psb_head
@@ -444,7 +446,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         self.mats_edit_bone = dict()
         # Create an extra root object for the armature
         psb_root = None
-        if add_on.preferences.helper_psb_insertroot:
+        if add_on.preferences.util_psb_insertroot:
             psb_root = bpy.data.objects.new('rootdummy', None)
             psb_root.location = armature.location
             context.scene.objects.link(psb_root)
@@ -456,7 +458,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         bpy.ops.object.mode_set(mode='OBJECT')
         context.scene.update()
         # Transfer animations
-        if add_on.preferences.helper_psb_anicopy:  # Copy keyframes
+        if add_on.preferences.util_psb_anicopy:  # Copy keyframes
             if armature.animation_data and armature.animation_data.action:
                 for amb_name, psb_name in self.amb_psb_pairs:
                     self.transfer_animations(armature, amb_name, psb_name)
@@ -477,37 +479,40 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                           'lhand', 'rhand', 'lforearm', 'rforearm']
     # Saved settings from aurora base
     auto_connect = False  # Connect bones when possible
-    strip_trailing = False  # Strip trailing numbers from names
+    strip_name = False  # Strip trailing numbers from names
+    split_action = False  # Split animation into multiple actions
     # Generated bones
     generated = []
 
-    def can_connect(self, obj):
+    def can_connect(self, obj, parent_dist):
         """Determine whether the bone belonging to this object can be
            connected to it's parent."""
-        # If location is animated the bone cannot be connected
-        if obj.animation_data:
-            action = obj.animation_data.action
-            if action:
-                if 'location' in [fcu.data_path for fcu in action.fcurves]:
-                    return False
-        return self.auto_connect
+        if parent_dist <= 0.01 and self.auto_connect:
+            # If location is animated the bone cannot be connected
+            if obj.animation_data:
+                action = obj.animation_data.action
+                if action:
+                    dp_list = [fcu.data_path for fcu in action.fcurves]
+                    return 'location' not in dp_list
+            return True
+        return False
 
     def is_psb(self, obj):
         """Return true if the object is a pseudo bone."""
-        oname = obj.name
-        # Ignore skinmeshes, emitters and walkmeshes
-        if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
-           (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
-           (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
-            return False
         # Some objects like impact nodes can never be pseudo bones
         if obj.type == 'EMPTY':
             # Match objects ending with '.XYZ' numbers as well
-            matches = [re.fullmatch(s+'(\\.\\d+)?', oname)
+            obj_name = obj.name
+            matches = [re.fullmatch(s+'(\\.\\d+)?', obj_name)
                        for s in self.excluded_psb_names]
-            if matches.count(None) < len(matches):
+            if (matches.count(None) < len(matches)) or \
+               (obj.nvb.emptytype != nvb_def.Emptytype.DUMMY):
                 return False
-            if obj.nvb.emptytype != nvb_def.Emptytype.DUMMY:
+        elif obj.type == 'MESH':
+            # Ignore skinmeshes, emitters and walkmeshes
+            if (obj.nvb.meshtype == nvb_def.Meshtype.SKIN) or \
+               (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
+               (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
                 return False
         return True
 
@@ -536,17 +541,17 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                              mathutils.Vector()) / 8) + bhead
         # Create armature bone
         amb_name = psb.name
-        if self.strip_trailing:
+        if self.strip_name:
             amb_name = nvb_utils.strip_trailing_numbers(psb.name)
         amb = amt.data.edit_bones.new(amb_name)
         amb.roll = 0
         amb.head = bhead
         if amb_parent:
             amb.parent = amb_parent
-            # Merge head with parent tail if distance is short enough
-            if (amb_parent.tail - amb.head).length <= 0.01:
+            # Try to connect head with parent tail
+            if self.can_connect(psb, (amb_parent.tail - amb.head).length):
                 amb.head = amb_parent.tail
-                amb.use_connect = self.can_connect(psb)
+                amb.use_connect = True
         amb.tail = btail
         # Save values for animation transfer
         dc_ml = psb.matrix_local.decompose()
@@ -557,7 +562,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         for c in valid_children:
             self.generate_bones(amt, c, amb, psb_mat)
 
-    def transfer_animations(self, amt, psb, amt_bone_name, cmat):
+    def transfer_animations(self, amt, amt_bone_name, psb, cmat):
         """TODO: DOC."""
         def insert_kfp(fcu, frames, values, dp, dp_dim):
             # Add keyframes to fcurves
@@ -655,52 +660,62 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no root was found."""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return (mdl_base is not None)
 
     def execute(self, context):
         """Create the armature"""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
-        add_on = context.user_preferences.addons[__package__]
-        self.auto_connect = add_on.preferences.helper_amt_connect
-        self.strip_trailing = add_on.preferences.helper_amt_strip
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        addon = context.user_preferences.addons[__package__]
+
+        self.auto_connect = addon.preferences.util_amt_connect
+        self.strip_name = addon.preferences.util_amt_strip_name
+        self.split_action = addon.preferences.util_amt_split_action
         self.generated = []
 
         # Get source for armature
-        if add_on.preferences.helper_amt_src == 'ALL':
+        if addon.preferences.util_amt_src == 'ALL':
             psb_root = mdl_base
         else:
             psb_root = context.object
 
         # Create armature
         bpy.ops.object.add(type='ARMATURE', location=psb_root.location)
-        armature = context.scene.objects.active
-        armature.name = mdl_base.name + '.armature'
-        armature.rotation_mode = psb_root.rotation_mode
+        amt = context.scene.objects.active
+        amt.name = mdl_base.name + '.armature'
+        amt.rotation_mode = psb_root.rotation_mode
+
         # Create the bones
         bpy.ops.object.mode_set(mode='EDIT')
         for child in psb_root.children:
             if self.is_psb(child):
-                self.generate_bones(armature, child)
+                self.generate_bones(amt, child)
         context.scene.update()
         bpy.ops.object.mode_set(mode='OBJECT')
 
+        # Set bone properties for re-conversion to pseudo-bones
+        for psb, amb_name, _ in self.generated:
+            if psb.type == 'EMPTY':
+                amt.data.bones[amb_name].nvb.util_psb_btype = 'EMT'
+            else:
+                amt.data.bones[amb_name].nvb.util_psb_btype = 'ME1'
+
         # Copy animations
-        anim_mode = add_on.preferences.helper_amt_mode
+        anim_mode = addon.preferences.util_amt_mode
         if anim_mode != 'OFF':
             bpy.ops.object.mode_set(mode='POSE')
-            # Get or create animation data and action
-            if not armature.animation_data:
-                armature.animation_data_create()
-            if not armature.animation_data.action:
-                amt_action = bpy.data.actions.new(name=armature.name)
-                armature.animation_data.action = amt_action
             if anim_mode == 'KFP':  # Copy keyframes to bones
+                # Get or create animation data and action
+                if not amt.animation_data:
+                    amt.animation_data_create()
+                if not amt.animation_data.action:
+                    amt_action = bpy.data.actions.new(name=amt.name)
+                    amt.animation_data.action = amt_action
                 for psb, amb_name, cmat in self.generated:
-                    self.transfer_animations(armature, psb, amb_name, cmat)
+                    self.transfer_animations(amt, amb_name, psb, cmat)
             elif anim_mode == 'CON':  # Add constraints to bones
                 for psb, amb_name, _ in self.generated:
-                    self.add_constraints(armature, amb_name, psb)
+                    self.add_constraints(amt, amb_name, psb)
             bpy.ops.object.mode_set(mode='OBJECT')
         del self.generated
         return {'FINISHED'}

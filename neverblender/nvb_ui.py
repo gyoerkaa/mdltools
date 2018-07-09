@@ -104,13 +104,13 @@ class NVB_PT_aurorabase(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
 
         split = layout.split(percentage=0.33)
         col = split.column()
@@ -176,18 +176,21 @@ class NVB_PT_bone(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        return False
-        # return context.bone
+        return context.object and (context.bone or context.edit_bone)
 
     def draw(self, context):
         """TODO: DOC."""
+        obj = context.object
+        # Get bone - independent of mode
         bone = context.bone
+        if not bone:
+            bone = obj.data.bones[context.edit_bone.name]
         layout = self.layout
-        # Armature Helper
+        # Settings for conversion to pseudo-bones
         box = layout.box()
-        box.label(text='Armature Helper Settings')
+        box.label(text='Conversion Settings')
         row = box.row()
-        row.prop(bone.nvb, 'helper_amt_ctype', text='Conversion type')
+        row.prop(bone.nvb, 'util_psb_btype')
 
 
 class NVB_PT_armature(bpy.types.Panel):
@@ -217,8 +220,8 @@ class NVB_PT_armature(bpy.types.Panel):
         box = layout.box()
         box.label(text='Generate Pseudo Bones')
         row = box.row()
-        row.prop(addon.preferences, 'helper_psb_anicopy')
-        row.prop(addon.preferences, 'helper_psb_insertroot')
+        row.prop(addon.preferences, 'util_psb_anicopy')
+        row.prop(addon.preferences, 'util_psb_insertroot')
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
@@ -229,7 +232,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
-        box.prop_search(obj.nvb, 'helper_psb_anitarget', bpy.data, 'objects')
+        box.prop_search(obj.nvb, 'util_psb_anitarget', bpy.data, 'objects')
         box.operator('nvb.amt_anims2psb', icon='NODETREE')
         layout.separator()
 
@@ -638,13 +641,13 @@ class NVB_PT_animlist(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base:
             # Anim Helper. Display and add/remove events.
             row = layout.row()
@@ -731,13 +734,13 @@ class NVB_PT_utils(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """TODO: DOC."""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         add_on = context.user_preferences.addons[__package__]
         render = context.scene.render
         if mdl_base:
@@ -750,12 +753,18 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Source: ')
             col.label(text='Animations: ')
             col = split.column()
-            col.row().prop(add_on.preferences, 'helper_amt_src', expand=True)
-            col.prop(add_on.preferences, 'helper_amt_mode', text='')
+            col.row().prop(add_on.preferences, 'util_amt_src', expand=True)
+            col.prop(add_on.preferences, 'util_amt_mode', text='')
 
-            row = box.row()
-            row.prop(add_on.preferences, 'helper_amt_connect')
-            row.prop(add_on.preferences, 'helper_amt_strip')
+            split = box.split(percentage=0.5)
+            col = split.column()
+            col.prop(add_on.preferences, 'util_amt_connect')
+            col.prop(add_on.preferences, 'util_amt_strip_name')
+            col = split.column()
+            col.active = add_on.preferences.util_amt_mode == 'KFP'
+            col.prop(add_on.preferences, 'util_amt_split_action')
+            # col.prop(add_on.preferences, 'util_amt_use_nla')
+
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
@@ -773,7 +782,7 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(add_on.preferences, 'helper_node_mdltype', expand=True)
+            row.prop(add_on.preferences, 'util_node_mdltype', expand=True)
             box.operator('nvb.util_nodes', text='Generate Objects',
                          icon='OOPS')
             layout.separator()

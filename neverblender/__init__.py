@@ -132,8 +132,8 @@ def register():
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_scene)
     bpy.types.Particle.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_emitter)
-    # bpy.types.Bone.nvb = \
-    #     bpy.props.PointerProperty(type=nvb_props.NVB_PG_bone)
+    bpy.types.Bone.nvb = \
+        bpy.props.PointerProperty(type=nvb_props.NVB_PG_bone)
 
     bpy.types.INFO_MT_file_import.append(menu_func_import)
     bpy.types.INFO_MT_file_export.append(menu_func_export)

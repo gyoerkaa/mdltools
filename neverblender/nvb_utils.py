@@ -63,7 +63,7 @@ class NodeResolver():
         return None
 
 
-def is_aurora_root(obj):
+def is_mdl_base(obj):
     """Return true if object obj is a rootdummy."""
     if not obj:
         return False
@@ -72,28 +72,28 @@ def is_aurora_root(obj):
            (obj.nvb.emptytype == nvb_def.Emptytype.DUMMY)
 
 
-def get_obj_aurora_root(obj):
+def get_obj_mdl_base(obj):
     """Return the objects aurora root."""
     while obj:
-        if is_aurora_root(obj):
+        if is_mdl_base(obj):
             return obj
         obj = obj.parent
     return None
 
 
-def get_aurora_root(obj=None, scene=None):
+def get_mdl_base(obj=None, scene=None):
     """Return any aurora root."""
     # 1. Check the object and its parents
-    match = get_obj_aurora_root(obj)
+    match = get_obj_mdl_base(obj)
     if match:
         return match
     # 2. Nothing was found, try checking the objects in the scene
     if scene:
-        matches = [m for m in scene.objects if is_aurora_root(m)]
+        matches = [m for m in scene.objects if is_mdl_base(m)]
         if matches:
             return matches[0]
     # 3. Still nothing, try checking all objects
-    matches = [m for m in bpy.data.objects if is_aurora_root(m)]
+    matches = [m for m in bpy.data.objects if is_mdl_base(m)]
     if matches:
         return matches[0]
     return None
@@ -118,7 +118,7 @@ def get_aabb(mdl_base):
     return None
 
 
-def is_wkm_root(obj):
+def is_wkm_base(obj):
     """Return true if object obj is a root object for walkmeshes."""
     if not obj:
         return False
@@ -128,7 +128,7 @@ def is_wkm_root(obj):
              obj.nvb.emptytype == nvb_def.Emptytype.DWK))
 
 
-def find_wkm_root(mdl_base, wkmtype):
+def get_wkm_base(mdl_base, wkmtype):
     """Find a walkmesh root."""
     emptytype = nvb_def.Emptytype.PWK
     if wkmtype == nvb_def.Walkmeshtype.DWK:

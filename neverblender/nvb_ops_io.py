@@ -103,11 +103,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             new_name = new_name + new_ext
             return os.path.join(old_dir, new_name)
 
-        def get_walkmeshtype(mdl_root):
+        def get_walkmeshtype(mdl_base):
             """Creates filenames for walkmeshes and batch export."""
-            if mdl_root.nvb.classification == nvb_def.Classification.DOOR:
+            if mdl_base.nvb.classification == nvb_def.Classification.DOOR:
                 return nvb_def.Walkmeshtype.DWK
-            elif mdl_root.nvb.classification == nvb_def.Classification.TILE:
+            elif mdl_base.nvb.classification == nvb_def.Classification.TILE:
                 return nvb_def.Walkmeshtype.WOK
             else:
                 return nvb_def.Walkmeshtype.PWK
@@ -115,11 +115,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         if bpy.ops.object.mode_set.poll():
             bpy.ops.object.mode_set(mode='OBJECT')
         # Gather MDLs to export
-        root_list = []
+        mdl_list = []
         if options.batch_mode == 'OFF':  # Get active object only
-            root = nvb_utils.get_aurora_root(bpy.context.object)
+            base = nvb_utils.get_mdl_base(bpy.context.object)
             wkm_name = os.path.splitext(os.path.basename(options.filepath))[0]
-            root_list.append((root, options.filepath, wkm_name))
+            mdl_list.append((base, options.filepath, wkm_name))
         else:  # Get multiple objects
             obj_list = []
             if options.batch_mode == 'SCN':
@@ -127,28 +127,28 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             elif options.batch_mode == 'SEL':
                 obj_list = bpy.context.selected.objects
             for obj in obj_list:
-                root = nvb_utils.get_obj_aurora_root(obj)
-                if root and (root not in root_list):
+                base = nvb_utils.get_obj_mdl_base(obj)
+                if base and (base not in mdl_list):
                     # Build a custom filename
                     mdl_path = get_filepath(options.filepath,
-                                            root.name, '.mdl')
-                    root_list.append((root, mdl_path, root.name))
+                                            base.name, '.mdl')
+                    mdl_list.append((base, mdl_path, base.name))
         # Export MDLs
-        for mdl_root, mdl_path, wkm_name in root_list:
-            options.mdlname = mdl_root.name
+        for mdl_base, mdl_path, wkm_name in mdl_list:
+            options.mdlname = mdl_base.name
             options.filepath = mdl_path
-            options.classification = mdl_root.nvb.classification
+            options.classification = mdl_base.nvb.classification
             # Export MDL
             ascii_lines = []
-            nvb_mdl.Mdl.generateAscii(mdl_root, ascii_lines, options)
+            nvb_mdl.Mdl.generateAscii(mdl_base, ascii_lines, options)
             with open(os.fsencode(options.filepath), 'w') as f:
                 f.write('\n'.join(ascii_lines))
             # Export walkmesh for MDL
             if options.export_walkmesh:
-                wkm_type = get_walkmeshtype(mdl_root)
+                wkm_type = get_walkmeshtype(mdl_base)
                 wkm_ext = '.' + wkm_type
                 ascii_lines = []
-                nvb_mdl.Mdl.generateAsciiWalkmesh(mdl_root, ascii_lines,
+                nvb_mdl.Mdl.generateAsciiWalkmesh(mdl_base, ascii_lines,
                                                   wkm_type, options)
                 if ascii_lines:
                     wkm_path = get_filepath(mdl_path, wkm_name, wkm_ext)
@@ -457,7 +457,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
         # Build list of files
         pathlist = [os.path.join(self.directory, f.name) for f in self.files]
         # Import models
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         for filepath in pathlist:
             load_file(filepath, mdl_base, options)
         return {'FINISHED'}
@@ -465,7 +465,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
     @classmethod
     def poll(self, context):
         """Check presence of aurora base."""
-        return nvb_utils.get_obj_aurora_root(context.object) is not None
+        return nvb_utils.get_obj_mdl_base(context.object) is not None
 
     def draw(self, context):
         """Draw the export UI."""

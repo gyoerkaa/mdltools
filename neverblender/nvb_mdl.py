@@ -170,7 +170,7 @@ class Mdl():
     @staticmethod
     def generateAsciiGeometry(obj, ascii_lines, options):
         """TODO: DOC."""
-        if nvb_utils.is_wkm_root(obj):
+        if nvb_utils.is_wkm_base(obj):
             return
         node_type = nvb_utils.getNodeType(obj)
         try:
@@ -239,7 +239,7 @@ class Mdl():
                 wkmObjects.append(wok)
         else:
             # Walkmesh for doors: Append all children of the walkmesh root
-            wkmRoot = nvb_utils.find_wkm_root(mdl_base, wkmtype)
+            wkmRoot = nvb_utils.get_wkm_base(mdl_base, wkmtype)
             if wkmRoot:
                 wkmObjects = [c for c in wkmRoot.children]
         if not wkmObjects:  # Abort if there is nothing to write
@@ -265,7 +265,7 @@ class Mdl():
                     parentobj = noderesolver.get_obj_parent(node.parent,
                                                             node.nodeidx)
                     obj.parent = parentobj
-                else:  # potential mdl root
+                else:  # potential mdl base
                     obj.parent = None
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
@@ -273,7 +273,7 @@ class Mdl():
                 options.scene.objects.link(obj)
             else:
                 print('Neverblender: WARNING - Invalid object ' + node.name)
-        # Return the root
+        # Return the base
         while obj:
             if obj.parent is None:
                 return obj
@@ -305,29 +305,28 @@ class Mdl():
     def create(self, options):
         """Create objects and animations for a parsed MDL."""
         def create_wkm_base(mdlnodes, wkmnodes, wkmtype, options):
-            """Generate a root node as parent for all walkmesh objects."""
-            # Get root node
+            """Generate a base node as parent for all walkmesh objects."""
             if wkmtype not in nvb_def.Walkmeshtype.IMPORT:
                 print('Neverblender: WARNING - Invalid walkmesh type: '
                       + wkmtype)
                 return
             # Generate name
-            parentNames = set([n.parent for n in wkmnodes])
-            rootName = ''
-            if len(parentNames) >= 1:
+            parent_names = set([n.parent for n in wkmnodes])
+            base_name = ''
+            if len(parent_names) >= 1:
                 # All nodes in the walkmesh SHOULD have the same parent
-                rootName = next(iter(parentNames))
-                if len(parentNames) > 1:
+                base_name = next(iter(parent_names))
+                if len(parent_names) > 1:
                     # Multiple parents (Walkmesh is technically invalid)
                     # Try to solve the issue by re-parenting
                     for node in wkmnodes:
-                        node.parent = rootName
+                        node.parent = base_name
             else:
                 # This shouldn't happen really
-                rootName = options.mdlname + '_' + wkmtype
+                base_name = options.mdlname + '_' + wkmtype
                 for node in wkmnodes:
-                    node.parent = rootName
-            wkmroot = nvb_node.Dummy(rootName)
+                    node.parent = base_name
+            wkmroot = nvb_node.Dummy(base_name)
             if wkmtype == nvb_def.Walkmeshtype.DWK:
                 wkmroot.emptytype = nvb_def.Emptytype.DWK
             else:
@@ -362,7 +361,7 @@ class Mdl():
                 options.scene.render.fps = options.anim_fps
             self.create_animations(self.animations,
                                    mdl_base, mdlresolver, options)
-        # Set mdl root position
+        # Set mdl base position
         mdl_base.location = options.mdl_location
 
     def create_super(self, mdl_base, options):

@@ -4,7 +4,7 @@ from . import bpy
 from . import nvb_def
 
 
-class NVB_AddOn_Properties(bpy.types.AddonPreferences):
+class NVB_addon_properties(bpy.types.AddonPreferences):
     # this must match the addon name, use '__package__'
     # when defining this in a submodule of a python package.
     bl_idname = __package__
@@ -14,7 +14,7 @@ class NVB_AddOn_Properties(bpy.types.AddonPreferences):
     decompiler_path = bpy.props.StringProperty(name="Path to de-compiler",
                                                subtype='FILE_PATH')
     # Object & Dummy Helper
-    helper_node_mdltype = bpy.props.EnumProperty(
+    util_node_mdltype = bpy.props.EnumProperty(
         name='Type',
         items=[(nvb_def.Walkmeshtype.PWK,
                 'Placeable', 'Setup objects for placeables', 0),
@@ -26,14 +26,14 @@ class NVB_AddOn_Properties(bpy.types.AddonPreferences):
         default=nvb_def.Walkmeshtype.PWK)
 
     # Armature Helper
-    helper_amt_src = bpy.props.EnumProperty(
+    util_amt_src = bpy.props.EnumProperty(
         name='Source',
         description='Source to take objects from',
         items=[('ALL', 'All', 'All objects in the mdl', 0),
                ('ACT', 'Active', 'Active object and its children', 1),
                ],
         default='ALL')
-    helper_amt_mode = bpy.props.EnumProperty(
+    util_amt_mode = bpy.props.EnumProperty(
         name='Animations',
         description='Transfer animations to newly created objects',
         items=[('OFF', 'None', 'No animations transfer', 0),
@@ -41,21 +41,29 @@ class NVB_AddOn_Properties(bpy.types.AddonPreferences):
                ('CON', 'Constraints', 'Create constraints', 2),
                ],
         default='KFP')
-    helper_amt_connect = bpy.props.BoolProperty(
+    util_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect',
         description='Connect bones when possible',
         default=True)
-    helper_amt_strip = bpy.props.BoolProperty(
+    util_amt_strip_name = bpy.props.BoolProperty(
         name='Strip Trailing',
         description='Strip trailing numbers from names',
         default=False)
+    util_amt_split_action = bpy.props.BoolProperty(
+        name='Split Actions',
+        description='Split animation into multiple actions',
+        default=False)
+    util_amt_use_nla = bpy.props.BoolProperty(
+        name='Create Action strips',
+        description='Re-merge split actions with action strips',
+        default=False)
 
     # Pseudo Bones Helper
-    helper_psb_anicopy = bpy.props.BoolProperty(
+    util_psb_anicopy = bpy.props.BoolProperty(
         name='Copy Animations',
         description='Copy Animation to newly created pseudo-bones (meshes)',
         default=True)
-    helper_psb_insertroot = bpy.props.BoolProperty(
+    util_psb_insertroot = bpy.props.BoolProperty(
         name='Add Rootdummy',
         description='Add an animation root (Empty) as a parent for all bones.',
         default=False)
@@ -236,8 +244,8 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
     format. It hold the properties for bones.
     """
     # Armature Helper
-    helper_amt_ctype = bpy.props.EnumProperty(
-        name='Source',
+    util_psb_btype = bpy.props.EnumProperty(
+        name='Pseudo-Bone Type',
         items=[('EMT', 'Empty', 'Bone will be converted to an empty', 0),
                ('ME1', 'Mesh', 'Bone will be converted to a mesh', 1)
                ],
@@ -260,7 +268,7 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                                        default=(0, 0), options=set())
     twosidedtex = bpy.props.BoolProperty(
         name='Two Sided Texture',
-        description='Use external MTR file',
+        description='Texture visible from both sides',
         default=False, options=set())
     colorstart = bpy.props.FloatVectorProperty(
         name='Color Start', description='Particle color at birth',
@@ -271,10 +279,10 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
         subtype='COLOR_GAMMA',
         default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
     alphastart = bpy.props.FloatProperty(
-        name='Alpha Start', description='Particle color at birth',
+        name='Alpha Start', description='Particle alpha at birth',
         default=1, min=0.0, max=1.0)
     alphaend = bpy.props.FloatProperty(
-        name='Alpha Start', description='Particle color at birth',
+        name='Alpha Start', description='Particle alpha at birth',
         default=1, min=0.0, max=1.0)
 
 
@@ -393,7 +401,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                                           default=False, options=set())
 
     # Pseudo Bones Helper
-    helper_psb_anitarget = bpy.props.StringProperty(
+    util_psb_anitarget = bpy.props.StringProperty(
         name='Target',
         description='Specify target to copy animations to',
         default='', options={'SKIP_SAVE'})

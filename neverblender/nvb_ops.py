@@ -99,7 +99,7 @@ class NVB_OT_light_genname(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         obj = context.object
-        rootDummy = nvb_utils.get_obj_aurora_root(obj)
+        rootDummy = nvb_utils.get_obj_mdl_base(obj)
         if not rootDummy:
             self.report({'INFO'}, 'Failure: No rootdummy.')
             return {'CANCELLED'}
@@ -243,7 +243,7 @@ class NVB_OT_util_nodes(bpy.types.Operator):
 
         prefix = get_prefix(mdl_base)
         # Find or create walkmesh root
-        wkmroot = nvb_utils.find_wkm_root(mdl_base, nvb_def.Walkmeshtype.PWK)
+        wkmroot = nvb_utils.get_wkm_base(mdl_base, nvb_def.Walkmeshtype.PWK)
         newname = mdl_base.name + '_pwk'
         if wkmroot:
             # Adjust existing object
@@ -336,7 +336,7 @@ class NVB_OT_util_nodes(bpy.types.Operator):
 
         prefix = mdl_base.name[-2:]
         # Find or create walkmesh root (wkmroot)
-        wkmroot = nvb_utils.find_wkm_root(mdl_base, nvb_def.Walkmeshtype.DWK)
+        wkmroot = nvb_utils.get_wkm_base(mdl_base, nvb_def.Walkmeshtype.DWK)
         newname = mdl_base.name + '_dwk'
         if wkmroot:
             # Adjust existing
@@ -411,13 +411,13 @@ class NVB_OT_util_nodes(bpy.types.Operator):
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
-        mdl_base = nvb_utils.get_obj_aurora_root(context.object)
-        add_on = context.user_preferences.addons[__package__]
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        addon = context.user_preferences.addons[__package__]
         scene = bpy.context.scene
         if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
-        wkm_type = add_on.preferences.helper_node_mdltype
+        wkm_type = addon.preferences.util_node_mdltype
         if wkm_type == nvb_def.Walkmeshtype.PWK:
             self.create_pwk(mdl_base, scene)
         elif wkm_type == nvb_def.Walkmeshtype.DWK:
@@ -440,7 +440,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         default=False)
     render_dir = bpy.props.StringProperty(
         name='Render Directory',
-        description='Directors to render images to',
+        description='Directory to render images to',
         default='')
     img_size = bpy.props.IntProperty(
         name='Image Size',
@@ -518,34 +518,34 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         """Create camera + lamp and Renders Minimap."""
         if self.batch_mode:
             # Get mdl roots
-            root_list = []
+            mdl_base_list = []
             obj_list = bpy.context.scene.objects
             for obj in obj_list:
-                root = nvb_utils.get_obj_aurora_root(obj)
-                if root and (root not in root_list):
-                    root_list.append(root)
+                mbase = nvb_utils.get_obj_mdl_base(obj)
+                if mbase and (mbase not in mdl_base_list):
+                    mdl_base_list.append(mbase)
             # Render each mdl
             scene = bpy.context.scene
             self.setup_scene(scene)
-            for root in root_list:
-                img_name = 'mi_' + root.name
+            for mbase in mdl_base_list:
+                img_name = 'mi_' + mbase.name
                 img_path = os.fsencode(os.path.join(self.render_dir, img_name))
                 scene.render.filepath = img_path
-                mm_cam, _ = self.setup_objects(root, scene)
+                mm_cam, _ = self.setup_objects(mbase, scene)
                 scene.camera = mm_cam
                 bpy.ops.render.render(animation=False, write_still=True)
         else:
             # Get root from active mdl
             if not context.object:
                 return {'CANCELLED'}
-            root = nvb_utils.get_aurora_root(context.object)
-            if not root:
+            mdl_base = nvb_utils.get_mdl_base(context.object)
+            if not mdl_base:
                 return {'CANCELLED'}
             # Setup Render
             scene = bpy.context.scene
             self.img_size = scene.render.resolution_y
             self.setup_scene(scene)
-            mm_cam, _ = self.setup_objects(root, scene)
+            mm_cam, _ = self.setup_objects(mdl_base, scene)
             scene.camera = mm_cam
 
             self.report({'INFO'}, 'Ready to render')
@@ -703,23 +703,23 @@ class NVB_OT_util_transform(bpy.types.Operator):
 
     def execute(self, context):
         """TODO: DOC."""
-        root = nvb_utils.get_aurora_root(context.object)
+        mdl_base = nvb_utils.get_mdl_base(context.object)
         # Get translation and scale factors
-        if not root:
+        if not mdl_base:
             self.report({'ERROR'}, 'Error: No Aurora Root.')
             return {'CANCELLED'}
         else:
             # Apply parent inverses
-            self.apply_parent_inverse(root)
+            self.apply_parent_inverse(mdl_base)
             # Decompose to get root transforms
-            dcmp = root.matrix_basis.decompose()
+            dcmp = mdl_base.matrix_basis.decompose()
             # Undo root transformations
-            root.matrix_basis = dcmp[1].to_matrix().to_4x4()  # keep rotation
+            mdl_base.matrix_basis = dcmp[1].to_matrix().to_4x4()  # keep rot
             # Apply translation to immediate children and scale to all
             trn = mathutils.Matrix.Translation(dcmp[0]).to_4x4()
             scl = (mathutils.Matrix.Scale(dcmp[2][0], 4, [1, 0, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][1], 4, [0, 1, 0]) *
                    mathutils.Matrix.Scale(dcmp[2][2], 4, [0, 0, 1]))
-            self.adjust_objects(root, scl, trn)
+            self.adjust_objects(mdl_base, scl, trn)
             context.scene.update()
             return {'FINISHED'}
