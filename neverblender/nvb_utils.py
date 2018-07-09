@@ -177,6 +177,23 @@ def get_last_frame(obj):
     return frame
 
 
+def get_frame_interval(obj):
+    """Get the first and last keyed frame of this object and its children."""
+    obj_list = [obj]
+    get_children_recursive(obj, obj_list)
+    max_frame = nvb_def.anim_globstart
+    min_frame = nvb_def.anim_globstart + 1000
+    for o in obj_list:
+        if o.animation_data and o.animation_data.action:
+            action = o.animation_data.action
+            for fcu in action.fcurves:
+                max_frame = max(max([p.co[0] for p in fcu.keyframe_points],
+                                    default=0), max_frame)
+                min_frame = min(min([p.co[0] for p in fcu.keyframe_points],
+                                    default=0), min_frame)
+    return (min_frame, max_frame)
+
+
 def strip_trailing_numbers(s):
     """Removes trailing numbers resulting from duplicate object names."""
     return re.fullmatch(r'(.+?)(\.\d+)?$', s).group(1)

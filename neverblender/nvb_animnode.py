@@ -265,7 +265,7 @@ class Animnode():
         action = animData.action
         if not action:
             action = bpy.data.actions.new(name=mat.name)
-            action.use_fake_user = True
+            # action.use_fake_user = True
             animData.action = action
 
         # If there is a texture, use texture alpha for animations
@@ -313,7 +313,7 @@ class Animnode():
         action = animData.action
         if not action:
             action = bpy.data.actions.new(name=obj.name)
-            action.use_fake_user = True
+            # action.use_fake_user = True
             animData.action = action
 
         if self.orientationkey or self.orientation is not None:

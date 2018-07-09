@@ -741,7 +741,7 @@ class NVB_PT_utils(bpy.types.Panel):
         """TODO: DOC."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        add_on = context.user_preferences.addons[__package__]
+        addon = context.user_preferences.addons[__package__]
         render = context.scene.render
         if mdl_base:
             # Armature Helper
@@ -753,17 +753,19 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Source: ')
             col.label(text='Animations: ')
             col = split.column()
-            col.row().prop(add_on.preferences, 'util_amt_src', expand=True)
-            col.prop(add_on.preferences, 'util_amt_mode', text='')
+            col.row().prop(addon.preferences, 'util_amt_src', expand=True)
+            col.prop(addon.preferences, 'util_amt_mode', text='')
 
             split = box.split(percentage=0.5)
             col = split.column()
-            col.prop(add_on.preferences, 'util_amt_connect')
-            col.prop(add_on.preferences, 'util_amt_strip_name')
+            col.prop(addon.preferences, 'util_amt_connect')
+            col.prop(addon.preferences, 'util_amt_strip_name')
             col = split.column()
-            col.active = add_on.preferences.util_amt_mode == 'KFP'
-            col.prop(add_on.preferences, 'util_amt_split_action')
-            # col.prop(add_on.preferences, 'util_amt_use_nla')
+            col.active = addon.preferences.util_amt_mode == 'KFP'
+            col.prop(addon.preferences, 'util_amt_split_action')
+            sub = col.row()
+            sub.active = addon.preferences.util_amt_split_action
+            sub.prop(addon.preferences, 'util_amt_create_nla')
 
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
@@ -782,7 +784,7 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Walkmesh & Dummy Helper')
             row = box.row()
             row.label(text='Type: ')
-            row.prop(add_on.preferences, 'util_node_mdltype', expand=True)
+            row.prop(addon.preferences, 'util_node_mdltype', expand=True)
             box.operator('nvb.util_nodes', text='Generate Objects',
                          icon='OOPS')
             layout.separator()
@@ -857,7 +859,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return False
+        # return False
         part = NVB_PT_emitter.particle_get_settings(context)
         if part:
             return not part.is_fluid

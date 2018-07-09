@@ -481,6 +481,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     auto_connect = False  # Connect bones when possible
     strip_name = False  # Strip trailing numbers from names
     split_action = False  # Split animation into multiple actions
+    create_nla_track = False  # Create NLA Tracks holding the actions
     # Generated bones
     generated = []
 
@@ -563,7 +564,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             self.generate_bones(amt, c, amb, psb_mat)
 
     def transfer_animations(self, amt, amt_bone_name, amt_action, psb,
-                            cmat):
+                            cmat, frame_interval=None):
         """TODO: DOC."""
         def insert_kfp(fcu, frames, values, dp, dp_dim):
             # Add keyframes to fcurves
@@ -627,10 +628,18 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                 if psb_fcu.count(None) < 1:
                     amt_dp = 'pose.bones["' + amt_bone_name + '"].' + dp
                     # Get keyed frames
-                    frames = list(set().union(
-                        *[[k.co[0] for k in psb_fcu[i].keyframe_points]
-                          for i in range(dp_dim) if psb_fcu[i]]))
+                    if frame_interval:
+                        min_frame, max_frame = frame_interval
+                        frames = list(set().union(
+                            *[[k.co[0] for k in psb_fcu[i].keyframe_points
+                              if min_frame <= k.co[0] <= max_frame]
+                              for i in range(dp_dim) if psb_fcu[i]]))
+                    else:
+                        frames = list(set().union(
+                            *[[k.co[0] for k in psb_fcu[i].keyframe_points]
+                              for i in range(dp_dim) if psb_fcu[i]]))
                     frames.sort()
+                    # Evaluate fcurve at keyed frames
                     values = [[psb_fcu[i].evaluate(f)
                               for i in range(dp_dim)] for f in frames]
                     # Convert from pseudo-bone to armature-bone space
@@ -638,6 +647,10 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                     # Create fcurves for armature
                     amt_fcu = [nvb_utils.get_fcurve(amt_action, amt_dp, i)
                                for i in range(dp_dim)]
+                    # Adjust for frame intervals:
+                    if frame_interval:
+                        min_frame = frame_interval[0]
+                        frames = [f - min_frame for f in frames]
                     # Add keyframes to fcurves
                     insert_kfp(amt_fcu, frames, values, dp, dp_dim)
 
@@ -669,6 +682,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         self.auto_connect = addon.preferences.util_amt_connect
         self.strip_name = addon.preferences.util_amt_strip_name
         self.split_action = addon.preferences.util_amt_split_action
+        self.create_nla_track = addon.preferences.util_amt_create_nla
         self.generated = []
 
         # Get source for armature
@@ -706,13 +720,29 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                 # Get or create animation data and action
                 if not amt.animation_data:
                     amt.animation_data_create()
-                amt_action = amt.animation_data.action
-                if amt_action:
-                    amt_action = bpy.data.actions.new(name=amt.name)
-                    amt.animation_data.action = amt_action
-                for psb, amt_bone_name, cmat in self.generated:
-                    self.transfer_animations(amt, amt_bone_name, amt_action,
-                                             psb, cmat)
+                action_list = []
+                if self.split_action and mdl_base.nvb.animList:
+                    for anim in mdl_base.nvb.animList:
+                        action_name = mdl_base.name + '.' + anim.name
+                        action = bpy.data.actions.new(name=action_name)
+                        interval = (anim.frameStart, anim.frameEnd)
+                        action_list.append((anim.name, action, interval))
+                        action.use_fake_user = True
+                else:
+                    action = bpy.data.actions.new(name=amt.name)
+                    action_list.append((amt.name, action, None))
+                    amt.animation_data.action = action
+                # Copy keyframes to action(s)
+                for _, amt_action, frm_interval in action_list:
+                    for psb, amt_bname, cmat in self.generated:
+                        self.transfer_animations(amt, amt_bname, amt_action,
+                                                 psb, cmat, frm_interval)
+                # Create an nla track with a strip holding all actions
+                if self.split_action and self.create_nla_track:
+                    for anim_name, action, _ in action_list:
+                        nla_track = amt.animation_data.nla_tracks.new()
+                        nla_track.name = anim_name
+                        nla_track.strips.new(action.name, 0, action)
             elif anim_mode == 'CON':  # Add constraints to bones
                 for psb, amt_bone_name, _ in self.generated:
                     self.add_constraints(amt, amt_bone_name, psb)

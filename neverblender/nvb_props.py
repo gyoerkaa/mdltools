@@ -53,9 +53,9 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         name='Split Actions',
         description='Split animation into multiple actions',
         default=False)
-    util_amt_use_nla = bpy.props.BoolProperty(
-        name='Create Action strips',
-        description='Re-merge split actions with action strips',
+    util_amt_create_nla = bpy.props.BoolProperty(
+        name='Create NLA Tracks',
+        description='Create NLA tracks for split actions',
         default=False)
 
     # Pseudo Bones Helper
@@ -93,9 +93,9 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
     name = bpy.props.StringProperty(name='Name',
                                     description='Name for this event',
                                     default='Unnamed')
-    ttime = bpy.props.FloatProperty(name='Transitiontime',
+    ttime = bpy.props.FloatProperty(name='Transitiontime', subtype='TIME',
                                     description='Used for for animations only',
-                                    default=0.25, min=0.0)
+                                    default=0.25, min=0.0, soft_max=10.0)
     root = bpy.props.StringProperty(name='Root',
                                     description='Entry point of the animation',
                                     default='')
@@ -226,7 +226,7 @@ class NVB_PG_flare(bpy.types.PropertyGroup):
                                        default=nvb_def.null, options=set())
     size = bpy.props.FloatProperty(name='Size', description='Flare size',
                                    default=1, min=0)
-    position = bpy.props.FloatProperty(name='Position',
+    position = bpy.props.FloatProperty(name='Position', subtype='DISTANCE',
                                        description='Flare position',
                                        default=1, min=-1.0, max=1.0)
     colorshift = bpy.props.FloatVectorProperty(name='Colorshift',
@@ -258,32 +258,237 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
     This class defines all additional properties needed by the mdl file
     format for emitters.
     """
-    birthrate = bpy.props.IntProperty(name='birthrate',
-                                      default=1)
+    # Style
+    update = bpy.props.EnumProperty(
+        name='Update',
+        items=[('explosion', 'Explosion',
+                'Triggered by a detonate event', 0),
+               ('fountain', 'Fountain',
+                'Emit in a fountain shape, based on the spread value', 1),
+               ('lightning', 'Lightning',
+                'Two-Point lightning effect, requires a reference node', 2),
+               ('single', 'Single',
+                'Emit a single particle', 3)
+               ],
+        default='fountain', options=set())
+    render = bpy.props.EnumProperty(
+        name='Render',
+        items=[('aligned_to_particle', 'Aligned to Particle',
+                'Particles align to their angle at birth', 0),
+               ('aligned_to_world_z', 'Aligned to World Z',
+                'TODO: Unknown', 1),
+               ('billboard_to_local_z', 'Billboard to Local Z',
+                'Particles preserve their facing from birth', 2),
+               ('billboard_to_world_z', 'Billboard to World Z',
+                'Partciles face up', 3),
+               ('normal', 'Normal',
+                'Particles face camera', 4),
+               ('linked', 'Linked',
+                'Particles face camera and are stretched to link', 5),
+               ('motionblur', 'Motion Blur',
+                'Stretch and overlap particles', 6),
+               ],
+        default='normal', options=set())
+    blend = bpy.props.EnumProperty(
+        name='Update',
+        items=[('normal', 'Normal',
+                'No blending', 0),
+               ('punch_through', 'Punch-Through',
+                'TODO: Unknown', 1),
+               ('lighten', 'Lighten',
+                'Uses lighten blending mode', 2),
+               ],
+        default='normal', options=set())
+    spawntype = bpy.props.EnumProperty(
+        name='Spawn Type',
+        items=[('normal', 'Normal',
+                'Emit particles based on birthrate', 0),
+               ('trail', 'Trail',
+                'Emit particles based on amount per meter', 1),
+               ],
+        default='normal', options=set())
+
+    # Particle settings
+    birthrate = bpy.props.IntProperty(name='birthrate', default=1, min=0)
+    # lifeexp => from blender ".lifetime"
+    # mass => from blender ".mass"
+    # velocity => from blender ".object_factor" or ".normal_factor"
+    # randvel => from blender ".factor_random"
+    # particleRot => from blender ".angular_velocity_factor"
+    spread = bpy.props.FloatProperty(
+        name='Spread',
+        description='Prticle spread angle for Fountain type emitters',
+        subtype='ANGLE', unit='ROTATION',
+        default=0.0, min=0.0)
+
+    # Texture and chunk settings
     texture = bpy.props.StringProperty(name='Texture',
                                        description='Texture name',
+                                       subtype='FILE_NAME', maxlen=32,
                                        default=nvb_def.null, options=set())
-    grid = bpy.props.IntVectorProperty(name='grid', description='Texture grid',
-                                       subtype='XYZ', size=2,
-                                       default=(0, 0), options=set())
     twosidedtex = bpy.props.BoolProperty(
         name='Two Sided Texture',
         description='Texture visible from both sides',
         default=False, options=set())
+    chunk = bpy.props.StringProperty(name='Chunk',
+                                     description='Model name for a chunk',
+                                     subtype='FILE_NAME', maxlen=32,
+                                     default=nvb_def.null, options=set())
+
+    # Texture animation properties
+    xgrid = bpy.props.IntProperty(name='X Grid', description='Texture grid',
+                                  default=1, min=0)
+    ygrid = bpy.props.IntProperty(name='Y Grid', description='Texture grid',
+                                  default=1, min=0)
+    fps = bpy.props.FloatProperty(
+        name='Speed',
+        description='FPS value used to cycle between frames',
+        default=0.0, min=0.0)
+    framestart = bpy.props.IntProperty(
+        name='Frame Start',
+        description='Starting frame in texture grid',
+        default=0, min=0)
+    frameend = bpy.props.IntProperty(
+        name='Frame End',
+        description='Ending frame in texture grid',
+        default=0, min=0)
+    random = bpy.props.BoolProperty(
+        name='Random Frame',
+        description='Display a random frame from the texture grid',
+        default=False, options=set())
+
+    # Misc Properties
+    bounce = bpy.props.BoolProperty(
+        name='Bounce',
+        description='The particles bounce against static walkmeshes',
+        default=False, options=set())
+    bounce_co = bpy.props.FloatProperty(
+        name='Bounce coefficient',
+        description='How much each particle bounces',
+        default=0.0)
+    loop = bpy.props.BoolProperty(
+        name='Loop',
+        description='???',
+        default=False, options=set())
+    deadspace = bpy.props.FloatProperty(
+        name='Dead Space', description='???',
+        default=0.0)
+    splat = bpy.props.BoolProperty(
+        name='Splat',
+        description='On collision the particle is placed flat (face up) on the contacting surface ',
+        default=False, options=set())
+    affectedbywind = bpy.props.BoolProperty(
+        name='Affected by Wind',
+        description='Wind effects affect the particles',
+        default=False, options=set())
+    m_istinted = bpy.props.BoolProperty(
+        name='Tinted',
+        description='Tint the particles with the ambient color of the scene',
+        default=False, options=set())
+    renderorder = bpy.props.IntProperty(
+        name='Render Order',
+        description='Helps the engine priotize emitters, lower order = higher priority',
+        default=0, min=0, options=set())
+    blurlength = bpy.props.FloatProperty(
+        name='Blast Radius', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+
+    # Blast properties
+    blastradius = bpy.props.FloatProperty(
+        name='Blast Radius', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+    blastlength = bpy.props.FloatProperty(
+        name='Blast Length', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+
+    # Lightning properties
+    # lightningDelay
+    # lightningRadius
+    # lightningScale
+
+    # Particle start and end values
     colorstart = bpy.props.FloatVectorProperty(
         name='Color Start', description='Particle color at birth',
         subtype='COLOR_GAMMA',
-        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
+        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
     colorend = bpy.props.FloatVectorProperty(
-        name='Color Start', description='Particle color at death',
+        name='Color End', description='Particle color at death',
         subtype='COLOR_GAMMA',
-        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
+        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
     alphastart = bpy.props.FloatProperty(
         name='Alpha Start', description='Particle alpha at birth',
         default=1, min=0.0, max=1.0)
     alphaend = bpy.props.FloatProperty(
-        name='Alpha Start', description='Particle alpha at birth',
-        default=1, min=0.0, max=1.0)
+        name='Alpha End', description='Particle alpha at death',
+        default=1.0, min=0.0, max=1.0)
+    sizestart = bpy.props.FloatProperty(
+        name='Start x-Size', description='Particle size at birth',
+        default=1.0, min=0.0)
+    sizeend = bpy.props.FloatProperty(
+        name='Start x-Size', description='Particle size at death',
+        default=1.0, min=0.0)
+    sizestart_y = bpy.props.FloatProperty(
+        name='Start <-Size', description='Particle size at birth',
+        default=1.0, min=0.0)
+    sizeend_y = bpy.props.FloatProperty(
+        name='Start <-Size', description='Particle size at death',
+        default=1.0, min=0.0)
+
+    # For p2p emitters
+    p2p = bpy.props.BoolProperty(
+        name='P2P',
+        description='Point to Point emitter',
+        default=False, options=set())
+    p2p_sel = bpy.props.EnumProperty(
+        name='Spawn Type',
+        items=[('0', 'Bezier',
+                'Emit particles based on birthrate', 0),
+               ('1', 'Gravity',
+                'Emit particles based on amount per meter', 1),
+               ],
+        default='0', options=set())
+    p2p_bezier2 = bpy.props.FloatProperty(
+        name='Source', subtype='DISTANCE',
+        description='Source Bezier Handle',
+        default=0.0, min=0.0)  # Bezier type p2p
+    p2p_bezier3 = bpy.props.FloatProperty(
+        name='Target', subtype='DISTANCE',
+        description='Target Bezier Handle',
+        default=0.0, min=0.0)  # Bezier type p2p
+    combinetime = bpy.props.FloatProperty(
+        name='Combine Time', subtype='TIME',
+        description='Time for the particles to reach the reference node',
+        default=0.0, min=0.0)  # Bezier type p2p
+    grav = bpy.props.FloatProperty(
+        name='Gravity',
+        description='Particles are pulled towards the reference node.',
+        default=0.0)  # Gravity type p2p
+    drag = bpy.props.FloatProperty(
+        name='Drag',
+        description='Particles overshoot the reference node and double back',
+        default=0.0)  # Gravity type p2p
+    threshold = bpy.props.FloatProperty(
+        name='Combine Time', subtype='DISTANCE',
+        description='Distance from the gravity point that the particle will be killed off from. A value of 0 will let the particles pass through the gravity center and loop back in an orbital pattern.',
+        default=0.0, min=0.0)  # Gravity type p2p
+
+    # Inheritance
+    inherit = bpy.props.BoolProperty(
+        name='Inherit',
+        description='Particles inherit the emitters Z axis',
+        default=False, options=set())
+    inheritvel = bpy.props.BoolProperty(
+        name='Inherit Velocity',
+        description='Particles inherit velocity from emitter object',
+        default=False, options=set())
+    inherit_local = bpy.props.BoolProperty(
+        name='Inherit Local',
+        description='Particles inherit the emitters Z axis',
+        default=False, options=set())
+    inherit_part = bpy.props.BoolProperty(
+        name='Inherit Particle',
+        description='The particle stretches depending on its speed',
+        default=False, options=set())  # Combine with inherit velocity
 
 
 class NVB_PG_lamp(bpy.types.PropertyGroup):
@@ -300,16 +505,16 @@ class NVB_PG_lamp(bpy.types.PropertyGroup):
                 description='Light will be ignored for shadow casting',
                 default=False, options=set())
     lightpriority = bpy.props.IntProperty(name='Lightpriority',
-                                          default=3, min=1, max=5,
+                                          default=5, min=1, max=5,
                                           options=set())
     fadinglight = bpy.props.BoolProperty(name='Fading light',
-                                         default=False, options=set())
+                                         default=True, options=set())
     isdynamic = bpy.props.BoolProperty(name='Is Dynamic',
-                                       default=False, options=set())
+                                       default=True, options=set())
     affectdynamic = bpy.props.BoolProperty(
                 name='Affect Dynamic',
                 description='Affect dynamic objects',
-                default=False, options=set())
+                default=True, options=set())
     negativelight = bpy.props.BoolProperty(name='Negative Light',
                                            default=False, options=set())
     uselensflares = bpy.props.BoolProperty(name='Lensflares',
@@ -362,10 +567,6 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                         'All children are part of the walkmesh', 4)],
                 default=nvb_def.Emptytype.DUMMY, options=set())
     # For Aurora Root
-    supermodel = bpy.props.StringProperty(
-        name='Supermodel',
-        description='Name of the model to inherit animations from',
-        default=nvb_def.null, options=set())
     classification = bpy.props.EnumProperty(
                 name='Classification',
                 items=[(nvb_def.Classification.UNKNOWN,
@@ -384,10 +585,15 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                         'Item', 'Items or placeables', 6)
                        ],
                 default=nvb_def.Classification.UNKNOWN, options=set())
+    supermodel = bpy.props.StringProperty(
+        name='Supermodel',
+        description='Name of the model to inherit animations from',
+        default=nvb_def.null, subtype='FILE_NAME', options=set())
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
                 description='Animation scale for all animations',
-                default=1.00, min=0.0, options=set())
+                default=1.00, min=0.0, soft_max=10.0,
+                subtype='FACTOR', options=set())
     # Animation Data (for being able to seperate them)
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
