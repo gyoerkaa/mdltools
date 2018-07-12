@@ -79,7 +79,7 @@ class Mtr(object):
         except (IndexError, AttributeError):
             return line  # Probably empty line or comment
         if label == 'renderhint':
-            self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
+            self.renderhints.add(nvb_utils.str2identifier(line[1]))
         elif label == 'parameter':
             try:
                 ptype = line[1].lower()
@@ -99,7 +99,7 @@ class Mtr(object):
                 cnt = len(self.textures)
                 if idx+1 > cnt:
                     self.textures.extend(['' for _ in range(idx+1-cnt)])
-                self.textures[idx] = nvb_utils.getAuroraTexture(line[1])
+                self.textures[idx] = nvb_utils.str2texture(line[1])
         return line
 
     @staticmethod

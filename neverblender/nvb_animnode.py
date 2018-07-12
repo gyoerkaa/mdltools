@@ -13,6 +13,27 @@ from . import nvb_node
 class Animnode():
     """TODO: DOC."""
 
+    # Keys that go into particle system settings
+    emitter_properties = nvb_node.Emitter.property_dict
+    # Keys that go directly into objects
+    object_properties = {'position': ('location', 3, float,
+                                      ' {:>4.2f}'),
+                         'orientation': ('', 4, float,  # Needs conversion
+                                         ' {:>4.2f}'),
+                         'scale': ('', 1, float,  # Needs conversion
+                                   ' {:>4.2f}'),
+                         'color': ('color', 3, float,
+                                   ' {:>4.2f}'),
+                         'radius': ('distance', 1, float,
+                                    ' {:>4.2f}'),
+                         'selfillumcolor': ('nvb.selfillumcolor', 3, float,
+                                            ' {:>4.2f}'),
+                         'setfillumcolor': ('nvb.selfillumcolor', 3, float,
+                                            ' {:>4.2f}')}
+    # Keys that go into materials
+    material_properties = {'alpha': ('', 1, float,  # Needs conversion
+                                     ' {:>4.2f}')}
+
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
         self.nodeidx = -1
@@ -20,146 +41,70 @@ class Animnode():
         self.name = name
         self.parent = nvb_def.null
 
-        # Keys for object properties
-        self.object_key_dict = {'position': [],
-                                'orientation': [],
-                                'scale': [],
-                                'selfillumcolor': [],
-                                'setfillumcolor': [],
-                                'color': [],
-                                'radius': []}
-        # Keys for material properties
-        self.material_key_dict = {'alpha': []}
-        # Keys for particle properties
-        self.particle_key_dict = {'birthrate': []}
-        # For easier parsing:
-        self.key_dict_list = [self.object_key_dict,
-                              self.material_key_dict,
-                              self.particle_key_dict]
-        # Conversion info: nwn keys => blender data
-        self.dp_dict = \
-            {'position': (dict(), ('location', 3, None)),
-             'orientation': ({'AXIS_ANGLE': ('rotation_axis_angle', 4, None),
-                              'QUATERNION': ('rotation_quaternion', 4, None)},
-                             ('rotation_euler', 3, None)),
-             'scale': (dict(), ('scale', 1, None)),
-             'alpha': (dict(), ('alpha', 1, None)),
-             'selfillumcolor': (dict(), ('nvb.selfillumcolor', 3, None)),
-             'setfillumcolor': (dict(), ('nvb.selfillumcolor', 3, None)),
-             'color': (dict(), ('color', 3, None)),
-             'radius': (dict(), ('distance', 1, None))}
+        self.emitter_data = dict()
+        self.material_data = dict()
+        self.object_data = dict()
 
-        # All objects
-        self.position = None
-        self.positionkey = []
-        self.orientation = None
-        self.orientationkey = []
-        self.scale = None
-        self.scalekey = []
-        self.alpha = None
-        self.alphakey = []
-        self.selfillumcolor = None
-        self.selfillumcolorkey = []
-        # Lamps
-        self.color = None
-        self.colorkey = []
-        self.radius = None
-        self.radiuskey = []
-        # Emitters ... incompatible. Import as text
-        self.unknownvalue = dict()
-        self.unknownkey = dict()
-
-        # Animesh
+        # Animesh Data
         self.sampleperiod = 0.0
         self.animtverts = []
         self.animverts = []
 
-        self.objdata = False  # Object animations present (loc, rot, scale ...)
-        self.matdata = False  # Material animations present
-        self.emitterdata = False  # Emitter animations present
         self.uvdata = False  # Animmesh, uv animations present
         self.shapedata = False  # Animmesh, vertex animations present
 
     def __bool__(self):
         """Return false if the node is empty, i.e. no anims attached."""
-        return self.objdata or self.matdata or self.rawdata
+        return self.object_data or self.material_data or self.emitter_data
 
-    def load_ascii(self, asciiLines, nodeidx=-1):
+    @staticmethod
+    def insert_kfp(frames, values, action, dp, dp_dim):
         """TODO: DOC."""
-        def find_end(asciiLines):
+        if frames and values:
+            fcu = [nvb_utils.get_fcurve(action, dp, i) for i in range(dp_dim)]
+            kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
+            kfp_cnt = list(map(lambda x: len(x), kfp))
+            list(map(lambda x: x.add(len(values)), kfp))
+            for i, (frm, val) in enumerate(zip(frames, values)):
+                for d in range(dp_dim):
+                    p = kfp[d][kfp_cnt[d]+i]
+                    p.co = frm, val[d]
+                    p.interpolation = 'LINEAR'
+            list(map(lambda c: c.update(), fcu))
+
+    def load_ascii(self, ascii_lines, nodeidx=-1):
+        """TODO: DOC."""
+        def find_end(ascii_lines):
             """Find the end of a key list.
 
             We don't know when a list of keys of keys will end. We'll have to
             search for the first non-numeric value
             """
             l_isNumber = nvb_utils.isNumber
-            return next((i for i, v in enumerate(asciiLines)
+            return next((i for i, v in enumerate(ascii_lines)
                          if not l_isNumber(v[0])), -1)
 
-        l_isNumber = nvb_utils.isNumber
         self.nodeidx = nodeidx
-        for i, line in enumerate(asciiLines):
+        properties_list = [  # For easier parsing
+            [type(self).emitter_properties, self.emitter_data],
+            [type(self).material_properties, self.material_data],
+            [type(self).object_properties, self.object_data]]
+        l_isNumber = nvb_utils.isNumber
+        for i, line in enumerate(ascii_lines):
             try:
                 label = line[0].lower()
             except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
-            if l_isNumber(label):
-                continue
+            else:
+                if l_isNumber(label):
+                    continue
             if label == 'node':
                 self.nodetype = line[1].lower()
-                self.name = nvb_utils.getAuroraIdentifier(line[2])
+                self.name = nvb_utils.str2identifier(line[2])
             elif label == 'endnode':
                 return
             elif label == 'parent':
-                self.parentName = nvb_utils.getAuroraIdentifier(line[1])
-            elif label == 'position':
-                self.position = [float(v) for v in line[1:4]]
-                self.objdata = True
-            elif label == 'orientation':
-                self.orientation = [float(v) for v in line[1:5]]
-                self.objdata = True
-            elif label == 'scale':
-                self.scale = float(line[1])
-                self.objdata = True
-            elif label == 'alpha':
-                self.alpha = float(line[1])
-                self.matdata = True
-            elif (label == 'selfillumcolor' or
-                  label == 'setfillumcolor'):
-                self.selfillumcolor = [float(v) for v in line[1:4]]
-                self.objdata = True
-            elif label == 'color':
-                self.color = [float(v) for v in line[1:4]]
-                self.objdata = True
-            elif label == 'radius':
-                self.radius = float(line[1])
-                self.objdata = True
-            elif label == 'positionkey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.positionkey = [list(map(float, v[:4]))
-                                    for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
-            elif label == 'orientationkey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.orientationkey = [list(map(float, v[:5]))
-                                       for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
-            elif label == 'scalekey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.scalekey = [list(map(float, v[:2]))
-                                 for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
-            elif label == 'alphakey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.alphakey = [list(map(float, v[:2]))
-                                 for v in asciiLines[i+1:i+keycnt+1]]
-                self.matdata = True
-            elif (label == 'selfillumcolorkey' or
-                  label == 'setfillumcolorkey'):
-                keycnt = find_end(asciiLines[i+1:])
-                self.selfillumcolorkey = [list(map(float, v[:4]))
-                                          for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
+                self.parentName = nvb_utils.str2identifier(line[1])
             # Animeshes
             elif label == 'sampleperiod':
                 self.sampleperiod = float(line[1])
@@ -167,315 +112,135 @@ class Animnode():
                 if not self.animverts:
                     valcnt = int(line[1])
                     self.animverts = [list(map(float, v))
-                                      for v in asciiLines[i+1:i+valcnt+1]]
+                                      for v in ascii_lines[i+1:i+valcnt+1]]
                     self.shapedata = True
             elif label == 'animtverts':
                 if not self.animtverts:
                     valcnt = int(line[1])
                     self.animtverts = [list(map(float, v))
-                                       for v in asciiLines[i+1:i+valcnt+1]]
+                                       for v in ascii_lines[i+1:i+valcnt+1]]
                     self.uvdata = True
-            elif label == 'colorkey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.colorkey = [list(map(float, v[:4]))
-                                 for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
-            elif label == 'radiuskey':
-                keycnt = find_end(asciiLines[i+1:])
-                self.radiuskey = [list(map(float, v[:2]))
-                                  for v in asciiLines[i+1:i+keycnt+1]]
-                self.objdata = True
-            # Unknown or unsupported label  for emitters, import as text
-            elif self.nodetype == nvb_def.Nodetype.EMITTER:
-                if label.endswith('key') and label not in self.unknownkey:
-                    # Unknown or unsupported keyed animation
-                    keycnt = find_end(asciiLines[i+1:])
-                    self.unknownkey[label] = \
-                        [list(map(float, v))
-                         for v in asciiLines[i+1:i+keycnt+1]]
-                elif label not in self.unknownvalue:
-                    # Unknown or unsupported single value
-                    self.unknownvalue[label] = line[1:]
-
-    def load_ascii2(self, ascii_lines, nodeidx=-1):
-        self.nodeidx = nodeidx
-        itlines = iter(ascii_lines)
-        line = []
-        keep_current_line = False
-        while line is not None:
-            # Get next line
-            if not keep_current_line:
-                line = next(itlines, [])
-            keep_current_line = False
-            # First element is the label
-            label = ''
-            try:
-                label = line[0].lower()
-            except (IndexError, AttributeError):
-                continue  # Probably empty line or comment
-            if label == 'node':
-                self.nodetype = line[1].lower()
-                self.name = nvb_utils.getAuroraIdentifier(line[2])
-            elif label == 'endnode':
-                break
-            elif label == 'parent':
-                self.parentName = nvb_utils.getAuroraIdentifier(line[1])
-            elif label == 'sampleperiod':  # animmesh data
-                self.sampleperiod = float(line[1])
-            elif label == 'animverts':  # animmesh data
-                if not self.animverts:
-                    nvals = int(line[1])
-                    tmp = [next(itlines) for _ in range(nvals)]
-                    self.animverts = [list(map(nvb_utils.str2float, v))
-                                      for v in tmp]
-                    self.shapedata = True
-            elif label == 'animtverts':  # animmesh data
-                if not self.animtverts:
-                    nvals = int(line[1])
-                    tmp = [next(itlines) for _ in range(nvals)]
-                    self.animverts = [list(map(nvb_utils.str2float, v))
-                                      for v in tmp]
-                    self.uvdata = True
-            else:   # must be keys
+            else:  # Check for keys
                 key_name = label
+                key_is_single = True
                 if key_name.endswith('key'):
+                    key_is_single = False
                     key_name = key_name[:-3]
-                    for key_dict in self.key_dict_list:
-                        if key_name in key_dict:
-                            key_dict[key_name] = []
-                            keep_current_line = True
-                else:
-                    for key_dict in self.key_dict_list:
-                        if key_name in key_dict and len(key_dict[key_name]):
-                            tmp = [nvb_utils.str2float(v) for v in line[1:]]
-                            key_dict[key_name] = []
-                            keep_current_line = True
+                for key_def, key_data in properties_list:
+                    if key_name in key_def and key_name not in key_data:
+                        data_path = key_def[key_name][0]
+                        data_dim = key_def[key_name][1]
+                        # key_converter = key_def[key_name][2]
+                        if key_is_single:
+                            data = [[0.0] + list(map(float,
+                                    line[1:data_dim+1]))]
+                        else:
+                            keycnt = find_end(ascii_lines[i+1:])
+                            data = [list(map(float, v[:data_dim+1]))
+                                    for v in ascii_lines[i+1:i+keycnt+1]]
+                        # values = \
+                        # [[float(v[0])] + list(map(key_converter, v[1:]))
+                        #  for v in values]
+                        key_data[key_name] = [data, data_path, data_dim]
+                        break
 
-    def create_data_material(self, mat, anim, options):
+    def create_data_material(self, obj, anim, options):
         """Creates animations in material actions."""
-        fps = options.scene.render.fps
-        # Add everything to a single action.
-        frameStart = anim.frameStart
-        frameEnd = anim.frameEnd
-        # Get animation data, create if needed.
-        animData = mat.animation_data
-        if not animData:
-            animData = mat.animation_data_create()
-        # Get action, create if needed.
-        action = animData.action
-        if not action:
-            action = bpy.data.actions.new(name=mat.name)
-            # action.use_fake_user = True
-            animData.action = action
 
-        # If there is a texture, use texture alpha for animations
-        if mat.active_texture:
-            # Material has a texture
-            tslotIdx = mat.active_texture_index
-            dp = 'texture_slots[' + str(tslotIdx) + '].alpha_factor'
-        else:
-            # No texture
-            dp = 'alpha'
-        curve = nvb_utils.get_fcurve(action, dp)
-        if self.alphakey:
-            for key in self.alphakey:
-                frame = fps * key[0] + frameStart
-                curve.keyframe_points.insert(frame, key[1])
-        elif self.alpha is not None:
-            curve.keyframe_points.insert(frameStart, self.alpha)
-            curve.keyframe_points.insert(frameEnd, self.alpha)
+        def data_conversion(label, mat, vals):
+            if label == 'alpha':
+                if mat.active_texture:
+                    # Material has a texture
+                    tslotIdx = mat.active_texture_index
+                    dp = 'texture_slots[' + str(tslotIdx) + '].alpha_factor'
+                    dp_dim = 1
+                else:
+                    # No texture
+                    dp = 'alpha'
+                    dp_dim = 1
+            return vals, dp, dp_dim
+
+        mat = obj.active_material
+        if not mat:
+            return
+        fps = options.scene.render.fps
+        frame_start = anim.frameStart
+        action = nvb_utils.get_action(mat, mat.name)
+        for label, (data, data_path, data_dim) in self.material_data.items():
+            frames = [fps * d[0] + frame_start for d in data]
+            if not data_path:  # Needs conversion
+                values, dp, dp_dim = data_conversion(
+                    label, mat, [d[1:data_dim+1] for d in data])
+            else:
+                values = [d[1:data_dim+1] for d in data]
+                dp = data_path
+                dp_dim = data_dim
+            Animnode.insert_kfp(frames, values, action, dp, dp_dim)
 
     def create_data_object(self, obj, anim, options):
         """Creates animations in object actions."""
-        def insert_kfp(frames, values, action, dp, dp_dim):
-            """TODO: DOC."""
-            if frames and values:
-                fcu = [nvb_utils.get_fcurve(action, dp, i)
-                       for i in range(dp_dim)]
-                kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
-                kfp_cnt = list(map(lambda x: len(x), kfp))
-                list(map(lambda x: x.add(len(values)), kfp))
-                for i, (frm, val) in enumerate(zip(frames, values)):
-                    for d in range(dp_dim):
-                        p = kfp[d][kfp_cnt[d]+i]
-                        p.co = frm, val[d]
-                        p.interpolation = 'LINEAR'
-                list(map(lambda c: c.update(), fcu))
-
-        fps = options.scene.render.fps
-        frameStart = anim.frameStart
-        frameEnd = anim.frameEnd
-        # Get animation data, create if needed.
-        animData = obj.animation_data
-        if not animData:
-            animData = obj.animation_data_create()
-        # Get action, create if needed.
-        action = animData.action
-        if not action:
-            action = bpy.data.actions.new(name=obj.name)
-            # action.use_fake_user = True
-            animData.action = action
-
-        if self.orientationkey or self.orientation is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.orientationkey]
-            # Set up animation
-            if options.rotmode == 'AXIS_ANGLE':
-                dp = 'rotation_axis_angle'
-                dp_dim = 4
-                if frames:  # Keyed animation
-                    values = [[k[4], k[1], k[2], k[3]]
-                              for k in self.orientationkey]
-                else:  # "Static" animation (single value)
-                    v = self.orientation
-                    frames.append(frameStart)
-                    values.append([v[3], v[0], v[1], v[2]])
-                    if frameStart < frameEnd:
-                        frames.append(frameEnd)
-                        values.append([v[3], v[0], v[1], v[2]])
-            elif options.rotmode == 'QUATERNION':
-                dp = 'rotation_quaternion'
-                dp_dim = 4
-                if frames:  # Keyed animation
-                    quats = [mathutils.Quaternion(k[1:4], k[4])
-                             for k in self.orientationkey]
-                    values = [[q.w, q.x, q.y, q.z] for q in quats]
-                else:  # "Static" animation (single value)
-                    v = mathutils.Quaternion(
-                        self.orientation[:3], self.orientation[3])
-                    frames.append(frameStart)
-                    values.append([v.w, v.x, v.y, v.z])
-                    if frameStart < frameEnd:
-                        frames.append(frameEnd)
-                        values.append([v.w, v.x, v.y, v.z])
-            else:
-                dp = 'rotation_euler'
-                dp_dim = 3
-                if frames:  # Keyed animation
+        def data_conversion(label, obj, vals):
+            if label == 'orientation':
+                if obj.rotation_mode == 'AXIS_ANGLE':
+                    dp = 'rotation_axis_angle'
+                    dp_dim = 4
+                    new_values = [[v[3], v[0], v[1], v[2]] for v in vals]
+                elif obj.rotation_mode == 'QUATERNION':
+                    dp = 'rotation_quaternion'
+                    dp_dim = 4
+                    quats = [mathutils.Quaternion(v[0:3], v[3]) for v in vals]
+                    new_values = [[q.w, q.x, q.y, q.z] for q in quats]
+                else:
+                    dp = 'rotation_euler'
+                    dp_dim = 3
                     # Run an euler filer
                     prev_eul = mathutils.Euler()
-                    for k in self.orientationkey:
-                        quat = mathutils.Quaternion(k[1:4], k[4])
+                    new_values = []
+                    for v in vals:
+                        quat = mathutils.Quaternion(v[0:3], v[3])
                         eul = quat.to_euler('XYZ', prev_eul)
                         #  eul = nvb_utils.eulerFilter(quat.to_euler(),
                         #  prev_eul)
-                        values.append(eul)
+                        new_values.append(eul)
                         prev_eul = eul
-                else:  # "Static" animation (single value)
-                    v = mathutils.Quaternion(self.orientation[:3],
-                                             self.orientation[3]).to_euler()
-                    frames.append(frameStart)
-                    values.append(v)
-                    if frameEnd > frameStart:
-                        frames.append(frameEnd)
-                        values.append(v)
-            # Generate animation
-            insert_kfp(frames, values, action, dp, dp_dim)
+            elif label == 'scale':
+                dp = 'scale'
+                dp_dim = 3
+                new_values = [[v] * dp_dim for v in vals]
+            return new_values, dp, dp_dim
 
-        if self.positionkey or self.position is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.positionkey]
-            dp = 'location'
-            dp_dim = 3
-            if frames:  # Keyed animation
-                values = [k[1:4] for k in self.positionkey]
-            else:  # "Static" animation (single value)
-                v = self.position
-                frames.append(frameStart)
-                values.append(v)
-                if frameEnd > frameStart:
-                    frames.append(frameEnd)
-                    values.append(v)
-            insert_kfp(frames, values, action, dp, dp_dim)
-
-        if self.scalekey or self.scale is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.scalekey]
-            dp = 'scale'
-            dp_dim = 3  # but only a single value in mdl
-            if frames:  # Keyed animation
-                values = [[k] * dp_dim for k in self.scalekey]
-            else:  # "Static" animation (single value)
-                v = [self.scale] * dp_dim
-                frames.append(frameStart)
-                values.append(v)
-                if frameEnd > frameStart:
-                    frames.append(frameEnd)
-                    values.append(v)
-            insert_kfp(frames, values, action, dp, dp_dim)
-
-        if self.selfillumcolorkey or self.selfillumcolor is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.selfillumcolorkey]
-            dp = 'nvb.selfillumcolor'
-            dp_dim = 3
-            if frames:  # Keyed animation
-                values = [k for k in self.selfillumcolorkey]
-            else:  # "Static" animation (single value)
-                v = self.selfillumcolor
-                frames.append(frameStart)
-                values.append(v)
-                if frameEnd > frameStart:
-                    frames.append(frameEnd)
-                    values.append(v)
-            insert_kfp(frames, values, action, dp, dp_dim)
-
-        if self.colorkey or self.color is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.colorkey]
-            dp = 'color'
-            dp_dim = 3
-            if frames:  # Keyed animation
-                values = [k for k in self.colorkey]
-            else:  # "Static" animation (single value)
-                v = self.color
-                frames.append(frameStart)
-                values.append(v)
-                if frameEnd > frameStart:
-                    frames.append(frameEnd)
-                    values.append(v)
-            insert_kfp(frames, values, action, dp, dp_dim)
-
-        if self.radiuskey or self.radius is not None:
-            values = []
-            frames = [fps * k[0] + frameStart for k in self.radiuskey]
-            dp = 'distance'
-            dp_dim = 1
-            if frames:  # Keyed animation
-                values = [k for k in self.radiuskey]
-            else:  # "Static" animation (single value)
-                v = self.radius
-                frames.append(frameStart)
-                values.append(v)
-                if frameEnd > frameStart:
-                    frames.append(frameEnd)
-                    values.append(v)
-            insert_kfp(frames, values, action, dp, dp_dim)
-
-    def create_data_unkown(self, obj, anim, options):
-        """Add incompatible animations (usually emitters) as plain text."""
         fps = options.scene.render.fps
-        # Get or create the text object
-        txt = None
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            txt = bpy.data.texts[anim.rawascii]
-        if not txt:
-            txt = bpy.data.texts.new(options.mdlname +
-                                     '.anim.' + anim.name)
-            txt.use_fake_user = True
-            anim.rawascii = txt.name
-        txt.write('node ' + nvb_utils.getNodeType(obj) +
-                  ' ' + self.name + '\n')
-        for label, value in self.unknownvalue.items():
-            txt.write('  ' + label + ' ' + ' '.join(value) + '\n')
-        for label, keylist in self.unknownkey.items():
-            txt.write('  ' + label + ' ' + str(len(keylist)) + '\n')
-            for key in keylist:
-                frm = int(fps * float(key[0]))
-                val = [float(v) for v in key[1:]]
-                fstr = '    {: >4d}' + ' '.join(['{: > 8.5f}']*len(val)) + '\n'
-                txt.write(fstr.format(frm, *val))
-        txt.write('endnode\n')
+        frame_start = anim.frameStart
+        action = nvb_utils.get_action(obj, obj.name)
+        for label, (data, data_path, data_dim) in self.object_data.items():
+            frames = [fps * d[0] + frame_start for d in data]
+            if not data_path:  # Needs conversion
+                values, dp, dp_dim = data_conversion(
+                    label, obj, [d[1:data_dim+1] for d in data])
+            else:
+                values = [d[1:data_dim+1] for d in data]
+                dp = data_path
+                dp_dim = data_dim
+            Animnode.insert_kfp(frames, values, action, dp, dp_dim)
+
+    def create_data_emitter(self, obj, anim, options):
+        """Creates animations in emitter actions."""
+
+        part_sys = obj.particle_systems.active
+        if not part_sys:
+            return
+        part_settings = part_sys.settings
+        if not part_settings:
+            return
+        fps = options.scene.render.fps
+        frame_start = anim.frameStart
+        action = nvb_utils.get_action(part_settings, part_settings.name)
+        for label, (data, data_path, data_dim) in self.emitter_data.items():
+            frames = [fps * d[0] + frame_start for d in data]
+            values = [d[1:data_dim+1] for d in data]
+            dp = data_path
+            dp_dim = data_dim
+            Animnode.insert_kfp(frames, values, action, dp, dp_dim)
 
     def create_data_shape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
@@ -637,17 +402,47 @@ class Animnode():
 
     def create(self, obj, anim, animlength, options):
         """TODO:Doc."""
-        if self.objdata:
+        if self.object_data:
             self.create_data_object(obj, anim, options)
-        if self.matdata and obj.active_material:
-            self.create_data_material(obj.active_material, anim, options)
+        if self.material_data:
+            self.create_data_material(obj, anim, options)
+        if self.emitter_data:
+            self.create_data_emitter(obj, anim, options)
         if self.uvdata:
             self.create_data_uv(obj, anim, animlength, options)
         if self.shapedata:
             self.create_data_shape(obj, anim, animlength, options)
-        if (self.unknownkey or self.unknownvalue) and \
-           (nvb_utils.getNodeType(obj) == nvb_def.Nodetype.EMITTER):
-            self.create_data_unkown(obj, anim, options)
+
+    @staticmethod
+    def get_keys_emitter(psy, anim, key_data, options):
+        """Get keys from particle settings."""
+
+        action = psy.animation_data.action
+        if not action:
+            return
+        fps = options.scene.render.fps
+        anim_start = anim.frameStart
+        anim_end = anim.frameEnd
+        # List of exportable data paths with formats and conversion functions
+        exports = []
+        for aur_name, (dp, dp_dim, _, aur_fstr) in \
+                Animnode.emitter_properties.items():
+            exports.append([aur_name, dp_dim, aur_fstr, dp, dp_dim])
+        # Get keyframe data
+        all_fcurves = action.fcurves
+        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim in exports:
+            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            if fcu.count(None) < dp_dim:  # ignore empty fcurves
+                keyed_frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points
+                       if anim_start <= k.co[0] <= anim_end]
+                      for i in range(dp_dim)]))
+                keyed_frames.sort()
+                aur_values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                              for f in keyed_frames]
+                aur_times = [(f - anim_start) / fps for f in keyed_frames]
+                aur_keys = list(zip(aur_times, aur_values))
+                key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
 
     @staticmethod
     def get_keys_material(mat, anim, key_data, options):
@@ -656,7 +451,7 @@ class Animnode():
             """Get a list of data paths to export."""
             # [value name, value dimension, value format,
             #  data path name, data path dimension, conversion func., default]
-            exports = [['ambient', 3, ' {: >3.2f}',
+            exports = [['ambient', 3, ' {:>4.2f}',
                         'nvb.ambient_color', 3, None, [0.0, 0.0, 0.0]]]
             # Aplha can be animated with the following data paths
             # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
@@ -665,10 +460,10 @@ class Animnode():
             dp_alpha_factor = [fc.data_path for fc in action.fcurves
                                if fc.data_path.endswith('.alpha_factor')]
             if dp_alpha_factor:
-                exports.append(['alpha', 1, ' {: >3.2f}',
+                exports.append(['alpha', 1, ' {:>4.2f}',
                                 dp_alpha_factor[0], 1, None, [0.0]])
             else:
-                exports.append(['alpha', 1, ' {: >3.2f}',
+                exports.append(['alpha', 1, ' {:>4.2f}',
                                 'alpha', 1, None, [0.0]])
             return exports
 
@@ -797,48 +592,22 @@ class Animnode():
         if obj.animation_data:
             Animnode.get_keys_object(obj, anim, kdata, options)
         # 2. Material animation data
-        if obj.active_material and obj.active_material.animation_data:
-            Animnode.get_keys_material(obj.active_material,
-                                       anim, kdata, options)
+        mat = obj.active_material
+        if mat and mat.animation_data:
+            Animnode.get_keys_material(mat, anim, kdata, options)
+        # 3. particle System/Emitter animation data
+        part_sys = obj.particle_systems.active
+        if part_sys and part_sys.settings.animation_data:
+            Animnode.get_keys_emitter(part_sys.settings, anim, kdata, options)
         # Add keys to ascii lines
         time_fstr = '{:> 6.3f}'
         for key_name, keys, val_fstr in kdata:
             num_keys = len(keys)
             if num_keys > 0:  # Create a key list
+                print(key_name)
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
-
-    @staticmethod
-    def generate_ascii_unknown(obj, anim, asciiLines, options):
-        """TODO: DOC."""
-        if not (anim.rawascii or (anim.rawascii in bpy.data.texts)):
-            return
-        txtBlock = bpy.data.texts[anim.rawascii].as_string()
-        nodeStart = txtBlock.find(obj.name)
-        if nodeStart < 0:
-            return
-        nodeEnd = txtBlock.find('endnode', nodeStart)
-        if nodeEnd < 0:
-            return
-        txtLines = txtBlock[nodeStart+len(obj.name):nodeEnd-1].splitlines()
-        l_isNumber = nvb_utils.isNumber
-        fps = options.scene.render.fps
-        for line in [l.strip().split() for l in txtLines]:
-            try:
-                label = line[0].lower()
-            except IndexError:
-                continue
-            # Lines starting with numbers are keys
-            if l_isNumber(label):
-                frame = float(label)
-                values = [float(v) for v in line[1:]]
-                formatStr = '      {:> 6.3f}' + \
-                            ' '.join(['{: > 6.5f}']*len(values))
-                s = formatStr.format(frame / fps, *values)
-                asciiLines.append(s)
-            else:
-                asciiLines.append('    ' + ' '.join(line))
 
     @staticmethod
     def generate_ascii_animesh_shapes(obj, anim, asciiLines, options,
@@ -1029,6 +798,5 @@ class Animnode():
         else:
             asciiLines.append('    parent null')
         Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
-        Animnode.generate_ascii_unknown(obj, anim, asciiLines, options)
         Animnode.generate_ascii_keys(obj, anim, asciiLines, options)
         asciiLines.append('  endnode')

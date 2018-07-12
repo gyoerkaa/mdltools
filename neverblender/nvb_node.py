@@ -100,12 +100,12 @@ class Material(object):
         elif label == 'alpha':
             self.alpha = float(line[1])
         elif label == 'materialname':
-            self.materialname = nvb_utils.getAuroraIdentifier(line[1])
+            self.materialname = nvb_utils.str2identifier(line[1])
         elif label == 'renderhint':
-            self.renderhints.add(nvb_utils.getAuroraIdentifier(line[1]))
+            self.renderhints.add(nvb_utils.str2identifier(line[1]))
         elif label == 'bitmap':
             if self.textures[0] == nvb_def.null:  # Do not overwrite existing
-                self.textures[0] = nvb_utils.getAuroraTexture(line[1])
+                self.textures[0] = nvb_utils.str2texture(line[1])
         elif label.startswith('texture'):
             if label[7:]:  # 'texture' is followed by a number
                 idx = int(label[7:])
@@ -113,7 +113,7 @@ class Material(object):
                 if idx+1 > cnt:
                     self.textures.extend([nvb_def.null
                                          for _ in range(idx+1-cnt)])
-                self.textures[idx] = nvb_utils.getAuroraTexture(line[1])
+                self.textures[idx] = nvb_utils.str2texture(line[1])
 
     @staticmethod
     def applyNASMSettings(material, options):
@@ -348,11 +348,11 @@ class Node(object):
         if nvb_utils.isNumber(label):
             return line
         if label == 'node':
-            self.name = nvb_utils.getAuroraIdentifier(line[2])
+            self.name = nvb_utils.str2identifier(line[2])
         elif label == 'endnode':
             return line
         elif label == 'parent':
-            self.parent = nvb_utils.getAuroraIdentifier(line[1])
+            self.parent = nvb_utils.str2identifier(line[1])
         elif label == 'position':
             self.position = tuple([float(v) for v in line[1:4]])
         elif label == 'orientation':
@@ -474,12 +474,9 @@ class Reference(Node):
         if line:
             label = line[0].lower()
             if label == 'refmodel':
-                self.refmodel = nvb_utils.getAuroraIdentifier(line[1])
+                self.refmodel = nvb_utils.str2identifier(line[1])
             elif label == 'reattachable':
-                try:
-                    self.reattachable = int(line[1])
-                except (ValueError, IndexError):
-                    pass
+                self.reattachable = nvb_utils.str2bool(line[1])
         return line
 
     def createObjectData(self, obj, options):
@@ -487,7 +484,7 @@ class Reference(Node):
         Node.createObjectData(self, obj, options)
         obj.nvb.emptytype = self.emptytype
         obj.nvb.refmodel = self.refmodel
-        obj.nvb.reattachable = (self.reattachable >= 1)
+        obj.nvb.reattachable = self.reattachable
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -511,8 +508,8 @@ class Trimesh(Node):
 
         self.center = (0.0, 0.0, 0.0)  # Unused ?
         self.tilefade = 0
-        self.render = 1
-        self.shadow = 1
+        self.render = True
+        self.shadow = True
         self.beaming = 0
         self.inheritcolor = 0  # Unused ?
         self.transparencyhint = 0
@@ -535,15 +532,9 @@ class Trimesh(Node):
             if label == 'tilefade':
                 self.tilefade = int(line[1])
             elif label == 'render':
-                try:
-                    self.render = int(line[1])
-                except (ValueError, IndexError):
-                    pass
+                self.render = nvb_utils.str2bool(line[1])
             elif label == 'shadow':
-                try:
-                    self.shadow = int(line[1])
-                except (ValueError, IndexError):
-                    pass
+                self.shadow = nvb_utils.str2bool(line[1])
             elif label == 'beaming':
                 self.beaming = int(line[1])
             elif label == 'inheritcolor':
@@ -889,10 +880,10 @@ class Trimesh(Node):
             obj.nvb.tilefade = nvb_def.Tilefade.NONE
         if (self.tilefade >= 1) and not options.render_fading:
             obj.hide_render = True
-        if self.render == 0:
+        if not self.render:
             obj.nvb.render = False
             obj.hide_render = True
-        obj.nvb.shadow = (self.shadow >= 1)
+        obj.nvb.shadow = self.shadow
         obj.nvb.beaming = (self.beaming >= 1)
         obj.nvb.inheritcolor = (self.inheritcolor >= 1)
         obj.nvb.rotatetexture = (self.rotatetexture >= 1)
@@ -1381,73 +1372,130 @@ class Emitter(Node):
     """TODO: Doc."""
 
     nodetype = nvb_def.Nodetype.EMITTER
+    property_dict = \
+        {'update': ('nvb.update', 1, nvb_utils.str2identifier, ' {:s}'),
+         'loop': ('nvb.loop', 1, nvb_utils.str2bool, ' {:1d}'),
+         'render': ('nvb.render', 1, nvb_utils.str2identifier, ' {:s}'),
+         'blend': ('nvb.blend', 1, nvb_utils.str2identifier, ' {:s}'),
+         'spawntype': ('nvb.spawntype', 1, nvb_utils.str2identifier, ' {:s}'),
+         'renderorder': ('nvb.renderorder', 1, nvb_utils.str2int, ' {:1.0f}'),
+         'birthrate': ('nvb.birthrate', 1, nvb_utils.str2int, ' {:1.0f}'),
+         'lifeexp': ('nvb.lifeexp', 1, float, ' {:1.0f}'),
+         'mass': ('mass', 1, float, ' {: >3.2f}'),
+         'velocity': ('normal_factor', 1, float, ' {:>4.2f}'),
+         'randvel': ('factor_random', 1, float, ' {:>4.2f}'),
+         'particlerot': ('angular_velocity_factor', 1, float, ' {:>4.2f}'),
+         'spread': ('nvb.spread', 1, float, ' {:>4.2f}'),
+         'splat': ('nvb.splat', 1, nvb_utils.str2bool, ' {:1d}'),
+         'affectedbywind': ('nvb.affectedbywind', 1, nvb_utils.str2bool,
+                            ' {:1d}'),
+         'colorstart': ('nvb.colorstart', 3, float, ' {:4.2f}'),
+         'colorend': ('nvb.colorend', 3, float, ' {:4.2f}'),
+         'alphastart': ('nvb.alphastart', 1, float, ' {:>4.2f}'),
+         'alphaend': ('nvb.alphaend', 1, float, ' {:>4.2f}'),
+         'sizestart': ('nvb.sizestart', 1, float, ' {:>4.2f}'),
+         'sizeend': ('nvb.sizeend', 1, float, ' {:>4.2f}'),
+         'sizestart_y': ('nvb.sizestart_y', 1, float, ' {:>4.2f}'),
+         'sizeend_y': ('nvb.sizeend_y', 1, float, ' {:>4.2f}'),
+         'bounce': ('nvb.bounce', 1, nvb_utils.str2bool, ' {:1d}'),
+         'bounce_co': ('nvb.bounce_co', 1, float, ' {:>4.2f}'),
+         'blurlength': ('nvb.blurlength', 1, float, ' {:>4.2f}'),
+         'deadspace': ('nvb.deadspace', 1, float, ' {:>4.2f}'),
+         # Texture
+         'texture': ('nvb.texture', 1, nvb_utils.str2texture, ' {:s}'),
+         'chunk': ('nvb.chunk', 1, nvb_utils.str2texture, ' {:s}'),
+         'twosidedtex': ('nvb.twosidedtex', 1, nvb_utils.str2bool, ' {:1d}'),
+         'm_istinted': ('nvb.m_istinted', 1, nvb_utils.str2bool, ' {:1d}'),
+         # Texture animations
+         'xgrid': ('nvb.xgrid', 1, nvb_utils.str2int, ' {:1.0f}'),
+         'ygrid': ('nvb.ygrid', 1, nvb_utils.str2int, ' {:1.0f}'),
+         'fps': ('nvb.fps', 1, float, ' {:1.0f}'),
+         'framestart': ('nvb.framestart', 1, nvb_utils.str2int, ' {:1d}'),
+         'frameend': ('nvb.frameend', 1, nvb_utils.str2int, ' {:1d}'),
+         'random': ('nvb.random', 1, nvb_utils.str2bool, ' {:1d}'),
+         # Point to Point Properties
+         'p2p': ('nvb.p2p', 1, nvb_utils.str2bool, ' {:1d}'),
+         'p2p_sel': ('nvb.p2p_sel', 1, nvb_utils.str2identifier, ' {:s}'),
+         'bezier2': ('nvb.bezier2', 1, float, ' {:>4.2f}'),
+         'bezier3': ('nvb.bezier2', 1, float, ' {:>4.2f}'),
+         'combinetime': ('nvb.combinetime', 1, float, ' {:>4.2f}'),
+         'grav': ('nvb.grav', 1, float, ' {:>4.2f}'),
+         'drag': ('nvb.drag', 1, float, ' {:>4.2f}'),
+         'threshold': ('nvb.threshold', 1, float, ' {:>4.2f}'),
+         # Blast properties
+         'blastradius': ('nvb.blastradius', 1, float, ' {:>4.2f}'),
+         'blastlength': ('nvb.blastlength', 1, float, ' {:>4.2f}'),
+         # Lightning properties
+         'lightningdelay': ('nvb.lightningdelay', 1, float, ' {:>4.2f}'),
+         'lightningradius': ('nvb.lightningradius', 1, float, ' {:>4.2f}'),
+         'lightningscale': ('nvb.lightningscale', 1, float, ' {:>4.2f}'),
+         # Inheritance Properties
+         'inherit': ('nvb.inherit', 1, nvb_utils.str2bool, ' {:1d}'),
+         'inheritvel': ('nvb.inheritvel', 1, nvb_utils.str2bool, ' {:1d}'),
+         'inherit_local': ('nvb.inherit_local', 1, nvb_utils.str2bool,
+                           ' {:1d}'),
+         'inherit_part': ('nvb.inherit_part', 1, nvb_utils.str2bool, ' {:1d}')}
 
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
         self.meshtype = nvb_def.Meshtype.EMITTER
 
-        self.xsize = 2
-        self.ysize = 2
-        self.rawascii = ''
+        self.xsize = 10  # emitter mesh size (in cm)
+        self.ysize = 10  # emitter mesh size (in cm)
+        self.blender_data = []
+        self.blender_data_nvb = []
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = None
-        try:
-            aline = next(itlines)
-        except StopIteration:
-            return None
-        label = ''
-        try:
-            label = aline[0].lower()
-        except (IndexError, AttributeError):
-            return aline  # Probably empty line or comment
-        if nvb_utils.isNumber(label):
-            return aline
-        if (label == 'node'):
-            self.name = nvb_utils.getAuroraIdentifier(aline[2])
-            self.rawascii = self.rawascii + '\n' + ' '.join(aline)
-        elif (label == 'endnode'):
-            self.rawascii = self.rawascii + '\n' + ' '.join(aline)
-            return aline
-        elif (label == 'parent'):
-            self.parent = nvb_utils.getAuroraIdentifier(aline[1])
-            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
-        elif (label == 'position'):
-            self.position = tuple([float(v) for v in aline[1:4]])
-            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
-        elif (label == 'orientation'):
-            self.orientation = tuple([float(v) for v in aline[1:5]])
-            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
-        elif (label == 'scale'):
-            self.scale = float(aline[1])
-            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
-        elif (label == 'wirecolor'):
-            self.wirecolor = tuple([float(v) for v in aline[1:4]])
-            self.rawascii = self.rawascii + '\n  #' + ' '.join(aline)
-        else:
-            self.rawascii = self.rawascii + '\n  ' + ' '.join(aline)
-        return aline
+        line = Node.loadAsciiLine(self, itlines)
+        if line:
+            label = line[0].lower()
+            if label == 'xsize':  # emitter mesh size (in cm)
+                self.xsize = float(line[1])
+            elif label == 'ysize':  # emitter mesh size (in cm)
+                self.ysize = float(line[1])
+            else:
+                if label in type(self).property_dict:
+                    data_path, dim, convert, _ = self.property_dict[label]
+                    if dim > 1:
+                        value = tuple(list(map(convert, line[1:dim+1])))
+                    else:
+                        value = convert(line[1].lower())
+                    self.blender_data.append((data_path, value))
+        return line
 
-    def createTextEmitter(self, obj, options):
-        """TODO: Doc."""
-        txt = bpy.data.texts.new(options.mdlname + '.' + obj.name)
-        txt.write(self.rawascii)
-        obj.nvb.rawascii = txt.name
+    def create_particle_system(self, obj, options):
+        part_mod = obj.modifiers.new(name='particles', type='PARTICLE_SYSTEM')
+        part_sys_settings = part_mod.particle_system.settings
+        for data_path, value in self.blender_data:
+            if data_path.startswith("nvb."):
+                part_sys_settings.nvb.__setattr__(data_path[4:], value)
+            else:
+                part_sys_settings.__setattr__(data_path, value)
+        # Set particle type to chunk if chunk is defined and not null
+        if nvb_utils.str2identifier(part_sys_settings.nvb.chunk):
+            part_sys_settings.nvb.particletype == 'chunk'
+        else:
+            part_sys_settings.nvb.particletype == 'texture'
+        part_sys_settings.count = 0  # for now
 
     def createMesh(self, objName, options):
         """TODO: Doc."""
         # Create the mesh itself
         mesh = bpy.data.meshes.new(objName)
         mesh.vertices.add(4)
-        mesh.vertices[0].co = (0.5,  0.5, 0.0)
-        mesh.vertices[1].co = (0.5, -0.5, 0.0)
-        mesh.vertices[2].co = (-0.5, -0.5, 0.0)
-        mesh.vertices[3].co = (-0.5,  0.5, 0.0)
+        mesh.vertices[0].co = (1.0,  1.0, 0.0)
+        mesh.vertices[1].co = (1.0, -1.0, 0.0)
+        mesh.vertices[2].co = (-1.0, -1.0, 0.0)
+        mesh.vertices[3].co = (-1.0,  1.0, 0.0)
         mesh.tessfaces.add(1)
         mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
 
+        em_size = (max(self.xsize/100, 0), max(self.ysize/100, 0))
+        scale_mat = mathutils.Matrix.Scale(em_size[0], 4, [1, 0, 0]) * \
+            mathutils.Matrix.Scale(em_size[1], 4, [0, 1, 0])
+        mesh.transform(scale_mat)
         # After calling update() tessfaces become inaccessible
         mesh.validate()
         mesh.update()
@@ -1459,7 +1507,7 @@ class Emitter(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
-        self.createTextEmitter(obj, options)
+        self.create_particle_system(obj, options)
 
     def createObject(self, options):
         """TODO: Doc."""
@@ -1471,32 +1519,133 @@ class Emitter(Node):
         return obj
 
     @classmethod
+    def generate_ascii_emitter(cls, obj, ascii_lines, options):
+        """Adds emitter paramters to ascii lines."""
+        def get_formatted_props(prop_name_list, part_sys_settings):
+            """Get the formatted mdl property."""
+            str_list = []
+            for prop_name in prop_name_list:
+                dp, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
+                if dp.startswith("nvb."):
+                    value = part_sys_settings.nvb.__getattr__(dp[4:])
+                else:
+                    value = part_sys_settings.__getattr__(dp)
+                fstr = prop_name + dp_dim * val_fstr
+                str_list.append(fstr.format(value))
+            return str_list
+
+        def form_prop(prop_name, value):
+            _, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
+            if dp_dim > 1:
+                fstr = '  ' + prop_name + dp_dim * val_fstr
+                return fstr.format(*value)
+            else:
+                fstr = '  ' + prop_name + val_fstr
+                return fstr.format(value)
+
+        part_sys = obj.particle_systems.active
+        if not part_sys:
+            return
+        part_set = part_sys.settings
+        if not part_set:
+            return
+
+        # Emitter Properties
+        ascii_lines.append(form_prop('update', part_set.nvb.update))
+        ascii_lines.append(form_prop('render', part_set.nvb.render))
+        ascii_lines.append(form_prop('blend', part_set.nvb.blend))
+        ascii_lines.append(form_prop('spawntype', part_set.nvb.spawntype))
+        ascii_lines.append(form_prop('renderorder', part_set.nvb.renderorder))
+        if part_set.nvb.update == 'single':
+                    ascii_lines.append(form_prop('loop', part_set.nvb.loop))
+
+        # Particle properties
+        ascii_lines.append(form_prop('birthrate', part_set.nvb.birthrate))
+        ascii_lines.append(form_prop('lifeexp', part_set.nvb.lifeexp))
+        ascii_lines.append(form_prop('mass', part_set.mass))
+        ascii_lines.append(form_prop('velocity', part_set.normal_factor))
+        ascii_lines.append(form_prop('randvel', part_set.factor_random))
+        ascii_lines.append(form_prop('particlerot',
+                                     part_set.angular_velocity_factor))
+        ascii_lines.append(form_prop('spread', part_set.nvb.spread))
+        ascii_lines.append(form_prop('splat', part_set.nvb.splat))
+        ascii_lines.append(form_prop('affectedbywind',
+                                     part_set.nvb.affectedbywind))
+        ascii_lines.append(form_prop('colorstart', part_set.nvb.colorstart))
+        ascii_lines.append(form_prop('colorend', part_set.nvb.colorend))
+        ascii_lines.append(form_prop('alphastart', part_set.nvb.alphastart))
+        ascii_lines.append(form_prop('alphaend', part_set.nvb.alphaend))
+        ascii_lines.append(form_prop('sizestart', part_set.nvb.sizestart))
+        ascii_lines.append(form_prop('sizeend', part_set.nvb.sizeend))
+        ascii_lines.append(form_prop('sizestart_y', part_set.nvb.sizestart_y))
+        ascii_lines.append(form_prop('sizeend_y', part_set.nvb.sizeend_y))
+        ascii_lines.append(form_prop('bounce', part_set.nvb.bounce))
+        ascii_lines.append(form_prop('bounce_co', part_set.nvb.bounce_co))
+        # TODO: Check only needed if spawn=trail?
+        ascii_lines.append(form_prop('blurlength', part_set.nvb.blurlength))
+        # TODO: Check only needed if update=fountain?
+        ascii_lines.append(form_prop('deadspace', part_set.nvb.deadspace))
+
+        # Texture/ Chunk Properties
+        if part_set.nvb.update == 'chunk':
+            ascii_lines.append(form_prop('chunk', part_set.nvb.chunk))
+        else:  # 'texture'
+            ascii_lines.append(form_prop('texture', part_set.nvb.texture))
+            ascii_lines.append(form_prop('twosidedtex',
+                                         part_set.nvb.twosidedtex))
+            ascii_lines.append(form_prop('m_istinted',
+                                         part_set.nvb.m_istinted))
+            ascii_lines.append(form_prop('xgrid', part_set.nvb.xgrid))
+            ascii_lines.append(form_prop('ygrid', part_set.nvb.ygrid))
+            ascii_lines.append(form_prop('fps', part_set.nvb.fps))
+            ascii_lines.append(form_prop('framestart',
+                                         part_set.nvb.framestart))
+            ascii_lines.append(form_prop('frameend', part_set.nvb.frameend))
+            ascii_lines.append(form_prop('random', part_set.nvb.random))
+
+        # Point to Point Properties
+        ascii_lines.append(form_prop('p2p', part_set.nvb.p2p))
+        if part_set.nvb.p2p:
+            ascii_lines.append(form_prop('p2p_sel', part_set.nvb.p2p_sel))
+            if part_set.nvb.p2p_sel == '1':  # Bezier
+                ascii_lines.append(form_prop('bezier2', part_set.nvb.bezier2))
+                ascii_lines.append(form_prop('bezier3', part_set.nvb.bezier3))
+                ascii_lines.append(form_prop('combinetime',
+                                             part_set.nvb.combinetime))
+            elif part_set.nvb.p2p_sel == '2':  # Gravity
+                ascii_lines.append(form_prop('grav', part_set.nvb.grav))
+                ascii_lines.append(form_prop('drag', part_set.nvb.drag))
+                ascii_lines.append(form_prop('threshold',
+                                             part_set.nvb.threshold))
+        # Blast Properties
+        ascii_lines.append(form_prop('blastradius', part_set.nvb.blastradius))
+        ascii_lines.append(form_prop('blastlength', part_set.nvb.blastlength))
+        # Lightning Properties
+        if part_set.nvb.update == 'lightning':
+            ascii_lines.append(form_prop('lightningdelay',
+                                         part_set.nvb.lightningdelay))
+            ascii_lines.append(form_prop('lightningradius',
+                                         part_set.nvb.lightningradius))
+            ascii_lines.append(form_prop('lightningscale',
+                                         part_set.nvb.lightningscale))
+
+        # Inheritance Properties
+        ascii_lines.append(form_prop('inherit', part_set.nvb.inherit))
+        ascii_lines.append(form_prop('inheritvel', part_set.nvb.inheritvel))
+        ascii_lines.append(form_prop('inherit_local',
+                                     part_set.nvb.inherit_local))
+        ascii_lines.append(form_prop('inherit_part',
+                                     part_set.nvb.inherit_part))
+        # Export all properties (not ideal, better to use a minimum of logic)
+        # ascii_lines.extend(get_formatted_props(Emitter.property_dict.keys(),
+        #                                        part_set))
+
+    @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
-
-        if obj.nvb.rawascii not in bpy.data.texts:
-            print('Neverblender: WARNING - No emitter data for ' + obj.name)
-            return
-        txt = bpy.data.texts[obj.nvb.rawascii]
-        txtLines = [l.split() for l in txt.as_string().split('\n')]
-        for line in txtLines:
-            try:
-                label = line[0].lower()
-            except IndexError:
-                # Probably empty line or whatever, skip it
-                continue
-            if (label == 'node') or (label == 'endnode') or \
-               (label == 'parent') or (label == 'position') or \
-               (label == 'orientation') or (label == 'scale') or \
-               (label == 'wirecolor'):
-                # We don't need any of this as we'll take it directly from
-                # the object
-                pass
-            else:
-                # We'll take everything that doesn't start with a #
-                if label[0] != '#':
-                    asciiLines.append('  ' + ' '.join(line))
+        if not iswalkmesh:
+            Emitter.generate_ascii_emitter(obj, asciiLines, options)
 
 
 class Light(Node):
@@ -1508,7 +1657,7 @@ class Light(Node):
         """TODO: Doc."""
         Node.__init__(self, name)
 
-        self.shadow = 1
+        self.shadow = True
         self.radius = 5.0
         self.multiplier = 1
         self.lightpriority = 5
@@ -1539,7 +1688,7 @@ class Light(Node):
         if (label == 'radius'):
             self.radius = float(aline[1])
         elif (label == 'shadow'):
-            self.shadow = int(aline[1])
+            self.shadow = nvb_utils.str2bool(aline[1])
         elif (label == 'multiplier'):
             self.multiplier = float(aline[1])
         elif (label == 'color'):
@@ -1638,7 +1787,7 @@ class Light(Node):
         data = obj.data
         if data:  # might be None in batch mode
             data.nvb.ambientonly = (self.ambientonly >= 1)
-            data.nvb.shadow = (self.shadow >= 1)
+            data.nvb.shadow = self.shadow
             data.nvb.lightpriority = self.lightpriority
             data.nvb.fadinglight = (self.fadinglight >= 1)
             data.nvb.isdynamic = (self.isdynamic >= 1)

@@ -79,6 +79,22 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
                 euls.append(e)
             return euls
 
+        def get_data_paths(rot_mode):
+            """Get a list of all data paths depending on rotation mode."""
+            dp_list = []
+            # (data_path, dimension, conversion function, default value)
+            dp_list.append(('location', 3, convert_loc, (0.0, 0.0, 0.0)))
+            if rot_mode == 'AXIS_ANGLE':
+                dp_list.append(('rotation_axis_angle', 4,
+                                convert_axan, (1.0, 0.0, 0.0, 0.0)))
+            elif rot_mode == 'QUATERNION':
+                dp_list.append(('rotation_quaternion', 4,
+                                convert_quat, (1.0, 0.0, 0.0, 0.0)))
+            else:
+                dp_list.append(('rotation_euler', 3,
+                               convert_eul, (0.0, 0.0, 0.0)))
+            return dp_list
+
         amt_action = amt.animation_data.action
         # Get posebone and pseudobone
         amt_posebone = amt.pose.bones[amb_name]
@@ -96,27 +112,22 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
         source_fcu = amt_action.fcurves
         # Build data paths depending on rotation mode
         psb.rotation_mode = amt_posebone.rotation_mode
-        dp_list = [('location', 3, convert_loc)]
-        rot_dp = {'AXIS_ANGLE': ('rotation_axis_angle', 4, convert_axan),
-                  'QUATERNION': ('rotation_quaternion', 4, convert_quat)}
-        dp_list.append(rot_dp.get(
-            psb.rotation_mode, ('rotation_euler', 3, convert_eul)))
+        dp_list = get_data_paths(psb.rotation_mode)
         # Transfer keyframes
         mat_eb = self.mats_edit_bone[amb_name]
-        for psb_dp, dp_dim, convert_func in dp_list:
+        for psb_dp, dp_dim, kfp_convert, kfp_dfl in dp_list:
             amt_dp = 'pose.bones["' + amb_name + '"].' + psb_dp
             amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
-            if amt_fcu.count(None) < 1:
+            if amt_fcu.count(None) < dp_dim:  # disregard empty animations
                 # Get keyed frames
                 frames = list(set().union(
                     *[[k.co[0] for k in amt_fcu[i].keyframe_points]
                       for i in range(dp_dim) if amt_fcu[i]]))
                 frames.sort()
-                values = []
-                values = [[amt_fcu[i].evaluate(f)
-                          for i in range(dp_dim)] for f in frames]
+                values = [[amt_fcu[i].evaluate(f) if amt_fcu[i] else kfp_dfl[i]
+                           for i in range(dp_dim)] for f in frames]
                 # Convert from armature bone space to pseudobone space
-                values = convert_func(amt, amt_posebone, psb, values, mat_eb)
+                values = kfp_convert(amt, amt_posebone, psb, values, mat_eb)
                 # Create fcurves for pseudo bone
                 psb_fcu = [psb_action.fcurves.new(psb_dp, i)
                            for i in range(dp_dim)]

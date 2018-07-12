@@ -254,23 +254,24 @@ class NVB_PT_material(bpy.types.Panel):
 
     def draw(self, context):
         """TODO: DOC."""
-        mat = context.material
+        material = context.material
         layout = self.layout
 
         # Ambient color parameters
         box = layout.box()
-        box.label('Ambient')
-        split = box.split(percentage=0.5)
-        col = split.column()
-        col.prop(mat.nvb, 'ambient_color', text='')
-        sub = col.column()
-        sub.active = (not mat.use_shadeless)
-        sub.prop(mat.nvb, 'ambient_intensity')
-        col = split.column()
+        row = box.row()
+        row.label("Ambient")
+        row.prop(material.nvb, 'ambient_color', text="")
+        row = box.row()
+        row.label("Diffuse")
+        row.prop(material, 'diffuse_color', text="")
+        row = box.row()
+        row.label("Specular")
+        row.prop(material, 'specular_color', text="")
 
         layout.separator()
         box = layout.box()
-        box.prop(mat.nvb, 'renderhint')
+        box.prop(material.nvb, 'renderhint')
 
 
 class NVB_PT_set(bpy.types.Panel):
@@ -339,7 +340,7 @@ class NVB_PT_mtr(bpy.types.Panel):
         layout = self.layout
 
         sub = layout.column()
-        sub.active = mat.nvb.usemtr
+        sub.enabled = mat.nvb.usemtr
 
         sub.prop(mat.nvb, 'mtrname')
 
@@ -446,11 +447,11 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
         row = layout.row()
         row.prop(data.nvb, 'uselensflares')
         sub = row.row(align=True)
-        sub.active = data.nvb.uselensflares
+        sub.enabled = data.nvb.uselensflares
         sub.prop(data.nvb, 'flareradius', text='Radius')
 
         row = layout.row()
-        row.active = data.nvb.uselensflares
+        row.enabled = data.nvb.uselensflares
         row.template_list('NVB_UL_lensflares', 'TheFlareList',
                           data.nvb, 'flareList',
                           data.nvb, 'flareListIdx')
@@ -465,7 +466,7 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
         if data.nvb.flareListIdx >= 0 and len(data.nvb.flareList) > 0:
             item = data.nvb.flareList[data.nvb.flareListIdx]
             sub = layout.column()
-            sub.active = data.nvb.uselensflares
+            sub.enabled = data.nvb.uselensflares
             sub.prop(item, 'texture')
             sub.row().prop(item, 'colorshift')
             row = sub.row()
@@ -538,9 +539,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         # Additional props for emitters
         if (obj.nvb.meshtype == nvb_def.Meshtype.EMITTER):
             layout.separator()
-            box = layout.box()
-            box.prop_search(obj.nvb, 'rawascii', bpy.data, 'texts',
-                            text='Emitter Data')
+
         # Additional props for aabb walkmeshes
         elif obj.nvb.meshtype == nvb_def.Meshtype.AABB:
             layout.separator()
@@ -683,14 +682,6 @@ class NVB_PT_animlist(bpy.types.Panel):
                 col = split.column(align=True)
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
-                row = layout.row()
-                row.prop_search(anim, 'rawascii',
-                                bpy.data, 'texts',
-                                text='Emitter Data')
-                # col = split.column(align=True)
-                # col.prop(anim, 'marker', text = '')
-                # col.prop_search(anim, 'marker', bpy.context.scene,
-                # 'timeline_markers', icon = 'MARKER')
                 layout.separator()
 
                 # Event Helper. Display and add/remove events.
@@ -761,10 +752,10 @@ class NVB_PT_utils(bpy.types.Panel):
             col.prop(addon.preferences, 'util_amt_connect')
             col.prop(addon.preferences, 'util_amt_strip_name')
             col = split.column()
-            col.active = addon.preferences.util_amt_mode == 'KFP'
+            col.enabled = addon.preferences.util_amt_mode == 'KFP'
             col.prop(addon.preferences, 'util_amt_split_action')
             sub = col.row()
-            sub.active = addon.preferences.util_amt_split_action
+            sub.enabled = addon.preferences.util_amt_split_action
             sub.prop(addon.preferences, 'util_amt_create_nla')
 
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
@@ -867,54 +858,156 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-
-        psys = context.particle_system
-        part = NVB_PT_emitter.particle_get_settings(context)
+        part_system = context.particle_system
+        part_settings = NVB_PT_emitter.particle_get_settings(context)
 
         layout.enabled = \
-            NVB_PT_emitter.particle_panel_enabled(context, psys) and \
-            (psys is None or not psys.has_multiple_caches) and \
-            part.type == 'EMITTER'
+            NVB_PT_emitter.particle_panel_enabled(context, part_system) and \
+            (part_system is None or not part_system.has_multiple_caches) and \
+            part_settings.type == 'EMITTER'
 
-        row = layout.row()
-        # row.active = part.emit_from == 'VERT' or part.distribution != 'GRID'
-        # row.prop(part, "count")
+        box = layout.box()
+        box.label("Particle Style")
+        split = box.split(percentage=0.25)
+        col = split.column()
+        col.label("Update:")
+        col.label("")
+        col.label("Render:")
+        col.label("Blend:")
+        col.label("Spawn:")
+        col = split.column()
+        col.prop(part_settings.nvb, "update", text="")
+        sub = col.row()
+        sub.enabled = part_settings.nvb.update == 'single'
+        sub.prop(part_settings.nvb, "loop")
+        col.prop(part_settings.nvb, "render", text="")
+        col.prop(part_settings.nvb, "blend", text="")
+        col.prop(part_settings.nvb, "spawntype", text="")
+        box.prop(part_settings.nvb, "renderorder")
+        layout.separator()
 
-        if part.type != 'HAIR':
-            split = layout.split()
+        box = layout.box()
+        box.label("Particle Settings")
+        split = box.split()
+        col = split.column()
+        col.prop(part_settings.nvb, "birthrate")
+        col.prop(part_settings.nvb, "lifeexp")
+        col.prop(part_settings.nvb, "spread")
+        col.prop(part_settings, "mass")
+        col = split.column()
+        col.prop(part_settings, "normal_factor", text="Velocity")
+        col.prop(part_settings, "factor_random", text="Rand. Velocity")
+        col.label("")
+        col.prop(part_settings, "angular_velocity_factor", text="Rotation")
 
-            col = split.column(align=True)
-            col.prop(part, "frame_start")
-            col.prop(part, "frame_end")
+        row = box.row()
+        row.prop(part_settings.nvb, "affectedbywind")
+        row.prop(part_settings.nvb, "splat")
 
-            col = split.column(align=True)
-            col.prop(part, "lifetime")
-            col.prop(part, "lifetime_random", slider=True)
+        split = box.split(percentage=0.25)
+        col = split.column()
+        col.label("Color:")
+        col.label("Alpha:")
+        col.label("Size X:")
+        col.label("Size Y:")
+        col.separator()
+        col.label("Bounce:")
+        col = split.column()
+        row = col.row(align=True)
+        row.prop(part_settings.nvb, "colorstart", text="")
+        row.prop(part_settings.nvb, "colorend", text="")
+        row = col.row(align=True)
+        row.prop(part_settings.nvb, "alphastart", text="Start")
+        row.prop(part_settings.nvb, "alphaend", text="End")
+        row = col.row(align=True)
+        row.prop(part_settings.nvb, "sizestart", text="Start")
+        row.prop(part_settings.nvb, "sizeend", text="End")
+        row = col.row(align=True)
+        row.prop(part_settings.nvb, "sizestart_y", text="Start")
+        row.prop(part_settings.nvb, "sizeend_y", text="End")
+        col.separator()
+        row = col.row(align=True)
+        row.prop(part_settings.nvb, "bounce", text="")
+        sub = row.row()
+        sub.enabled = part_settings.nvb.bounce is True
+        sub.prop(part_settings.nvb, "bounce_co", text="")
+        box.prop(part_settings.nvb, "blurlength")
+        box.prop(part_settings.nvb, "deadspace")
+        layout.separator()
 
-        layout.label(text="Emit From:")
-        layout.row().prop(part, "emit_from", expand=True)
-
-        row = layout.row()
-        if part.emit_from == 'VERT':
-            row.prop(part, "use_emit_random")
-        elif part.distribution == 'GRID':
-            row.prop(part, "invert_grid")
-            row.prop(part, "hexagonal_grid")
+        box = layout.box()
+        box.label("Texture")
+        box.row().prop(part_settings.nvb, "particletype", expand=True)
+        if part_settings.nvb.particletype == 'chunk':
+            split = box.split(percentage=0.25)
+            col = split.column()
+            col.label("Chunk:")
+            col = split.column()
+            col.prop(part_settings.nvb, "chunk", text="")
         else:
-            row.prop(part, "use_emit_random")
-            row.prop(part, "use_even_distribution")
+            split = box.split(percentage=0.25)
+            col = split.column()
+            col.label("Texture:")
+            col.label()
+            col.label()
+            col.separator()
+            col.label("Grid:")
+            col.label("Frame:")
 
-        if part.emit_from == 'FACE' or part.emit_from == 'VOLUME':
-            layout.row().prop(part, "distribution", expand=True)
+            col = split.column()
+            col.prop(part_settings.nvb, "texture", text="")
+            col.prop(part_settings.nvb, "twosidedtex")
+            col.prop(part_settings.nvb, "m_istinted")
+            col.separator()
+            row = col.row(align=True)
+            row.prop(part_settings.nvb, "xgrid", text="X")
+            row.prop(part_settings.nvb, "ygrid", text="Y")
+            row = col.row(align=True)
+            row.prop(part_settings.nvb, "framestart", text="Start")
+            row.prop(part_settings.nvb, "frameend", text="End")
+            col.prop(part_settings.nvb, "random")
+            col.prop(part_settings.nvb, "fps")
+        layout.separator()
 
-            row = layout.row()
-            if part.distribution == 'JIT':
-                row.prop(part, "userjit", text="Particles/Face")
-                row.prop(part, "jitter_factor", text="Jittering Amount",
-                         slider=True)
-            elif part.distribution == 'GRID':
-                row.prop(part, "grid_resolution")
-                row.prop(part, "grid_random", text="Random", slider=True)
+        box = layout.box()
+        box.prop(part_settings.nvb, "p2p", text="Point to Point")
+        sub = box.column()
+        sub.enabled = part_settings.nvb.p2p is True
+        sub.row().prop(part_settings.nvb, "p2p_sel", expand=True)
+        sub.separator()
+        if part_settings.nvb.p2p_sel == '2':  # Gravity type p2p
+            sub.prop(part_settings.nvb, "grav")
+            sub.prop(part_settings.nvb, "drag")
+            sub.prop(part_settings.nvb, "threshold")
+        else:  # Bezier type p2p
+            sub.prop(part_settings.nvb, "p2p_bezier2")
+            sub.prop(part_settings.nvb, "p2p_bezier3")
+            sub.prop(part_settings.nvb, "combinetime")
+        layout.separator()
 
-        row = layout.row()
-        row.prop(part, "use_modifier_stack")
+        box = layout.box()
+        box.label("Blast Properties")
+        box.enabled = part_settings.nvb.update == 'explosion'
+        row = box.row()
+        row.prop(part_settings.nvb, "blastradius")
+        row.prop(part_settings.nvb, "blastlength")
+        layout.separator()
+
+        box = layout.box()
+        box.label("Lightning Properties")
+        box.enabled = part_settings.nvb.update == 'lightning'
+        box.prop(part_settings.nvb, "lightningdelay")
+        box.prop(part_settings.nvb, "lightningradius")
+        box.prop(part_settings.nvb, "lightningscale")
+        layout.separator()
+
+        box = layout.box()
+        box.label("Inheritance")
+        split = box.split()
+        col = split.column()
+        col.prop(part_settings.nvb, "inherit")
+        col.prop(part_settings.nvb, "inheritvel")
+        col = split.column()
+        col.prop(part_settings.nvb, "inherit_local")
+        col.prop(part_settings.nvb, "inherit_part")
+        layout.separator()

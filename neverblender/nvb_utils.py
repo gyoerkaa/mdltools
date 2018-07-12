@@ -107,6 +107,21 @@ def get_fcurve(action, data_path, index=0):
     return fcu
 
 
+def get_action(target, action_name):
+    """Get the active action or create one."""
+    # Get animation data, create if needed
+    anim_data = target.animation_data
+    if not anim_data:
+        anim_data = target.animation_data_create()
+    # Get action, create if needed
+    action = anim_data.action
+    if not action:
+        action = bpy.data.actions.new(name=action_name)
+        # action.use_fake_user = True
+        anim_data.action = action
+    return action
+
+
 def get_aabb(mdl_base):
     """Find an AABB mesh for this mdl base."""
     def is_aabb(obj):
@@ -163,18 +178,28 @@ def get_children_recursive(obj, obj_list):
         get_children_recursive(c, obj_list)
 
 
-def get_last_frame(obj):
+def get_last_keyframe(root_obj):
     """Get the last keyed frame of this object and its children."""
-    obj_list = [obj]
-    get_children_recursive(obj, obj_list)
-    frame = nvb_def.anim_globstart
-    for o in obj_list:
-        if o.animation_data and o.animation_data.action:
-            action = o.animation_data.action
-            for fcu in action.fcurves:
-                frame = max(max([p.co[0] for p in fcu.keyframe_points],
-                                default=0), frame)
-    return frame
+    def get_max_frame(target):
+        frame = nvb_def.anim_globstart
+        if target:
+            if target.animation_data and target.animation_data.action:
+                for fcu in target.animation_data.action.fcurves:
+                    frame = max(max([p.co[0] for p in fcu.keyframe_points],
+                                    default=0), frame)
+            return frame
+    obj_list = [root_obj]
+    get_children_recursive(root_obj, obj_list)
+    frame_list = [nvb_def.anim_globstart]
+    for obj in obj_list:
+        frame_list.append(get_max_frame(obj))
+        mat = obj.active_material
+        if mat:
+            frame_list.append(get_max_frame(mat))
+        part_sys = obj.particle_systems.active
+        if part_sys:
+            frame_list.append(get_max_frame(part_sys.settings))
+    return max(frame_list)
 
 
 def get_frame_interval(obj):
@@ -218,8 +243,22 @@ def isNumber(s):
         return True
 
 
+def str2bool(s):
+    """Custom bool conversion. Only numbers >= 1 are True."""
+    try:
+        b = (int(s) >= 1)
+    except ValueError:
+        b = False
+    return b
+
+
+def str2int(s):
+    """Custom int conversion. Convert to float first, then int."""
+    return int(float(s))
+
+
 def str2float(s):
-    """Custom float() conversion. Treat every error as 0.0."""
+    """Custom float conversion. Treat every error as 0.0."""
     try:
         f = float(s)
     except ValueError:
@@ -227,97 +266,18 @@ def str2float(s):
     return f
 
 
-def getAuroraIdentifier(s):
+def str2identifier(s):
     """Convert to lower case. Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):
         return ''
     return s.lower()
 
 
-def getAuroraTexture(s):
+def str2texture(s):
     """Convert to lower case. Convert 'null' to nvb_def.null."""
     if (not s or s.lower() == nvb_def.null):
         return nvb_def.null
     return s.lower()
-
-
-def readRawAnimData(txtBlock):
-    """TODO: DOC."""
-    def findEnd(asciiBlock):
-        """Find the end of a key list.
-
-        We don't know when a list of keys of keys will end. We'll have to
-        search for the first non-numeric value
-        """
-        l_isNumber = isNumber
-        return next((i for i, v in enumerate(asciiBlock)
-                     if not l_isNumber(v[0])), -1)
-
-    animData = []
-    dlm = 'node '
-    nodeList = [dlm+block for block in txtBlock.split(dlm) if block]
-    l_isNumber = isNumber
-    for node in nodeList:
-        txtLines = [l.strip().split() for l in node.splitlines()]
-        keylist = []
-        nodetype = ''
-        nodename = ''
-        for i, line in enumerate(txtLines):
-            try:
-                label = line[0].lower()
-            except IndexError:
-                continue
-            if not l_isNumber(label):
-                if label == 'node':
-                    nodetype = line[1].lower()
-                    nodename = getAuroraIdentifier(line[2])
-                elif label == 'endnode':
-                    break
-                elif (label[0] != '#'):
-                    numKeys = findEnd(txtLines[i+1:])
-                    if numKeys > 1:
-                        # Set of unknown keys
-                        keylist.append([label, txtLines[i+1:i+numKeys+1]])
-                    elif numKeys == 1:
-                        # Single unknown key
-                        keylist.append([label, [txtLines[i+1]]])
-                    else:
-                        # Single unknown value
-                        keylist.append([' '.join(line), []])
-        if nodename:
-            animData.append([nodename, nodetype, keylist])
-    return animData
-
-
-def writeRawAnimData(txt, animData, frameStart=0):
-    """TODO: Doc."""
-    for nodename, nodetype, keylist in animData:
-        txt.write('node ' + nodetype + ' ' + nodename + '\n')
-        for label, keys in keylist:
-            if keylist:
-                # Unknown keys
-                txt.write('  ' + label + ' ' + str(len(keys)) + '\n')
-                for k in keys:
-                    # reformat frame
-                    frame = int(float(k[0]))
-                    s = '    {: >4d} '.format(frame) + ' '.join(k[1:]) + '\n'
-                    txt.write(s)
-            else:
-                # Single unknown value
-                txt.write('  ' + ' '.join(label) + '\n')
-        txt.write('endnode\n')
-
-
-def adjustRawAnimBounds(txtBlock, scaleFactor):
-    """TODO: DOC."""
-    animData = readRawAnimData(txtBlock)
-    for _, _, keyList in animData:  # name, type, keylist
-        for _, keys in keyList:  # label, keys
-            for k in keys:
-                frame = int(k[0]) * scaleFactor
-                k[0] = str(frame)
-    txtBlock.clear()
-    writeRawAnimData(txtBlock, animData)
 
 
 def toggle_anim_focus(scene, mdl_base):
@@ -350,7 +310,7 @@ def checkAnimBounds(mdl_base):
     """
     if len(mdl_base.nvb.animList) < 2:
         return True
-    # TODO: Interval tree
+    # TODO: use an interval tree
     animBounds = [(a.frameStart, a.frameEnd, idx) for idx, a in
                   enumerate(mdl_base.nvb.animList)]
     for a1 in animBounds:
@@ -360,18 +320,18 @@ def checkAnimBounds(mdl_base):
     return True
 
 
-def createAnimListItem(mdl_base):
+def create_anim_list_item(mdl_base, check_keyframes=False):
     """Append a new animation at the and of the animation list."""
-    lastAnimEnd = nvb_def.anim_globstart
-    for anim in mdl_base.nvb.animList:
-        if anim.frameEnd > lastAnimEnd:
-            lastAnimEnd = anim.frameEnd
-    newAnim = mdl_base.nvb.animList.add()
-    newAnim.root = mdl_base.name
-    start = int(math.ceil((lastAnimEnd + nvb_def.anim_offset) / 10.0)) * 10
-    newAnim.frameStart = start
-    newAnim.frameEnd = start
-    return newAnim
+    last_frame = max([nvb_def.anim_globstart] +
+                     [a.frameEnd for a in mdl_base.nvb.animList])
+    if check_keyframes:
+        last_frame = max(last_frame, get_last_keyframe(mdl_base))
+    anim = mdl_base.nvb.animList.add()
+    anim.name = mdl_base.name
+    start = int(math.ceil((last_frame + nvb_def.anim_offset) / 10.0)) * 10
+    anim.frameStart = start
+    anim.frameEnd = start
+    return anim
 
 
 def getNodeType(obj):

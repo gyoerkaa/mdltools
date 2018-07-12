@@ -29,7 +29,7 @@ class Animation():
             return
         # Add new animation to list
         fps = options.scene.render.fps
-        newAnim = nvb_utils.createAnimListItem(mdl_base)
+        newAnim = nvb_utils.create_anim_list_item(mdl_base)
         newAnim.name = self.name
         newAnim.ttime = self.transtime
         newAnim.root = self.animroot
@@ -56,7 +56,7 @@ class Animation():
             except (IndexError, AttributeError):
                 continue  # Probably empty line, skip it
             if (label == 'newanim'):
-                self.name = nvb_utils.getAuroraIdentifier(line[1])
+                self.name = nvb_utils.str2identifier(line[1])
             elif (label == 'length'):
                 self.length = float(line[1])
             elif (label == 'transtime'):

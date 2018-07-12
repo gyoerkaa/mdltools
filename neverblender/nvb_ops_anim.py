@@ -1,7 +1,6 @@
 """Contains Blender Operators for manipulating animation properties."""
 
 import math
-import copy
 import bpy
 
 from . import nvb_def
@@ -17,22 +16,13 @@ class NVB_OT_anim_clone(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """Prevent execution if no rootdummy was found."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 0)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 0)
         return False
 
-    def clone_emitter(self, source_anim, target_anim):
-        """Clone the animations's emitter data."""
-        source_txt = source_anim.rawascii
-        if source_txt and (source_txt in bpy.data.texts):
-            target_txt = bpy.data.texts[source_txt].copy()
-            target_txt.name = bpy.data.texts[source_txt].name + '_copy'
-            target_txt.use_fake_user = True
-            target_anim.rawascii = target_txt.name
-
     def clone_events(self, source_anim, target_anim):
-        """Clone the animations's emitter data."""
+        """Clone the animation events."""
         animStart = source_anim.frameStart
         for e in source_anim.eventList:
             cloned_event = target_anim.eventList.add()
@@ -53,24 +43,14 @@ class NVB_OT_anim_clone(bpy.types.Operator):
                     kfp[kfp_cnt+i].co = vals[i]
                 fcu.update()
 
-    def create_anim_list_item(self, mdl_root):
-        """Clone the animation."""
-        last_frame = nvb_utils.get_last_frame(mdl_root)
-        anim = mdl_root.nvb.animList.add()
-        anim.name = mdl_root.name
-        start = int(math.ceil((last_frame + nvb_def.anim_offset) / 10.0)) * 10
-        anim.frameStart = start
-        anim.frameEnd = start
-        return anim
-
     def execute(self, context):
         """Clone the animation."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        source_anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        source_anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
         animStart = source_anim.frameStart
         animEnd = source_anim.frameEnd
         # Adds a new animation to the end of the list
-        cloned_anim = self.create_anim_list_item(mdl_root)
+        cloned_anim = nvb_utils.create_anim_list_item(mdl_base, True)
         # Copy data
         cloned_anim.frameEnd = cloned_anim.frameStart + (animEnd - animStart)
         cloned_anim.ttime = source_anim.ttime
@@ -78,21 +58,25 @@ class NVB_OT_anim_clone(bpy.types.Operator):
         cloned_anim.name = source_anim.name + '_copy'
         # Copy events
         self.clone_events(source_anim, cloned_anim)
-        # Copy emitter data
-        self.clone_emitter(source_anim, cloned_anim)
         # Copy keyframes
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Copy the objects animation
+            # Object keyframes
             self.clone_frames(obj, animStart, animEnd, cloned_anim.frameStart)
-            # Copy the object's material animation
-            if obj.active_material:
-                self.clone_frames(obj.active_material,
-                                  animStart, animEnd, cloned_anim.frameStart)
-            # Copy the object's shape key animation
+            # Material keyframes
+            mat = obj.active_material
+            if mat:
+                self.clone_frames(mat, animStart, animEnd,
+                                  cloned_anim.frameStart)
+            # Shape key animations
             if obj.data and obj.data.shape_keys:
                 self.clone_frames(obj.data.shape_keys,
+                                  animStart, animEnd, cloned_anim.frameStart)
+            # Emitter keyframes
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.clone_frames(part_sys.settings,
                                   animStart, animEnd, cloned_anim.frameStart)
         return {'FINISHED'}
 
@@ -111,9 +95,9 @@ class NVB_OT_anim_scale(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """Prevent execution if no rootdummy was found."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 0)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 0)
         return False
 
     def scale_frames_up(self, target, animStart, animEnd, scaleFactor):
@@ -158,20 +142,6 @@ class NVB_OT_anim_scale(bpy.types.Operator):
                                 (p.handle_right.x - oldFrame)
                     fcurve.update()
 
-    def scale_emitter(self, anim, scaleFactor):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            txt = bpy.data.texts[anim.rawascii]
-            rawdata = copy.deepcopy(txt.as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(rawdata)
-            for _, _, keyList in animData:  # node_name, node_type, key_list
-                for _, keys in keyList:  # label, keys
-                    for k in keys:
-                        k[0] = str(int(k[0]) * scaleFactor)
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, animData)
-
     def scale_frames(self, target, animStart, animEnd, scaleFactor):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -182,11 +152,11 @@ class NVB_OT_anim_scale(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if not nvb_utils.checkAnimBounds(mdl_root):
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if not nvb_utils.checkAnimBounds(mdl_base):
             self.report({'INFO'}, 'Error: Nested animations.')
             return {'CANCELLED'}
-        anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
         # Check resulting length (has to be >= 1)
         oldSize = anim.frameEnd - anim.frameStart
         newSize = self.scaleFactor * oldSize
@@ -196,31 +166,32 @@ class NVB_OT_anim_scale(bpy.types.Operator):
         if (math.fabs(oldSize - newSize) < 1):
             self.report({'INFO'}, 'Error: Same size.')
             return {'CANCELLED'}
-        # Get a list of affected objects
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
-        # Adjust Emitter data
-        self.scale_emitter(anim, self.scaleFactor)
         # Adjust keyframes
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
             # Adjust the objects animation
-            self.scale_frames(obj, anim.frameStart, anim.frameEnd,
-                              self.scaleFactor)
+            self.scale_frames(obj, anim.frameStart,
+                              anim.frameEnd, self.scaleFactor)
             # Adjust the object's material animation
-            if obj.active_material:
-                self.scale_frames(obj.active_material,
-                                  anim.frameStart, anim.frameEnd,
-                                  self.scaleFactor)
+            mat = obj.active_material
+            if mat:
+                self.scale_frames(mat, anim.frameStart,
+                                  anim.frameEnd, self.scaleFactor)
             # Adjust the object's shape key animation
             if obj.data and obj.data.shape_keys:
-                self.scale_frames(obj.data.shape_keys,
-                                  anim.frameStart, anim.frameEnd,
-                                  self.scaleFactor)
+                self.scale_frames(obj.data.shape_keys, anim.frameStart,
+                                  anim.frameEnd, self.scaleFactor)
+            # Emitter keyframes
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.scale_frames(part_sys.settings, anim.frameStart,
+                                  anim.frameEnd, self.scaleFactor)
         # Adjust the bounds of animations coming after the
         # target (scaled) animation
         padding = newSize - oldSize
         if padding > 0:
-            for a in reversed(mdl_root.nvb.animList):
+            for a in reversed(mdl_base.nvb.animList):
                 if a.frameStart > anim.frameEnd:
                     a.frameStart += padding
                     a.frameEnd += padding
@@ -232,7 +203,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
             e.frame = (e.frame - anim.frameStart) * \
                 self.scaleFactor + anim.frameStart
         # Re-adjust the timeline to the new bounds
-        nvb_utils.toggle_anim_focus(context.scene, mdl_root)
+        nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -275,30 +246,6 @@ class NVB_OT_anim_crop(bpy.types.Operator):
             return (len(rootDummy.nvb.animList) > 0)
         return False
 
-    def cropEmitter(self, anim):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawascii = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawascii.as_string())
-            oldData = []
-            oldData = nvb_utils.readRawAnimData(txt)
-            newData = []
-            # Grab some values for speed
-            cf = self.cropFront
-            cb = (anim.frameEnd - anim.frameStart) - self.cropBack
-            for nodeName, nodeType, oldKeyList in oldData:
-                newKeyList = []
-                for label, oldKeys in oldKeyList:
-                    newKeys = []
-                    for k in oldKeys:
-                        frame = int(k[0])
-                        if (cf < frame < cb):
-                            newKeys.append(k)
-                    newKeyList.append([label, newKeys])
-                newData.append([nodeName, nodeType, newKeyList])
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, newData)
-
     def cropFrames(self, target, animStart, animEnd):
         """TODO:DOC."""
         if target.animation_data and target.animation_data.action:
@@ -337,12 +284,12 @@ class NVB_OT_anim_crop(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if not nvb_utils.checkAnimBounds(mdl_root):
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if not nvb_utils.checkAnimBounds(mdl_base):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
-        animList = mdl_root.nvb.animList
-        currentAnimIdx = mdl_root.nvb.animListIdx
+        animList = mdl_base.nvb.animList
+        currentAnimIdx = mdl_base.nvb.animListIdx
         anim = animList[currentAnimIdx]
         # Grab some values for speed
         cf = self.cropFront
@@ -354,23 +301,24 @@ class NVB_OT_anim_crop(bpy.types.Operator):
         if totalCrop > (animEnd - animStart + 1):
             self.report({'INFO'}, 'Failure: Resulting length < 1.')
             return {'CANCELLED'}
-        # Get a list of affected objects
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
-        # Crop Emitter
-        self.cropEmitter(anim)
         # Pad keyframes
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Copy the objects animation
+            # Objects animation
             self.cropFrames(obj, animStart, animEnd)
-            # Copy the object's material animation
+            # Material animation
             if obj.active_material:
                 self.cropFrames(obj.active_material, animStart, animEnd)
-            # Copy the object's shape key animation
+            # Shape key animation
             if obj.data and obj.data.shape_keys:
                 self.cropFrames(obj.data.shape_keys, animStart, animEnd)
+            # Emitter animation
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.cropFrames(part_sys.settings, animStart, animEnd)
         # Update the animations in the list
-        for a in mdl_root.nvb.animList:
+        for a in mdl_base.nvb.animList:
             if a.frameStart > animStart:
                 a.frameStart -= totalCrop
                 a.frameEnd -= totalCrop
@@ -386,7 +334,7 @@ class NVB_OT_anim_crop(bpy.types.Operator):
                 e.frame -= totalCrop
         anim.frameEnd -= totalCrop
         # Re-adjust the timeline to the new bounds
-        nvb_utils.toggle_anim_focus(context.scene, mdl_root)
+        nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -427,24 +375,10 @@ class NVB_OT_anim_pad(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         """TODO:DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 0)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 0)
         return False
-
-    def pad_emitter(self, anim):
-        """TODO:DOC."""
-        if anim.rawascii and (anim.rawascii in bpy.data.texts):
-            rawdata = bpy.data.texts[anim.rawascii]
-            txt = copy.deepcopy(rawdata.as_string())
-            animData = []
-            animData = nvb_utils.readRawAnimData(txt)
-            for _, _, keyList in animData:
-                for _, keys in keyList:
-                    for k in keys:
-                        k[0] = str(int(k[0]) + self.pad_front)
-            txt.clear()
-            nvb_utils.writeRawAnimData(txt, animData)
 
     def pad_frames(self, target, frame_start, frame_end):
         """TODO:DOC."""
@@ -463,35 +397,36 @@ class NVB_OT_anim_pad(bpy.types.Operator):
 
     def execute(self, context):
         """TODO:DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if not nvb_utils.checkAnimBounds(mdl_root):
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if not nvb_utils.checkAnimBounds(mdl_base):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
-        anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
         frame_start = anim.frameStart
         frame_end = anim.frameEnd
         # Cancel if padding is 0
         if (self.pad_front + self.pad_back) <= 0:
             self.report({'INFO'}, 'Failure: No changes.')
             return {'CANCELLED'}
-        # Get a list of affected objects
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
-        # Pad Emitter
-        self.pad_emitter(anim)
         # Pad keyframes
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Pad the objects animation
+            # Objects animation
             self.pad_frames(obj, frame_start, frame_end)
-            # Pad the object's material animation
+            # Material animation
             if obj.active_material:
                 self.pad_frames(obj.active_material, frame_start, frame_end)
-            # Pad the object's shape key animation
+            # Shape key animation
             if obj.data and obj.data.shape_keys:
                 self.pad_frames(obj.data.shape_keys, frame_start, frame_end)
+            # Emitter animation
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.pad_frames(part_sys.settings, frame_start, frame_end)
         # Update the animations in the list
         totalPadding = self.pad_back + self.pad_front
-        for a in mdl_root.nvb.animList:
+        for a in mdl_base.nvb.animList:
             if a.frameStart > frame_end:
                 a.frameStart += totalPadding
                 a.frameEnd += totalPadding
@@ -502,7 +437,7 @@ class NVB_OT_anim_pad(bpy.types.Operator):
         for ev in anim.eventList:
             ev.frame += self.pad_front
         # Re-adjust the timeline to the new bounds
-        nvb_utils.toggle_anim_focus(context.scene, mdl_root)
+        nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -533,15 +468,15 @@ class NVB_OT_anim_focus(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 0)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 0)
         return False
 
     def execute(self, context):
         """Set the timeline to this animation."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        nvb_utils.toggle_anim_focus(context.scene, mdl_root)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
 
 
@@ -554,14 +489,14 @@ class NVB_OT_anim_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        return (mdl_root is not None)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        return (mdl_base is not None)
 
     def execute(self, context):
         """Create the animation"""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        newanim = nvb_utils.createAnimListItem(mdl_root)
-        newanim.root = mdl_root.name
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        newanim = nvb_utils.create_anim_list_item(mdl_base, True)
+        newanim.root = mdl_base.name
         return {'FINISHED'}
 
 
@@ -574,9 +509,9 @@ class NVB_OT_anim_delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 0)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 0)
         return False
 
     def delete_frames(self, obj, frame_start, frame_end):
@@ -592,30 +527,33 @@ class NVB_OT_anim_delete(bpy.types.Operator):
 
     def execute(self, context):
         """Delete the animation."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        anim_list = mdl_root.nvb.animList
-        anim_list_idx = mdl_root.nvb.animListIdx
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        anim_list = mdl_base.nvb.animList
+        anim_list_idx = mdl_base.nvb.animListIdx
         anim = anim_list[anim_list_idx]
         # Grab some data for speed
         frame_start = anim.frameStart
         frame_end = anim.frameEnd
-        # Get a list of affected objects
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
         # Remove keyframes
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Delete the objects animation
+            # Objects animation
             self.delete_frames(obj, frame_start, frame_end)
-            # Delete the object's material animation
+            # Material animation
             if obj.active_material:
                 self.delete_frames(obj.active_material, frame_start, frame_end)
-            # Delete the object's shape key animation
+            # Shape key animation
             if obj.data and obj.data.shape_keys:
                 self.delete_frames(obj.data.shape_keys, frame_start, frame_end)
+            # Emitter animation
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.delete_frames(part_sys.settings, frame_start, frame_end)
         # Remove animation from List
         anim_list.remove(anim_list_idx)
         if anim_list_idx > 0:
-            mdl_root.nvb.animListIdx = anim_list_idx - 1
+            mdl_base.nvb.animListIdx = anim_list_idx - 1
         return {'FINISHED'}
 
 
@@ -628,9 +566,9 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list is empty."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 1)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 1)
         return False
 
     def move_frames(self, obj, frame_start, frame_end, new_start):
@@ -658,33 +596,37 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
 
     def execute(self, context):
         """Move the animation."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if not nvb_utils.checkAnimBounds(mdl_root):
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if not nvb_utils.checkAnimBounds(mdl_base):
             self.report({'INFO'}, 'Failure: Convoluted animations.')
             return {'CANCELLED'}
-        anim_list = mdl_root.nvb.animList
-        currentAnimIdx = mdl_root.nvb.animListIdx
+        anim_list = mdl_base.nvb.animList
+        currentAnimIdx = mdl_base.nvb.animListIdx
         anim = anim_list[currentAnimIdx]
         # Grab some data for speed
         old_start = anim.frameStart
         old_end = anim.frameEnd
         # Grab a new starting frame
-        last_frame = nvb_utils.get_last_frame(mdl_root)
+        last_frame = nvb_utils.get_last_keyframe(mdl_base)
         start = int(math.ceil((last_frame + nvb_def.anim_offset) / 10.0)) * 10
         # Move keyframes
-        obj_list = [mdl_root]
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        obj_list = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Move the objects animation
+            # Object animation
             self.move_frames(obj, old_start, old_end, start)
-            # Move the object's material animation
-            if obj.active_material:
-                self.move_frames(obj.active_material,
-                                 old_start, old_end, start)
-            # Move the object's shape key animation
+            # Material animation
+            mat = obj.active_material
+            if mat:
+                self.move_frames(mat, old_start, old_end, start)
+            # Shape key animation
             if obj.data and obj.data.shape_keys:
                 self.move_frames(obj.data.shape_keys,
                                  old_start, old_end, start)
+            # Emitter animation
+            part_sys = obj.particle_systems.active
+            if part_sys:
+                self.move_frames(part_sys.settings, old_start, old_end, start)
         # Adjust animations in the list
         for e in anim.eventList:
             e.frame = start + (e.frame - old_start)
@@ -693,9 +635,9 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
         # Set index
         newAnimIdx = len(anim_list) - 1
         anim_list.move(currentAnimIdx, newAnimIdx)
-        mdl_root.nvb.animListIdx = newAnimIdx
+        mdl_base.nvb.animListIdx = newAnimIdx
         # Re-adjust the timeline to the new bounds
-        nvb_utils.toggle_anim_focus(context.scene, mdl_root)
+        nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
 
 
@@ -712,17 +654,17 @@ class NVB_OT_anim_move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if animation list has less than 2 elements."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return (len(mdl_root.nvb.animList) > 1)
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return (len(mdl_base.nvb.animList) > 1)
         return False
 
     def execute(self, context):
         """Move an item in the animation list."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        anim_list = mdl_root.nvb.animList
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        anim_list = mdl_base.nvb.animList
 
-        currentIdx = mdl_root.nvb.animListIdx
+        currentIdx = mdl_base.nvb.animListIdx
         new_idx = 0
         max_idx = len(anim_list) - 1
         if self.direction == 'DOWN':
@@ -736,7 +678,7 @@ class NVB_OT_anim_move(bpy.types.Operator):
         if new_idx == currentIdx:
             return {'CANCELLED'}
         anim_list.move(currentIdx, new_idx)
-        mdl_root.nvb.animListIdx = new_idx
+        mdl_base.nvb.animListIdx = new_idx
         return {'FINISHED'}
 
 
@@ -750,15 +692,15 @@ class NVB_OT_animevent_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if there is an animation."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            return len(mdl_root.nvb.animList) > 0
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            return len(mdl_base.nvb.animList) > 0
         return False
 
     def execute(self, context):
         """Add the new item."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
 
         eventList = anim.eventList
         newEvent = eventList.add()
@@ -780,19 +722,19 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            animList = mdl_root.nvb.animList
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            animList = mdl_base.nvb.animList
             if len(animList) > 0:
-                anim = animList[mdl_root.nvb.animListIdx]
+                anim = animList[mdl_base.nvb.animListIdx]
                 eventList = anim.eventList
                 return len(eventList) > 0
         return False
 
     def execute(self, context):
         """TODO: DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
         eventList = anim.eventList
         eventIdx = anim.eventListIdx
 
@@ -816,19 +758,19 @@ class NVB_OT_animevent_move(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_root is not None:
-            animList = mdl_root.nvb.animList
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            animList = mdl_base.nvb.animList
             if len(animList) > 0:
-                anim = animList[mdl_root.nvb.animListIdx]
+                anim = animList[mdl_base.nvb.animListIdx]
                 eventList = anim.eventList
                 return len(eventList) > 0
         return False
 
     def execute(self, context):
         """TODO: DOC."""
-        mdl_root = nvb_utils.get_obj_mdl_base(context.object)
-        anim = mdl_root.nvb.animList[mdl_root.nvb.animListIdx]
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        anim = mdl_base.nvb.animList[mdl_base.nvb.animListIdx]
         eventList = anim.eventList
 
         currentIdx = anim.eventListIdx

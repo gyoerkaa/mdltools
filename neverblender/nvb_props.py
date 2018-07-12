@@ -11,8 +11,6 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
     compiler_path = bpy.props.StringProperty(name="Path to compiler",
                                              subtype='FILE_PATH')
-    decompiler_path = bpy.props.StringProperty(name="Path to de-compiler",
-                                               subtype='FILE_PATH')
     # Object & Dummy Helper
     util_node_mdltype = bpy.props.EnumProperty(
         name='Type',
@@ -63,6 +61,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         name='Copy Animations',
         description='Copy Animation to newly created pseudo-bones (meshes)',
         default=True)
+    util_psb_use_nla = bpy.props.BoolProperty(
+        name='Use NLA Tracks',
+        description='Use NLA tracks to create animations',
+        default=False)
     util_psb_insertroot = bpy.props.BoolProperty(
         name='Add Rootdummy',
         description='Add an animation root (Empty) as a parent for all bones.',
@@ -102,10 +104,6 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
     mute = bpy.props.BoolProperty(name='Mute',
                                   description='Ignore animation during export',
                                   default=False)
-    rawascii = bpy.props.StringProperty(
-        name='Emitter Data',
-        description='Incompatible Emitter data loaded as plain text',
-        default='')
     frameStart = bpy.props.IntProperty(name='Start',
                                        description='Animation Start',
                                        default=0, min=0, options=set())
@@ -179,10 +177,6 @@ class NVB_PG_material(bpy.types.PropertyGroup):
         subtype='COLOR_GAMMA',
         name='Ambient', description='Ambient color of the material',
         default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
-    ambient_intensity = bpy.props.FloatProperty(
-        subtype='FACTOR', precision=3,
-        name='Intensity', description='Amount of ambient color',
-        default=1.0, min=0.0, max=1.0)
     renderhint = bpy.props.EnumProperty(
         name='Renderhint',
         items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
@@ -233,7 +227,7 @@ class NVB_PG_flare(bpy.types.PropertyGroup):
                                                description='Colorshift',
                                                subtype='COLOR_GAMMA',
                                                default=(0.0, 0.0, 0.0),
-                                               min=-1.0, max=1.0,
+                                               min=-1.0, max=2.0,
                                                soft_min=0.0, soft_max=1.0)
 
 
@@ -258,83 +252,152 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
     This class defines all additional properties needed by the mdl file
     format for emitters.
     """
-    # Style
+    # Emitter Properties
     update = bpy.props.EnumProperty(
         name='Update',
-        items=[('explosion', 'Explosion',
-                'Triggered by a detonate event', 0),
-               ('fountain', 'Fountain',
+        items=[('fountain', 'Fountain',
                 'Emit in a fountain shape, based on the spread value', 1),
-               ('lightning', 'Lightning',
-                'Two-Point lightning effect, requires a reference node', 2),
                ('single', 'Single',
-                'Emit a single particle', 3)
-               ],
+                'Emit a single particle', 2),
+               ('explosion', 'Explosion',
+                'Triggered by a detonate event', 3),
+               ('lightning', 'Lightning',
+                'Two-Point lightning effect, requires a reference node', 4)],
         default='fountain', options=set())
+    loop = bpy.props.BoolProperty(
+        name='Loop',
+        description='Emits multiple particles if update is set to Single',
+        default=False, options=set())
     render = bpy.props.EnumProperty(
         name='Render',
-        items=[('aligned_to_particle', 'Aligned to Particle',
-                'Particles align to their angle at birth', 0),
-               ('aligned_to_world_z', 'Aligned to World Z',
-                'TODO: Unknown', 1),
-               ('billboard_to_local_z', 'Billboard to Local Z',
-                'Particles preserve their facing from birth', 2),
-               ('billboard_to_world_z', 'Billboard to World Z',
-                'Partciles face up', 3),
-               ('normal', 'Normal',
-                'Particles face camera', 4),
+        items=[('normal', 'Normal',
+                'Particles face camera', 1),
                ('linked', 'Linked',
-                'Particles face camera and are stretched to link', 5),
+                'Particles face camera and are stretched to link', 2),
+               ('billboard_to_local_z', 'Billboard to Local Z',
+                'Particles preserve their facing from birth', 3),
+               ('billboard_to_world_z', 'Billboard to World Z',
+                'Partciles face up', 4),
+               ('aligned_to_world_z', 'Aligned to World Z',
+                'TODO: Unknown', 5),
+               ('aligned_to_particle_dir', 'Aligned to Particle',
+                'Particles align to their angle at birth', 6),
                ('motionblur', 'Motion Blur',
-                'Stretch and overlap particles', 6),
+                'Stretch and overlap particles', 7),
                ],
         default='normal', options=set())
     blend = bpy.props.EnumProperty(
-        name='Update',
-        items=[('normal', 'Normal',
-                'No blending', 0),
-               ('punch_through', 'Punch-Through',
-                'TODO: Unknown', 1),
-               ('lighten', 'Lighten',
-                'Uses lighten blending mode', 2),
+        name='Blend',
+        items=[('normal', "Normal",
+                "No blending", 1),
+               ('punch_through', "Punch-Through",
+                "TODO: Unknown", 2),
+               ('lighten', "Lighten",
+                "Uses lighten blending mode", 3),
                ],
         default='normal', options=set())
     spawntype = bpy.props.EnumProperty(
         name='Spawn Type',
-        items=[('normal', 'Normal',
+        items=[('0', 'Normal',
                 'Emit particles based on birthrate', 0),
-               ('trail', 'Trail',
+               ('1', 'Trail',
                 'Emit particles based on amount per meter', 1),
                ],
-        default='normal', options=set())
+        default='0', options=set())
+    renderorder = bpy.props.IntProperty(
+        name='Render Order',
+        description='Helps the engine priotize emitters, \
+                     lower order = higher priority',
+        default=0, min=0, options=set())
 
-    # Particle settings
-    birthrate = bpy.props.IntProperty(name='birthrate', default=1, min=0)
-    # lifeexp => from blender ".lifetime"
+    # Particle Properties
+    birthrate = bpy.props.IntProperty(name='Birthrate',
+                                      default=1, min=0)
+    lifeexp = bpy.props.FloatProperty(name='Life Exp.', subtype='TIME',
+                                      default=0.0, min=-1.0)
     # mass => from blender ".mass"
-    # velocity => from blender ".object_factor" or ".normal_factor"
+    # velocity => from blender ".normal_factor"
     # randvel => from blender ".factor_random"
     # particleRot => from blender ".angular_velocity_factor"
     spread = bpy.props.FloatProperty(
         name='Spread',
         description='Prticle spread angle for Fountain type emitters',
         subtype='ANGLE', unit='ROTATION',
+        default=0.0, min=0.0, soft_max=6.29)
+    splat = bpy.props.BoolProperty(
+        name='Splat',
+        description='On collision the particle is placed flat (face up) \
+                     on the contacting surface',
+        default=False, options=set())
+    affectedbywind = bpy.props.BoolProperty(
+        name='Affected by Wind',
+        description='Wind effects affect the particles',
+        default=False, options=set())
+    colorstart = bpy.props.FloatVectorProperty(
+        name='Color Start', description='Particle color at birth',
+        subtype='COLOR_GAMMA', size=3,
+        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
+    colorend = bpy.props.FloatVectorProperty(
+        name='Color End', description='Particle color at death',
+        subtype='COLOR_GAMMA', size=3,
+        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
+    alphastart = bpy.props.FloatProperty(
+        name='Alpha Start', description='Particle alpha at birth',
+        default=1, min=0.0, max=1.0)
+    alphaend = bpy.props.FloatProperty(
+        name='Alpha End', description='Particle alpha at death',
+        default=1.0, min=0.0, max=1.0)
+    sizestart = bpy.props.FloatProperty(
+        name='Start x-Size', description='Particle size at birth',
+        default=1.0, min=0.0)
+    sizeend = bpy.props.FloatProperty(
+        name='Start x-Size', description='Particle size at death',
+        default=1.0, min=0.0)
+    sizestart_y = bpy.props.FloatProperty(
+        name='Start y-Size', description='Particle size at birth',
+        default=1.0, min=0.0)
+    sizeend_y = bpy.props.FloatProperty(
+        name='Start y-Size', description='Particle size at death',
+        default=1.0, min=0.0)
+    bounce = bpy.props.BoolProperty(
+        name='Bounce',
+        description='The particles bounce against static walkmeshes',
+        default=False, options=set())
+    bounce_co = bpy.props.FloatProperty(
+        name='Bounce coefficient',
+        description='How much each particle bounces',
+        default=0.0)
+    blurlength = bpy.props.FloatProperty(
+        name='Blur Length', subtype='DISTANCE', description='???',
         default=0.0, min=0.0)
-
-    # Texture and chunk settings
+    deadspace = bpy.props.FloatProperty(
+        name='Dead Space', description='???',
+        default=0.0)
+    # Texture Properties
+    particletype = bpy.props.EnumProperty(
+        name='Type',
+        items=[('texture', 'Texure',
+                'Textured Particles', 0),
+               ('chunk', 'Chunk',
+                'Particle shape based on MDL file', 1),
+               ],
+        default='texture', options=set())
     texture = bpy.props.StringProperty(name='Texture',
                                        description='Texture name',
-                                       subtype='FILE_NAME', maxlen=32,
+                                       subtype='FILE_NAME', maxlen=64,
                                        default=nvb_def.null, options=set())
-    twosidedtex = bpy.props.BoolProperty(
-        name='Two Sided Texture',
-        description='Texture visible from both sides',
-        default=False, options=set())
     chunk = bpy.props.StringProperty(name='Chunk',
                                      description='Model name for a chunk',
-                                     subtype='FILE_NAME', maxlen=32,
+                                     subtype='FILE_NAME', maxlen=16,
                                      default=nvb_def.null, options=set())
-
+    twosidedtex = bpy.props.BoolProperty(
+        name='Two Sided',
+        description='Texture is visible from both sides',
+        default=False, options=set())
+    m_istinted = bpy.props.BoolProperty(
+        name='Tinted',
+        description='Tint the particles with the ambient color of the scene',
+        default=False, options=set())
     # Texture animation properties
     xgrid = bpy.props.IntProperty(name='X Grid', description='Texture grid',
                                   default=1, min=0)
@@ -356,97 +419,19 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
         name='Random Frame',
         description='Display a random frame from the texture grid',
         default=False, options=set())
-
-    # Misc Properties
-    bounce = bpy.props.BoolProperty(
-        name='Bounce',
-        description='The particles bounce against static walkmeshes',
-        default=False, options=set())
-    bounce_co = bpy.props.FloatProperty(
-        name='Bounce coefficient',
-        description='How much each particle bounces',
-        default=0.0)
-    loop = bpy.props.BoolProperty(
-        name='Loop',
-        description='???',
-        default=False, options=set())
-    deadspace = bpy.props.FloatProperty(
-        name='Dead Space', description='???',
-        default=0.0)
-    splat = bpy.props.BoolProperty(
-        name='Splat',
-        description='On collision the particle is placed flat (face up) on the contacting surface ',
-        default=False, options=set())
-    affectedbywind = bpy.props.BoolProperty(
-        name='Affected by Wind',
-        description='Wind effects affect the particles',
-        default=False, options=set())
-    m_istinted = bpy.props.BoolProperty(
-        name='Tinted',
-        description='Tint the particles with the ambient color of the scene',
-        default=False, options=set())
-    renderorder = bpy.props.IntProperty(
-        name='Render Order',
-        description='Helps the engine priotize emitters, lower order = higher priority',
-        default=0, min=0, options=set())
-    blurlength = bpy.props.FloatProperty(
-        name='Blast Radius', subtype='DISTANCE', description='???',
-        default=0.0, min=0.0)
-
-    # Blast properties
-    blastradius = bpy.props.FloatProperty(
-        name='Blast Radius', subtype='DISTANCE', description='???',
-        default=0.0, min=0.0)
-    blastlength = bpy.props.FloatProperty(
-        name='Blast Length', subtype='DISTANCE', description='???',
-        default=0.0, min=0.0)
-
-    # Lightning properties
-    # lightningDelay
-    # lightningRadius
-    # lightningScale
-
-    # Particle start and end values
-    colorstart = bpy.props.FloatVectorProperty(
-        name='Color Start', description='Particle color at birth',
-        subtype='COLOR_GAMMA',
-        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
-    colorend = bpy.props.FloatVectorProperty(
-        name='Color End', description='Particle color at death',
-        subtype='COLOR_GAMMA',
-        default=(1.0, 1.0, 1.0), min=0.0, soft_max=1.0, max=2.0)
-    alphastart = bpy.props.FloatProperty(
-        name='Alpha Start', description='Particle alpha at birth',
-        default=1, min=0.0, max=1.0)
-    alphaend = bpy.props.FloatProperty(
-        name='Alpha End', description='Particle alpha at death',
-        default=1.0, min=0.0, max=1.0)
-    sizestart = bpy.props.FloatProperty(
-        name='Start x-Size', description='Particle size at birth',
-        default=1.0, min=0.0)
-    sizeend = bpy.props.FloatProperty(
-        name='Start x-Size', description='Particle size at death',
-        default=1.0, min=0.0)
-    sizestart_y = bpy.props.FloatProperty(
-        name='Start <-Size', description='Particle size at birth',
-        default=1.0, min=0.0)
-    sizeend_y = bpy.props.FloatProperty(
-        name='Start <-Size', description='Particle size at death',
-        default=1.0, min=0.0)
-
-    # For p2p emitters
+    # Point to Point Properties
     p2p = bpy.props.BoolProperty(
         name='P2P',
         description='Point to Point emitter',
         default=False, options=set())
     p2p_sel = bpy.props.EnumProperty(
         name='Spawn Type',
-        items=[('0', 'Bezier',
-                'Emit particles based on birthrate', 0),
-               ('1', 'Gravity',
-                'Emit particles based on amount per meter', 1),
+        items=[('1', 'Bezier',
+                'Emit particles based on birthrate', 1),
+               ('2', 'Gravity',
+                'Emit particles based on amount per meter', 2),
                ],
-        default='0', options=set())
+        default='1', options=set())
     p2p_bezier2 = bpy.props.FloatProperty(
         name='Source', subtype='DISTANCE',
         description='Source Bezier Handle',
@@ -461,16 +446,37 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
         default=0.0, min=0.0)  # Bezier type p2p
     grav = bpy.props.FloatProperty(
         name='Gravity',
-        description='Particles are pulled towards the reference node.',
+        description='Particles are pulled towards the reference node',
         default=0.0)  # Gravity type p2p
     drag = bpy.props.FloatProperty(
         name='Drag',
         description='Particles overshoot the reference node and double back',
         default=0.0)  # Gravity type p2p
     threshold = bpy.props.FloatProperty(
-        name='Combine Time', subtype='DISTANCE',
-        description='Distance from the gravity point that the particle will be killed off from. A value of 0 will let the particles pass through the gravity center and loop back in an orbital pattern.',
+        name='Threshold', subtype='DISTANCE',
+        description='Distance from the gravity point that the particle will \
+                     be killed off from. A value of 0 will let the particles \
+                     pass through the gravity center and loop back',
         default=0.0, min=0.0)  # Gravity type p2p
+    # Blast properties
+    blastradius = bpy.props.FloatProperty(
+        name='Radius', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+    blastlength = bpy.props.FloatProperty(
+        name='Length', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+
+    # Lightning properties
+    lightningdelay = bpy.props.FloatProperty(
+        name='Delay', subtype='TIME',
+        description='???',
+        default=0.0, min=0.0)
+    lightningradius = bpy.props.FloatProperty(
+        name='Radius', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
+    lightningscale = bpy.props.FloatProperty(
+        name='Scale', subtype='DISTANCE', description='???',
+        default=0.0, min=0.0)
 
     # Inheritance
     inherit = bpy.props.BoolProperty(
@@ -602,6 +608,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     # For reference emptys
     refmodel = bpy.props.StringProperty(name='Reference Model',
                                         description='Name of MDL file',
+                                        maxlen=64,
                                         default='fx_ref', options=set())
     reattachable = bpy.props.BoolProperty(name='Reattachable',
                                           default=False, options=set())
@@ -675,7 +682,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                 description='Makes the object glow but does not emit light',
                 subtype='COLOR_GAMMA',
                 default=(0.0, 0.0, 0.0), options={'ANIMATABLE'},
-                min=0.0, max=1.0, soft_min=0.0, soft_max=1.0)
+                min=0.0, max=2.0, soft_min=0.0, soft_max=1.0)
     shininess = bpy.props.IntProperty(name='Shininess',
                                       description='Used with txi file',
                                       default=1, min=0, max=32, options=set())
@@ -705,8 +712,3 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        (nvb_def.Lighttype.MAIN2,
                         'Mainlight 2', 'For tiles (Editable in toolset)', 2)],
                 default=nvb_def.Lighttype.DEFAULT, options=set())
-    # For emitters
-    rawascii = bpy.props.StringProperty(
-        name='Text node',
-        description='Name of the raw text node',
-        default='', options=set())
