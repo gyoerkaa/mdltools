@@ -750,10 +750,11 @@ class NVB_PT_utils(bpy.types.Panel):
             split = box.split(percentage=0.5)
             col = split.column()
             col.prop(addon.preferences, 'util_amt_connect')
-            col.prop(addon.preferences, 'util_amt_strip_name')
+            sub = col.row()
+            sub.enabled = addon.preferences.util_amt_mode == 'KFP'
+            sub.prop(addon.preferences, 'util_amt_split_action')
             col = split.column()
-            col.enabled = addon.preferences.util_amt_mode == 'KFP'
-            col.prop(addon.preferences, 'util_amt_split_action')
+            col.prop(addon.preferences, 'util_amt_strip_name')
             sub = col.row()
             sub.enabled = addon.preferences.util_amt_split_action
             sub.prop(addon.preferences, 'util_amt_create_nla')

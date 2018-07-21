@@ -1521,19 +1521,6 @@ class Emitter(Node):
     @classmethod
     def generate_ascii_emitter(cls, obj, ascii_lines, options):
         """Adds emitter paramters to ascii lines."""
-        def get_formatted_props(prop_name_list, part_sys_settings):
-            """Get the formatted mdl property."""
-            str_list = []
-            for prop_name in prop_name_list:
-                dp, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
-                if dp.startswith("nvb."):
-                    value = part_sys_settings.nvb.__getattr__(dp[4:])
-                else:
-                    value = part_sys_settings.__getattr__(dp)
-                fstr = prop_name + dp_dim * val_fstr
-                str_list.append(fstr.format(value))
-            return str_list
-
         def form_prop(prop_name, value):
             _, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
             if dp_dim > 1:
@@ -1550,6 +1537,8 @@ class Emitter(Node):
         if not part_set:
             return
 
+        ascii_lines.append('xsize ' + str(obj.dimensions.x*100))
+        ascii_lines.append('ysize ' + str(obj.dimensions.y*100))
         # Emitter Properties
         ascii_lines.append(form_prop('update', part_set.nvb.update))
         ascii_lines.append(form_prop('render', part_set.nvb.render))
@@ -1636,9 +1625,6 @@ class Emitter(Node):
                                      part_set.nvb.inherit_local))
         ascii_lines.append(form_prop('inherit_part',
                                      part_set.nvb.inherit_part))
-        # Export all properties (not ideal, better to use a minimum of logic)
-        # ascii_lines.extend(get_formatted_props(Emitter.property_dict.keys(),
-        #                                        part_set))
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):

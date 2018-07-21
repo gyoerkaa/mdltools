@@ -48,7 +48,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description='Strip trailing numbers from names',
         default=False)
     util_amt_split_action = bpy.props.BoolProperty(
-        name='Split Actions',
+        name='Split Action',
         description='Split animation into multiple actions',
         default=False)
     util_amt_create_nla = bpy.props.BoolProperty(

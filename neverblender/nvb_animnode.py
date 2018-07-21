@@ -17,15 +17,15 @@ class Animnode():
     emitter_properties = nvb_node.Emitter.property_dict
     # Keys that go directly into objects
     object_properties = {'position': ('location', 3, float,
-                                      ' {:>4.2f}'),
+                                      ' {:> 6.5f}'),
                          'orientation': ('', 4, float,  # Needs conversion
-                                         ' {:>4.2f}'),
+                                         ' {:> 6.5f}'),
                          'scale': ('', 1, float,  # Needs conversion
-                                   ' {:>4.2f}'),
+                                   ' {:> 6.5f}'),
                          'color': ('color', 3, float,
                                    ' {:>4.2f}'),
                          'radius': ('distance', 1, float,
-                                    ' {:>4.2f}'),
+                                    ' {:>6.5f}'),
                          'selfillumcolor': ('nvb.selfillumcolor', 3, float,
                                             ' {:>4.2f}'),
                          'setfillumcolor': ('nvb.selfillumcolor', 3, float,
@@ -504,9 +504,9 @@ class Animnode():
             exports = [
                 ['scale', 1, ' {:> 6.5f}',
                  'scale', 1, None, [1.0]],
-                ['selfillumcolor', 3, ' {:>3.2f}',
+                ['selfillumcolor', 3, ' {:>4.2f}',
                  'nvb.selfillumcolor', 3, None, [0.0, 0.0, 0.0]],
-                ['color', 3, ' {:>3.2f}',
+                ['color', 3, ' {:>4.2f}',
                  'color', 3, None, [0.0, 0.0, 0.0]],
                 ['radius', 1, ' {:>6.5f}',
                  'distance', 1, None, [1.0]],
@@ -580,6 +580,8 @@ class Animnode():
                 # Convert to the format used by MDLs
                 if dp_conversion is not None:
                     aur_values = dp_conversion(obj, values)
+                else:
+                    aur_values = values
                 aur_times = [(f - anim_start) / fps for f in keyed_frames]
                 aur_keys = list(zip(aur_times, aur_values))
                 key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
@@ -604,7 +606,6 @@ class Animnode():
         for key_name, keys, val_fstr in kdata:
             num_keys = len(keys)
             if num_keys > 0:  # Create a key list
-                print(key_name)
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])

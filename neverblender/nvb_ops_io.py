@@ -87,6 +87,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Strip Trailing Numbers',
             description='Strips trailing numbers from object names',
             default=False)
+    frame_set_zero = bpy.props.BoolProperty(
+            name='Set Frame to 0',
+            description='Set frame to 0',
+            default=False)
     batch_mode = bpy.props.EnumProperty(
             name='Batch Mode',
             description='Export multiple MDLs',
@@ -112,8 +116,13 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             else:
                 return nvb_def.Walkmeshtype.PWK
 
+        # (Re)set to object-mode, if an object is selected
         if bpy.ops.object.mode_set.poll():
             bpy.ops.object.mode_set(mode='OBJECT')
+        # Set frame to zero, if specified in options
+        if self.frame_set_zero:
+            options.scene.frame_current = 0
+            bpy.context.scene.update()
         # Gather MDLs to export
         mdl_list = []
         if options.batch_mode == 'OFF':  # Get active object only

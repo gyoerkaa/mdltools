@@ -104,8 +104,7 @@ class Animation():
     @staticmethod
     def generateAscii(mdl_base, anim, ascii_lines, options):
         """TODO: Doc."""
-        if anim.mute:
-            # Don't export mute animations
+        if anim.mute:  # Don't export mute animations
             return
         fps = options.scene.render.fps
         anim_length = (anim.frameEnd - anim.frameStart) / fps
