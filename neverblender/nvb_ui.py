@@ -28,30 +28,52 @@ class NVB_UL_anims(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
         """TODO: DOC."""
+
         # Supports all 3 layout types
+        icn = 'NONE'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.name, translate=False, icon_value=icon)
-            muteIcon = 'RESTRICT_VIEW_ON' if item.mute else 'RESTRICT_VIEW_OFF'
-            layout.prop(item, 'mute', text='', icon=muteIcon, emboss=False)
+            layout.prop(item, 'name', text='', emboss=False)
+            icn = 'CHECKBOX_DEHLT' if item.mute else 'CHECKBOX_HLT'
+            layout.prop(item, 'mute', text='', icon=icn, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=icon)
+            layout.label('', icon=icn)
 
 
-class NVB_UL_animevents(bpy.types.UIList):
+class NVB_UL_anim_events(bpy.types.UIList):
+    """Display an event in the event list of the currently active animation."""
+
+    def draw_item(self, context, layout, data, item, icon,
+                  active_data, active_propname, index):
+        """TODO: DOC."""
+
+        # Supports all 3 layout types
+        icn = 'NONE'
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            split = layout.split(0.7, False)
+            split.prop(item, 'name', text='', emboss=False)
+            row = split.row(align=True)
+            row.prop(item, 'frame', text='', emboss=False)
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label('', icon=icn)
+
+
+class NVB_UL_amt_events(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
         """TODO: DOC."""
-        custom_icon = 'NONE'
 
         # Supports all 3 layout types
+        icn = 'LAMP'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.name, icon=custom_icon)
+            layout.prop(item, 'name', text='', emboss=False)
+            layout.prop(item, 'fire', text='', icon=icn, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
+            layout.label('', icon=icn)
 
 
 class NVB_UL_mtrparams(bpy.types.UIList):
@@ -184,7 +206,8 @@ class NVB_PT_bone(bpy.types.Panel):
         # Get bone - independent of mode
         bone = context.bone
         if not bone:
-            bone = obj.data.bones[context.edit_bone.name]
+            edit_bone = context.edit_bone
+            bone = obj.data.bones[edit_bone.name]
         layout = self.layout
         # Settings for conversion to pseudo-bones
         box = layout.box()
@@ -220,8 +243,14 @@ class NVB_PT_armature(bpy.types.Panel):
         box = layout.box()
         box.label(text='Generate Pseudo Bones')
         row = box.row()
-        row.prop(addon.preferences, 'util_psb_anicopy')
-        row.prop(addon.preferences, 'util_psb_insertroot')
+        row.prop(addon.preferences, 'util_psb_anim_mode')
+        row = box.row()
+        sub = row.row()
+        sub.enabled = (addon.preferences.util_psb_anim_mode == 'NONE') or \
+                      (addon.preferences.util_psb_anim_mode == 'ACTION')
+        sub.prop(addon.preferences, 'util_psb_insert_base')
+        row.prop(addon.preferences, 'util_psb_insert_root')
+
         box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
         layout.separator()
 
@@ -232,7 +261,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
-        box.prop_search(obj.nvb, 'util_psb_anitarget', bpy.data, 'objects')
+        box.prop(obj.nvb, 'util_psb_anim_target')
         box.operator('nvb.amt_anims2psb', icon='NODETREE')
         layout.separator()
 
@@ -648,7 +677,7 @@ class NVB_PT_animlist(bpy.types.Panel):
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base:
-            # Anim Helper. Display and add/remove events.
+            # Display and add/remove animations
             row = layout.row()
             row.template_list('NVB_UL_anims', 'TheAnimList',
                               mdl_base.nvb, 'animList',
@@ -669,7 +698,7 @@ class NVB_PT_animlist(bpy.types.Panel):
                      icon='DOWNARROW_HLT', text="")
             anim_list = mdl_base.nvb.animList
             anim_list_idx = mdl_base.nvb.animListIdx
-            if anim_list_idx >= 0 and len(anim_list) > 0:
+            if anim_list_idx >= 0 and len(anim_list) > anim_list_idx:
                 anim = anim_list[anim_list_idx]
                 row = layout.row()
                 row.prop(anim, 'name')
@@ -682,33 +711,43 @@ class NVB_PT_animlist(bpy.types.Panel):
                 col = split.column(align=True)
                 col.prop(anim, 'frameStart')
                 col.prop(anim, 'frameEnd')
-                layout.separator()
 
                 # Event Helper. Display and add/remove events.
-                row = layout.row()
-                sub = layout.box()
-                row = sub.row()
-                row.label(text='Animation Events')
+                box = layout.box()
+                box.label(text='Events')
 
-                row = sub.row()
-                row.template_list('NVB_UL_animevents', 'TheEventList',
+                row = box.row()
+                row.template_list('NVB_UL_anim_events', 'TheEventList',
                                   anim, 'eventList',
                                   anim, 'eventListIdx')
                 col = row.column(align=True)
-                col.operator('nvb.animevent_new', text='', icon='ZOOMIN')
-                col.operator('nvb.animevent_delete', text='', icon='ZOOMOUT')
+                col.operator('nvb.anim_event_new', text='', icon='ZOOMIN')
+                col.operator('nvb.anim_event_delete', text='', icon='ZOOMOUT')
                 col.separator()
-                col.operator('nvb.animevent_move',
+                col.operator('nvb.anim_event_move',
                              icon='TRIA_UP', text='').direction = 'UP'
-                col.operator('nvb.animevent_move',
+                col.operator('nvb.anim_event_move',
                              icon='TRIA_DOWN', text='').direction = 'DOWN'
-                if anim.eventListIdx >= 0 and len(anim.eventList) > 0:
-                    animEvent = anim.eventList[anim.eventListIdx]
-                    row = sub.row()
-                    row.prop(animEvent, 'name')
-                    row.prop(animEvent, 'frame')
 
-                layout.separator()
+            # Display and add/remove events.
+            """
+            layout.label(text='Events')
+            row = layout.row()
+            row.template_list('NVB_UL_amt_events', 'TheAnimEventList',
+                              mdl_base.nvb, 'anim_event_list',
+                              mdl_base.nvb, 'anim_event_list_idx',
+                              rows=7)
+            col = row.column(align=True)
+            col.operator('nvb.anim_event_new', icon='ZOOMIN', text='')
+            col.operator('nvb.anim_event_delete', icon='ZOOMOUT', text='')
+            event_list = mdl_base.nvb.anim_event_list
+            event_list_idx = mdl_base.nvb.anim_event_list_idx
+            if event_list_idx >= 0 and len(event_list) > event_list_idx:
+                event = event_list[event_list_idx]
+                row = layout.row()
+                row.prop(event, 'name')
+            """
+            layout.separator()
 
 
 class NVB_PT_utils(bpy.types.Panel):
@@ -745,26 +784,23 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Animations: ')
             col = split.column()
             col.row().prop(addon.preferences, 'util_amt_src', expand=True)
-            col.prop(addon.preferences, 'util_amt_mode', text='')
-
-            split = box.split(percentage=0.5)
-            col = split.column()
-            col.prop(addon.preferences, 'util_amt_connect')
-            sub = col.row()
-            sub.enabled = addon.preferences.util_amt_mode == 'KFP'
-            sub.prop(addon.preferences, 'util_amt_split_action')
-            col = split.column()
-            col.prop(addon.preferences, 'util_amt_strip_name')
-            sub = col.row()
+            col.prop(addon.preferences, 'util_amt_anim_mode', text='')
+            row = box.row()
+            row.prop(addon.preferences, 'util_amt_connect')
+            row.prop(addon.preferences, 'util_amt_strip_name')
+            row = box.row()
+            row.enabled = addon.preferences.util_amt_anim_mode == 'KFP'
+            row.prop(addon.preferences, 'util_amt_split_action')
+            sub = row.row()
             sub.enabled = addon.preferences.util_amt_split_action
-            sub.prop(addon.preferences, 'util_amt_create_nla')
-
+            sub.prop(addon.preferences, 'util_amt_multi_track')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
             # Scale Helper
             box = layout.box()
             box.label(text='Transform Helper')
+
             row = box.row()
             row.column().prop(mdl_base, 'location')
             row.column().prop(mdl_base, 'scale')
@@ -774,6 +810,7 @@ class NVB_PT_utils(bpy.types.Panel):
             # Walkmesh & Dummy Helper
             box = layout.box()
             box.label(text='Walkmesh & Dummy Helper')
+
             row = box.row()
             row.label(text='Type: ')
             row.prop(addon.preferences, 'util_node_mdltype', expand=True)

@@ -85,7 +85,7 @@ classes = (
     nvb_props.NVB_PG_bone,
     nvb_ui.NVB_UL_lensflares,
     nvb_ui.NVB_UL_anims,
-    nvb_ui.NVB_UL_animevents,
+    nvb_ui.NVB_UL_anim_events,
     nvb_ui.NVB_UL_set_element,
     nvb_ui.NVB_PT_aurorabase,
     nvb_ui.NVB_PT_dummy,

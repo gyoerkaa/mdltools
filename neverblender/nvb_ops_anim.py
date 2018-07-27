@@ -495,8 +495,16 @@ class NVB_OT_anim_new(bpy.types.Operator):
     def execute(self, context):
         """Create the animation"""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        newanim = nvb_utils.create_anim_list_item(mdl_base, True)
-        newanim.root = mdl_base.name
+        anim = nvb_utils.create_anim_list_item(mdl_base, True)
+        anim.root = mdl_base.name
+        # Create an unique name
+        name_list = [an.name for an in mdl_base.nvb.animList]
+        name_idx = 0
+        new_name = 'anim.{:0>3d}'.format(name_idx)
+        while new_name in name_list:
+            name_idx += 1
+            new_name = 'anim.{:0>3d}'.format(name_idx)
+        anim.name = new_name
         return {'FINISHED'}
 
 
@@ -682,10 +690,10 @@ class NVB_OT_anim_move(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_animevent_new(bpy.types.Operator):
+class NVB_OT_anim_event_new(bpy.types.Operator):
     """Add a new item to the event list"""
 
-    bl_idname = 'nvb.animevent_new'
+    bl_idname = 'nvb.anim_event_new'
     bl_label = 'Add a new event to an animation'
     bl_options = {'UNDO'}
 
@@ -694,7 +702,9 @@ class NVB_OT_animevent_new(bpy.types.Operator):
         """Enable only if there is an animation."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base is not None:
-            return len(mdl_base.nvb.animList) > 0
+            anim_list = mdl_base.nvb.animList
+            anim_list_idx = mdl_base.nvb.animListIdx
+            return (anim_list_idx >= 0) and len(anim_list) > anim_list_idx
         return False
 
     def execute(self, context):
@@ -712,10 +722,10 @@ class NVB_OT_animevent_new(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_animevent_delete(bpy.types.Operator):
+class NVB_OT_anim_event_delete(bpy.types.Operator):
     """Delete the selected item from the event list"""
 
-    bl_idname = 'nvb.animevent_delete'
+    bl_idname = 'nvb.anim_event_delete'
     bl_label = 'Deletes an event from an animation'
     bl_options = {'UNDO'}
 
@@ -724,11 +734,13 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
         """Enable only if the list isn't empty."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base is not None:
-            animList = mdl_base.nvb.animList
-            if len(animList) > 0:
-                anim = animList[mdl_base.nvb.animListIdx]
-                eventList = anim.eventList
-                return len(eventList) > 0
+            anim_list = mdl_base.nvb.animList
+            anim_list_idx = mdl_base.nvb.animListIdx
+            if (anim_list_idx >= 0) and len(anim_list) > anim_list_idx:
+                anim = anim_list[anim_list_idx]
+                ev_list = anim.eventList
+                ev_list_idx = anim.eventListIdx
+                return ev_list_idx >= 0 and len(ev_list) > ev_list_idx
         return False
 
     def execute(self, context):
@@ -745,10 +757,10 @@ class NVB_OT_animevent_delete(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_animevent_move(bpy.types.Operator):
+class NVB_OT_anim_event_move(bpy.types.Operator):
     """Move an item in the event list"""
 
-    bl_idname = 'nvb.animevent_move'
+    bl_idname = 'nvb.anim_event_move'
     bl_label = 'Move an item in the event  list'
     bl_options = {'UNDO'}
 
@@ -760,11 +772,13 @@ class NVB_OT_animevent_move(bpy.types.Operator):
         """Enable only if the list isn't empty."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base is not None:
-            animList = mdl_base.nvb.animList
-            if len(animList) > 0:
-                anim = animList[mdl_base.nvb.animListIdx]
-                eventList = anim.eventList
-                return len(eventList) > 0
+            anim_list = mdl_base.nvb.animList
+            anim_list_idx = mdl_base.nvb.animListIdx
+            if (anim_list_idx >= 0) and len(anim_list) > anim_list_idx:
+                anim = anim_list[anim_list_idx]
+                ev_list = anim.eventList
+                ev_list_idx = anim.eventListIdx
+                return ev_list_idx >= 0 and len(ev_list) > ev_list_idx
         return False
 
     def execute(self, context):
@@ -786,4 +800,97 @@ class NVB_OT_animevent_move(bpy.types.Operator):
         newIdx = max(0, min(newIdx, maxIdx))
         eventList.move(currentIdx, newIdx)
         anim.eventListIdx = newIdx
+        return {'FINISHED'}
+
+
+class NVB_OT_amt_event_new(bpy.types.Operator):
+    """Add a new animation to the animation list"""
+
+    bl_idname = 'nvb.amt_event_new'
+    bl_label = 'Create new animation event'
+
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no object is selected."""
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        return mdl_base is not None
+
+    def execute(self, context):
+        """Create the animation"""
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        event_list = mdl_base.nvb.anim_event_list
+        # Create an unique name
+        name_list = [ev.name for ev in event_list]
+        name_idx = 0
+        new_name = 'event.{:0>3d}'.format(name_idx)
+        while new_name in name_list:
+            name_idx += 1
+            new_name = 'event.{:0>3d}'.format(name_idx)
+        # Add new event
+        event = event_list.add()
+        event.name = new_name
+
+        return {'FINISHED'}
+
+
+class NVB_OT_amt_event_delete(bpy.types.Operator):
+    """Delete the selected animation and its keyframes"""
+
+    bl_idname = 'nvb.amt_event_delete'
+    bl_label = 'Delete an animation event'
+
+    bl_options = {'UNDO'}
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if event list is empty or the index invalid."""
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if mdl_base is not None:
+            event_list = mdl_base.nvb.anim_event_list
+            event_list_idx = mdl_base.nvb.anim_event_list_idx
+            return (event_list_idx >= 0 and len(event_list) > event_list_idx)
+        return False
+
+    def delete_event_fcurve(self, obj, event_id):
+        """Delete the events fcurve."""
+        if obj.animation_data and obj.animation_data.action:
+            action = obj.animation_data.action
+            # Remove the current data path for that idx
+            data_path = 'nvb.anim_event_list[' + str(event_id) + '].fire'
+            fcu = action.fcurves.find(data_path, 0)
+            if fcu:
+                action.fcurves.remove(fcu)
+
+    def adjust_event_fcurves(self, obj, event_id_list):
+        """All data path ids -1."""
+        if obj.animation_data and obj.animation_data.action:
+            action = obj.animation_data.action
+            # Remove the current data path for that idx
+            dp_prefix = 'nvb.anim_event_list['
+            dp_suffix = '].fire'
+            for ev_id in event_id_list:
+                data_path = dp_prefix + str(ev_id) + dp_suffix
+                fcu = action.fcurves.find(data_path, 0)
+                if fcu:
+                    fcu.data_path = dp_prefix + str(ev_id-1) + dp_suffix
+
+    def execute(self, context):
+        """Delete the currently selcted event."""
+        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        event_list = mdl_base.nvb.anim_event_list
+        event_list_idx = mdl_base.nvb.anim_event_list_idx
+        # Delete fcurve assoiated with the current event
+        self.delete_event_fcurve(mdl_base, event_list_idx)
+        # Adjust the data paths of the other fcurves to the new ids
+        event_idx_list = [id for id, _ in enumerate(event_list)
+                          if id >= event_list_idx]
+        self.adjust_event_fcurves(mdl_base, event_idx_list)
+        # Remove current event from List
+        event_list.remove(event_list_idx)
+        if event_list_idx > 0:
+            mdl_base.nvb.event_list_idx = event_list_idx - 1
+        # We potentially removed keyframes => update scene
+        context.scene.update()
         return {'FINISHED'}

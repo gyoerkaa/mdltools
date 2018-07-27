@@ -21,6 +21,19 @@ class Animation():
         """TODO: DOC."""
         nvb_animnode.Animnode.create_restpose(obj, frame)
 
+    def create_anim_events(self, mdl_base, anim_data, fps):
+        """Unused"""
+        kfp_options = {'FAST'}
+        action = nvb_utils.get_action(mdl_base, mdl_base.name)
+        ev_list = mdl_base.nvb.anim_event_list
+        for ev_time, ev_name in self.events:
+            ev_idx = nvb_utils.event_list_item_create(ev_list, ev_name)
+            frame = fps * ev_time + anim_data.frameStart
+            if frame <= anim_data.frameEnd:
+                dp = 'nvb.anim_event_list[' + str(ev_idx) + '].fire'
+                fcu = nvb_utils.get_fcurve(action, dp, 0, 'Aurora Events')
+                fcu.keyframe_points.insert(frame, 0.0, kfp_options)
+
     def create(self, mdl_base, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Check for existing animations:
@@ -29,23 +42,23 @@ class Animation():
             return
         # Add new animation to list
         fps = options.scene.render.fps
-        newAnim = nvb_utils.create_anim_list_item(mdl_base)
-        newAnim.name = self.name
-        newAnim.ttime = self.transtime
-        newAnim.root = self.animroot
-        newAnim.frameEnd = fps * self.length + newAnim.frameStart
-        # Add events for new animation
-        for ev in self.events:
-            newEvent = newAnim.eventList.add()
-            newEvent.name = ev[1]
-            newEvent.frame = fps * ev[0] + newAnim.frameStart
+        new_anim = nvb_utils.create_anim_list_item(mdl_base)
+        new_anim.name = self.name
+        new_anim.ttime = self.transtime
+        new_anim.root = self.animroot
+        new_anim.frameEnd = fps * self.length + new_anim.frameStart
+        # Old style events
+        for ev_time, ev_name in self.events:
+            newEvent = new_anim.eventList.add()
+            newEvent.name = ev_name
+            newEvent.frame = fps * ev_time + new_anim.frameStart
         # Load the animation into the objects/actions
         for node in self.nodes:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
             if obj:
-                node.create(obj, newAnim, self.length, options)
+                node.create(obj, new_anim, self.length, options)
                 if options.anim_restpose:
-                    Animation.createRestPose(obj, newAnim.frameStart-5)
+                    Animation.createRestPose(obj, new_anim.frameStart-5)
 
     def loadAsciiAnimHeader(self, ascii_data):
         """TODO: DOC."""

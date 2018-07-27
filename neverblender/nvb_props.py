@@ -2,6 +2,18 @@
 
 from . import bpy
 from . import nvb_def
+from . import nvb_utils
+
+
+def NVB_psb_anim_target_poll(self, object):
+    return nvb_utils.is_mdl_base(object)
+
+
+def NVB_psb_anim_mode_update(self, context):
+    addon = context.user_preferences.addons[__package__]
+    anim_mode = addon.preferences.util_psb_anim_mode
+    if anim_mode == 'NLA_STRIPS' or anim_mode == 'NLA_TRACKS':
+        addon.preferences.util_psb_insert_base = True
 
 
 class NVB_addon_properties(bpy.types.AddonPreferences):
@@ -31,7 +43,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                ('ACT', 'Active', 'Active object and its children', 1),
                ],
         default='ALL')
-    util_amt_mode = bpy.props.EnumProperty(
+    util_amt_anim_mode = bpy.props.EnumProperty(
         name='Animations',
         description='Transfer animations to newly created objects',
         items=[('OFF', 'None', 'No animations transfer', 0),
@@ -40,35 +52,39 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                ],
         default='KFP')
     util_amt_connect = bpy.props.BoolProperty(
-        name='Auto Connect',
-        description='Connect bones when possible',
-        default=True)
+        name='Auto Connect', default=True,
+        description='Connect bones when possible')
     util_amt_strip_name = bpy.props.BoolProperty(
-        name='Strip Trailing',
-        description='Strip trailing numbers from names',
-        default=False)
+        name='Strip Trailing', default=False,
+        description='Strip trailing numbers from names')
     util_amt_split_action = bpy.props.BoolProperty(
-        name='Split Action',
-        description='Split animation into multiple actions',
-        default=False)
-    util_amt_create_nla = bpy.props.BoolProperty(
-        name='Create NLA Tracks',
-        description='Create NLA tracks for split actions',
-        default=False)
+        name='Split Action', default=False,
+        description='Split animation into multiple actions. ' +
+                    'Use an NLA Track to re-combine')
+    util_amt_multi_track = bpy.props.BoolProperty(
+        name='Multipe NLA Tracks', default=False,
+        description='Create an extra NLA track for every action')
 
     # Pseudo Bones Helper
-    util_psb_anicopy = bpy.props.BoolProperty(
-        name='Copy Animations',
-        description='Copy Animation to newly created pseudo-bones (meshes)',
-        default=True)
-    util_psb_use_nla = bpy.props.BoolProperty(
-        name='Use NLA Tracks',
-        description='Use NLA tracks to create animations',
-        default=False)
-    util_psb_insertroot = bpy.props.BoolProperty(
-        name='Add Rootdummy',
-        description='Add an animation root (Empty) as a parent for all bones.',
-        default=False)
+    util_psb_insert_base = bpy.props.BoolProperty(
+        name='Add Aurora Base', default=True,
+        description='Add an aurora base holding animation and model data')
+    util_psb_insert_root = bpy.props.BoolProperty(
+        name='Add Rootdummy', default=True,
+        description='Add an animation root (Empty) as a parent for all bones')
+    util_psb_anim_mode = bpy.props.EnumProperty(
+        name='Animations', description='Source to take animations from',
+        items=[('NONE', 'No Animations',
+                'Animations will not be copied', 0),
+               ('ACTION', 'Active Action',
+                'Take keyframes from currently active action', 1),
+               ('NLA_STRIPS', 'NLA Strips',
+                'Take keyframes from active NLA track, ' +
+                'create an animation for each strip', 2),
+               ('NLA_TRACKS', 'NLA Tracks',
+                'Take keyframes from all NLA tracks, ' +
+                'create an animation for each track', 3)],
+        default='ACTION', update=NVB_psb_anim_mode_update)
 
     def draw(self, context):
         pass
@@ -80,13 +96,24 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
-    name = bpy.props.StringProperty(name='Name',
+    name = bpy.props.StringProperty(name='Name', default='unnamed',
                                     description='Name for this event',
-                                    default='Unnamed', options=set())
+                                    options=set())
     frame = bpy.props.IntProperty(
-        name='Frame',
+        name='Frame', default=1,
         description='Frame at which the event should fire',
-        default=1, options=set())
+        options=set())
+
+
+class NVB_PG_anim_event(bpy.types.PropertyGroup):
+    """Properties for a single event in the even list."""
+
+    name = bpy.props.StringProperty(name='Name', default='unnamed',
+                                    description='Name for this event',
+                                    options=set())
+    fire = bpy.props.BoolProperty(
+        name='Fire', default=False,
+        description='Animate to make the event fire at the current frame')
 
 
 class NVB_PG_anim(bpy.types.PropertyGroup):
@@ -94,22 +121,19 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
 
     name = bpy.props.StringProperty(name='Name',
                                     description='Name for this event',
-                                    default='Unnamed')
+                                    default='unnamed', options=set())
     ttime = bpy.props.FloatProperty(name='Transitiontime', subtype='TIME',
                                     description='Used for for animations only',
-                                    default=0.25, min=0.0, soft_max=10.0)
-    root = bpy.props.StringProperty(name='Root',
-                                    description='Entry point of the animation',
-                                    default='')
-    mute = bpy.props.BoolProperty(name='Mute',
-                                  description='Ignore animation during export',
-                                  default=False)
-    frameStart = bpy.props.IntProperty(name='Start',
-                                       description='Animation Start',
-                                       default=0, min=0, options=set())
-    frameEnd = bpy.props.IntProperty(name='End',
-                                     description='Animation End',
-                                     default=0, min=0, options=set())
+                                    default=0.25, min=0.0, soft_max=10.0,
+                                    options=set())
+    root = bpy.props.StringProperty(name='Root', default='', options=set(),
+                                    description='Entry point of the animation')
+    mute = bpy.props.BoolProperty(name='Export', default=False, options=set(),
+                                  description='Export animation to MDL')
+    frameStart = bpy.props.IntProperty(name='Start', default=0, options=set(),
+                                       description='Animation Start', min=0)
+    frameEnd = bpy.props.IntProperty(name='End', default=0, options=set(),
+                                     description='Animation End', min=0)
 
     eventList = bpy.props.CollectionProperty(type=NVB_PG_animevent)
     eventListIdx = bpy.props.IntProperty(name='Index for event List',
@@ -600,10 +624,14 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                 description='Animation scale for all animations',
                 default=1.00, min=0.0, soft_max=10.0,
                 subtype='FACTOR', options=set())
-    # Animation Data (for being able to seperate them)
+    # Animation Data (for separation)
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
                                         default=0, options=set())
+    # Animation Events (global, per action)
+    anim_event_list = bpy.props.CollectionProperty(type=NVB_PG_anim_event)
+    anim_event_list_idx = bpy.props.IntProperty(name='Index for event List',
+                                                default=0, options=set())
 
     # For reference emptys
     refmodel = bpy.props.StringProperty(name='Reference Model',
@@ -614,11 +642,10 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                                           default=False, options=set())
 
     # Pseudo Bones Helper
-    util_psb_anitarget = bpy.props.StringProperty(
-        name='Target',
-        description='Specify target to copy animations to',
-        default='', options={'SKIP_SAVE'})
-
+    util_psb_anim_target = bpy.props.PointerProperty(
+        name='Target', description='Specify target to copy animations to',
+        type=bpy.types.Object, options={'SKIP_SAVE'},
+        poll=NVB_psb_anim_target_poll)
     # For mesh objects
     meshtype = bpy.props.EnumProperty(
                 name='Type',

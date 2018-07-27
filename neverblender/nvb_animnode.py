@@ -58,10 +58,11 @@ class Animnode():
         return self.object_data or self.material_data or self.emitter_data
 
     @staticmethod
-    def insert_kfp(frames, values, action, dp, dp_dim):
+    def insert_kfp(frames, values, action, dp, dp_dim, action_group=None):
         """TODO: DOC."""
         if frames and values:
-            fcu = [nvb_utils.get_fcurve(action, dp, i) for i in range(dp_dim)]
+            fcu = [nvb_utils.get_fcurve(action, dp, i, action_group)
+                   for i in range(dp_dim)]
             kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
             kfp_cnt = list(map(lambda x: len(x), kfp))
             list(map(lambda x: x.add(len(values)), kfp))
@@ -211,7 +212,7 @@ class Animnode():
 
         fps = options.scene.render.fps
         frame_start = anim.frameStart
-        action = nvb_utils.get_action(obj, obj.name)
+        action = nvb_utils.get_action(obj, options.mdlname + '.' + obj.name)
         for label, (data, data_path, data_dim) in self.object_data.items():
             frames = [fps * d[0] + frame_start for d in data]
             if not data_path:  # Needs conversion
@@ -240,7 +241,11 @@ class Animnode():
             values = [d[1:data_dim+1] for d in data]
             dp = data_path
             dp_dim = data_dim
-            Animnode.insert_kfp(frames, values, action, dp, dp_dim)
+            if dp.startswith('nvb'):  # Group custom properties
+                Animnode.insert_kfp(frames, values, action, dp, dp_dim,
+                                    'Aurora Emitter')
+            else:
+                Animnode.insert_kfp(frames, values, action, dp, dp_dim)
 
     def create_data_shape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""

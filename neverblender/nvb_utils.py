@@ -99,11 +99,17 @@ def get_mdl_base(obj=None, scene=None):
     return None
 
 
-def get_fcurve(action, data_path, index=0):
+def get_fcurve(action, data_path, index=0, group_name=None):
     """Get the fcurve with specified properties or create one."""
     fcu = action.fcurves.find(data_path, index)
-    if not fcu:
+    if not fcu:  # Create new Curve
         fcu = action.fcurves.new(data_path=data_path, index=index)
+        if group_name:  # Add curve to group
+            if group_name in action.groups:
+                group = action.groups[group_name]
+            else:
+                group = action.groups.new(group_name)
+            fcu.group = group
     return fcu
 
 
@@ -332,6 +338,16 @@ def create_anim_list_item(mdl_base, check_keyframes=False):
     anim.frameStart = start
     anim.frameEnd = start
     return anim
+
+
+def event_list_item_create(event_list, event_name):
+    """Append a new animation at the and of the animation list."""
+    if event_name in [ev.name for ev in event_list]:
+        return [ev.name for ev in event_list].index(event_name)
+    else:
+        event = event_list.add()
+        event.name = event_name
+        return len(event_list)-1
 
 
 def getNodeType(obj):
