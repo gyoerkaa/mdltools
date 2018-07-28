@@ -46,24 +46,24 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     util_amt_anim_mode = bpy.props.EnumProperty(
         name='Animations',
         description='Transfer animations to newly created objects',
-        items=[('OFF', 'None', 'No animations transfer', 0),
-               ('KFP', 'Keyframes', 'Copy keyframes', 1),
-               ('CON', 'Constraints', 'Create constraints', 2),
+        items=[('NONE', 'None', 'No animations transfer', 0),
+               ('CONSTRAINT', 'Constraints', 'Create constraints', 1),
+               ('ACTION', 'Keyframes',
+                'Copy all keyframes to a single action', 2),
+               ('NLA_STRIPS', 'NLA Strip (Single Track)',
+                'Separate animation into multiple actions and add each ' +
+                'to an NLA-strip in a single NLA-track', 3),
+               ('NLA_TRACKS', 'NLA Tracks',
+                'Separate animation into multiple actions and add each ' +
+                'to an NLA-track', 4),
                ],
-        default='KFP')
+        default='ACTION')
     util_amt_connect = bpy.props.BoolProperty(
         name='Auto Connect', default=True,
         description='Connect bones when possible')
     util_amt_strip_name = bpy.props.BoolProperty(
         name='Strip Trailing', default=False,
         description='Strip trailing numbers from names')
-    util_amt_split_action = bpy.props.BoolProperty(
-        name='Split Action', default=False,
-        description='Split animation into multiple actions. ' +
-                    'Use an NLA Track to re-combine')
-    util_amt_multi_track = bpy.props.BoolProperty(
-        name='Multipe NLA Tracks', default=False,
-        description='Create an extra NLA track for every action')
 
     # Pseudo Bones Helper
     util_psb_insert_base = bpy.props.BoolProperty(
@@ -74,17 +74,30 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description='Add an animation root (Empty) as a parent for all bones')
     util_psb_anim_mode = bpy.props.EnumProperty(
         name='Animations', description='Source to take animations from',
-        items=[('NONE', 'No Animations',
-                'Animations will not be copied', 0),
-               ('ACTION', 'Active Action',
-                'Take keyframes from currently active action', 1),
+        items=[('ACTION', 'Active Action',
+                'Take keyframes from currently active action', 0),
                ('NLA_STRIPS', 'NLA Strips',
                 'Take keyframes from active NLA track, ' +
-                'create an animation for each strip', 2),
+                'create an animation for each strip', 1),
                ('NLA_TRACKS', 'NLA Tracks',
                 'Take keyframes from all NLA tracks, ' +
-                'create an animation for each track', 3)],
+                'create an animation for each track', 2),
+               ('NONE', 'No Animations',
+                'Animations will not be copied', 3)],
         default='ACTION', update=NVB_psb_anim_mode_update)
+
+    # Anim Copy Helper
+    util_acpy_mode = bpy.props.EnumProperty(
+        name='Animations', description='Source to take animations from',
+        items=[('ACTION', 'Active Action',
+                'Take keyframes from currently active action', 0),
+               ('NLA_STRIPS', 'NLA Strips',
+                'Take keyframes from active NLA track, ' +
+                'create an animation for each strip', 1),
+               ('NLA_TRACKS', 'NLA Tracks',
+                'Take keyframes from all NLA tracks, ' +
+                'create an animation for each track', 2)],
+        default='ACTION')
 
     def draw(self, context):
         pass
@@ -264,8 +277,8 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
     # Armature Helper
     util_psb_btype = bpy.props.EnumProperty(
         name='Pseudo-Bone Type',
-        items=[('EMT', 'Empty', 'Bone will be converted to an empty', 0),
-               ('ME1', 'Mesh', 'Bone will be converted to a mesh', 1)
+        items=[('EMT', 'Empty', 'Converts bone to an empty', 0),
+               ('ME1', 'Mesh (Octahedron)', 'Convert bone to an octahedron', 1)
                ],
         default='ME1', options=set())
 

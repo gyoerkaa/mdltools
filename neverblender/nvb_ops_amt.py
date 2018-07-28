@@ -9,7 +9,7 @@ from . import nvb_def
 from . import nvb_utils
 
 
-class NVB_OT_amt_anims2psb(bpy.types.Operator):
+class NVB_OT_amt_anims2psb_old(bpy.types.Operator):
     """Copy animations to pseudobones"""
 
     bl_idname = 'nvb.amt_anims2psb'
@@ -31,7 +31,7 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
             self.get_psb_list(c, psb_root)
 
     def transfer_animations(self, amt, amb_name, psb_name):
-        """TODO: DOC."""
+        """Copies keyframes from armature to pseudo bone."""
         def insert_kfp(fcu, frames, values, dp, dp_dim):
             # Add keyframes to fcurves
             kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
@@ -44,11 +44,21 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
                     p.interpolation = 'LINEAR'
             list(map(lambda c: c.update(), fcu))
 
-        def convert_loc(amt, posebone, psb, kfvalues, mat_eb):
+        def convert_loc2(amt, posebone, psb, kfvalues, mat_eb):
             vecs = [mathutils.Vector(v) for v in kfvalues]
             quat = mat_eb.inverted().to_quaternion()
             list(map(lambda v: v.rotate(quat), vecs))
             return [psb.location + v for v in vecs]
+
+        def convert_loc(amt, posebone, psb, kfvalues, mat_eb):
+            mats = [mathutils.Matrix.Translation(v) for v in kfvalues]
+            if posebone.parent:
+                cmat = mathutils.Matrix.Translation((0, 0, -1))
+            else:
+                cmat = mathutils.Matrix()
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted * cmat for m in mats]
+            return [list(m.to_translation()) for m in mats]
 
         def convert_axan(amt, posebone, psb, kfvalues, mat_eb):
             mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
@@ -161,6 +171,229 @@ class NVB_OT_amt_anims2psb(bpy.types.Operator):
             for amb_name, psb_name in self.amb_psb_pairs:
                 self.transfer_animations(amt, amb_name, psb_name)
             context.scene.update()
+        return {'FINISHED'}
+
+
+class NVB_OT_amt_anims2psb(bpy.types.Operator):
+    """Copy animations to pseudobones"""
+
+    bl_idname = 'nvb.amt_anims2psb'
+    bl_label = 'Copy Animations'
+    bl_options = {'UNDO'}
+
+    mats_edit_bone = dict()  # armature bone name => edit_bone.matrix
+    amb_psb_pairs = []  # (armature bone name, pseudo bone name) tuples
+    scene = None
+
+    def get_psb_list(self, amb, psb_root):
+        """Creates a list of pseudobones for this armature."""
+        psb_list = [psb_root]
+        nvb_utils.get_children_recursive(psb_root, psb_list)
+        if amb.name in [n.name for n in psb_list]:
+            # Create matrix for animation conversion
+            self.amb_psb_pairs.append([amb.name, amb.name])
+            self.mats_edit_bone[amb.name] = amb.matrix_local.copy()
+        for c in amb.children:
+            self.get_psb_list(c, psb_root)
+
+    def transfer_animations(self, amt, amt_action, amb_name, psb_name,
+                            frame_offset=0):
+        """Copies keyframes from armature bone to pseudo bone."""
+        def insert_kfp(fcu, frames, values, dp, dp_dim):
+            # Add keyframes to fcurves
+            kfp_list = [fcu[d].keyframe_points for d in range(dp_dim)]
+            kfp_cnt = [len(fcu[d].keyframe_points) for d in range(dp_dim)]
+            list(map(lambda x: x.add(len(values)), kfp_list))
+            # Set values for all keyframe points
+            for i, (frm, val) in enumerate(zip(frames, values)):
+                for d in range(dp_dim):
+                    kfp = kfp_list[d][kfp_cnt[d]+i]
+                    kfp.co = frm, val[d]
+                    kfp.interpolation = 'LINEAR'
+            # for i, (frm, val_list) in enumerate(zip(frames, values)):
+            #     for val, kfp, cnt in zip(val_list, kfp_list, kfp_cnt):
+            #         kfp[cnt+i].co = frm, val
+            #         kfp[cnt+i].interpolation = 'LINEAR'
+            list(map(lambda c: c.update(), fcu))
+
+        def convert_loc2(amt, posebone, psb, kfvalues, mat_eb):
+            vecs = [mathutils.Vector(v) for v in kfvalues]
+            quat = mat_eb.inverted().to_quaternion()
+            list(map(lambda v: v.rotate(quat), vecs))
+            return [psb.location + v for v in vecs]
+
+        def convert_loc(amt, posebone, psb, kfvalues, mat_eb):
+            mats = [mathutils.Matrix.Translation(v) for v in kfvalues]
+            if posebone.parent:
+                cmat = mathutils.Matrix.Translation((0, 0, -1))
+            else:
+                cmat = mathutils.Matrix()
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted * cmat for m in mats]
+            return [list(m.to_translation()) for m in mats]
+
+        def convert_axan(amt, posebone, psb, kfvalues, mat_eb):
+            mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+                    for v in kfvalues]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
+            quats = [m.to_quaternion() for m in mats]
+            return [[q.angle, *q.axis] for q in quats]
+
+        def convert_quat(amt, posebone, psb, kfvalues, mat_eb):
+            mats = [mathutils.Quaternion(v).to_matrix().to_4x4()
+                    for v in kfvalues]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
+            quats = [m.to_quaternion() for m in mats]
+            return quats
+
+        def convert_eul(amt, posebone, psb, kfvalues, mat_eb):
+            mats = [mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+                    for v in kfvalues]
+            mat_eb_inverted = mat_eb.to_3x3().to_4x4().inverted()
+            mats = [mat_eb * m * mat_eb_inverted for m in mats]
+            # Convert to Euler (with filter)
+            euls = []
+            e = posebone.rotation_euler
+            for m in mats:
+                e = m.to_euler('XYZ', e)
+                euls.append(e)
+            return euls
+
+        def get_data_paths(rot_mode):
+            """Get a list of all data paths depending on rotation mode."""
+            dp_list = []
+            # (data_path, dimension, group_name,
+            #  conversion function, default value)
+            dp_list.append(('location', 'Location', 3,
+                            convert_loc, (0.0, 0.0, 0.0)))
+            if rot_mode == 'AXIS_ANGLE':
+                dp_list.append(('rotation_axis_angle', 'Rotation', 4,
+                                convert_axan, (1.0, 0.0, 0.0, 0.0)))
+            elif rot_mode == 'QUATERNION':
+                dp_list.append(('rotation_quaternion', 'Rotation', 4,
+                                convert_quat, (1.0, 0.0, 0.0, 0.0)))
+            else:
+                dp_list.append(('rotation_euler', 'Rotation', 3,
+                               convert_eul, (0.0, 0.0, 0.0)))
+            return dp_list
+
+        # Get posebone and pseudobone
+        amt_posebone = amt.pose.bones[amb_name]
+        psb = bpy.data.objects[psb_name]  # Pseudo-bone
+        mat_eb = self.mats_edit_bone[amb_name]  # Edit-bone matrix
+        # Get animation data, create if needed.
+        if not psb.animation_data:
+            psb.animation_data_create()
+        # Get action, create if needed.
+        psb_action = psb.animation_data.action
+        if not psb_action:
+            psb_action = bpy.data.actions.new(name=psb.name)
+            psb.animation_data.action = psb_action
+        # All fcurves of the armature
+        source_fcu = amt_action.fcurves
+        # Build data paths depending on rotation mode
+        psb.rotation_mode = amt_posebone.rotation_mode
+        dp_list = get_data_paths(psb.rotation_mode)
+        # Transfer keyframes
+        for psb_dp, group_name, dp_dim, kfp_convert, kfp_dfl in dp_list:
+            amt_dp = 'pose.bones["' + amb_name + '"].' + psb_dp
+            amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
+            if amt_fcu.count(None) < dp_dim:  # disregard empty animations
+                # Get keyed frames
+                frames = list(set().union(
+                    *[[k.co[0] for k in amt_fcu[i].keyframe_points]
+                      for i in range(dp_dim) if amt_fcu[i]]))
+                frames.sort()
+                values = [[amt_fcu[i].evaluate(f) if amt_fcu[i] else kfp_dfl[i]
+                           for i in range(dp_dim)] for f in frames]
+                # values = [[amt_fcu[i].evaluate(f) for i in range(dp_dim)]
+                #           for f in frames]
+                # Convert from armature bone space to pseudobone space
+                values = kfp_convert(amt, amt_posebone, psb, values, mat_eb)
+                # Create fcurves for pseudo bone
+                psb_fcu = [nvb_utils.get_fcurve(psb_action, psb_dp, i,
+                                                group_name)
+                           for i in range(dp_dim)]
+                # Add offset to frames (do it here AFTER getting values)
+                if frame_offset != 0:
+                    frames = [f + frame_offset for f in frames]
+                # Add keyframes to fcurves
+                insert_kfp(psb_fcu, frames, values, psb_dp, dp_dim)
+
+    @classmethod
+    def poll(self, context):
+        """Prevent execution if no armature is selected."""
+        obj = context.object
+        return obj and (obj.type == 'ARMATURE')
+
+    def execute(self, context):
+        """Create pseudo bones"""
+        armature = context.object
+        addon = context.user_preferences.addons[__package__]
+        self.scene = context.scene
+        self.amb_psb_pairs = []
+        self.mats_edit_bone = dict()
+        mdl_base = armature.nvb.util_psb_anim_target
+        if not mdl_base:
+            self.report({'INFO'}, 'Invalid Target')
+            return {'CANCELLED'}
+        # Get Pseudo bones
+        bpy.ops.object.mode_set(mode='EDIT')
+        for amb in armature.data.bones:
+            if not amb.parent:
+                self.get_psb_list(amb, mdl_base)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        # Transfer animations
+        anim_mode = addon.preferences.util_acpy_mode
+        # Only copy frames from current action (if any)
+        if anim_mode == 'ACTION':
+            if armature.animation_data and armature.animation_data.action:
+                action = armature.animation_data.action
+                for amb_name, psb_name in self.amb_psb_pairs:
+                    self.transfer_animations(armature, action,
+                                             amb_name, psb_name, 0)
+        # Use blender data to create mdl animations
+        else:
+            animation_list = []
+            # Grab strips from active track, each strip is an animation
+            if anim_mode == 'NLA_STRIPS':
+                nla_track = armature.animation_data.nla_tracks.active
+                for nla_strip in nla_track.strips:
+                    if not nla_strip.mute:
+                        anim_name = nla_strip.name
+                        anim_length = nla_strip.action_frame_end - \
+                            nla_strip.action_frame_start
+                        action_list = [nla_strip.action]
+                        animation_list.append(
+                            [anim_name, anim_length, action_list])
+            # Grab strips from all tracks, each track is an animation
+            elif anim_mode == 'NLA_TRACKS':
+                for nla_track in armature.animation_data.nla_tracks:
+                    if not nla_track.mute:
+                        anim_name = nla_track.name
+                        anim_length = max([s.action_frame_end
+                                           for s in nla_track.strips
+                                           if not s.mute])
+                        action_list = [s.action for s in nla_track.strips
+                                       if not s.mute]
+                        animation_list.append(
+                            [anim_name, anim_length, action_list])
+            # Transfer keyframes and create animations
+            for anim_name, anim_length, action_list in animation_list:
+                new_anim = nvb_utils.create_anim_list_item(mdl_base)
+                new_anim.name = anim_name
+                new_anim.root = mdl_base.name
+                new_anim.frameEnd = new_anim.frameStart + anim_length
+                print(new_anim.name)
+                print(new_anim.frameStart)
+                for action in action_list:
+                    for amb_name, psb_name in self.amb_psb_pairs:
+                        self.transfer_animations(armature, action,
+                                                 amb_name, psb_name,
+                                                 new_anim.frameStart)
+        context.scene.update()
         return {'FINISHED'}
 
 
@@ -319,7 +552,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
 
     def transfer_animations(self, amt, amt_action, amb_name, psb_name,
                             frame_offset=0):
-        """TODO: DOC."""
+        """Copies keyframes from armature bone to pseudo bone."""
         def insert_kfp(fcu, frames, values, dp, dp_dim):
             # Add keyframes to fcurves
             kfp_list = [fcu[d].keyframe_points for d in range(dp_dim)]
@@ -328,9 +561,13 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             # Set values for all keyframe points
             for i, (frm, val) in enumerate(zip(frames, values)):
                 for d in range(dp_dim):
-                    kfp = kfp_list[d][i+kfp_cnt[d]]
+                    kfp = kfp_list[d][kfp_cnt[d]+i]
                     kfp.co = frm, val[d]
                     kfp.interpolation = 'LINEAR'
+            # for i, (frm, val_list) in enumerate(zip(frames, values)):
+            #     for val, kfp, cnt in zip(val_list, kfp_list, kfp_cnt):
+            #         kfp[cnt+i].co = frm, val
+            #         kfp[cnt+i].interpolation = 'LINEAR'
             list(map(lambda c: c.update(), fcu))
 
         def convert_loc2(amt, posebone, psb, kfvalues, mat_eb):
@@ -559,8 +796,6 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     # Saved settings from aurora base
     auto_connect = False  # Connect bones when possible
     strip_name = False  # Strip trailing numbers from names
-    split_action = False  # Split animation into multiple actions
-    multi_track = False  # Create multiple NLA Tracks holding the actions
     # Generated bones
     generated = []
 
@@ -761,8 +996,6 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
 
         self.auto_connect = addon.preferences.util_amt_connect
         self.strip_name = addon.preferences.util_amt_strip_name
-        self.split_action = addon.preferences.util_amt_split_action
-        self.multi_track = addon.preferences.util_amt_multi_track
         self.generated = []
 
         # Get source for armature
@@ -794,17 +1027,17 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
 
         # Copy animations
         anim_mode = addon.preferences.util_amt_anim_mode
-        if anim_mode != 'OFF':
+        if anim_mode != 'NONE':
             bpy.ops.object.mode_set(mode='POSE')
-            if anim_mode == 'CON':  # Add constraints to bones
+            if anim_mode == 'CONSTRAINT':  # Add constraints to bones
                 for psb, amt_bone_name, _ in self.generated:
                     self.add_constraints(amt, amt_bone_name, psb)
-            elif anim_mode == 'KFP':  # Copy keyframes to bones
-                # Get or create animation data and action
+            else:  # Copy keyframes
+
                 if not amt.animation_data:
                     amt.animation_data_create()
                 action_list = []
-                if self.split_action and mdl_base.nvb.animList:
+                if anim_mode == 'NLA_STRIPS' or anim_mode == 'NLA_TRACKS':
                     for anim in mdl_base.nvb.animList:
                         action_name = amt.name + '.' + anim.name
                         action = bpy.data.actions.new(name=action_name)
@@ -819,20 +1052,19 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                     for psb, amt_bname, cmat in self.generated:
                         self.transfer_animations(amt, amt_action, amt_bname,
                                                  psb, cmat, frame_range)
-                if self.split_action:  # Create NLA tracks to hold actions
-                    if self.multi_track:  # One NLA track per action
-                        for anim_name, action, _ in action_list:
-                            nla_track = amt.animation_data.nla_tracks.new()
-                            nla_track.name = anim_name
-                            nla_track.strips.new(action.name, 0, action)
-                    else:  # Single NLA track for all actions
+                if anim_mode == 'NLA_TRACKS':
+                    for anim_name, action, _ in action_list:
                         nla_track = amt.animation_data.nla_tracks.new()
-                        nla_track.name = mdl_base.name
-                        for anim_name, action, frame_range in action_list:
-                            strip = nla_track.strips.new(
-                                anim_name, frame_range[0], action)
-                            strip.name = anim_name
-                        amt.animation_data.nla_tracks.active = nla_track
+                        nla_track.name = anim_name
+                        nla_track.strips.new(action.name, 0, action)
+                elif anim_mode == 'NLA_STRIPS':
+                    nla_track = amt.animation_data.nla_tracks.new()
+                    nla_track.name = mdl_base.name
+                    for anim_name, action, frame_range in action_list:
+                        strip = nla_track.strips.new(
+                            anim_name, frame_range[0], action)
+                        strip.name = anim_name
+                    amt.animation_data.nla_tracks.active = nla_track
             bpy.ops.object.mode_set(mode='OBJECT')
         del self.generated
         return {'FINISHED'}

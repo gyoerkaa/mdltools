@@ -261,6 +261,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
+        box.prop(addon.preferences, 'util_acpy_mode')
         box.prop(obj.nvb, 'util_psb_anim_target')
         box.operator('nvb.amt_anims2psb', icon='NODETREE')
         layout.separator()
@@ -788,12 +789,6 @@ class NVB_PT_utils(bpy.types.Panel):
             row = box.row()
             row.prop(addon.preferences, 'util_amt_connect')
             row.prop(addon.preferences, 'util_amt_strip_name')
-            row = box.row()
-            row.enabled = addon.preferences.util_amt_anim_mode == 'KFP'
-            row.prop(addon.preferences, 'util_amt_split_action')
-            sub = row.row()
-            sub.enabled = addon.preferences.util_amt_split_action
-            sub.prop(addon.preferences, 'util_amt_multi_track')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 

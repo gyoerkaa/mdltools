@@ -63,12 +63,12 @@ class Animnode():
         if frames and values:
             fcu = [nvb_utils.get_fcurve(action, dp, i, action_group)
                    for i in range(dp_dim)]
-            kfp = [fcu[i].keyframe_points for i in range(dp_dim)]
-            kfp_cnt = list(map(lambda x: len(x), kfp))
-            list(map(lambda x: x.add(len(values)), kfp))
+            kfp_list = [fcu[i].keyframe_points for i in range(dp_dim)]
+            kfp_cnt = list(map(lambda x: len(x), kfp_list))
+            list(map(lambda x: x.add(len(values)), kfp_list))
             for i, (frm, val) in enumerate(zip(frames, values)):
                 for d in range(dp_dim):
-                    p = kfp[d][kfp_cnt[d]+i]
+                    p = kfp_list[d][kfp_cnt[d]+i]
                     p.co = frm, val[d]
                     p.interpolation = 'LINEAR'
             list(map(lambda c: c.update(), fcu))
