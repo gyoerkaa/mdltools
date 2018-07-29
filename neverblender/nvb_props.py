@@ -50,7 +50,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                ('CONSTRAINT', 'Constraints', 'Create constraints', 1),
                ('ACTION', 'Keyframes',
                 'Copy all keyframes to a single action', 2),
-               ('NLA_STRIPS', 'NLA Strip (Single Track)',
+               ('NLA_STRIPS', 'NLA Strips (Single Track)',
                 'Separate animation into multiple actions and add each ' +
                 'to an NLA-strip in a single NLA-track', 3),
                ('NLA_TRACKS', 'NLA Tracks',
@@ -276,7 +276,7 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
     """
     # Armature Helper
     util_psb_btype = bpy.props.EnumProperty(
-        name='Pseudo-Bone Type',
+        name='Bone Shape', description='Shape for the Pseudo-Bone',
         items=[('EMT', 'Empty', 'Converts bone to an empty', 0),
                ('ME1', 'Mesh (Octahedron)', 'Convert bone to an octahedron', 1)
                ],
@@ -634,7 +634,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         default=nvb_def.null, subtype='FILE_NAME', options=set())
     animscale = bpy.props.FloatProperty(
                 name='Animationscale',
-                description='Animation scale for all animations',
+                description='Animation scale for supermodel animations',
                 default=1.00, min=0.0, soft_max=10.0,
                 subtype='FACTOR', options=set())
     # Animation Data (for separation)

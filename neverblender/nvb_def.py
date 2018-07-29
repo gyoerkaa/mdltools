@@ -232,6 +232,7 @@ class ImportOptions():
         self.anim_fps = 30
         self.anim_restpose = True
         self.anim_ignore_existing = False
+        self.anim_scale = None  # use None, instead of 1.0 - for perfomance
         # Blender Settings
         self.rotmode = 'XYZ'
         self.fix_uvs = False

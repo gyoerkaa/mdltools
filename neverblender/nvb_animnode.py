@@ -16,7 +16,7 @@ class Animnode():
     # Keys that go into particle system settings
     emitter_properties = nvb_node.Emitter.property_dict
     # Keys that go directly into objects
-    object_properties = {'position': ('location', 3, float,
+    object_properties = {'position': ('', 3, float,  # Needs conversion
                                       ' {:> 6.5f}'),
                          'orientation': ('', 4, float,  # Needs conversion
                                          ' {:> 6.5f}'),
@@ -180,7 +180,7 @@ class Animnode():
 
     def create_data_object(self, obj, anim, options):
         """Creates animations in object actions."""
-        def data_conversion(label, obj, vals):
+        def data_conversion(label, obj, vals, options):
             if label == 'orientation':
                 if obj.rotation_mode == 'AXIS_ANGLE':
                     dp = 'rotation_axis_angle'
@@ -204,6 +204,14 @@ class Animnode():
                         #  prev_eul)
                         new_values.append(eul)
                         prev_eul = eul
+            elif label == 'position':
+                scl = options.anim_scale
+                dp = 'location'
+                dp_dim = 3
+                if scl:
+                    new_values = [[l * scl for l in loc] for loc in vals]
+                else:
+                    new_values = vals
             elif label == 'scale':
                 dp = 'scale'
                 dp_dim = 3
@@ -217,7 +225,7 @@ class Animnode():
             frames = [fps * d[0] + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
-                    label, obj, [d[1:data_dim+1] for d in data])
+                    label, obj, [d[1:data_dim+1] for d in data], options)
             else:
                 values = [d[1:data_dim+1] for d in data]
                 dp = data_path

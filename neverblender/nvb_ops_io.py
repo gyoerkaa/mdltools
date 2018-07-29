@@ -88,8 +88,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             description='Strips trailing numbers from object names',
             default=False)
     frame_set_zero = bpy.props.BoolProperty(
-            name='Set Frame to 0',
-            description='Set frame to 0',
+            name='Export at Frame 0',
+            description='Set frame to 0 for export',
             default=False)
     batch_mode = bpy.props.EnumProperty(
             name='Batch Mode',
@@ -203,6 +203,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         sub = box.column()
         sub.prop(self, 'apply_modifiers')
         sub.prop(self, 'strip_trailing')
+        sub.prop(self, 'frame_set_zero')
         sub.prop(self, 'batch_mode')
 
     def execute(self, context):
@@ -467,6 +468,8 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
         pathlist = [os.path.join(self.directory, f.name) for f in self.files]
         # Import models
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        if round(mdl_base.nvb.animscale, 3) != 1.0:
+            options.anim_scale = mdl_base.nvb.animscale
         for filepath in pathlist:
             load_file(filepath, mdl_base, options)
         return {'FINISHED'}
