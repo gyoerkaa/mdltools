@@ -9,6 +9,10 @@ def NVB_psb_anim_target_poll(self, object):
     return nvb_utils.is_mdl_base(object)
 
 
+def NVB_anim_root_obj_poll(self, object):
+    return nvb_utils.get_obj_mdl_base(object) is not None
+
+
 def NVB_psb_anim_mode_update(self, context):
     addon = context.user_preferences.addons[__package__]
     anim_mode = addon.preferences.util_psb_anim_mode
@@ -133,14 +137,21 @@ class NVB_PG_anim(bpy.types.PropertyGroup):
     """Properties for a single animation in the animation list."""
 
     name = bpy.props.StringProperty(name='Name',
-                                    description='Name for this event',
+                                    description='Name of this animation',
                                     default='unnamed', options=set())
-    ttime = bpy.props.FloatProperty(name='Transitiontime', subtype='TIME',
-                                    description='Used for for animations only',
-                                    default=0.25, min=0.0, soft_max=10.0,
-                                    options=set())
+    ttime = bpy.props.FloatProperty(
+        name='Transitiontime', subtype='TIME', options=set(),
+        description='Blending time between animations in seconds',
+        default=0.25, min=0.0, soft_max=60.0)
+    transtime = bpy.props.FloatProperty(
+        name='Transitiontime', subtype='TIME', options=set(),
+        description='Blending time between animations in frames',
+        default=7.5, min=0.0, soft_max=60.0)
     root = bpy.props.StringProperty(name='Root', default='', options=set(),
                                     description='Entry point of the animation')
+    root_obj = bpy.props.PointerProperty(
+        name='Root', description='Entry point of the animation',
+        type=bpy.types.Object, options=set(), poll=NVB_anim_root_obj_poll)
     mute = bpy.props.BoolProperty(name='Export', default=False, options=set(),
                                   description='Export animation to MDL')
     frameStart = bpy.props.IntProperty(name='Start', default=0, options=set(),

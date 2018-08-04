@@ -44,8 +44,10 @@ class Animation():
         fps = options.scene.render.fps
         new_anim = nvb_utils.create_anim_list_item(mdl_base)
         new_anim.name = self.name
-        new_anim.ttime = fps * self.transtime
+        new_anim.ttime = self.transtime
+        new_anim.transtime = fps * self.transtime
         new_anim.root = self.animroot
+        new_anim.root_obj = noderesolver.get_obj(self.animroot, -1)
         new_anim.frameEnd = fps * self.length + new_anim.frameStart
         # Old style events
         for ev_time, ev_name in self.events:
@@ -120,11 +122,18 @@ class Animation():
         if anim.mute:  # Don't export mute animations
             return
         fps = options.scene.render.fps
-        anim_length = (anim.frameEnd - anim.frameStart) / fps
+        anim_length = (anim.frameEnd - anim.frameStart)/fps
         ascii_lines.append('newanim ' + anim.name + ' ' + mdl_base.name)
         ascii_lines.append('  length ' + str(round(anim_length, 3)))
-        ascii_lines.append('  transtime ' + str(round(anim.ttime / fps, 3)))
-        # Check anim root
+        # Get transition time
+        # ascii_lines.append('  transtime ' + str(round(anim.ttime, 3)))
+        ascii_lines.append('  transtime ' + str(round(anim.transtime/fps, 3)))
+        # Get anim root
+        if anim.root_obj:
+            ascii_lines.append('  animroot ' + anim.root_obj.name)
+        else:
+            ascii_lines.append('  animroot ' + mdl_base.name)
+        """
         node_list = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, node_list)
         if anim.root and anim.root in [n.name for n in node_list]:
@@ -133,7 +142,8 @@ class Animation():
             print('Neverblender - WARNING: Invalid Animation Root for ' +
                   anim.name)
             ascii_lines.append('  animroot ' + mdl_base.name)
-
+        """
+        # Get animation events
         for event in anim.eventList:
             eventTime = (event.frame - anim.frameStart) / fps
             ascii_lines.append('  event ' + str(round(eventTime, 3)) + ' ' +
