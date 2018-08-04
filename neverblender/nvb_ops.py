@@ -20,7 +20,6 @@ class NVB_OT_lensflare_new(bpy.types.Operator):
         obj = context.object
         if (obj.type == 'LAMP'):
             obj.data.nvb.flareList.add()
-
         return {'FINISHED'}
 
 

@@ -325,17 +325,13 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
             mdl = nvb_mdl.Mdl()
-            # Load mdl data
-            with open(os.fsencode(mdl_filepath), 'r') as f:
-                mdl.readAscii(f.read(), options)
-            # Load walkmesh data: pwk (placeable) and dwk (door)
+            mdl.read_mdl(mdl_filepath, options)
             if options.import_walkmesh:
                 for wkm_type in nvb_def.Walkmeshtype.IMPORT:
                     wkm_filename = mdl_name + '.' + wkm_type
                     wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
                     if os.path.isfile(os.fsencode(wkm_filepath)):
-                        with open(os.fsencode(wkm_filepath), 'r') as f:
-                            mdl.readAsciiWalkmesh(f.read(), wkm_type, options)
+                        mdl.read_wkm(wkm_filepath, wkm_type, options)
             mdl.create(options)
 
         def get_location(idx):
@@ -348,9 +344,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         if not pathlist:
             pathlist.append(self.filepath)
         # Import models
-        if len(pathlist) == 1:  # single model => use location from options
+        if len(pathlist) == 1:  # single model => use location in options
             load_file(pathlist[0], options)
-        else:  # multiple models => place in a spiral
+        else:  # multiple models => place in a spiral, overwrite options loc.
             for i, fp in enumerate(pathlist):
                 options.mdl_location = get_location(i)
                 load_file(fp, options)
@@ -459,9 +455,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
             mdl = nvb_mdl.Mdl()
-            # Load mdl data
-            with open(os.fsencode(mdl_filepath), 'r') as f:
-                mdl.readAscii(f.read(), options)
+            mdl.read_mdl(mdl_filepath, options)
             mdl.create_super(mdl_base, options)
 
         # Build list of files

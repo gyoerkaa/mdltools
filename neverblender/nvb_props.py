@@ -170,10 +170,10 @@ class NVB_PG_mtrparameter(bpy.types.PropertyGroup):
 class NVB_PG_set_element(bpy.types.PropertyGroup):
     """Properties for a single flare in the flare list."""
     el_name = bpy.props.StringProperty(
-        name='Supermodel', description='Name of the MDL for this tile',
+        name='Name', description='Name of this element (only for display)',
         default='', options=set())
     el_size = bpy.props.StringProperty(
-        name='Size', description='Size of this element (only for diplay)',
+        name='Size', description='Size of this element (only for display)',
         default='', options=set())
 
 

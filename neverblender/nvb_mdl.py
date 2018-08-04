@@ -40,10 +40,10 @@ class Mdl():
         # Animations
         self.animations = []
 
-    def readAsciiHeader(self, asciiBlock):
+    def read_ascii_header(self, ascii_block):
         """TODO: DOC."""
-        asciiLines = [l.strip().split() for l in asciiBlock.splitlines()]
-        for line in asciiLines:
+        ascii_lines = [l.strip().split() for l in ascii_block.splitlines()]
+        for line in ascii_lines:
             try:
                 label = line[0].lower()
             except (IndexError, AttributeError):
@@ -78,78 +78,104 @@ class Mdl():
                            animationscale. \
                            Using default value " + self.animscale)
 
-    def readAsciiWalkmesh(self, asciiBlock, wkmtype, options):
+    def read_ascii_wkm(self, ascii_block, wkmtype, options):
         """TODO: DOC."""
         if options.import_walkmesh:
-            geomStart = asciiBlock.find('node ')  # Look for the first 'node'
-            if (geomStart < 0):  # Most likely empty walkmesh file
+            geom_start = ascii_block.find('node ')
+            if (geom_start < 0):  # Most likely empty walkmesh file
                 print("Neverblender: WARNING: Unable to read walkmesh data")
                 return
             if wkmtype == 'pwk':
-                Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.pwknodes)
+                Mdl.readAsciiGeometry(ascii_block[geom_start:], self.pwknodes)
             elif wkmtype == 'dwk':
-                Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.dwknodes)
+                Mdl.readAsciiGeometry(ascii_block[geom_start:], self.dwknodes)
 
     @staticmethod
-    def readAsciiGeometry(asciiBlock, nodelist):
-        """TODO: DOC."""
+    def read_ascii_geom(ascii_block, nodelist):
+        """Read the geometry block of ascii mdl."""
         dlm = 'node '
-        asciiNodeList = [dlm+block for block in asciiBlock.split(dlm) if block]
-        for idx, asciiNode in enumerate(asciiNodeList):
-            asciiLines = [l.strip().split() for l in asciiNode.splitlines()]
+        ascii_node_list = [dlm + b for b in ascii_block.split(dlm) if b]
+        for idx, ascii_node in enumerate(ascii_node_list):
+            ascii_lines = [l.strip().split() for l in ascii_node.splitlines()]
             node = None
-            nodeType = ''
-            nodeName = 'UNNAMED'
+            node_type = ''
+            node_name = 'UNNAMED'
             try:  # Read node type
-                nodeType = asciiLines[0][1].lower()
+                node_type = ascii_lines[0][1].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node type')
             try:  # Read node name
-                nodeName = asciiLines[0][2].lower()
+                node_name = ascii_lines[0][2].lower()
             except (IndexError, AttributeError):
                 raise nvb_def.MalformedMdlFile('Unable to read node name')
             try:  # Create (node) object
-                node = Mdl.nodelookup[nodeType](nodeName)
+                node = Mdl.nodelookup[node_type](node_name)
             except KeyError:
                 raise nvb_def.MalformedMdlFile('Invalid node type')
             # Parse and add to node list
-            node.loadAscii(asciiLines, idx)
+            node.loadAscii(ascii_lines, idx)
             nodelist.append(node)
 
-    @staticmethod
-    def readAsciiAnimation(asciiBlock):
-        """Load a single animation from an ascii animation block."""
-        anim = nvb_anim.Animation()
-        anim.loadAscii(asciiBlock)
-        return anim
-
-    def readAsciiAnimations(self, asciiBlock):
+    def read_ascii_anims(self, ascii_block):
         """Load all animations from an ascii mdl block."""
+        def read_anim(ascii_anim):
+            """Load a single animation from an ascii animation block."""
+            anim = nvb_anim.Animation()
+            anim.loadAscii(ascii_anim)
+            return anim
         dlm = 'newanim '  # Split animations using 'newanim' as delimiter
-        animList = [dlm+block for block in asciiBlock.split(dlm) if block]
-        self.animations = list(map(Mdl.readAsciiAnimation, animList))
+        animList = [dlm + b for b in ascii_block.split(dlm) if b]
+        self.animations = list(map(read_anim, animList))
 
-    def readAscii(self, asciiBlock, options):
-        """Load an mdl from an ascii mfl file."""
-        geomStart = asciiBlock.find('node ')  # Look for the first 'node'
-        animStart = asciiBlock.find('newanim ')  # Look for the first 'newanim'
+    def read_ascii_mdl(self, ascii_block, options):
+        """Parse an ascii mdl file."""
+        geom_start = ascii_block.find('node ')
+        anim_start = ascii_block.find('newanim ')
 
-        if (animStart > 0) and (geomStart > animStart):
+        if (anim_start > 0) and (geom_start > anim_start):
             raise nvb_def.MalformedMdlFile('Animations before geometry')
-        if (geomStart < 0):
+        if (geom_start < 0):
             raise nvb_def.MalformedMdlFile('Unable to find geometry')
 
-        self.readAsciiHeader(asciiBlock[:geomStart-1])
+        self.read_ascii_header(ascii_block[:geom_start-1])
         # Import Geometry
-        if (animStart > 0):
+        if (anim_start > 0):
             # Animations present, exclude them for geometry loading
-            Mdl.readAsciiGeometry(asciiBlock[geomStart:animStart],
-                                  self.mdlnodes)
+            Mdl.read_ascii_geom(ascii_block[geom_start:anim_start],
+                                self.mdlnodes)
         else:
-            Mdl.readAsciiGeometry(asciiBlock[geomStart:], self.mdlnodes)
+            Mdl.read_ascii_geom(ascii_block[geom_start:], self.mdlnodes)
         # Import Animations
-        if options.anim_import and (animStart > 0):
-            self.readAsciiAnimations(asciiBlock[animStart:])
+        if options.anim_import and (anim_start > 0):
+            self.read_ascii_anims(ascii_block[anim_start:])
+
+    def read_binary_wkm(self, options):
+        """Parse a single walkmesh file."""
+        # TODO: Implement binary import or call external compiler
+        pass
+
+    def read_binary_mdl(self, options):
+        """Parse a binary mdl file."""
+        # TODO: Implement binary import or call external compiler
+        pass
+
+    def read_mdl(self, filepath, options):
+        """Parse a single mdl file."""
+        with open(os.fsencode(filepath), 'rb') as f:
+            if bytes(f.read(1)) == b'\x00':
+                self.read_binary_mdl(options)
+                return
+        with open(os.fsencode(filepath), 'r') as f:
+            self.read_ascii_mdl(f.read(), options)
+
+    def read_wkm(self, filepath, wkm_type, options):
+        """Parse a single walkmesh file."""
+        with open(os.fsencode(filepath), 'rb') as f:
+            if bytes(f.read(1)) == b'\x00':
+                self.read_binary_wkm(options)
+                return
+        with open(os.fsencode(filepath), 'r') as f:
+            self.read_ascii_wkm(f.read(), wkm_type, options)
 
     @staticmethod
     def generateAsciiHeader(mdl_base, ascii_lines, options):

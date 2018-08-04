@@ -7,11 +7,11 @@ from . import nvb_utils
 
 
 class NVB_UL_lensflares(bpy.types.UIList):
-    """TODO: DOC."""
+    """UI List for displaying lensflares."""
 
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
-        """TODO: DOC."""
+        """Draw a single lensflare."""
         custom_icon = 'NONE'
 
         # Supports all 3 layout types
@@ -23,11 +23,11 @@ class NVB_UL_lensflares(bpy.types.UIList):
 
 
 class NVB_UL_anims(bpy.types.UIList):
-    """TODO: DOC."""
+    """UI List for displaying animations."""
 
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
-        """TODO: DOC."""
+        """Draw a single animation."""
 
         # Supports all 3 layout types
         icn = 'NONE'
@@ -41,11 +41,11 @@ class NVB_UL_anims(bpy.types.UIList):
 
 
 class NVB_UL_anim_events(bpy.types.UIList):
-    """Display an event in the event list of the currently active animation."""
+    """UI List for displaying animation events."""
 
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
-        """TODO: DOC."""
+        """Draw a single animation event."""
 
         # Supports all 3 layout types
         icn = 'NONE'
@@ -114,8 +114,7 @@ class NVB_UL_set_element(bpy.types.UIList):
 class NVB_PT_aurorabase(bpy.types.Panel):
     """Property panel for additional properties needed for the mdl file.
 
-    This is only available for EMPTY objects without a parent.
-    It is located under the object panel in the properties window,
+    This is only visible if there is an aurora base present.
     """
 
     bl_label = 'Aurora Base Properties'
@@ -125,12 +124,12 @@ class NVB_PT_aurorabase(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Only visible if there is an aurora base present."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Drwa the panel."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
 
@@ -184,10 +183,9 @@ class NVB_PT_dummy(bpy.types.Panel):
 
 
 class NVB_PT_bone(bpy.types.Panel):
-    """Property panel for armature properties.
+    """Property panel for bone properties.
 
-    Tools for auto-generating armatures from a models skinmesh and copying
-    animation from a models meshes.
+    Holds additional bone properties used by the pseudo bone helper.
     """
 
     bl_label = 'Aurora Bone Properties'
@@ -230,11 +228,11 @@ class NVB_PT_armature(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Only visible for armatures."""
         return (context.object and context.object.type == 'ARMATURE')
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         obj = context.object
         addon = context.user_preferences.addons[__package__]
         layout = self.layout
@@ -305,6 +303,11 @@ class NVB_PT_material(bpy.types.Panel):
 
 
 class NVB_PT_set(bpy.types.Panel):
+    """Property panel for loading set files.
+
+    Tools for batch loading models with the data from a set file
+    """
+
     bl_label = 'Aurora Set File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -349,6 +352,10 @@ class NVB_PT_set(bpy.types.Panel):
 
 
 class NVB_PT_mtr(bpy.types.Panel):
+    """Property panel for additional material properties (mtr files).
+
+
+    """
     bl_label = 'Aurora MTR File'
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
