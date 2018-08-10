@@ -202,7 +202,7 @@ class Mdl():
         try:
             node = Mdl.nodelookup[node_type]
         except KeyError:
-            raise nvb_def.MalformedMdlFile('Invalid node type')
+            print("Neverblender: WARNING - Unsupported node type.")
 
         node.generateAscii(obj, ascii_lines, options, False)
         # Sort children to restore original order before import

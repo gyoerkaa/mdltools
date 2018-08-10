@@ -90,19 +90,6 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                 'Animations will not be copied', 3)],
         default='ACTION', update=NVB_psb_anim_mode_update)
 
-    # Anim Copy Helper
-    util_acpy_mode = bpy.props.EnumProperty(
-        name='Animations', description='Source to take animations from',
-        items=[('ACTION', 'Active Action',
-                'Take keyframes from currently active action', 0),
-               ('NLA_STRIPS', 'NLA Strips',
-                'Take keyframes from active NLA track, ' +
-                'create an animation for each strip', 1),
-               ('NLA_TRACKS', 'NLA Tracks',
-                'Take keyframes from all NLA tracks, ' +
-                'create an animation for each track', 2)],
-        default='ACTION')
-
     def draw(self, context):
         pass
         # layout = self.layout
@@ -122,7 +109,7 @@ class NVB_PG_animevent(bpy.types.PropertyGroup):
         options=set())
 
 
-class NVB_PG_anim_event(bpy.types.PropertyGroup):
+class NVB_PG_amt_event(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 
     name = bpy.props.StringProperty(name='Name', default='unnamed',
@@ -652,10 +639,10 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
                                         default=0, options=set())
-    # Animation Events (global, per action)
-    anim_event_list = bpy.props.CollectionProperty(type=NVB_PG_anim_event)
-    anim_event_list_idx = bpy.props.IntProperty(name='Index for event List',
-                                                default=0, options=set())
+    # Animation Events for animations
+    amt_event_list = bpy.props.CollectionProperty(type=NVB_PG_amt_event)
+    amt_event_list_idx = bpy.props.IntProperty(name='Index for event List',
+                                               default=0, options=set())
 
     # For reference emptys
     refmodel = bpy.props.StringProperty(name='Reference Model',

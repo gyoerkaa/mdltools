@@ -326,6 +326,36 @@ def checkAnimBounds(mdl_base):
     return True
 
 
+def create_amt_event_list_item(amt, event_name):
+    event_list = amt.nvb.amt_event_list
+    # Add new event
+    event = event_list.add()
+    amt.nvb.amt_event_list_idx = len(amt.nvb.amt_event_list)-1
+    event.name = event_name
+    # Add empty fcurves (to make sure they are conveniently grouped)
+    anim_data = amt.animation_data
+    if not anim_data:
+        anim_data = amt.animation_data.create()
+    action = anim_data.action
+    if not action:
+        action = bpy.data.actions.new(amt.name)
+    data_path = 'nvb.amt_event_list[' + str(amt.nvb.amt_event_list_idx) + \
+                '].fire'
+    fcu = get_fcurve(action, data_path, 0, 'Events')
+    fcu.group = action.groups['Events']  # force group
+
+
+def init_amt_event_list(amt):
+    event_list = amt.nvb.amt_event_list
+    if len(event_list) > 0:
+        return
+    amt.nvb.amt_event_list_idx = 0
+    # Create new events:
+    for ev_name in nvb_def.animation_event_names:
+        ev = event_list.add()
+        ev.name = ev_name
+
+
 def create_anim_list_item(mdl_base, check_keyframes=False):
     """Append a new animation at the and of the animation list."""
     last_frame = max([nvb_def.anim_globstart] +

@@ -126,27 +126,34 @@ class Animation():
         ascii_lines.append('newanim ' + anim.name + ' ' + mdl_base.name)
         ascii_lines.append('  length ' + str(round(anim_length, 3)))
         # Get transition time
-        # ascii_lines.append('  transtime ' + str(round(anim.ttime, 3)))
-        ascii_lines.append('  transtime ' + str(round(anim.transtime/fps, 3)))
+        if anim.transtime > 0.0:
+            ascii_lines.append('  transtime ' +
+                               str(round(anim.transtime/fps, 3)))
+        else:
+            # Legacy support: Use old param as not to break old blend files
+            ascii_lines.append('  transtime ' +
+                               str(round(anim.ttime, 3)))
         # Get anim root
         if anim.root_obj:
             ascii_lines.append('  animroot ' + anim.root_obj.name)
-        else:
-            ascii_lines.append('  animroot ' + mdl_base.name)
-        """
-        node_list = [mdl_base]
-        nvb_utils.get_children_recursive(mdl_base, node_list)
-        if anim.root and anim.root in [n.name for n in node_list]:
-            ascii_lines.append('  animroot ' + anim.root)
+        elif anim.root:
+            # Legacy support: Use old param as not to break old blend files
+            node_list = [mdl_base]
+            nvb_utils.get_children_recursive(mdl_base, node_list)
+            if anim.root and anim.root in [n.name for n in node_list]:
+                ascii_lines.append('  animroot ' + anim.root)
+            else:
+                print('Neverblender - WARNING: Invalid Animation Root for ' +
+                      anim.name)
+                ascii_lines.append('  animroot ' + mdl_base.name)
         else:
             print('Neverblender - WARNING: Invalid Animation Root for ' +
                   anim.name)
             ascii_lines.append('  animroot ' + mdl_base.name)
-        """
         # Get animation events
         for event in anim.eventList:
-            eventTime = (event.frame - anim.frameStart) / fps
-            ascii_lines.append('  event ' + str(round(eventTime, 3)) + ' ' +
+            event_time = (event.frame - anim.frameStart) / fps
+            ascii_lines.append('  event ' + str(round(event_time, 3)) + ' ' +
                                event.name)
 
         Animation.generateAsciiNodes(mdl_base, anim, ascii_lines, options)

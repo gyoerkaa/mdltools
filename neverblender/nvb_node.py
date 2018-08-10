@@ -1346,18 +1346,32 @@ class Skinmesh(Trimesh):
         self.createSkinGroups(obj)
 
     @staticmethod
-    def generateAsciiWeights(obj, asciiLines, options):
+    def generate_ascii_weights(obj, ascii_lines, options):
         """TODO: Doc."""
-        vg = obj.vertex_groups
-        skingroups = [vg[n].index for n in bpy.data.objects.keys() if n in vg]
-        asciiLines.append('  weights ' + str(len(obj.data.vertices)))
-        lrnd = round
+        def clean_weights(weight_list):
+            # Sort by weight, largest first
+            cleaned_list = sorted(weight_list, reverse=True,
+                                  key=lambda x: x[1])
+            # Discard zero weights (< 0.001 will do)
+            cleaned_list = [[w[0], round(w[1], 3)] for w in cleaned_list]
+            cleaned_list = [w for w in cleaned_list if w[1] >= 0.001]
+            # Only four weights are allowed
+            cleaned_list = cleaned_list[:4]
+            # Normalize
+            s = sum([w[1] for w in cleaned_list])
+            cleaned_list = [[w[0], w[1]/s] for w in cleaned_list]
+            return cleaned_list
+        # Only vertex groups with names matching an object qualify
+        skingroups = {vg.index: vg.name for vg in obj.vertex_groups
+                      if vg.name in bpy.data.objects}
+        ascii_lines.append('  weights ' + str(len(obj.data.vertices)))
+        fstr = '{} {:5.3f}'
         for v in obj.data.vertices:
-            weights = [[vg[g.group].name, lrnd(vg[g.group].weight(v.index), 3)]
-                       for g in v.groups if g.group in skingroups]
-            asciiLines.append('    ' +
-                              ' '.join(['{} {:3.3f}'.format(w[0], w[1])
-                                        for w in weights]))
+            weights = [[skingroups[g.group], g.weight] for g in v.groups
+                       if g.group in skingroups]
+            weights = clean_weights(weights)
+            ascii_lines.append('    ' + ' '.join([fstr.format(*w)
+                                                  for w in weights]))
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -1365,13 +1379,14 @@ class Skinmesh(Trimesh):
         Trimesh.generateAsciiData(obj, asciiLines, options, iswalkmesh)
         if iswalkmesh:
             return
-        Skinmesh.generateAsciiWeights(obj, asciiLines, options)
+        Skinmesh.generate_ascii_weights(obj, asciiLines, options)
 
 
 class Emitter(Node):
     """TODO: Doc."""
 
     nodetype = nvb_def.Nodetype.EMITTER
+    # mdl name: (blender data path, data dimension, conversion, mdl format)
     property_dict = \
         {'update': ('nvb.update', 1, nvb_utils.str2identifier, ' {:s}'),
          'loop': ('nvb.loop', 1, nvb_utils.str2bool, ' {:1d}'),
@@ -1522,6 +1537,7 @@ class Emitter(Node):
     def generate_ascii_emitter(cls, obj, ascii_lines, options):
         """Adds emitter paramters to ascii lines."""
         def form_prop(prop_name, value):
+            """Format an emitter property for export."""
             _, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
             if dp_dim > 1:
                 fstr = '  ' + prop_name + dp_dim * val_fstr
@@ -1576,7 +1592,7 @@ class Emitter(Node):
         ascii_lines.append(form_prop('deadspace', part_set.nvb.deadspace))
 
         # Texture/ Chunk Properties
-        if part_set.nvb.update == 'chunk':
+        if part_set.nvb.particletype == 'chunk':
             ascii_lines.append(form_prop('chunk', part_set.nvb.chunk))
         else:  # 'texture'
             ascii_lines.append(form_prop('texture', part_set.nvb.texture))
@@ -1617,7 +1633,6 @@ class Emitter(Node):
                                          part_set.nvb.lightningradius))
             ascii_lines.append(form_prop('lightningscale',
                                          part_set.nvb.lightningscale))
-
         # Inheritance Properties
         ascii_lines.append(form_prop('inherit', part_set.nvb.inherit))
         ascii_lines.append(form_prop('inheritvel', part_set.nvb.inheritvel))

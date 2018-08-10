@@ -12,14 +12,12 @@ class NVB_UL_lensflares(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
         """Draw a single lensflare."""
-        custom_icon = 'NONE'
 
-        # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.texture, icon=custom_icon)
+            layout.label(item.texture, icon='NONE')
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
+            layout.label('', icon='PARTICLE_DATA')
 
 
 class NVB_UL_anims(bpy.types.UIList):
@@ -29,15 +27,13 @@ class NVB_UL_anims(bpy.types.UIList):
                   active_data, active_propname, index):
         """Draw a single animation."""
 
-        # Supports all 3 layout types
-        icn = 'NONE'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.prop(item, 'name', text='', emboss=False)
             icn = 'CHECKBOX_DEHLT' if item.mute else 'CHECKBOX_HLT'
             layout.prop(item, 'mute', text='', icon=icn, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=icn)
+            layout.label('', icon='POSE_DATA')
 
 
 class NVB_UL_anim_events(bpy.types.UIList):
@@ -47,8 +43,6 @@ class NVB_UL_anim_events(bpy.types.UIList):
                   active_data, active_propname, index):
         """Draw a single animation event."""
 
-        # Supports all 3 layout types
-        icn = 'NONE'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             split = layout.split(0.7, False)
             split.prop(item, 'name', text='', emboss=False)
@@ -56,11 +50,11 @@ class NVB_UL_anim_events(bpy.types.UIList):
             row.prop(item, 'frame', text='', emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=icn)
+            layout.label('', icon='LAMP')
 
 
 class NVB_UL_amt_events(bpy.types.UIList):
-    """TODO: DOC."""
+    """UI List for displaying (armature) animation events."""
 
     def draw_item(self, context, layout, data, item, icon,
                   active_data, active_propname, index):
@@ -69,14 +63,17 @@ class NVB_UL_amt_events(bpy.types.UIList):
         # Supports all 3 layout types
         icn = 'LAMP'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(item, 'name', text='', emboss=False)
+            if index < len(nvb_def.animation_event_names):
+                layout.label(text=item.name, translate=False, icon='NONE')
+            else:
+                layout.prop(item, 'name', text='', emboss=False)
             layout.prop(item, 'fire', text='', icon=icn, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=icn)
+            layout.prop(item, 'fire', text='', icon=icn, emboss=False)
 
 
-class NVB_UL_mtrparams(bpy.types.UIList):
+class NVB_UL_mtr_params(bpy.types.UIList):
     """TODO: DOC."""
 
     def draw_item(self, context, layout, data, item, icon,
@@ -249,7 +246,7 @@ class NVB_PT_armature(bpy.types.Panel):
         sub.prop(addon.preferences, 'util_psb_insert_base')
         row.prop(addon.preferences, 'util_psb_insert_root')
 
-        box.operator('nvb.amt_amt2psb', icon='BONE_DATA')
+        box.operator('nvb.amt_amt2psb', icon='BONE_DATA').use_existing = False
         layout.separator()
 
         box = layout.box()
@@ -259,9 +256,10 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Animation Transfer')
-        box.prop(addon.preferences, 'util_acpy_mode')
+        box.prop(addon.preferences, 'util_psb_anim_mode')
         box.prop(obj.nvb, 'util_psb_anim_target')
-        box.operator('nvb.amt_anims2psb', icon='NODETREE')
+        box.operator('nvb.amt_amt2psb', text='Copy Animations',
+                     icon='NODETREE').use_existing = True
         layout.separator()
 
 
@@ -406,7 +404,7 @@ class NVB_PT_mtr(bpy.types.Panel):
         box = sub.box()
         box.label('Parameters')
         row = box.row()
-        row.template_list('NVB_UL_mtrparams', 'TheParamList',
+        row.template_list('NVB_UL_mtr_params', 'TheParamList',
                           mat.nvb, 'mtrparam_list',
                           mat.nvb, 'mtrparam_list_idx')
         col = row.column(align=True)
@@ -756,6 +754,41 @@ class NVB_PT_animlist(bpy.types.Panel):
                 row.prop(event, 'name')
             """
             layout.separator()
+
+
+class NVB_PT_amt_events(bpy.types.Panel):
+    """Property panel for armature animation events.
+
+    Property panel for additional properties needed for the mdl file
+    format. This is only available for EMPTY objects.
+    It is located under the object data panel in the properties window
+    """
+
+    bl_label = 'Aurora Armature Events'
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = 'object'
+
+    @classmethod
+    def poll(cls, context):
+        """TODO: DOC."""
+        return context.object and context.object.type == 'ARMATURE'
+
+    def draw(self, context):
+        """TODO: DOC."""
+        layout = self.layout
+        amt = context.object
+        if not amt:
+            return
+        # Display and add/remove events.
+        row = layout.row()
+        row.template_list('NVB_UL_amt_events', 'TheAmtEventList',
+                          amt.nvb, 'amt_event_list',
+                          amt.nvb, 'amt_event_list_idx',
+                          rows=7)
+        col = row.column(align=True)
+        col.operator('nvb.amt_event_new', icon='ZOOMIN', text='')
+        col.operator('nvb.amt_event_delete', icon='ZOOMOUT', text='')
 
 
 class NVB_PT_utils(bpy.types.Panel):

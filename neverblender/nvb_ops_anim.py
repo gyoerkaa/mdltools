@@ -53,8 +53,8 @@ class NVB_OT_anim_clone(bpy.types.Operator):
         cloned_anim = nvb_utils.create_anim_list_item(mdl_base, True)
         # Copy data
         cloned_anim.frameEnd = cloned_anim.frameStart + (animEnd - animStart)
-        cloned_anim.ttime = source_anim.ttime
-        cloned_anim.root = source_anim.root
+        cloned_anim.transtime = source_anim.transtime
+        cloned_anim.root_obj = source_anim.root_obj
         cloned_anim.name = source_anim.name + '_copy'
         # Copy events
         self.clone_events(source_anim, cloned_anim)
@@ -496,7 +496,7 @@ class NVB_OT_anim_new(bpy.types.Operator):
         """Create the animation"""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         anim = nvb_utils.create_anim_list_item(mdl_base, True)
-        anim.root = mdl_base.name
+        anim.root_obj = mdl_base
         # Create an unique name
         name_list = [an.name for an in mdl_base.nvb.animList]
         name_idx = 0
@@ -804,7 +804,7 @@ class NVB_OT_anim_event_move(bpy.types.Operator):
 
 
 class NVB_OT_amt_event_new(bpy.types.Operator):
-    """Add a new animation to the animation list"""
+    """Add a new event to the event list"""
 
     bl_idname = 'nvb.amt_event_new'
     bl_label = 'Create new animation event'
@@ -814,13 +814,16 @@ class NVB_OT_amt_event_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if no object is selected."""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        return mdl_base is not None
+        return context.object and context.object.type == 'ARMATURE'
 
     def execute(self, context):
         """Create the animation"""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        event_list = mdl_base.nvb.anim_event_list
+        amt = context.object
+        if not amt:
+            return
+        event_list = amt.nvb.amt_event_list
+        # Initialize the first events to add known event types
+        nvb_utils.init_amt_event_list(amt)
         # Create an unique name
         name_list = [ev.name for ev in event_list]
         name_idx = 0
@@ -829,14 +832,14 @@ class NVB_OT_amt_event_new(bpy.types.Operator):
             name_idx += 1
             new_name = 'event.{:0>3d}'.format(name_idx)
         # Add new event
-        event = event_list.add()
-        event.name = new_name
-
+        nvb_utils.create_amt_event_list_item(amt, new_name)
+        if amt.animation_data and amt.animation_data.action:
+            nvb_utils.init_amt_event_action(amt, amt.animation_data.action)
         return {'FINISHED'}
 
 
 class NVB_OT_amt_event_delete(bpy.types.Operator):
-    """Delete the selected animation and its keyframes"""
+    """Delete the selected event and its keyframes"""
 
     bl_idname = 'nvb.amt_event_delete'
     bl_label = 'Delete an animation event'
@@ -846,11 +849,13 @@ class NVB_OT_amt_event_delete(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Prevent execution if event list is empty or the index invalid."""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        if mdl_base is not None:
-            event_list = mdl_base.nvb.anim_event_list
-            event_list_idx = mdl_base.nvb.anim_event_list_idx
-            return (event_list_idx >= 0 and len(event_list) > event_list_idx)
+        amt = context.object
+        undeletable_events = len(nvb_def.animation_event_names)
+        if amt and amt.type == 'ARMATURE':
+            event_list = amt.nvb.amt_event_list
+            event_list_idx = amt.nvb.amt_event_list_idx
+            return (event_list_idx >= undeletable_events and
+                    len(event_list) > event_list_idx)
         return False
 
     def delete_event_fcurve(self, obj, event_id):
@@ -858,7 +863,7 @@ class NVB_OT_amt_event_delete(bpy.types.Operator):
         if obj.animation_data and obj.animation_data.action:
             action = obj.animation_data.action
             # Remove the current data path for that idx
-            data_path = 'nvb.anim_event_list[' + str(event_id) + '].fire'
+            data_path = 'nvb.amt_event_list[' + str(event_id) + '].fire'
             fcu = action.fcurves.find(data_path, 0)
             if fcu:
                 action.fcurves.remove(fcu)
@@ -868,7 +873,7 @@ class NVB_OT_amt_event_delete(bpy.types.Operator):
         if obj.animation_data and obj.animation_data.action:
             action = obj.animation_data.action
             # Remove the current data path for that idx
-            dp_prefix = 'nvb.anim_event_list['
+            dp_prefix = 'nvb.amt_event_list['
             dp_suffix = '].fire'
             for ev_id in event_id_list:
                 data_path = dp_prefix + str(ev_id) + dp_suffix
@@ -878,19 +883,21 @@ class NVB_OT_amt_event_delete(bpy.types.Operator):
 
     def execute(self, context):
         """Delete the currently selcted event."""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        event_list = mdl_base.nvb.anim_event_list
-        event_list_idx = mdl_base.nvb.anim_event_list_idx
+        amt = context.object
+        if not amt:
+            return
+        event_list = amt.nvb.amt_event_list
+        event_list_idx = amt.nvb.amt_event_list_idx
         # Delete fcurve assoiated with the current event
-        self.delete_event_fcurve(mdl_base, event_list_idx)
+        self.delete_event_fcurve(amt, event_list_idx)
         # Adjust the data paths of the other fcurves to the new ids
         event_idx_list = [id for id, _ in enumerate(event_list)
                           if id >= event_list_idx]
-        self.adjust_event_fcurves(mdl_base, event_idx_list)
+        self.adjust_event_fcurves(amt, event_idx_list)
+        # We potentially removed keyframes => update scene
+        context.scene.update()
         # Remove current event from List
         event_list.remove(event_list_idx)
         if event_list_idx > 0:
-            mdl_base.nvb.event_list_idx = event_list_idx - 1
-        # We potentially removed keyframes => update scene
-        context.scene.update()
+            amt.nvb.amt_event_list_idx = len(amt.nvb.amt_event_list)-1
         return {'FINISHED'}

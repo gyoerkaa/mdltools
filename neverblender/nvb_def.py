@@ -34,6 +34,10 @@ wok_materials = [('wok_NotDefined',    (0.400, 0.400, 0.400)),
                  ('wok_Sand',          (1.000, 1.000, 0.000)),
                  ('wok_BareBones',     (0.500, 0.500, 0.100)),
                  ('wok_StoneBridge',   (0.081, 0.108, 0.139))]
+# Animation event names (always created in list)
+animation_event_names = ['cast', 'blur_end', 'blur_start', 'detonate',
+                         'draw_arrow', 'draw_weapon', 'hit', 'parry',
+                         'snd_footstep', 'snd_hitground']
 
 
 class MalformedMdlFile(Exception):
