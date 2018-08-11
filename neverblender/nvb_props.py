@@ -273,7 +273,7 @@ class NVB_PG_bone(bpy.types.PropertyGroup):
     format. It hold the properties for bones.
     """
     # Armature Helper
-    util_psb_btype = bpy.props.EnumProperty(
+    psd_bone_shape = bpy.props.EnumProperty(
         name='Bone Shape', description='Shape for the Pseudo-Bone',
         items=[('EMT', 'Empty', 'Converts bone to an empty', 0),
                ('ME1', 'Mesh (Octahedron)', 'Convert bone to an octahedron', 1)
@@ -639,7 +639,11 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     animList = bpy.props.CollectionProperty(type=NVB_PG_anim)
     animListIdx = bpy.props.IntProperty(name='Index for anim List',
                                         default=0, options=set())
-    # Animation Events for animations
+
+    use_amt_events = bpy.props.BoolProperty(
+        name='Keyframed Events', description='Use keyframes for events',
+        default=False, options=set())
+    # Animation Events for armatures only (nla mode)
     amt_event_list = bpy.props.CollectionProperty(type=NVB_PG_amt_event)
     amt_event_list_idx = bpy.props.IntProperty(name='Index for event List',
                                                default=0, options=set())

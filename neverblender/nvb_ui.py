@@ -192,23 +192,25 @@ class NVB_PT_bone(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """only visible if a bone is selected."""
         return context.object and (context.bone or context.edit_bone)
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
+        layout = self.layout
         obj = context.object
-        # Get bone - independent of mode
         bone = context.bone
+        # Disabled in edit mode: Property is not properly saved
+        layout.enabled = context.bone is not None
+        # Get bone - independent of mode
         if not bone:
             edit_bone = context.edit_bone
             bone = obj.data.bones[edit_bone.name]
-        layout = self.layout
         # Settings for conversion to pseudo-bones
         box = layout.box()
         box.label(text='Conversion Settings')
         row = box.row()
-        row.prop(bone.nvb, 'util_psb_btype')
+        row.prop(bone.nvb, 'psd_bone_shape')
 
 
 class NVB_PT_armature(bpy.types.Panel):
@@ -313,11 +315,11 @@ class NVB_PT_set(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw panel in the scene properties."""
         return context.scene is not None
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         scene = context.scene
         layout = self.layout
 
@@ -371,37 +373,36 @@ class NVB_PT_mtr(bpy.types.Panel):
 
     def draw(self, context):
         """TODO: DOC."""
-        mat = context.material
         layout = self.layout
+        mat = context.material
 
-        sub = layout.column()
-        sub.enabled = mat.nvb.usemtr
+        layout.enabled = mat.nvb.usemtr
 
-        sub.prop(mat.nvb, 'mtrname')
+        layout.prop(mat.nvb, 'mtrname')
 
-        sub.separator()
-        row = sub.row()
+        layout.separator()
+        row = layout.row()
         row.prop(mat.nvb, 'mtrsrc', expand=True)
-        sub.separator()
+        layout.separator()
         if mat.nvb.mtrsrc == 'FILE':
-            row = sub.row(align=True)
+            row = layout.row(align=True)
             row.operator('nvb.mtr_embed', icon='UGLYPACKAGE', text='')
             row.prop(mat.nvb, 'mtrpath', text='')
             row.operator('nvb.mtr_open', icon='FILESEL', text='')
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
         elif mat.nvb.mtrsrc == 'TEXT':
-            row = sub.row(align=True)
+            row = layout.row(align=True)
             row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
             row.operator('nvb.mtr_generate', icon='IMPORT', text='')
             row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
 
-        sub.separator()
-        box = sub.box()
+        layout.separator()
+        box = layout.box()
         box.prop(mat.nvb, 'shadervs')
         box.prop(mat.nvb, 'shaderfs')
 
-        sub.separator()
-        box = sub.box()
+        layout.separator()
+        box = layout.box()
         box.label('Parameters')
         row = box.row()
         row.template_list('NVB_UL_mtr_params', 'TheParamList',
@@ -436,11 +437,11 @@ class NVB_PT_lamp_data(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only ia a lamp object is selected."""
         return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         obj = context.object
         data = obj.data
         layout = self.layout
@@ -470,11 +471,11 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only ia a lamp object is selected."""
         return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         obj = context.object
         data = obj.data
         layout = self.layout
@@ -524,11 +525,11 @@ class NVB_PT_lamp_object(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only ia a lamp object is selected."""
         return (context.object and context.object.type == 'LAMP')
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         obj = context.object
         layout = self.layout
 
@@ -553,11 +554,11 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only ia a mesh object is selected."""
         return (context.object and context.object.type == 'MESH')
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         obj = context.object
         layout = self.layout
         # Common properties for all types of meshes
@@ -645,7 +646,7 @@ class NVB_MT_animlist_specials(bpy.types.Menu):
     bl_label = "Animation List Specials"
 
     def draw(self, context):
-        """TODO: Doc."""
+        """Draw the panel."""
         layout = self.layout
         layout.operator('nvb.anim_moveback',
                         icon='LOOP_FORWARDS')
@@ -674,12 +675,12 @@ class NVB_PT_animlist(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only if part of a valid mdl is selected."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         if mdl_base:
@@ -734,25 +735,6 @@ class NVB_PT_animlist(bpy.types.Panel):
                              icon='TRIA_UP', text='').direction = 'UP'
                 col.operator('nvb.anim_event_move',
                              icon='TRIA_DOWN', text='').direction = 'DOWN'
-
-            # Display and add/remove events.
-            """
-            layout.label(text='Events')
-            row = layout.row()
-            row.template_list('NVB_UL_amt_events', 'TheAnimEventList',
-                              mdl_base.nvb, 'anim_event_list',
-                              mdl_base.nvb, 'anim_event_list_idx',
-                              rows=7)
-            col = row.column(align=True)
-            col.operator('nvb.anim_event_new', icon='ZOOMIN', text='')
-            col.operator('nvb.anim_event_delete', icon='ZOOMOUT', text='')
-            event_list = mdl_base.nvb.anim_event_list
-            event_list_idx = mdl_base.nvb.anim_event_list_idx
-            if event_list_idx >= 0 and len(event_list) > event_list_idx:
-                event = event_list[event_list_idx]
-                row = layout.row()
-                row.prop(event, 'name')
-            """
             layout.separator()
 
 
@@ -760,8 +742,7 @@ class NVB_PT_amt_events(bpy.types.Panel):
     """Property panel for armature animation events.
 
     Property panel for additional properties needed for the mdl file
-    format. This is only available for EMPTY objects.
-    It is located under the object data panel in the properties window
+    format.
     """
 
     bl_label = 'Aurora Armature Events'
@@ -771,15 +752,21 @@ class NVB_PT_amt_events(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only if an armature is selected."""
         return context.object and context.object.type == 'ARMATURE'
 
+    def draw_header(self, context):
+        """Draw a header with integrated activate button."""
+        amt = context.object
+        self.layout.prop(amt.nvb, 'use_amt_events', text='')
+
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         layout = self.layout
         amt = context.object
-        if not amt:
-            return
+
+        layout.enabled = amt.nvb.use_amt_events
+
         # Display and add/remove events.
         row = layout.row()
         row.template_list('NVB_UL_amt_events', 'TheAmtEventList',
@@ -804,12 +791,12 @@ class NVB_PT_utils(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        """TODO: DOC."""
+        """Draw only if part of a valid mdl is selected."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         return mdl_base is not None
 
     def draw(self, context):
-        """TODO: DOC."""
+        """Draw the panel."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         addon = context.user_preferences.addons[__package__]
@@ -887,6 +874,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def particle_panel_poll(cls, context):
+        """Get particle settings status."""
         psys = context.particle_system
         engine = context.scene.render.engine
         settings = 0
@@ -902,6 +890,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def particle_get_settings(cls, context):
+        """Get particle settings from context."""
         if context.particle_system:
             return context.particle_system.settings
         elif isinstance(context.space_data.pin_id, bpy.types.ParticleSettings):
@@ -910,6 +899,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def particle_panel_enabled(cls, context, psys):
+        """Determine if the particle panel is enabled."""
         if psys is None:
             return True
         phystype = psys.settings.physics_type
@@ -923,13 +913,14 @@ class NVB_PT_emitter(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        # return False
+        """Draw only if a particle system is selected."""
         part = NVB_PT_emitter.particle_get_settings(context)
         if part:
             return not part.is_fluid
         return False
 
     def draw(self, context):
+        """Draw the panel."""
         layout = self.layout
         part_system = context.particle_system
         part_settings = NVB_PT_emitter.particle_get_settings(context)

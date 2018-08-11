@@ -370,16 +370,6 @@ def create_anim_list_item(mdl_base, check_keyframes=False):
     return anim
 
 
-def event_list_item_create(event_list, event_name):
-    """Append a new animation at the and of the animation list."""
-    if event_name in [ev.name for ev in event_list]:
-        return [ev.name for ev in event_list].index(event_name)
-    else:
-        event = event_list.add()
-        event.name = event_name
-        return len(event_list)-1
-
-
 def getNodeType(obj):
     """Get the node type (dummy, trimesh, skin, ...) of the blender object."""
     objType = obj.type

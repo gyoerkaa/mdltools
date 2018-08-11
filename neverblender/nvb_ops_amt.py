@@ -105,6 +105,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
 
     mats_edit_bone = dict()  # armature bone name => edit_bone.matrix
     amb_psb_pairs = []  # (armature bone name, pseudo bone name) tuples
+    amt_bone_shapes = dict()  # armature bone name => pseudo-bone shape
     scene = None
 
     use_existing = bpy.props.BoolProperty(
@@ -116,7 +117,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         mdl_base = None
         psd_bone_root = None
         if anim_mode in ['NLA_STRIPS', 'NLA_TRACKS'] or create_base:
-            mdl_base = bpy.data.objects.new('aurora_base', None)
+            mdl_base = bpy.data.objects.new(armature.name+'.mdl', None)
             self.scene.objects.link(mdl_base)
             psd_bone_root = mdl_base
         if create_root:
@@ -124,6 +125,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             psd_bone_root.parent = mdl_base
             psd_bone_root.location = armature.location
             self.scene.objects.link(psd_bone_root)
+        context.scene.update()
         return mdl_base, psd_bone_root
 
     def create_mesh(self, mvector, meshname):
@@ -166,7 +168,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             psb_tail = psb_tail - amt_bone.parent.head_local
         # Create the mesh for the pseudo bone
         mesh = None
-        if amt_bone.nvb.util_psb_btype != 'EMT':
+        if amt_bone.nvb.psd_bone_shape != 'EMT':
             mesh = self.create_mesh(psb_tail-psb_head, amt_bone.name)
         # Create object holding the mesh
         psb = bpy.data.objects.new(amt_bone.name, mesh)
@@ -310,9 +312,24 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                 # Add keyframes to fcurves
                 insert_kfp(psb_fcu, frames, values, psd_dp, dp_dim)
 
-    def copy_events(self):
+    def copy_events(self, amt, amt_action_list, mdl_anim):
         """Creates animation events from keyframes armature events."""
-        pass
+        event_names = [ev.name for ev in amt.nvb.amt_event_list]
+        event_data = []
+        for ev_idx, ev_name in enumerate(event_names):
+            data_path = 'nvb.amt_event_list[' + str(ev_idx) + '].fire'
+            for action in amt_action_list:
+                fcu = action.fcurves.find(data_path, 0)
+                if fcu:
+                    event_data.extend([(p.co[0], ev_name)
+                                       for p in fcu.keyframe_points])
+        event_data.sort(key=lambda x: x[0])
+        # Add events to the animations event list
+        start_frame = mdl_anim.frameStart
+        for ev_frame, ev_name in event_data:
+            new_event = mdl_anim.eventList.add()
+            new_event.name = ev_name
+            new_event.frame = start_frame + ev_frame
 
     def copy_animations(self, mdl_base, armature, animation_list,
                         create_meta_data=True):
@@ -337,6 +354,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                 new_anim.transtime = transtime
                 new_anim.frameEnd = new_anim.frameStart + anim_length
                 frame_offset = new_anim.frameStart
+                self.copy_events(armature, action_list, new_anim)
             # Add new animation data
             for action in action_list:
                 for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
@@ -379,35 +397,35 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         self.scene = context.scene
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
+
+        bpy.ops.object.mode_set(mode='EDIT')
         if self.use_existing:
             mdl_base = armature.nvb.util_psb_anim_target
             if not mdl_base:
                 self.report({'INFO'}, 'Invalid Target')
                 return {'CANCELLED'}
             # Get pseudo bones
-            bpy.ops.object.mode_set(mode='EDIT')
             for amt_bone in armature.data.bones:
                 if not amt_bone.parent:
                     self.get_psd_bones(amt_bone, mdl_base)
-            bpy.ops.object.mode_set(mode='OBJECT')
         else:
             # Create helper objects for grouping and holding animation data
             mdl_base, psd_bone_root = self.create_parent_objects(
                 context, armature, anim_mode, create_base, create_root)
+            # Save some date (somehow we can't access them properly otherwise)
             # Create pseudo bones
-            bpy.ops.object.mode_set(mode='EDIT')
             for amt_bone in armature.data.bones:
                 if not amt_bone.parent:
                     self.create_psd_bones(amt_bone, psd_bone_root)
-            bpy.ops.object.mode_set(mode='OBJECT')
             context.scene.update()
+        bpy.ops.object.mode_set(mode='OBJECT')
 
         # Transfer animations
         if anim_mode == 'ACTION':
             anim_list = []
             if armature.animation_data and armature.animation_data.action:
                 action = armature.animation_data.action
-                anim_list.append(['unnamed', 1, [action]])
+                anim_list.append(['unnamed', 1, [action], 7.5])
             self.copy_animations(mdl_base, armature, anim_list, False)
         elif anim_mode == 'NLA_TRACKS':
             anim_list = []
@@ -548,9 +566,9 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         """Sets bone properties for re-conversion to pseudo-bones"""
         for amt_bone_name, psd_bone, _ in self.generated_bones:
             if psd_bone.type == 'EMPTY':
-                amt.data.bones[amt_bone_name].nvb.util_psb_btype = 'EMT'
+                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'EMT'
             else:
-                amt.data.bones[amt_bone_name].nvb.util_psb_btype = 'ME1'
+                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'ME1'
 
     def copy_keyframes(self, amt, amt_action, amt_bone_name, psb,
                        cmat, frame_range=None):
@@ -748,7 +766,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         self.create_bones(context, amt, psd_bone_root,
                           addon.preferences.util_amt_connect,
                           addon.preferences.util_amt_strip_name)
-        self.create_bone_properties(context, amt)
+        self.create_bone_properties(context, amt)  # Second pass necessary
 
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
@@ -760,6 +778,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         elif anim_mode == 'NLA_TRACKS':
             action_list = self.get_psd_bone_actions(mdl_base, amt, False)
             self.copy_animations(amt, action_list)
+            amt.nvb.use_amt_events = True
             # Create mutliple nla-tracks with a single nla-strip. Each track
             # corresponds to an animation from the mdl
             for anim_name, action, _, _, transtime in action_list:
@@ -770,6 +789,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         elif anim_mode == 'NLA_STRIPS':
             action_list = self.get_psd_bone_actions(mdl_base, amt, False)
             self.copy_animations(amt, action_list)
+            amt.nvb.use_amt_events = True
             # Create single nla-track and multiple strips. Each strip
             # corresponds to an animation from the mdl
             nla_track = amt.animation_data.nla_tracks.new()

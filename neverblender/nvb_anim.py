@@ -21,19 +21,6 @@ class Animation():
         """TODO: DOC."""
         nvb_animnode.Animnode.create_restpose(obj, frame)
 
-    def create_anim_events(self, mdl_base, anim_data, fps):
-        """Unused"""
-        kfp_options = {'FAST'}
-        action = nvb_utils.get_action(mdl_base, mdl_base.name)
-        ev_list = mdl_base.nvb.anim_event_list
-        for ev_time, ev_name in self.events:
-            ev_idx = nvb_utils.event_list_item_create(ev_list, ev_name)
-            frame = fps * ev_time + anim_data.frameStart
-            if frame <= anim_data.frameEnd:
-                dp = 'nvb.anim_event_list[' + str(ev_idx) + '].fire'
-                fcu = nvb_utils.get_fcurve(action, dp, 0, 'Aurora Events')
-                fcu.keyframe_points.insert(frame, 0.0, kfp_options)
-
     def create(self, mdl_base, noderesolver, options):
         """Create animations with a list of imported objects."""
         # Check for existing animations:
