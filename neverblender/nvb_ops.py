@@ -1,6 +1,7 @@
 """Contains misc. Blender Operators."""
 
 import os
+import math
 
 import bpy
 import mathutils
@@ -150,6 +151,28 @@ class NVB_OT_util_nodes(bpy.types.Operator):
 
     bl_idname = "nvb.util_nodes"
     bl_label = "Setup Nodes"
+
+    def get_bbox_list(self, mdl_root):
+        """Get a list of bounding boxed as walkmesh for this mdl."""
+
+        bbox_list = []
+        obj_list = []
+        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        vertex_list = []
+        for obj in obj_list:
+            if obj.type == 'MESH' and \
+                    not nvb_utils.is_wkm_base(obj.parent):
+                verts = [obj.matrix_world * v.co
+                         for v in obj.data.vertices]
+                verts = [v for v in verts if v.z <= 2.0]
+                vertex_list.extend(verts)
+        # Do a primitve greed clustering:
+        # Grab all verts within a certain distance
+        clusters = []
+
+        # TODO: PCA
+        # TODO: Generate bounding boxes
+        return bbox_list
 
     def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
         if not obj_list:

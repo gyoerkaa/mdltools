@@ -151,6 +151,8 @@ def unregister():
     del bpy.types.Material.nvb
     del bpy.types.Lamp.nvb
     del bpy.types.Scene.nvb
+    del bpy.types.ParticleSettings.nvb
+    del bpy.types.Bone.nvb
 
     bpy.utils.unregister_module(__name__)
 

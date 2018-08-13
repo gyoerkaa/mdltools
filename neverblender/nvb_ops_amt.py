@@ -676,7 +676,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         # Create missing event lists
         for event_name in event_dict.keys():
             if event_name not in amt.nvb.amt_event_list:
-                nvb_utils.create_amt_event_list_item(amt, event_name)
+                nvb_utils.amt_event_list_item_create(amt, event_name)
         # Create keyframes
         for idx, amt_event in enumerate(amt.nvb.amt_event_list):
             if amt_event.name in event_dict:
@@ -688,7 +688,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         """Copies animations to the newly created armatures"""
         if not amt.animation_data:
             amt.animation_data_create()
-        nvb_utils.init_amt_event_list(amt)
+        nvb_utils.amt_event_list_init(amt)
         # Copy keyframes to action(s)
         for _, amt_action, event_dict, frame_range, transtime in action_list:
             for amb_name, psb, cmat in self.generated_bones:

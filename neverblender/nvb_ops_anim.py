@@ -823,7 +823,7 @@ class NVB_OT_amt_event_new(bpy.types.Operator):
             return
         event_list = amt.nvb.amt_event_list
         # Initialize the first events to add known event types
-        nvb_utils.init_amt_event_list(amt)
+        nvb_utils.amt_event_list_init(amt)
         # Create an unique name
         name_list = [ev.name for ev in event_list]
         name_idx = 0
@@ -832,7 +832,7 @@ class NVB_OT_amt_event_new(bpy.types.Operator):
             name_idx += 1
             new_name = 'event.{:0>3d}'.format(name_idx)
         # Add new event
-        nvb_utils.create_amt_event_list_item(amt, new_name)
+        nvb_utils.amt_event_list_item_create(amt, new_name)
         if amt.animation_data and amt.animation_data.action:
             nvb_utils.init_amt_event_action(amt, amt.animation_data.action)
         return {'FINISHED'}

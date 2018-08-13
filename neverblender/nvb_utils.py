@@ -326,7 +326,7 @@ def checkAnimBounds(mdl_base):
     return True
 
 
-def create_amt_event_list_item(amt, event_name):
+def amt_event_list_item_create(amt, event_name):
     event_list = amt.nvb.amt_event_list
     # Add new event
     event = event_list.add()
@@ -345,7 +345,7 @@ def create_amt_event_list_item(amt, event_name):
     fcu.group = action.groups['Events']  # force group
 
 
-def init_amt_event_list(amt):
+def amt_event_list_init(amt):
     event_list = amt.nvb.amt_event_list
     if len(event_list) > 0:
         return
@@ -490,3 +490,75 @@ def create_texture(texname, imgname, filepath, tex_search):
             img.name = imgname
             tex.image = img
     return tex
+
+
+def get_connected_vertices(vertex_list):
+    """TODO: Doc."""
+    def check_dist(vec_a, vec_b):
+        return math.sqrt(sum([math.pow(a-b, 2)
+                              for a, b in zip(vec_a, vec_b)])) < 1.0
+    pass
+
+
+def get_convex_hull_2d(vertex_list):
+    """Project the points to 2D plane (omit Z) and calculate convex hull."""
+    def uv_split(u, v, points):
+        # return points on left side of UV
+        return [p for p in points if (p - u).cross(v - u) < 0]
+
+    def uv_search(u, v, points):
+        if not points:
+            return []
+        # find furthest point W, and split search to WV, UW
+        w = min(points, key=lambda p: (p - u).cross(v - u))
+        p1, p2 = uv_split(w, v, points), uv_split(u, w, points)
+        return uv_search(w, v, p1) + [w] + uv_search(u, w, p2)
+
+    def convex_hull(points):
+        # find two hull points, U, V, and split to left and right search
+        u = min(points, key=lambda p: p[0])
+        v = max(points, key=lambda p: p[0])
+        left, right = uv_split(u, v, points), uv_split(v, u, points)
+        # find convex hull on each side
+        return [v] + uv_search(u, v, left) + [u] + uv_search(v, u, right)
+
+    vertex_list_2d = [mathutils.Vector(v.co[:2]) for v in vertex_list]
+    return convex_hull(vertex_list_2d)
+
+
+def minimum_area_rectangle(convex_hull):
+    """TODO: Doc."""
+    def mostfar(j, n, s, c, mx, my, hull):  # advance j to extreme point
+        xn, yn = hull[j][0], hull[j][1]
+        rx, ry = xn*c - yn*s, xn*s + yn*c
+        best = mx*rx + my*ry
+        while True:
+            x, y = rx, ry
+            xn, yn = hull[(j+1) % n][0], hull[(j+1) % n][1]
+            rx, ry = xn*c - yn*s, xn*s + yn*c
+            if mx*rx + my*ry >= best:
+                j = (j+1) % n
+                best = mx*rx + my*ry
+            else:
+                return (x, y, j)
+
+    n = len(convex_hull)
+    iL = iR = iP = 1  # indexes left, right, opposite
+    pi = 4*math.atan(1)
+    min_rect = (1e33, 0, 0, 0, 0, 0, 0)
+    for i in range(n-1):
+        dx = convex_hull[i+1][0] - convex_hull[i][0]
+        dy = convex_hull[i+1][1] - convex_hull[i][1]
+        theta = pi-math.atan2(dy, dx)
+        s, c = math.sin(theta), math.cos(theta)
+        yC = convex_hull[i][0]*s + convex_hull[i][1]*c
+
+        xP, yP, iP = mostfar(iP, n, s, c, 0, 1)
+        if i == 0:
+            iR = iP
+        xR, yR, iR = mostfar(iR, n, s, c,  1, 0)
+        xL, yL, iL = mostfar(iL, n, s, c, -1, 0)
+        area = (yP-yC)*(xR-xL)
+        if area < min_rect[0]:
+            min_rect = (area, xR-xL, yP-yC, i, iL, iP, iR)
+    return min_rect
