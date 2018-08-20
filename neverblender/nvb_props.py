@@ -28,7 +28,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     compiler_path = bpy.props.StringProperty(name="Path to compiler",
                                              subtype='FILE_PATH')
     # Object & Dummy Helper
-    util_node_mdltype = bpy.props.EnumProperty(
+    util_metanode_type = bpy.props.EnumProperty(
         name='Type',
         items=[(nvb_def.Walkmeshtype.PWK,
                 'Placeable', 'Setup objects for placeables', 0),
@@ -38,6 +38,22 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                # 'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK)
+    util_metanode_pwk_mode = bpy.props.EnumProperty(
+        name='Mode',
+        items=[('aabb',
+                'Axis Aligned Bounding Box',
+                'Objects will be enclosed in an axis aligned bounding box.',
+                0),
+               ('mabb',
+                'Minimum Area Bounding Box',
+                'Objects will be enclosed in a minimum area bounding box',
+                1),
+               ('chull',
+                'Convex Hull',
+                'Objects will be enclosed in their convex hull',
+                2),
+               ],
+        default='aabb')
 
     # Armature Helper
     util_amt_src = bpy.props.EnumProperty(
@@ -601,10 +617,10 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                         'Patch node',
                         'Unknown purpose', 2),
                        (nvb_def.Emptytype.DWK,
-                        'DWK Root (Door  Walkmesh)',
+                        'DWK Base (Door  Walkmesh)',
                         'All children are part of the walkmesh', 3),
                        (nvb_def.Emptytype.PWK,
-                        'PWK Root (Placeable Walkmesh)',
+                        'PWK Base (Placeable Walkmesh)',
                         'All children are part of the walkmesh', 4)],
                 default=nvb_def.Emptytype.DUMMY, options=set())
     # For Aurora Root

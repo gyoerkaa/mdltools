@@ -2,8 +2,10 @@
 
 import os
 import math
+import sys
 
 import bpy
+import bmesh
 import mathutils
 
 from . import nvb_def
@@ -146,33 +148,188 @@ class NVB_OT_util_genwok(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NVB_OT_util_nodes(bpy.types.Operator):
+class NVB_OT_util_metanodes(bpy.types.Operator):
     """Helper to add missing walkmesh objects and dummys."""
 
-    bl_idname = "nvb.util_nodes"
+    bl_idname = "nvb.util_metanodes"
     bl_label = "Setup Nodes"
 
-    def get_bbox_list(self, mdl_root):
-        """Get a list of bounding boxed as walkmesh for this mdl."""
+    @staticmethod
+    def build_mesh_from_plane(plane_vertices, height, mesh_name):
+        """Extrudes the polygons to height in order to generate a mesh."""
+        bm = bmesh.new()
+        for pv in plane_vertices:
+            bm.verts.new((pv[0], pv[1], 0.0))
+        bottom = bm.faces.new((bm.verts))
+        # Extrude and translate
+        top = bmesh.ops.extrude_face_region(bm, geom=[bottom])
+        bmesh.ops.translate(bm,
+                            vec=mathutils.Vector((0, 0, max(0.1, height))),
+                            verts=[v for v in top["geom"]
+                                   if isinstance(v, bmesh.types.BMVert)])
+        bm.normal_update()
+        # Create mesh from bmesh
+        me = bpy.data.meshes.new(mesh_name)
+        bm.to_mesh(me)
+        return me
 
-        bbox_list = []
+    @staticmethod
+    def chulls_collide(chull1, chull2):
+        """Detects collision between two convex hulls."""
+        def is_separating_axis(axis, vlist1, vlist2):
+            """Checks if axis separates the vertices from the lists."""
+            min1, max1 = sys.maxsize, -1*sys.maxsize
+            min2, max2 = sys.maxsize, -1*sys.maxsize
+            for v in vlist1:
+                projection = v.dot(axis)
+                min1 = min(min1, projection)
+                max1 = max(max1, projection)
+            for v in vlist2:
+                projection = v.dot(axis)
+                min2 = min(min2, projection)
+                max2 = max(max2, projection)
+            if max1 >= min2 and max2 >= min1:  # not separating
+                return False
+            return True
+
+        def separating_axis_distance(axis, vlist1, vlist2):
+            """Checks if axis separates the vertices from the lists."""
+            min1, max1 = sys.maxsize, -1*sys.maxsize
+            min2, max2 = sys.maxsize, -1*sys.maxsize
+            for v in vlist1:
+                projection = v.dot(axis)
+                min1 = min(min1, projection)
+                max1 = max(max1, projection)
+            for v in vlist2:
+                projection = v.dot(axis)
+                min2 = min(min2, projection)
+                max2 = max(max2, projection)
+            if max1 >= min2 and max2 >= min1:  # not separating
+                dist = -1 * min(max1 - min2, max2 - min1)/axis.dot(axis)
+            else:  # separating
+                dist = min(min2 - max1, min1 - max2)/axis.dot(axis)
+            return dist
+        # Compute edges
+        edges = [v2 - v1 for v1, v2 in zip(chull1[::2], chull1[1::2])]
+        edges.extend([v2 - v1 for v1, v2 in zip(chull2[::2], chull2[1::2])])
+        # 90° orthogonal to convex hull edges
+        orthogonals = [mathutils.Vector([-1*vec[1], vec[0]]) for vec in edges]
+        # Check distances of all separating axes
+        distances = [separating_axis_distance(o, chull1, chull1)
+                     for o in orthogonals]
+        return min(distances) < 0.5
+        # Check if any orthogonals are separating axes
+        """
+        for ortho in orthogonals:
+            if is_separating_axis(ortho, chull1, chull1):
+                return False
+        return True
+        """
+
+    @staticmethod
+    def get_minimum_rectangle(chull):
+        """Rotating calipers to get the minimum area rectangle."""
+        # Compute edges v2 - v1
+        edges = [v2 - v1 for v1, v2 in zip(chull[::2], chull[1::2])]
+        # edges = zip(convex_hull[::2], convex_hull[1::2])
+        angles = [abs(math.atan2(e[1], e[0]) % (math.pi/2)) for e in edges]
+        # TODO: Removes duplicate angles
+        # rot_angle, area, min_x, max_x, min_y, max_y
+        min_bbox = (0, sys.maxsize, 0, 0, 0, 0)
+        for a in angles:
+            R = mathutils.Matrix.Rotation(a, 2)
+            rotated_hull = [R*p for p in chull]
+            # Get bounding box for rotated hull
+            x_vals = [p.x for p in rotated_hull]
+            min_x, max_x = min(x_vals), max(x_vals)
+            y_vals = [p.y for p in rotated_hull]
+            min_y, max_y = min(y_vals), max(y_vals)
+            # Calculate area
+            width = max_x - min_x
+            height = max_y - min_y
+            area = width * height
+            if (area < min_bbox[1]):
+                min_bbox = (a, area, min_x, max_x, min_y, max_y)
+        # Calculate corner points in orignal space
+        R = mathutils.Matrix.Rotation(a, 2)
+        min_x = min_bbox[2]
+        max_x = min_bbox[3]
+        min_y = min_bbox[4]
+        max_y = min_bbox[5]
+        bbox = [None] * 4
+        bbox[3] = mathutils.Vector([max_x, min_y]) * R
+        bbox[2] = mathutils.Vector([min_x, min_y]) * R
+        bbox[1] = mathutils.Vector([min_x, max_y]) * R
+        bbox[0] = mathutils.Vector([max_x, max_y]) * R
+        return bbox
+
+    @staticmethod
+    def get_aabr(vertex_list):
+        """Get axis aligned bounding rectangle."""
+        coords = [v.x for v in vertex_list if v.z <= 2.0]
+        min_x, max_x = min(coords), max(coords)
+        coords = [v.y for v in vertex_list if v.z <= 2.0]
+        min_y, max_y = min(coords), max(coords)
+        bbox = [None] * 4
+        bbox[3] = mathutils.Vector([max_x, min_y])
+        bbox[2] = mathutils.Vector([min_x, min_y])
+        bbox[1] = mathutils.Vector([min_x, max_y])
+        bbox[0] = mathutils.Vector([max_x, max_y])
+        return bbox
+
+    @staticmethod
+    def get_convex_hull_2D(vertex_list):
+        """Get 2D convex hull from a list of vertices (omits z-coordinate)."""
+        def uv_split(u, v, points):
+            """ Get Points on left side of UV."""
+            return [p for p in points if (p - u).cross(v - u) < 0]
+
+        def uv_search(u, v, points):
+            if not points:
+                return []
+            # find furthest point W, and split search to WV, UW
+            w = min(points, key=lambda p: (p - u).cross(v - u))
+            p1, p2 = uv_split(w, v, points), uv_split(u, w, points)
+            return uv_search(w, v, p1) + [w] + uv_search(u, w, p2)
+
+        def convex_hull(points):
+            # find two hull points, U, V, and split to left and right search
+            u = min(points, key=lambda p: p[0])
+            v = max(points, key=lambda p: p[0])
+            left, right = uv_split(u, v, points), uv_split(v, u, points)
+            # find convex hull on each side
+            return [v] + uv_search(u, v, left) + [u] + uv_search(v, u, right)
+        vertex_list_2D = [mathutils.Vector(v[:2]) for v in vertex_list
+                          if v.z <= 2.0]
+        return convex_hull(vertex_list_2D)
+
+    @staticmethod
+    def create_pwk_mesh(mdl_base, mesh_name, pwk_mode):
+        """Create the placeable walkmesh for this mdl."""
+        # Generate 2D convex hulls for each object
         obj_list = []
-        nvb_utils.get_children_recursive(mdl_root, obj_list)
+        nvb_utils.get_children_recursive(mdl_base, obj_list)
         vertex_list = []
         for obj in obj_list:
-            if obj.type == 'MESH' and \
+            if obj.type == 'MESH' and obj.nvb.render and \
                     not nvb_utils.is_wkm_base(obj.parent):
                 verts = [obj.matrix_world * v.co
                          for v in obj.data.vertices]
-                verts = [v for v in verts if v.z <= 2.0]
                 vertex_list.extend(verts)
-        # Do a primitve greed clustering:
-        # Grab all verts within a certain distance
-        clusters = []
-
-        # TODO: PCA
-        # TODO: Generate bounding boxes
-        return bbox_list
+        if pwk_mode == 'chull':
+            pwk_verts = NVB_OT_util_metanodes.get_convex_hull_2D(vertex_list)
+        elif pwk_mode == 'mabb':
+            # Generate minimum boundinging rectangle
+            conv_hull = NVB_OT_util_metanodes.get_convex_hull_2D(vertex_list)
+            pwk_verts = NVB_OT_util_metanodes.get_minimum_rectangle(conv_hull)
+        else:  # assume aabb
+            pwk_verts = NVB_OT_util_metanodes.get_aabr(vertex_list)
+        # Generate Mesh from bounding shape (convex hull or rectangle)
+        pwk_height = min(2.0, max([v.z for v in vertex_list]))
+        mesh = NVB_OT_util_metanodes.build_mesh_from_plane(pwk_verts,
+                                                           pwk_height,
+                                                           mesh_name)
+        return mesh
 
     def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
         if not obj_list:
@@ -222,7 +379,7 @@ class NVB_OT_util_nodes(bpy.types.Operator):
         obj.parent = mdlroot
         scene.objects.link(obj)
 
-    def create_pwk(self, mdl_base, scene):
+    def create_pwk(self, mdl_base, scene, pwk_mode):
         """Adds necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdlroot):
             basename = mdlroot.name
@@ -230,38 +387,6 @@ class NVB_OT_util_nodes(bpy.types.Operator):
             if dpos >= 0:
                 return basename[-1*dpos:]
             return basename[-3:]
-
-        def get_mdl_bbox(mdlroot):
-            """Ge the bounding box for all object in the mesh."""
-            verts = [(-0.5, -0.5, 0.0),
-                     (-0.5, -0.5, 2.0),
-                     (-0.5, 0.5, 0.0),
-                     (-0.5, 0.5, 2.0),
-                     (0.5, -0.5, 0.0),
-                     (0.5, -0.5, 2.0),
-                     (0.5, 0.5, 0.0),
-                     (0.5, 0.5, 2.0)]
-            faces = [[0, 1, 3, 2],
-                     [2, 3, 7, 6],
-                     [6, 7, 5, 4],
-                     [1, 0, 4, 5],
-                     [4, 0, 2, 6],
-                     [7, 3, 1, 5]]
-            return (verts, faces)
-
-        def create_pwk_mesh(meshname, verts, faces):
-            """Get the default mesh for a generic door."""
-            mesh = bpy.data.meshes.new(meshname)
-            # Create Verts
-            mesh.vertices.add(len(verts))
-            mesh.vertices.foreach_set('co', [co for v in verts for co in v])
-            # Create Faces
-            mesh.tessfaces.add(len(faces))
-            mesh.tessfaces.foreach_set('vertices_raw',
-                                       [i for f in faces for i in f])
-            mesh.validate()
-            mesh.update()
-            return mesh
 
         prefix = get_prefix(mdl_base)
         # Find or create walkmesh root
@@ -284,17 +409,18 @@ class NVB_OT_util_nodes(bpy.types.Operator):
         # FROM HERE ON: Walkmesh objects - all parented to wkmroot
         # Adjust name and parent of exising mesh(es)
         meshlist = [o for o in obj_list if o.name.endswith('_wg')]
+        pwk_mesh_name = prefix + '_wg'
         for obj in meshlist:
-            newname = mdl_base.name + '_wg'
+            newname = prefix + '_wg'
             if obj.name != newname:
                 obj.name = newname
             obj.parent = wkmroot
         # Create missing mesh
-        meshname = mdl_base.name + '_wg'
-        if meshname not in bpy.data.objects:
-            verts, faces = get_mdl_bbox(mdl_base)
-            mesh = create_pwk_mesh(meshname, verts, faces)
-            obj = bpy.data.objects.new(meshname, mesh)
+        if pwk_mesh_name not in bpy.data.objects:
+            mesh = NVB_OT_util_metanodes.create_pwk_mesh(mdl_base,
+                                                         pwk_mesh_name,
+                                                         pwk_mode)
+            obj = bpy.data.objects.new(pwk_mesh_name, mesh)
             obj.parent = wkmroot
             scene.objects.link(obj)
         # Create dummys
@@ -439,9 +565,10 @@ class NVB_OT_util_nodes(bpy.types.Operator):
         if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
-        wkm_type = addon.preferences.util_node_mdltype
+        wkm_type = addon.preferences.util_metanode_type
         if wkm_type == nvb_def.Walkmeshtype.PWK:
-            self.create_pwk(mdl_base, scene)
+            pwk_mode = addon.preferences.util_metanode_pwk_mode
+            self.create_pwk(mdl_base, scene, pwk_mode)
         elif wkm_type == nvb_def.Walkmeshtype.DWK:
             self.create_dwk(mdl_base, scene)
         elif wkm_type == nvb_def.Walkmeshtype.WOK:

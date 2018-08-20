@@ -139,7 +139,7 @@ class NVB_PT_aurorabase(bpy.types.Panel):
         col.prop(mdl_base.nvb, 'classification', text='')
         row = col.row(align=True)
         row.prop(mdl_base.nvb, 'supermodel', text='')
-        row.operator('nvb.mdl_superimport', icon='IMPORT', text='')
+        row.operator('scene.nvb_superimport', icon='IMPORT', text='')
         col.prop(mdl_base.nvb, 'animscale', text='')
 
 
@@ -800,6 +800,7 @@ class NVB_PT_utils(bpy.types.Panel):
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         addon = context.user_preferences.addons[__package__]
+        addon_prefs = addon.preferences
         render = context.scene.render
         if mdl_base:
             # Armature Helper
@@ -811,11 +812,11 @@ class NVB_PT_utils(bpy.types.Panel):
             col.label(text='Source: ')
             col.label(text='Animations: ')
             col = split.column()
-            col.row().prop(addon.preferences, 'util_amt_src', expand=True)
-            col.prop(addon.preferences, 'util_amt_anim_mode', text='')
+            col.row().prop(addon_prefs, 'util_amt_src', expand=True)
+            col.prop(addon_prefs, 'util_amt_anim_mode', text='')
             row = box.row()
-            row.prop(addon.preferences, 'util_amt_connect')
-            row.prop(addon.preferences, 'util_amt_strip_name')
+            row.prop(addon_prefs, 'util_amt_connect')
+            row.prop(addon_prefs, 'util_amt_strip_name')
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
@@ -834,9 +835,11 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Walkmesh & Dummy Helper')
 
             row = box.row()
-            row.label(text='Type: ')
-            row.prop(addon.preferences, 'util_node_mdltype', expand=True)
-            box.operator('nvb.util_nodes', text='Generate Objects',
+            row .label(text='Type: ')
+            row .prop(addon_prefs, 'util_metanode_type', expand=True)
+            if addon_prefs.util_metanode_type == nvb_def.Walkmeshtype.PWK:
+                box.prop(addon_prefs, 'util_metanode_pwk_mode')
+            box.operator('nvb.util_metanodes', text='Generate Objects',
                          icon='OOPS')
             layout.separator()
 

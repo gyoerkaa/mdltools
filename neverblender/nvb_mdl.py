@@ -86,9 +86,9 @@ class Mdl():
                 print("Neverblender: WARNING: Unable to read walkmesh data")
                 return
             if wkmtype == 'pwk':
-                Mdl.readAsciiGeometry(ascii_block[geom_start:], self.pwknodes)
+                Mdl.read_ascii_geom(ascii_block[geom_start:], self.pwknodes)
             elif wkmtype == 'dwk':
-                Mdl.readAsciiGeometry(ascii_block[geom_start:], self.dwknodes)
+                Mdl.read_ascii_geom(ascii_block[geom_start:], self.dwknodes)
 
     @staticmethod
     def read_ascii_geom(ascii_block, nodelist):

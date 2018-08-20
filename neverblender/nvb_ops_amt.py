@@ -77,7 +77,7 @@ class NVB_OT_amt_apply_pose(bpy.types.Operator):
                     fcu[i].update()
 
     def execute(self, context):
-        """Create pseudo bones"""
+        """Set current pose as restpose and adjust animations."""
         armature = context.object
         # Save old pose matrices
         bpy.ops.object.mode_set(mode='POSE')

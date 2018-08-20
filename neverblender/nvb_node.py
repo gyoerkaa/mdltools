@@ -411,10 +411,11 @@ class Node(object):
         """TODO: Doc."""
         node_name = nvb_utils.generate_node_name(obj, options.strip_trailing)
         asciiLines.append('node ' + cls.nodetype + ' ' + node_name)
-        if obj.parent:
-            asciiLines.append('  parent ' + obj.parent.name)
-        else:
-            asciiLines.append('  parent ' + nvb_def.null)
+        # Parent
+        parent_name = nvb_utils.generate_node_name(obj.parent,
+                                                   options.strip_trailing)
+        asciiLines.append('  parent ' + parent_name)
+
         cls.generateAsciiData(obj, asciiLines, options, iswalkmesh)
         asciiLines.append('endnode')
 

@@ -31,12 +31,12 @@ class Animation():
         fps = options.scene.render.fps
         new_anim = nvb_utils.create_anim_list_item(mdl_base)
         new_anim.name = self.name
-        new_anim.ttime = self.transtime
+        # new_anim.ttime = self.transtime
         new_anim.transtime = fps * self.transtime
-        new_anim.root = self.animroot
+        # new_anim.root = self.animroot
         new_anim.root_obj = noderesolver.get_obj(self.animroot, -1)
         new_anim.frameEnd = fps * self.length + new_anim.frameStart
-        # Old style events
+        # events
         for ev_time, ev_name in self.events:
             newEvent = new_anim.eventList.add()
             newEvent.name = ev_name
@@ -122,7 +122,10 @@ class Animation():
                                str(round(anim.ttime, 3)))
         # Get anim root
         if anim.root_obj:
-            ascii_lines.append('  animroot ' + anim.root_obj.name)
+            root_obj_name = nvb_utils.generate_node_name(
+                anim.root_obj,
+                options.strip_trailing)
+            ascii_lines.append('  animroot ' + root_obj_name)
         elif anim.root:
             # Legacy support: Use old param as not to break old blend files
             node_list = [mdl_base]

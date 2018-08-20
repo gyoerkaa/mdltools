@@ -14,7 +14,7 @@ from . import nvb_utils
 class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     """Export Aurora Engine model (.mdl)"""
 
-    bl_idname = 'nvb.mdlexport'
+    bl_idname = 'scene.nvb_mdlexport'
     bl_label = 'Export Aurora MDL'
     bl_options = {'PRESET'}
 
@@ -128,7 +128,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         if options.batch_mode == 'OFF':  # Get active object only
             base = nvb_utils.get_mdl_base(bpy.context.object)
             wkm_name = os.path.splitext(os.path.basename(options.filepath))[0]
-            mdl_list.append((base, options.filepath, wkm_name))
+            if base:
+                mdl_list.append((base, options.filepath, wkm_name))
         else:  # Get multiple objects
             obj_list = []
             if options.batch_mode == 'SCN':
@@ -229,11 +230,23 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.batch_mode = self.batch_mode
         return self.mdl_export(context, options)
 
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+        # Generate a file name from active object
+        mdl_base = nvb_utils.get_mdl_base(context.object)
+        if mdl_base:
+            generated_name = nvb_utils.generate_node_name(mdl_base, True)
+            self.filepath = generated_name + '.mdl'
+        else:
+            self.filepath = 'untitled.mdl'
+        return {'RUNNING_MODAL'}
+
 
 class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     """Import Aurora Engine model (.mdl)"""
 
-    bl_idname = 'nvb.mdlimport'
+    bl_idname = 'scene.nvb_mdlimport'
     bl_label = 'Import Aurora MDL'
     bl_options = {'UNDO', 'PRESET'}
 
@@ -420,7 +433,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 class NVB_OT_mdl_superimport(bpy.types.Operator,
                              bpy_extras.io_utils.ImportHelper):
     """Import animations from supermodel onto existing mdl"""
-    bl_idname = 'nvb.mdl_superimport'
+    bl_idname = 'scene.nvb_superimport'
     bl_label = 'Import Supermodel'
 
     files = bpy.props.CollectionProperty(
