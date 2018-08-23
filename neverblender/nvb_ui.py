@@ -839,8 +839,9 @@ class NVB_PT_utils(bpy.types.Panel):
             row .prop(addon_prefs, 'util_metanode_type', expand=True)
             if addon_prefs.util_metanode_type == nvb_def.Walkmeshtype.PWK:
                 box.prop(addon_prefs, 'util_metanode_pwk_mode')
-            box.operator('nvb.util_metanodes', text='Generate Objects',
-                         icon='OOPS')
+                box.operator('nvb.util_nodes_pwk', icon='OOPS')
+            elif addon_prefs.util_metanode_type == nvb_def.Walkmeshtype.DWK:
+                box.operator('nvb.util_nodes_dwk', icon='OOPS')
             layout.separator()
 
             # Minimap Helper
