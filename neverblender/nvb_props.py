@@ -44,7 +44,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                 'Axis Aligned Bounding Box',
                 'Objects will be enclosed in an axis aligned bounding box.',
                 0),
-               ('mabb',
+               ('mabr',
                 'Minimum Area Bounding Box',
                 'Objects will be enclosed in a minimum area bounding box',
                 1),

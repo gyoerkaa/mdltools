@@ -3,6 +3,7 @@
 import os
 import math
 import sys
+import itertools
 
 import bpy
 import bmesh
@@ -153,28 +154,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
 
     bl_idname = "nvb.util_nodes_pwk"
     bl_label = "Setup Placeable"
-
-    @staticmethod
-    def build_mesh_from_plane(pwk_planes, height, mesh_name):
-        """Extrudes the polygons to height in order to generate a mesh."""
-        bm = bmesh.new()
-        for plane_vertices in pwk_planes:
-            plane_vertices_3d = [mathutils.Vector((pv.x, pv.y, 0.0))
-                                 for pv in plane_vertices]
-            bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
-            bottom = bm.faces.new(bm_plane_vertices)
-            # Extrude and translate
-            top = bmesh.ops.extrude_face_region(bm, geom=[bottom])
-            bmesh.ops.translate(
-                bm,
-                vec=mathutils.Vector((0, 0, max(0.1, height))),
-                verts=[v for v in top['geom']
-                       if isinstance(v, bmesh.types.BMVert)])
-            bm.normal_update()
-        # Create mesh from bmesh
-        me = bpy.data.meshes.new(mesh_name)
-        bm.to_mesh(me)
-        return me
+    bl_options = {'UNDO'}
 
     @staticmethod
     def chulls_collide(chull1, chull2):
@@ -218,23 +198,61 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         # 90° orthogonal to convex hull edges
         orthogonals = [mathutils.Vector([-1*vec[1], vec[0]]) for vec in edges]
         # Check distances of all separating axes
+        """
         distances = [separating_axis_distance(o, chull1, chull1)
                      for o in orthogonals]
         return min(distances) < 0.5
-        # Check if any orthogonals are separating axes
+        Check if any orthogonals are separating axes
         """
         for ortho in orthogonals:
             if is_separating_axis(ortho, chull1, chull1):
                 return False
         return True
-        """
 
     @staticmethod
-    def get_minimum_rectangle(chull):
-        """Rotating calipers to get the minimum area rectangle."""
+    def merge_intersecting(pwk_data, pwk_mode):
+        """Merge intersecting mesh parts."""
+        if not pwk_data:
+            return []
+        for (v1, h1), (v2, h2) in itertools.combinations(pwk_data, 2):
+            if NVB_OT_util_nodes_pwk.chulls_collide(v1, v2):
+                pass
+        # new_pwk_data = []
+        # for verts, h in pwk_data:
+        #     pass
+        # return new_pwk_data
+        return pwk_data
+
+    @staticmethod
+    def build_pwk_mesh(pwk_data, mesh_name):
+        """Extrudes planes to height in order to generate a mesh."""
+        bm = bmesh.new()
+        for plane_vertices, height in pwk_data:
+            plane_vertices_3d = [mathutils.Vector((pv.x, pv.y, 0.0))
+                                 for pv in plane_vertices]
+            bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
+            bottom = bm.faces.new(bm_plane_vertices)
+            # Extrude and translate
+            top = bmesh.ops.extrude_face_region(bm, geom=[bottom])
+            bmesh.ops.translate(
+                bm,
+                vec=mathutils.Vector((0, 0, max(0.1, height))),
+                verts=[v for v in top['geom']
+                       if isinstance(v, bmesh.types.BMVert)])
+            bm.normal_update()
+        # Create mesh from bmesh
+        me = bpy.data.meshes.new(mesh_name)
+        bm.to_mesh(me)
+        return me
+
+    @staticmethod
+    def get_mabr(vertex_list):
+        """Get the minimum area bounding rectangle (rotating calipers)."""
+        if not vertex_list:  # No geometry
+            return []
+        chull = NVB_OT_util_nodes_pwk.get_convex_hull_2D(vertex_list)
         # Compute edges v2 - v1
         edges = [v2 - v1 for v1, v2 in zip(chull[::2], chull[1::2])]
-        # edges = zip(convex_hull[::2], convex_hull[1::2])
         angles = [abs(math.atan2(e[1], e[0]) % (math.pi/2)) for e in edges]
         # TODO: Remove duplicate angles
         # rot_angle, area, min_x, max_x, min_y, max_y
@@ -254,24 +272,26 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             if (area < min_bbox[1]):
                 min_bbox = (a, area, min_x, max_x, min_y, max_y)
         # Calculate corner points in orignal space
-        R = mathutils.Matrix.Rotation(a, 2)
+        R = mathutils.Matrix.Rotation(min_bbox[0], 2)
         min_x = min_bbox[2]
         max_x = min_bbox[3]
         min_y = min_bbox[4]
         max_y = min_bbox[5]
-        bbox = [None] * 4
-        bbox[3] = mathutils.Vector([max_x, min_y]) * R
-        bbox[2] = mathutils.Vector([min_x, min_y]) * R
-        bbox[1] = mathutils.Vector([min_x, max_y]) * R
-        bbox[0] = mathutils.Vector([max_x, max_y]) * R
-        return bbox
+        mabr = [None] * 4
+        mabr[3] = mathutils.Vector([max_x, min_y]) * R
+        mabr[2] = mathutils.Vector([min_x, min_y]) * R
+        mabr[1] = mathutils.Vector([min_x, max_y]) * R
+        mabr[0] = mathutils.Vector([max_x, max_y]) * R
+        return mabr
 
     @staticmethod
     def get_aabr(vertex_list):
         """Get axis aligned bounding rectangle."""
-        coords = [v.x for v in vertex_list if v.z <= 1.9]
+        if not vertex_list:  # No geometry
+            return []
+        coords = [v.x for v in vertex_list]
         min_x, max_x = min(coords), max(coords)
-        coords = [v.y for v in vertex_list if v.z <= 1.9]
+        coords = [v.y for v in vertex_list]
         min_y, max_y = min(coords), max(coords)
         aabr = [None] * 4
         aabr[3] = mathutils.Vector([max_x, min_y])
@@ -296,19 +316,22 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             return uv_search(w, v, p1) + [w] + uv_search(u, w, p2)
 
         def convex_hull(points):
+            """Quickhull algorithm to compute convex hull."""
             # find two hull points, U, V, and split to left and right search
             u = min(points, key=lambda p: p[0])
             v = max(points, key=lambda p: p[0])
             left, right = uv_split(u, v, points), uv_split(v, u, points)
             # find convex hull on each side
             return [v] + uv_search(u, v, left) + [u] + uv_search(v, u, right)
-        vertex_list_2D = [mathutils.Vector(v[:2]) for v in vertex_list
-                          if v.z <= 1.9]
+
+        if not vertex_list:  # No geometry
+            return []
+        vertex_list_2D = [mathutils.Vector(v[:2]) for v in vertex_list]
         return convex_hull(vertex_list_2D)
 
     @staticmethod
-    def get_islands(bm):
-        """Get islands in bmesh."""
+    def get_bm_islands(bm):
+        """Get a list of islands in the bmesh with a minimum of 2 vertices."""
         def walk_island(vert):
             """Walk linked verts without tag"""
             vert.tag = True
@@ -320,97 +343,129 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                     continue
                 yield from walk_island(v)
 
-        def tag(vertices, switch):
+        def set_tag(vertices, tag_value):
             for v in vertices:
-                v.tag = switch
+                v.tag = tag_value
         vertex_list = bm.verts
-        tag(bm.verts, True)
-        tag(vertex_list, False)
+        set_tag(bm.verts, True)
+        set_tag(vertex_list, False)
         island_list = []
         vertices = set(vertex_list)
         while vertices:
             v = vertices.pop()
             vertices.add(v)
             island = set(walk_island(v))
-            island_list.append(list(island))
-            tag(island, False)  # remove tag = True
+            if len(island) > 2:  # Can't create a polygon from 2 verts
+                island_list.append(list(island))
+            set_tag(island, False)  # remove tag = True
             vertices -= island
         return island_list
 
     @staticmethod
-    def get_obj_vertices(obj_list, min_height=0.0, max_height=2.0):
-        """Return a list of vertex lists containing islands."""
-        all_islands = []
-        # Get vertex islands for all objects
-        for obj in obj_list:
-            # Bisecting planes in local coordinates
-            M = obj.matrix_world.inverted()
-            plane_min = [M * mathutils.Vector((0.0, 0.0, min_height)),
-                         M * mathutils.Vector((0.0, 0.0, -1.0))]
-            plane_max = [M * mathutils.Vector((0.0, 0.0, max_height)),
-                         M * mathutils.Vector((0.0, 0.0, 1.0))]
-            # TODO: Save height
-            # Bisect mesh
-            bm = bmesh.new()
-            bm.from_mesh(obj.data)
-            bm.verts.ensure_lookup_table()
-            bmesh.ops.bisect_plane(
-                bm,
-                geom=bm.verts[:]+bm.edges[:]+bm.faces[:],
-                plane_co=plane_min[0],
-                plane_no=plane_min[1],
-                clear_outer=True, dist=0.001)
-            bm.verts.ensure_lookup_table()
-            bmesh.ops.bisect_plane(
-                bm,
-                geom=bm.verts[:]+bm.edges[:]+bm.faces[:],
-                plane_co=plane_max[0],
-                plane_no=plane_max[1],
-                clear_outer=True, dist=0.001)
-            bm.verts.ensure_lookup_table()
-            obj_islands = NVB_OT_util_nodes_pwk.get_islands(bm)
-            all_islands.extend([[obj.matrix_world * v.co for v in isl]
-                                for isl in obj_islands])
-        return all_islands
-
-    @staticmethod
-    def create_pwk_mesh(mdl_base, mesh_name, pwk_mode):
-        """Create the placeable walkmesh for this mdl."""
-        # Generate 2D convex hulls for each object
+    def get_mdl_islands(mdl_base, min_height=0.0, max_height=2.0):
+        """Return a list of vertex islands of all objects in the mdl."""
+        # Get visible objects for this mdl
         obj_list = []
         nvb_utils.get_children_recursive(mdl_base, obj_list)
         obj_list = [o for o in obj_list
-                    if o.type == 'MESH' and o.nvb.render and
+                    if o.type == 'MESH' and
+                    o.nvb.render and
+                    o.nvb.meshtype == nvb_def.Meshtype.TRIMESH and
                     not nvb_utils.is_wkm_base(o.parent)]
-        # TODO: Undo mdl_base transformations
-        # correcting_mat = mdl_base.matrix_world.inverted()
-        obj_vert_list = NVB_OT_util_nodes_pwk.get_obj_vertices(obj_list)
-        # Generate plane shapes based on options
-        pwk_vert_list = []
-        if pwk_mode == 'chull':
-            pwk_vert_list = [NVB_OT_util_nodes_pwk.get_convex_hull_2D(verts)
-                             for verts in obj_vert_list]
-        elif pwk_mode == 'mabb':
-            # Generate minimum boundinging rectangle
-            chull_list = [NVB_OT_util_nodes_pwk.get_convex_hull_2D(verts)
-                          for verts in obj_vert_list]
-            pwk_vert_list = [NVB_OT_util_nodes_pwk.get_minimum_rectangle(chull)
-                             for chull in chull_list]
-        else:  # assume aabb
-            pwk_vert_list = [NVB_OT_util_nodes_pwk.get_aabr(verts)
-                             for verts in obj_vert_list]
-        # TODO: Merge instersecting shapes
-        # Generate Mesh from bounding shape (convex hull or rectangle)
-        max_height = 2.0
-        mesh = NVB_OT_util_nodes_pwk.build_mesh_from_plane(pwk_vert_list,
-                                                           max_height,
-                                                           mesh_name)
-        return mesh
+        # Disregard (undo) mdl_base transformations
+        mdl_mwi = mdl_base.matrix_world.inverted()
+        # Get vertex islands for all objects in mdl
+        mdl_islands = []
+        for obj in obj_list:
+            obj_mw = obj.matrix_world
+            obj_mwi = obj_mw.inverted()
+            # Bisecting planes in local coordinates
+            plane_bot_co = obj_mwi * mathutils.Vector((0.0, 0.0, min_height))
+            plane_bot_no = mathutils.Vector((0.0, 0.0, -1.0))
+            plane_bot_no.rotate(obj_mwi)
+            plane_top_co = obj_mwi * mathutils.Vector((0.0, 0.0, max_height))
+            plane_top_no = mathutils.Vector((0.0, 0.0, 1.0))
+            plane_top_no.rotate(obj_mwi)
+            # Bisect mesh
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            # Disregard mdl_base transformations
+            bmesh.ops.transform(bm,
+                                matrix=mdl_mwi,
+                                space=obj_mw,
+                                verts=bm.verts)
+            # Cut bottom plane
+            bm.verts.ensure_lookup_table()
+            res = bmesh.ops.bisect_plane(
+                bm,
+                geom=bm.verts[:]+bm.edges[:]+bm.faces[:],
+                plane_co=plane_bot_co,
+                plane_no=plane_bot_no,
+                clear_outer=True, dist=0.001)
+            # Cut top plane
+            res = bmesh.ops.bisect_plane(
+                bm,
+                geom=bm.verts[:]+bm.edges[:]+bm.faces[:],
+                plane_co=plane_top_co,
+                plane_no=plane_top_no,
+                clear_outer=True, dist=0.001)
+            del res
+            # Detect islands
+            obj_islands = NVB_OT_util_nodes_pwk.get_bm_islands(bm)
+            for isl in obj_islands:
+                isl_verts = [obj_mw * v.co for v in isl]
+                # Determine height
+                isl_height = max(0.1, max([v.z for v in isl_verts]))
+                mdl_islands.append([isl_verts, isl_height])
+            # mdl_islands.extend([[obj_mw * v.co for v in isl]
+            #                     for isl in obj_islands])
+        return mdl_islands
 
-    def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
+    @staticmethod
+    def create_pwk_mesh(mdl_base, pwk_base, mesh_name, scene, pwk_mode):
+        """Create the placeable walkmesh for this mdl."""
+        pwk_obj = None
+        # Get vertex islands from all visible objects
+        island_list = NVB_OT_util_nodes_pwk.get_mdl_islands(mdl_base)
+        # Generate plane shapes based on options
+        pwk_data = []
+        if pwk_mode == 'chull':  # Convex hull
+            pwk_data = [(NVB_OT_util_nodes_pwk.get_convex_hull_2D(isl), h)
+                        for isl, h in island_list]
+        elif pwk_mode == 'mabr':  # Minimum area bounding rectangle
+            pwk_data = [(NVB_OT_util_nodes_pwk.get_mabr(isl), h)
+                        for isl, h in island_list]
+        else:  # Axis aligned bounding rectangle
+            pwk_data = [(NVB_OT_util_nodes_pwk.get_aabr(isl), h)
+                        for isl, h in island_list]
+        # Merge intersecting meshes
+        # pwk_data = NVB_OT_util_nodes_pwk.merge_intersecting(pwk_data)
+        # Generate Mesh from pwk data (plane vertices + height)
+        mesh = NVB_OT_util_nodes_pwk.build_pwk_mesh(pwk_data, mesh_name)
+        if mesh:
+            pwk_obj = bpy.data.objects.new(mesh_name, mesh)
+            pwk_obj.parent = pwk_base
+            scene.objects.link(pwk_obj)
+            scene.update()
+            # Use modifier to dissolve faces/verts along straight lines
+            modifier = pwk_obj.modifiers.new(name='Decimate', type='DECIMATE')
+            modifier.decimate_type = 'DISSOLVE'
+            modifier.angle_limit = 0.267  # about 15°
+            modifier.use_dissolve_boundaries = True
+            # Apply modifier
+            ctx = bpy.context.copy()
+            ctx['object'] = pwk_obj
+            ctx['modifier'] = modifier
+            bpy.ops.object.modifier_apply(ctx, apply_as='DATA',
+                                          modifier=ctx['modifier'].name)
+        return pwk_obj
+
+    @staticmethod
+    def create_empties(empty_data, prefix, parent, scene, obj_list=[]):
+        """Create empty objects if not already existing."""
         if not obj_list:
             return
-        for suffix, loc in ddata:
+        for suffix, loc in empty_data:
             dummy_name = prefix + suffix
             existing = [o for o in obj_list if o.name.endswith(suffix)]
             if existing:  # Adjust name and parent for existing objects
@@ -424,63 +479,113 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 obj.location = loc
                 obj.parent = parent
                 scene.objects.link(obj)
+        scene.update()
 
-    def create_pwk(self, mdl_base, scene, pwk_mode):
-        """Adds necessary (walkmesh) objects to mdlRoot."""
-        def get_prefix(mdlroot):
-            basename = mdlroot.name
-            dpos = basename[::-1].find('_')
-            if dpos >= 0:
-                return basename[-1*dpos:]
-            return basename[-3:]
-
-        prefix = get_prefix(mdl_base)
-        # Find or create walkmesh root
-        wkmroot = nvb_utils.get_wkm_base(mdl_base, nvb_def.Walkmeshtype.PWK)
-        newname = mdl_base.name + '_pwk'
-        if wkmroot:
-            # Adjust existing object
-            if wkmroot.name != newname:
-                wkmroot.name = newname
-            wkmroot.parent = mdl_base
+    @staticmethod
+    def create_mdl_dummys(mdl_base, name_prefix, scene):
+        """Create necessary empties/dummies for the mdl."""
+        mdl_objects = [mdl_base]
+        nvb_utils.get_children_recursive(mdl_base, mdl_objects)
+        # Get relevant vertices
+        vertices = []
+        for obj in mdl_objects:
+            if obj.type == 'MESH' and \
+               obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
+                mat = mdl_base.matrix_world.inverted() * obj.matrix_world
+                vertices.extend([mat * v.co for v in obj.data.vertices])
+        # Calculate needed values
+        if vertices:
+            mdl_center = sum(vertices, mathutils.Vector([0.0, 0.0, 0.0])) / \
+                         len(vertices)
+            mdl_height = max(max([v.z for v in vertices]), 0.1)
+            mdl_max_y = max([v.y for v in vertices])
         else:
-            # make a new one
-            wkmroot = bpy.data.objects.new(newname, None)
-            wkmroot.nvb.emptytype = nvb_def.Emptytype.PWK
-            wkmroot.parent = mdl_base
-            scene.objects.link(wkmroot)
-        # Get all children of the mdlroot (to check existing objects)
-        obj_list = [mdl_base]
-        nvb_utils.get_children_recursive(mdl_base, obj_list)
-        # FROM HERE ON: Walkmesh objects - all parented to wkmroot
-        # Adjust name and parent of exising mesh(es)
-        meshlist = [o for o in obj_list if o.name.endswith('_wg')]
-        pwk_mesh_name = prefix + '_wg'
-        for obj in meshlist:
-            newname = prefix + '_wg'
-            if obj.name != newname:
-                obj.name = newname
-            obj.parent = wkmroot
-        # Create missing mesh
-        if pwk_mesh_name not in bpy.data.objects:
-            mesh = NVB_OT_util_nodes_pwk.create_pwk_mesh(mdl_base,
-                                                         pwk_mesh_name,
-                                                         pwk_mode)
-            obj = bpy.data.objects.new(pwk_mesh_name, mesh)
-            obj.parent = wkmroot
-            scene.objects.link(obj)
-        # Create dummys
-        dummy_data = [['_pwk_use01', (0.0, -1.0, 0.0)],
-                      ['_pwk_use02', (0.0, +1.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, wkmroot, scene, obj_list)
-        # FROM HERE ON: Special objects - all parented to mdlroot
-        # Create special dummys
-        dummy_data = [['_hand', (0.5, 0.0, 1.0)],
-                      ['_head', (0.0, 0.0, 2.0)],
-                      ['_head_hit', (0.0, 0.0, 2.2)],
-                      ['_impact', (0.0, 0.0, 1.0)],
-                      ['_ground', (0.0, 0.0, 0.0)]]
-        self.create_dummys(dummy_data, prefix, mdl_base, scene, obj_list)
+            mdl_center = mathutils.Vector([0.0, 0.0, 0.5])
+            mdl_height = 1.0
+            mdl_max_y = 0.5
+        # Create dummys or check existing - all parented to mdl base
+        dummy_data = [['_hand', (*mdl_center[:2], mdl_max_y)],
+                      ['_head', (*mdl_center[:2], mdl_height)],
+                      ['_head_hit', (*mdl_center[:2], mdl_height + 0.2)],
+                      ['_impact', mdl_center],
+                      ['_ground', (*mdl_center[:2], 0.0)]]
+        NVB_OT_util_nodes_pwk.create_empties(
+            dummy_data, name_prefix, mdl_base, scene, mdl_objects)
+
+    @staticmethod
+    def create_pwk_dummys(mdl_base, name_prefix, scene, pwk_base, pwk_mesh):
+        """Create necessary empties/dummies for the pwk."""
+        pwk_objects = [c for c in pwk_base.children]
+        # Get relevant vertices
+        if pwk_mesh and pwk_mesh.data.vertices:
+            mat = mdl_base.matrix_world.inverted() * pwk_mesh.matrix_world
+            vertices = [mat * v.co for v in pwk_mesh.data.vertices]
+            pwk_x_center = sum([v.x for v in vertices]) / len(vertices)
+            y_coords = [v.y for v in vertices]
+            pwk_y_min = min(y_coords)
+            pwk_y_max = max(y_coords)
+        else:
+            pwk_x_center = 0.0
+            pwk_y_min = -1.0
+            pwk_y_max = 1.0
+        # Create dummys or check existing - all parented to mdl base
+        dummy_data = [['_pwk_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
+                      ['_pwk_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
+        NVB_OT_util_nodes_pwk.create_empties(
+            dummy_data, name_prefix, pwk_base, scene, pwk_objects)
+
+    def setup_placeable(self, mdl_base, scene, pwk_mode):
+        """Adds necessary (walkmesh) objects to mdlRoot."""
+        def get_prefix(mdl_base):
+            mdl_name = mdl_base.name
+            dpos = mdl_name[::-1].find('_')
+            if dpos >= 0:
+                return mdl_name[-1*dpos:]
+            return mdl_name[-3:]
+
+        def get_pwk_base(mdl_base, pwk_base_name):
+            """Find or create pwk base."""
+            pwk_base = nvb_utils.get_wkm_base(mdl_base,
+                                              nvb_def.Walkmeshtype.PWK)
+            if pwk_base:  # Adjust existing walkmesh base
+                # renaming to same name results in trailing numbers
+                if pwk_base.name != pwk_base_name:
+                    pwk_base.name = pwk_base_name
+            else:  # Create new walkmesh base
+                pwk_base = bpy.data.objects.new(pwk_base_name, None)
+                pwk_base.nvb.emptytype = nvb_def.Emptytype.PWK
+                scene.objects.link(pwk_base)
+            pwk_base.parent = mdl_base
+            pwk_base.location = (0.0, 0.0, 0.0)  # at mdl_base
+            return pwk_base
+
+        # Get a name prefix from the mdl base name
+        name_prefix = get_prefix(mdl_base)
+
+        # Find or create walkmesh base
+        pwk_base_name = mdl_base.name + '_pwk'
+        pwk_base = get_pwk_base(mdl_base, pwk_base_name)
+
+        # Find or create (pwk) walkmesh
+        pwk_mesh_list = [c for c in pwk_base.children if c.type == 'MESH']
+        pwk_mesh = None
+        if len(pwk_mesh_list) == 1:  # Rename single existing
+            pwk_mesh = pwk_mesh_list.pop(0)
+            pwk_mesh.name = name_prefix + '_wg'
+        elif len(pwk_mesh_list) > 1:   # Add number if multiple
+            fstr = name_prefix + '{:02d}_wg'
+            for idx, wkm in enumerate(pwk_mesh_list):
+                wkm.name = fstr.format(idx)
+        else:  # create new
+            pwk_mesh_name = name_prefix + '_wg'
+            pwk_mesh = NVB_OT_util_nodes_pwk.create_pwk_mesh(
+                mdl_base, pwk_base, pwk_mesh_name, scene, pwk_mode)
+
+        # Create dummys or check existing - all parented to pwk base
+        NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, scene,
+                                                pwk_base, pwk_mesh)
+        # Create dummys or check existing - all parented to mdl base
+        NVB_OT_util_nodes_pwk.create_mdl_dummys(mdl_base, name_prefix, scene)
 
     @classmethod
     def poll(self, context):
@@ -493,10 +598,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         addon = context.user_preferences.addons[__package__]
         scene = bpy.context.scene
         if not mdl_base:
-            self.report({'ERROR'}, 'No MDL root')
+            self.report({'ERROR'}, 'No Aurora Base')
             return {'CANCELLED'}
         pwk_mode = addon.preferences.util_metanode_pwk_mode
-        self.create_pwk(mdl_base, scene, pwk_mode)
+        self.setup_placeable(mdl_base, scene, pwk_mode)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
@@ -506,6 +611,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
 
     bl_idname = "nvb.util_nodes_dwk"
     bl_label = "Setup Door"
+    bl_options = {'UNDO'}
 
     def create_dummys(self, ddata, prefix, parent, scene, obj_list=[]):
         if not obj_list:
