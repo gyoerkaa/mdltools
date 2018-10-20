@@ -820,7 +820,7 @@ class NVB_PT_utils(bpy.types.Panel):
             box.operator('nvb.amt_psb2amt', icon='BONE_DATA')
             layout.separator()
 
-            # Scale Helper
+            # Transform Helper
             box = layout.box()
             box.label(text='Transform Helper')
 
@@ -830,18 +830,27 @@ class NVB_PT_utils(bpy.types.Panel):
             box.operator('nvb.util_transform', icon='SORTSIZE')
             layout.separator()
 
-            # Walkmesh & Dummy Helper
+            # Node Setup Helper
             box = layout.box()
-            box.label(text='Walkmesh & Dummy Helper')
+            box.label(text='Node Setup Helper')
 
             row = box.row()
-            row .label(text='Type: ')
-            row .prop(addon_prefs, 'util_metanode_type', expand=True)
-            if addon_prefs.util_metanode_type == nvb_def.Walkmeshtype.PWK:
-                box.prop(addon_prefs, 'util_metanode_pwk_mode')
+            row.prop(addon_prefs, 'util_nodes_type', expand=True)
+            if addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.PWK:
+                box.prop(addon_prefs, 'util_nodes_pwk_mode')
+                split = box.split(percentage=0.33)
+                col = split.column()
+                col = split.column()
+                col.row().prop(addon_prefs, 'util_nodes_pwk_detect_islands')
                 box.operator('nvb.util_nodes_pwk', icon='OOPS')
-            elif addon_prefs.util_metanode_type == nvb_def.Walkmeshtype.DWK:
+            elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.DWK:
+                box.prop(addon_prefs, 'util_nodes_dwk_mode')
+                box.label(text='')
                 box.operator('nvb.util_nodes_dwk', icon='OOPS')
+            elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.WOK:
+                box.label(text='')
+                box.label(text='')
+                box.operator('nvb.util_nodes_tile', icon='OOPS')
             layout.separator()
 
             # Minimap Helper

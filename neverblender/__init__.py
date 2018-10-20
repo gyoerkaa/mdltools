@@ -30,14 +30,16 @@ from . import nvb_node
 from . import nvb_anim
 from . import nvb_animnode
 from . import nvb_mtr
-
 from . import nvb_props
+
 from . import nvb_ops
 from . import nvb_ops_io
 from . import nvb_ops_mtr
 from . import nvb_ops_anim
 from . import nvb_ops_set
 from . import nvb_ops_amt
+from . import nvb_ops_node
+
 from . import nvb_ui
 
 if 'bpy' in locals():
@@ -50,14 +52,16 @@ if 'bpy' in locals():
         importlib.reload(nvb_anim)
         importlib.reload(nvb_animnode)
         importlib.reload(nvb_mtr)
-
         importlib.reload(nvb_props)
+
         importlib.reload(nvb_ops)
         importlib.reload(nvb_ops_io)
         importlib.reload(nvb_ops_mtr)
         importlib.reload(nvb_ops_anim)
         importlib.reload(nvb_ops_set)
         importlib.reload(nvb_ops_amt)
+        importlib.reload(nvb_ops_node)
+
         importlib.reload(nvb_ui)
         print('Neverblender: Ready')
 
@@ -65,7 +69,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 7, 232),
+    'version': (2, 7, 233),
     "blender": (2, 7, 9),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",

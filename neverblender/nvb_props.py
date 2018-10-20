@@ -28,21 +28,37 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     compiler_path = bpy.props.StringProperty(name="Path to compiler",
                                              subtype='FILE_PATH')
     # Object & Dummy Helper
-    util_metanode_type = bpy.props.EnumProperty(
+    util_nodes_type = bpy.props.EnumProperty(
         name='Type',
         items=[(nvb_def.Walkmeshtype.PWK,
                 'Placeable', 'Setup objects for placeables', 0),
                (nvb_def.Walkmeshtype.DWK,
                 'Door', 'Setup objects for doors', 1),
-               # (nvb_def.Walkmeshtype.TILE,
-               # 'Tile', 'Setup objects for tiles', 2),
+               (nvb_def.Walkmeshtype.WOK,
+                'Tile', 'Setup objects for tiles', 2),
                ],
         default=nvb_def.Walkmeshtype.PWK)
-    util_metanode_pwk_mode = bpy.props.EnumProperty(
+    util_nodes_dwk_mode = bpy.props.EnumProperty(
         name='Mode',
-        items=[('aabb',
+        items=[('gen_swing1',
+                'Generic: Swinging',
+                'Generic door swinging open both ways, two open states',
+                0),
+               ('gen_slide1',
+                'Generic: Sliding',
+                'Generic door sliding open, single opened state',
+                1),
+               # ('auto',
+               # 'Automatic',
+               # 'Detect type from animation list',
+               # 2),
+               ],
+        default='gen_swing1')
+    util_nodes_pwk_mode = bpy.props.EnumProperty(
+        name='Mode',
+        items=[('aabr',
                 'Axis Aligned Bounding Box',
-                'Objects will be enclosed in an axis aligned bounding box.',
+                'Objects will be enclosed in an axis aligned bounding box',
                 0),
                ('mabr',
                 'Minimum Area Bounding Box',
@@ -53,7 +69,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                 'Objects will be enclosed in their convex hull',
                 2),
                ],
-        default='aabb')
+        default='aabr')
+    util_nodes_pwk_detect_islands = bpy.props.BoolProperty(
+        name='Detect Islands', default=True,
+        description='Detect vertex islands, create mutliple meshes')
 
     # Armature Helper
     util_amt_src = bpy.props.EnumProperty(

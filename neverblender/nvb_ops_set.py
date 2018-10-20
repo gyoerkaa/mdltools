@@ -42,7 +42,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
         """Reload set file from disk."""
         def parse_terrain_names(ascii_block):
             """Return a list of terrain names."""
-            reg = re.compile('Name=([\\w\\-]+)\\s?', re.IGNORECASE)
+            reg = re.compile(r'Name=([\w\-\.]+)\s?', re.IGNORECASE)
             terrains = []
             for block in ascii_block.strip().split('[TERRAIN'):
                 if block:
@@ -53,7 +53,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
 
         def parse_crosser_names(ascii_block):
             """Return a list of crosser names."""
-            reg = re.compile('Name=([\\w\\-]+)\\s?', re.IGNORECASE)
+            reg = re.compile(r'Name=([\w\-\.]+)\s?', re.IGNORECASE)
             crossers = []
             for block in ascii_block.strip().split('[CROSSER'):
                 if block:
@@ -64,7 +64,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
 
         def parse_tiles(ascii_block, terrain_names=[], crosser_names=[]):
             """Return two lists with tile counts for each crosser/ terrain."""
-            reg_model = re.compile(r'Model=([\w\-]+)\s?', re.IGNORECASE)
+            reg_model = re.compile(r'Model=([\w\-\.]+)\s?', re.IGNORECASE)
             reg_terrains = [(n, re.compile('=' + n + '\\s?', re.IGNORECASE))
                             for n in terrain_names]
             reg_crossers = [(n, re.compile('=' + n + '\\s?', re.IGNORECASE))
@@ -85,7 +85,7 @@ class NVB_OT_set_reload(bpy.types.Operator):
 
         def parse_groups(ascii_block):
             """Return a list of groups and their row/ column counts."""
-            reg_name = re.compile(r'Name=([\w\- ]+)\n', re.IGNORECASE)
+            reg_name = re.compile(r'Name=([\w\-\. ]+)\n', re.IGNORECASE)
             reg_rows = re.compile(r'Rows=(\d+)\s?', re.IGNORECASE)
             reg_cols = re.compile(r'Columns=(\d+)\s?', re.IGNORECASE)
             groups = []
@@ -164,7 +164,7 @@ class NVB_OT_set_massimport(bpy.types.Operator):
 
         def get_tiles(ascii_block, terrain_name=''):
             """Returns a list of tile model as list of strings."""
-            reg_model = re.compile(r'Model=([\w\-]+)\s?', re.IGNORECASE)
+            reg_model = re.compile(r'Model=([\w\-\.]+)\s?', re.IGNORECASE)
             reg_terrain = re.compile('=' + terrain_name + '\\s?',
                                      re.IGNORECASE)
             tiles = []
