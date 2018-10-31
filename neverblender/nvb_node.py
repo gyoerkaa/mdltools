@@ -1069,6 +1069,11 @@ class Trimesh(Node):
         if exportUVs:
             joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
                        options.uvmapAutoJoin)
+            # Adds scaling factor from the texture slot to uv coordinates
+            # uvScale = (1.0, 1.0)
+            # if obj.active_material:
+            #     if obj.active_material.active_texture:
+
             # Find out which UV maps to export and their order:
             uvmapNames = []
             if options.uvmapOrder == 'AL0':
