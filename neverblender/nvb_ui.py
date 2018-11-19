@@ -851,15 +851,15 @@ class NVB_PT_utils(bpy.types.Panel):
                 col = split.column()
                 col = split.column()
                 col.row().prop(addon_prefs, 'util_nodes_pwk_detect_islands')
-                box.operator('nvb.util_nodes_pwk', icon='GEAR')
+                box.operator('nvb.util_nodes_pwk', icon='QUESTION')
             elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.DWK:
                 box.prop(addon_prefs, 'util_nodes_dwk_mode')
                 box.label(text='')
-                box.operator('nvb.util_nodes_dwk', icon='GEAR')
+                box.operator('nvb.util_nodes_dwk', icon='QUESTION')
             elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.WOK:
                 box.label(text='')
                 box.label(text='')
-                box.operator('nvb.util_nodes_tile', icon='GEAR')
+                box.operator('nvb.util_nodes_tile', icon='QUESTION')
             layout.separator()
 
             # Minimap Helper

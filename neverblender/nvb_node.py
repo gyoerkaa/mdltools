@@ -35,9 +35,7 @@ class Material(object):
 
     @staticmethod
     def colorisclose(a, b, tol=0.05):
-        return (math.isclose(a[0], b[0], abs_tol=tol) and
-                math.isclose(a[1], b[1], abs_tol=tol) and
-                math.isclose(a[2], b[2], abs_tol=tol))
+        return (sum([math.isclose(v[0], v[1]) for v in zip(a, b)]) == len(a))
 
     @staticmethod
     def findMaterial(textures, mtrname, cdiff, cspec, alpha):
@@ -256,6 +254,8 @@ class Material(object):
                 self.diffuse, self.specular, self.alpha)
         # Create new material if necessary
         if not material:
+            # Select a name for this material from
+            # 'materialname' => 'texture0'/'bitmap' => keep default
             if self.materialname:
                 matname = self.materialname
             elif self.textures[0] and self.textures[0] is not nvb_def.null:
@@ -699,6 +699,22 @@ class Trimesh(Node):
                         cmap.data[lidx].color = vcolors[vidx]
         return cmap
 
+    @staticmethod
+    def create_sharp_edges(blen_mesh, sgr_list):
+        """Create sharp edges from (per face) smoothgroup list."""
+        bm = bmesh.new()
+        bm.from_mesh(blen_mesh)
+        if hasattr(bm.edges, "ensure_lookup_table"):
+            bm.edges.ensure_lookup_table()
+        # Mark edge as sharp if its faces belong to different smooth groups
+        for e in bm.edges:
+            f = e.link_faces
+            if (len(f) > 1) and (sgr_list[f[0].index] != sgr_list[f[1].index]):
+                edgeIdx = e.index
+                blen_mesh.edges[edgeIdx].use_edge_sharp = True
+        bm.free()
+        del bm
+
     def create_blender_mesh(self, blen_name, options):
         """TODO: Doc."""
 
@@ -721,11 +737,11 @@ class Trimesh(Node):
 
         # Create UV maps
         if blen_mesh.polygons:
-            # EEEKADOODLE fix
-            # TODO: NOT WORKING !
-            face_uv_indices = \
-                [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                 for f in self.facedef]
+            face_uv_indices = [(f[4], f[5], f[6]) for f in self.facedef]
+            # EEEKADOODLE fix - Not necessary?
+            # face_uv_indices = \
+            #    [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+            #     for f in self.facedef]
             face_uv_indices = unpack_list(face_uv_indices)
             for layer_idx, uv_coords in enumerate(self.texture_coordinates):
                 if uv_coords:
@@ -752,15 +768,27 @@ class Trimesh(Node):
 
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
-            pass
-            # TODO
+            blen_mesh.update()
+            self.create_sharp_edges(blen_mesh, [f[3] for f in self.facedef])
 
-        # Create per-Vertex normals
-        if blen_mesh.loops and self.normals and options.import_normals:
-            # TODO
+        if self.normals and blen_mesh.loops and options.import_normals:
+            # Create normals and use them for shading
             blen_mesh.vertices.foreach_set('normal', unpack_list(self.normals))
             blen_mesh.create_normals_split()
-
+        elif options.importSmoothGroups:
+            # Use shading groups for shading
+            # (single smoothgroup with value 0 means non-smooth)
+            sgr_list = set([fd[3] for fd in self.facedef])
+            if len(sgr_list) == 1 and sgr_list.pop() == 0:  # non-smooth
+                blen_mesh.polygons.foreach_set(
+                    'use_smooth', [False] * len(blen_mesh.polygons))
+                blen_mesh.use_auto_smooth = False
+                blen_mesh.auto_smooth_angle = 0.523599
+            else:
+                blen_mesh.polygons.foreach_set(
+                    'use_smooth', [True] * len(blen_mesh.polygons))
+                blen_mesh.use_auto_smooth = True
+                blen_mesh.auto_smooth_angle = 1.570796
         blen_mesh.validate()
         return blen_mesh
         """
@@ -1578,7 +1606,7 @@ class Emitter(Node):
         blen_mesh.update()
 
         em_size = (max(self.xsize/100, 0), max(self.ysize/100, 0))
-        scale_mat = mathutils.Matrix.Scale(em_size[0], 4, [1, 0, 0]) * \
+        scale_mat = mathutils.Matrix.Scale(em_size[0], 4, [1, 0, 0]) @ \
             mathutils.Matrix.Scale(em_size[1], 4, [0, 1, 0])
         blen_mesh.transform(scale_mat)
 

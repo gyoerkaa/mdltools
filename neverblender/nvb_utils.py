@@ -113,7 +113,7 @@ def get_active_collection(context):
 
 def get_fcurve(action, data_path, index=0, group_name=None):
     """Get the fcurve with specified properties or create one."""
-    fcu = action.fcurves.find(data_path, index)
+    fcu = action.fcurves.find(data_path=data_path, index=index)
     if not fcu:  # Create new Curve
         fcu = action.fcurves.new(data_path=data_path, index=index)
         if group_name:  # Add curve to group

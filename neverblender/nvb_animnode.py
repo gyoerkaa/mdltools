@@ -315,9 +315,9 @@ class Animnode():
             samples = self.animverts[vertIdx::numVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
-                curveX.keyframe_points.insert(frame, co[0], kfOptions)
-                curveY.keyframe_points.insert(frame, co[1], kfOptions)
-                curveZ.keyframe_points.insert(frame, co[2], kfOptions)
+                curveX.keyframe_points.insert(frame, co[0], options=kfOptions)
+                curveY.keyframe_points.insert(frame, co[1], options=kfOptions)
+                curveZ.keyframe_points.insert(frame, co[2], options=kfOptions)
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
@@ -371,8 +371,8 @@ class Animnode():
             samples = self.animtverts[tvertIdx::numTVerts]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
-                curveU.keyframe_points.insert(frame, co[0], kfOptions)
-                curveV.keyframe_points.insert(frame, co[1], kfOptions)
+                curveU.keyframe_points.insert(frame, co[0], options=kfOptions)
+                curveV.keyframe_points.insert(frame, co[1], options=kfOptions)
 
     @staticmethod
     def create_restpose(obj, frame=1):
@@ -380,7 +380,8 @@ class Animnode():
         def insert_kfp(fcurves, frame, val, dim):
             """TODO: DOC."""
             for j in range(dim):
-                fcurves[j].keyframe_points.insert(frame, val[j], {'FAST'})
+                fcurves[j].keyframe_points.insert(frame, val[j],
+                                                  options={'FAST'})
         # Get animation data
         animData = obj.animation_data
         if not animData:
@@ -391,25 +392,29 @@ class Animnode():
             return  # No action = no animation = no need for rest pose
         if obj.rotation_mode == 'AXIS_ANGLE':
             dp = 'rotation_axis_angle'
-            fcu = [action.fcurves.find(dp, i) for i in range(4)]
+            fcu = [action.fcurves.find(data_path=dp, index=i)
+                   for i in range(4)]
             if fcu.count(None) < 1:
                 rr = obj.nvb.restrot
                 insert_kfp(fcu, frame, [rr[3], rr[0], rr[1], rr[2]], 4)
         if obj.rotation_mode == 'QUATERNION':
             dp = 'rotation_quaternion'
-            fcu = [action.fcurves.find(dp, i) for i in range(4)]
+            fcu = [action.fcurves.find(data_path=dp, index=i)
+                   for i in range(4)]
             if fcu.count(None) < 1:
                 rr = obj.nvb.restrot
                 q = mathutils.Quaternion((rr[0], rr[1], rr[2]), rr[3])
                 insert_kfp(fcu, frame, [q.w, q.x, q.y, q.z], 4)
         else:
             dp = 'rotation_euler'
-            fcu = [action.fcurves.find(dp, i) for i in range(3)]
+            fcu = [action.fcurves.find(data_path=dp, index=i)
+                   for i in range(3)]
             if fcu.count(None) < 1:
                 eul = mathutils.Quaternion(obj.nvb.restrot[:3],
                                            obj.nvb.restrot[3]).to_euler()
                 insert_kfp(fcu, frame, eul, 3)
-        fcu = [action.fcurves.find('location', i) for i in range(3)]
+        fcu = [action.fcurves.find(data_path='location', index=i)
+               for i in range(3)]
         if fcu.count(None) < 1:
             insert_kfp(fcu, frame, obj.nvb.restloc, 3)
 
@@ -444,7 +449,8 @@ class Animnode():
         # Get keyframe data
         all_fcurves = action.fcurves
         for aur_name, aur_dim, aur_fstr, dp_name, dp_dim in exports:
-            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+                   for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
@@ -492,7 +498,8 @@ class Animnode():
         all_fcurves = action.fcurves
         for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, _, \
                 default_val in exports:
-            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+                   for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
@@ -578,7 +585,8 @@ class Animnode():
         all_fcurves = action.fcurves
         for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, dp_conversion, \
                 default_val in exports:
-            fcu = [all_fcurves.find(dp_name, i) for i in range(dp_dim)]
+            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+                   for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
