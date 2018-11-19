@@ -1457,6 +1457,22 @@ class Emitter(Node):
                            ' {:1d}'),
          'inherit_part': ('nvb.inherit_part', 1, nvb_utils.str2bool, ' {:1d}')}
 
+    # Fix for case sensitive property names (TODO: Remove in 2.8)
+    prop_val_update = {'fountain': 'Fountain',
+                       'single': 'Single',
+                       'explosion': 'Explosion',
+                       'lightning': 'Lightning'}
+    prop_val_render = {'normal': 'Normal',
+                       'linked': 'Linked',
+                       'billboard_to_local_z': 'Billboard_to_Local_Z',
+                       'billboard_to_world_z': 'Billboard_to_World_Z',
+                       'aligned_to_world_z': 'Aligned_to_World_Z',
+                       'aligned_to_particle_dir': 'Aligned_to_Particle_Dir',
+                       'motionblur': 'Motion_Blur'}
+    prop_val_blend = {'normal': 'Normal',
+                      'punch_through': 'Punch_Through',
+                      'lighten': 'Lighten'}
+
     def __init__(self, name='UNNAMED'):
         """TODO: Doc."""
         Node.__init__(self, name)
@@ -1559,12 +1575,18 @@ class Emitter(Node):
         if not part_set:
             return
 
-        ascii_lines.append('xsize ' + str(obj.dimensions.x*100))
-        ascii_lines.append('ysize ' + str(obj.dimensions.y*100))
+        ascii_lines.append('  xsize ' + str(obj.dimensions.x*100))
+        ascii_lines.append('  ysize ' + str(obj.dimensions.y*100))
         # Emitter Properties
-        ascii_lines.append(form_prop('update', part_set.nvb.update))
-        ascii_lines.append(form_prop('render', part_set.nvb.render))
-        ascii_lines.append(form_prop('blend', part_set.nvb.blend))
+        ascii_lines.append(form_prop(
+            'update',
+            cls.prop_val_update.get(part_set.nvb.update, 'Fountain')))
+        ascii_lines.append(form_prop(
+            'render',
+            cls.prop_val_render.get(part_set.nvb.render, 'Normal')))
+        ascii_lines.append(form_prop(
+            'blend',
+            cls.prop_val_blend.get(part_set.nvb.blend, 'Normal')))
         ascii_lines.append(form_prop('spawntype', part_set.nvb.spawntype))
         ascii_lines.append(form_prop('renderorder', part_set.nvb.renderorder))
         if part_set.nvb.update == 'single':
