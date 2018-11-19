@@ -2,6 +2,10 @@
 
 import bpy
 
+from . import nvb_ops
+from . import nvb_ops_set
+from . import nvb_ops_anim
+
 from . import nvb_def
 from . import nvb_utils
 
@@ -14,10 +18,10 @@ class NVB_UL_lensflares(bpy.types.UIList):
         """Draw a single lensflare."""
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.texture, icon='NONE')
+            layout.label(text=item.texture, icon='NONE')
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon='PARTICLE_DATA')
+            layout.label(text='', icon='PARTICLE_DATA')
 
 
 class NVB_UL_anims(bpy.types.UIList):
@@ -33,7 +37,7 @@ class NVB_UL_anims(bpy.types.UIList):
             layout.prop(item, 'mute', text='', icon=icn, emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon='POSE_DATA')
+            layout.label(text='', icon='POSE_DATA')
 
 
 class NVB_UL_anim_events(bpy.types.UIList):
@@ -44,13 +48,13 @@ class NVB_UL_anim_events(bpy.types.UIList):
         """Draw a single animation event."""
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(0.7, False)
+            split = layout.split(factor=0.7)
             split.prop(item, 'name', text='', emboss=False)
             row = split.row(align=True)
             row.prop(item, 'frame', text='', emboss=False)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon='LAMP')
+            layout.label(text='', icon='LIGHT')
 
 
 class NVB_UL_amt_events(bpy.types.UIList):
@@ -61,7 +65,7 @@ class NVB_UL_amt_events(bpy.types.UIList):
         """TODO: DOC."""
 
         # Supports all 3 layout types
-        icn = 'LAMP'
+        icn = 'LIGHT'
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             if index < len(nvb_def.animation_event_names):
                 layout.label(text=item.name, translate=False, icon='NONE')
@@ -83,12 +87,12 @@ class NVB_UL_mtr_params(bpy.types.UIList):
 
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.pname, icon=custom_icon)
-            layout.label(item.ptype)
-            layout.label(item.pvalue)
+            layout.label(text=item.pname, icon=custom_icon)
+            layout.label(text=item.ptype)
+            layout.label(text=item.pvalue)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
+            layout.label(text='', icon=custom_icon)
 
 
 class NVB_UL_set_element(bpy.types.UIList):
@@ -101,11 +105,11 @@ class NVB_UL_set_element(bpy.types.UIList):
 
         # Supports all 3 layout types
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(item.el_name, icon=custom_icon)
-            layout.label(item.el_size)
+            layout.label(text=item.el_name, icon=custom_icon)
+            layout.label(text=item.el_size)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
-            layout.label('', icon=custom_icon)
+            layout.label(text='', icon=custom_icon)
 
 
 class NVB_PT_aurorabase(bpy.types.Panel):
@@ -130,7 +134,7 @@ class NVB_PT_aurorabase(bpy.types.Panel):
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
 
-        split = layout.split(percentage=0.33)
+        split = layout.split(factor=0.33)
         col = split.column()
         col.label(text='Classification:')
         col.label(text='Supermodel:')
@@ -139,7 +143,7 @@ class NVB_PT_aurorabase(bpy.types.Panel):
         col.prop(mdl_base.nvb, 'classification', text='')
         row = col.row(align=True)
         row.prop(mdl_base.nvb, 'supermodel', text='')
-        row.operator('scene.nvb_superimport', icon='IMPORT', text='')
+        row.operator('scene.nvb_superimport', icon='FILEBROWSER', text='')
         col.prop(mdl_base.nvb, 'animscale', text='')
 
 
@@ -288,13 +292,13 @@ class NVB_PT_material(bpy.types.Panel):
         # Ambient color parameters
         box = layout.box()
         row = box.row()
-        row.label("Ambient")
+        row.label(text="Ambient")
         row.prop(material.nvb, 'ambient_color', text="")
         row = box.row()
-        row.label("Diffuse")
+        row.label(text="Diffuse")
         row.prop(material, 'diffuse_color', text="")
         row = box.row()
-        row.label("Specular")
+        row.label(text="Specular")
         row.prop(material, 'specular_color', text="")
 
         layout.separator()
@@ -325,8 +329,10 @@ class NVB_PT_set(bpy.types.Panel):
 
         row = layout.row(align=True)
         row.prop(scene.nvb, 'set_filepath', text='')
-        row.operator('nvb.set_open', icon='FILESEL', text='')
-        row.operator('nvb.set_reload', icon='FILE_REFRESH', text='')
+        row.operator(nvb_ops_set.NVB_OT_set_open.bl_idname,
+                     icon='FILEBROWSER', text='')
+        row.operator(nvb_ops_set.NVB_OT_set_reload.bl_idname,
+                     icon='NDOF_TURN', text='')
 
         layout.separator()
         row = layout.row()
@@ -348,7 +354,8 @@ class NVB_PT_set(bpy.types.Panel):
                               scene.nvb, 'set_crosser_list',
                               scene.nvb, 'set_crosser_list_idx')
         row = box.row()
-        row.operator('nvb.set_massimport', icon='IMPORT', text='Mass Import')
+        row.operator(nvb_ops_set.NVB_OT_set_massimport.bl_idname,
+                     icon='IMPORT', text='Mass Import')
 
 
 class NVB_PT_mtr(bpy.types.Panel):
@@ -388,13 +395,13 @@ class NVB_PT_mtr(bpy.types.Panel):
             row = layout.row(align=True)
             row.operator('nvb.mtr_embed', icon='UGLYPACKAGE', text='')
             row.prop(mat.nvb, 'mtrpath', text='')
-            row.operator('nvb.mtr_open', icon='FILESEL', text='')
-            row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
+            row.operator('nvb.mtr_open', icon='FILEBROWSER', text='')
+            row.operator('nvb.mtr_reload', icon='NDOF_TURN', text='')
         elif mat.nvb.mtrsrc == 'TEXT':
             row = layout.row(align=True)
             row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
             row.operator('nvb.mtr_generate', icon='IMPORT', text='')
-            row.operator('nvb.mtr_reload', icon='FILE_REFRESH', text='')
+            row.operator('nvb.mtr_reload', icon='NDOF_TURN', text='')
 
         layout.separator()
         box = layout.box()
@@ -403,14 +410,14 @@ class NVB_PT_mtr(bpy.types.Panel):
 
         layout.separator()
         box = layout.box()
-        box.label('Parameters')
+        box.label(text='Parameters')
         row = box.row()
         row.template_list('NVB_UL_mtr_params', 'TheParamList',
                           mat.nvb, 'mtrparam_list',
                           mat.nvb, 'mtrparam_list_idx')
         col = row.column(align=True)
-        col.operator('nvb.mtrparam_new', icon='ZOOMIN', text='')
-        col.operator('nvb.mtrparam_delete', icon='ZOOMOUT', text='')
+        col.operator('nvb.mtrparam_new', icon='ADD', text='')
+        col.operator('nvb.mtrparam_delete', icon='REMOVE', text='')
         col.separator()
         if mat.nvb.mtrparam_list_idx >= 0 and \
            len(mat.nvb.mtrparam_list) > 0:
@@ -426,7 +433,7 @@ class NVB_PT_lamp_data(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
-    but used by the aurora engine. This is only available for LAMP objects.
+    but used by the aurora engine. This is only available for LIGHT objects.
     It is located under the object panel in the properties window.
     """
 
@@ -438,7 +445,7 @@ class NVB_PT_lamp_data(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """Draw only ia a lamp object is selected."""
-        return (context.object and context.object.type == 'LAMP')
+        return (context.object and context.object.type == 'LIGHT')
 
     def draw(self, context):
         """Draw the panel."""
@@ -460,7 +467,7 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
-    but used by the aurora engine. This is only available for LAMP objects.
+    but used by the aurora engine. This is only available for LIGHT objects.
     It is located under the object panel in the properties window.
     """
 
@@ -472,7 +479,7 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """Draw only ia a lamp object is selected."""
-        return (context.object and context.object.type == 'LAMP')
+        return (context.object and context.object.type == 'LIGHT')
 
     def draw(self, context):
         """Draw the panel."""
@@ -492,8 +499,8 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
                           data.nvb, 'flareList',
                           data.nvb, 'flareListIdx')
         col = row.column(align=True)
-        col.operator('nvb.lightflare_new', icon='ZOOMIN', text='')
-        col.operator('nvb.lightflare_delete', icon='ZOOMOUT', text='')
+        col.operator('nvb.lightflare_new', icon='ADD', text='')
+        col.operator('nvb.lightflare_delete', icon='REMOVE', text='')
         col.separator()
         col.operator('nvb.lightflare_move',
                      icon='TRIA_UP', text='').direction = 'UP'
@@ -514,7 +521,7 @@ class NVB_PT_lamp_object(bpy.types.Panel):
     """Property panel for additional light or lamp properties.
 
     This holds all properties not supported by blender,
-    but used by the aurora engine. This is only available for LAMP objects.
+    but used by the aurora engine. This is only available for LIGHT objects.
     It is located under the object panel in the properties window.
     """
 
@@ -526,7 +533,8 @@ class NVB_PT_lamp_object(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """Draw only ia a lamp object is selected."""
-        return (context.object and context.object.type == 'LAMP')
+        return False
+        return (context.object and context.object.type == 'LIGHT')
 
     def draw(self, context):
         """Draw the panel."""
@@ -563,7 +571,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
         layout = self.layout
         # Common properties for all types of meshes
         box = layout.box()
-        split = box.split(percentage=0.33)
+        split = box.split(factor=0.33)
         col = split.column()
         col.label(text='Type:')
         col.label(text='Wirecolor:')
@@ -633,11 +641,11 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 
                 # obj.data.shape_keys is not always present
                 if obj.data and obj.data.shape_keys:
-                    box.prop_search(obj.nvb, 'aurorashapekey',
+                    box.prop_search(obj, 'nvb.aurorashapekey',
                                     obj.data.shape_keys, 'key_blocks',
                                     text='Shapekey')
                 else:
-                    box.prop(obj.nvb, 'aurorashapekey', text='Shapekey')
+                    box.prop(obj, 'nvb.aurorashapekey', text='Shapekey')
 
 
 class NVB_MT_animlist_specials(bpy.types.Menu):
@@ -648,15 +656,15 @@ class NVB_MT_animlist_specials(bpy.types.Menu):
     def draw(self, context):
         """Draw the panel."""
         layout = self.layout
-        layout.operator('nvb.anim_moveback',
+        layout.operator(nvb_ops_anim.NVB_OT_anim_moveback.bl_idname,
                         icon='LOOP_FORWARDS')
-        layout.operator('nvb.anim_pad',
+        layout.operator(nvb_ops_anim.NVB_OT_anim_pad.bl_idname,
                         icon='FULLSCREEN_ENTER')
-        layout.operator('nvb.anim_crop',
+        layout.operator(nvb_ops_anim.NVB_OT_anim_crop.bl_idname,
                         icon='FULLSCREEN_EXIT')
-        layout.operator('nvb.anim_scale',
+        layout.operator(nvb_ops_anim.NVB_OT_anim_scale.bl_idname,
                         icon='SORTSIZE')
-        layout.operator('nvb.anim_clone',
+        layout.operator(nvb_ops_anim.NVB_OT_anim_clone.bl_idname,
                         icon='NODETREE')
 
 
@@ -691,8 +699,8 @@ class NVB_PT_animlist(bpy.types.Panel):
                               mdl_base.nvb, 'animListIdx',
                               rows=7)
             col = row.column(align=True)
-            col.operator('nvb.anim_new', icon='ZOOMIN', text='')
-            col.operator('nvb.anim_delete', icon='ZOOMOUT', text='')
+            col.operator('nvb.anim_new', icon='ADD', text='')
+            col.operator('nvb.anim_delete', icon='REMOVE', text='')
             col.separator()
             col.operator('nvb.anim_move',
                          icon='TRIA_UP', text='').direction = 'UP'
@@ -700,9 +708,9 @@ class NVB_PT_animlist(bpy.types.Panel):
                          icon='TRIA_DOWN', text='').direction = 'DOWN'
             col.separator()
             col.operator('nvb.anim_focus',
-                         icon='RENDER_ANIMATION', text='')
+                         icon='PREVIEW_RANGE', text='')
             col.menu('NVB_MT_animlist_specials',
-                     icon='DOWNARROW_HLT', text="")
+                     icon='PLUS', text="")
             anim_list = mdl_base.nvb.animList
             anim_list_idx = mdl_base.nvb.animListIdx
             if anim_list_idx >= 0 and len(anim_list) > anim_list_idx:
@@ -728,8 +736,8 @@ class NVB_PT_animlist(bpy.types.Panel):
                                   anim, 'eventList',
                                   anim, 'eventListIdx')
                 col = row.column(align=True)
-                col.operator('nvb.anim_event_new', text='', icon='ZOOMIN')
-                col.operator('nvb.anim_event_delete', text='', icon='ZOOMOUT')
+                col.operator('nvb.anim_event_new', text='', icon='ADD')
+                col.operator('nvb.anim_event_delete', text='', icon='REMOVE')
                 col.separator()
                 col.operator('nvb.anim_event_move',
                              icon='TRIA_UP', text='').direction = 'UP'
@@ -774,8 +782,8 @@ class NVB_PT_amt_events(bpy.types.Panel):
                           amt.nvb, 'amt_event_list_idx',
                           rows=7)
         col = row.column(align=True)
-        col.operator('nvb.amt_event_new', icon='ZOOMIN', text='')
-        col.operator('nvb.amt_event_delete', icon='ZOOMOUT', text='')
+        col.operator('nvb.amt_event_new', icon='ADD', text='')
+        col.operator('nvb.amt_event_delete', icon='REMOVE', text='')
 
 
 class NVB_PT_utils(bpy.types.Panel):
@@ -807,12 +815,13 @@ class NVB_PT_utils(bpy.types.Panel):
             box = layout.box()
             box.label(text='Armature Helper')
 
-            split = box.split(percentage=0.33)
+            split = box.split(factor=0.33)
             col = split.column()
             col.label(text='Source: ')
             col.label(text='Animations: ')
             col = split.column()
-            col.row().prop(addon_prefs, 'util_amt_src', expand=True)
+            row = col.row()
+            row.prop(addon_prefs, 'util_amt_src', expand=True)
             col.prop(addon_prefs, 'util_amt_anim_mode', text='')
             row = box.row()
             row.prop(addon_prefs, 'util_amt_connect')
@@ -838,26 +847,26 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(addon_prefs, 'util_nodes_type', expand=True)
             if addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.PWK:
                 box.prop(addon_prefs, 'util_nodes_pwk_mode')
-                split = box.split(percentage=0.33)
+                split = box.split(factor=0.33)
                 col = split.column()
                 col = split.column()
                 col.row().prop(addon_prefs, 'util_nodes_pwk_detect_islands')
-                box.operator('nvb.util_nodes_pwk', icon='OOPS')
+                box.operator('nvb.util_nodes_pwk', icon='GEAR')
             elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.DWK:
                 box.prop(addon_prefs, 'util_nodes_dwk_mode')
                 box.label(text='')
-                box.operator('nvb.util_nodes_dwk', icon='OOPS')
+                box.operator('nvb.util_nodes_dwk', icon='GEAR')
             elif addon_prefs.util_nodes_type == nvb_def.Walkmeshtype.WOK:
                 box.label(text='')
                 box.label(text='')
-                box.operator('nvb.util_nodes_tile', icon='OOPS')
+                box.operator('nvb.util_nodes_tile', icon='GEAR')
             layout.separator()
 
             # Minimap Helper
             box = layout.box()
             box.label(text='Minimap Helper')
 
-            split = box.split(percentage=0.33)
+            split = box.split(factor=0.33)
             col = split.column()
             col.label(text='Size:')
             col.label(text='Display:')
@@ -868,7 +877,8 @@ class NVB_PT_utils(bpy.types.Panel):
             row.prop(render, 'use_lock_interface', icon_only=True)
 
             row = box.row(align=True)
-            row.operator('nvb.util_minimap', text='Setup Scene',
+            row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,
+                         text='Setup Scene',
                          icon='SCENE_DATA').batch_mode = False
             row.operator('render.render', text='Render', icon='RENDER_STILL')
             layout.separator()
@@ -945,7 +955,7 @@ class NVB_PT_emitter(bpy.types.Panel):
 
         box = layout.box()
         box.label("Particle Style")
-        split = box.split(percentage=0.25)
+        split = box.split(factor=0.25)
         col = split.column()
         col.label("Update:")
         col.label("")
@@ -981,7 +991,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         row.prop(part_settings.nvb, "affectedbywind")
         row.prop(part_settings.nvb, "splat")
 
-        split = box.split(percentage=0.25)
+        split = box.split(factor=0.25)
         col = split.column()
         col.label("Color:")
         col.label("Alpha:")
@@ -1016,13 +1026,13 @@ class NVB_PT_emitter(bpy.types.Panel):
         box.label("Texture")
         box.row().prop(part_settings.nvb, "particletype", expand=True)
         if part_settings.nvb.particletype == 'chunk':
-            split = box.split(percentage=0.25)
+            split = box.split(factor=0.25)
             col = split.column()
             col.label("Chunk:")
             col = split.column()
             col.prop(part_settings.nvb, "chunk", text="")
         else:
-            split = box.split(percentage=0.25)
+            split = box.split(factor=0.25)
             col = split.column()
             col.label("Texture:")
             col.label()

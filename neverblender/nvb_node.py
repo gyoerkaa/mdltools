@@ -240,6 +240,53 @@ class Material(object):
                 self.mtr.create(material, options)
         return material
 
+    def create_blender_material(self, options, make_unique=False):
+        """Creates a blender material with the stored values."""
+        # Load mtr values into this material
+        if options.mtr_import:
+            self.createMtr(options)
+        # Do not create if this material has default values
+        if self.isdefault():
+            return None
+        # Look for similar materials to avoid duplicates
+        material = None
+        if options.mat_automerge and not make_unique:
+            material = Material.findMaterial(
+                self.textures, self.materialname,
+                self.diffuse, self.specular, self.alpha)
+        # Create new material if necessary
+        if not material:
+            if self.materialname:
+                matname = self.materialname
+            elif self.textures[0] and self.textures[0] is not nvb_def.null:
+                matname = self.textures[0].lower()
+            else:
+                matname = self.name
+            material = bpy.data.materials.new(matname)
+            material.use_transparency = True
+            material.diffuse_color = self.diffuse
+            material.diffuse_intensity = 1.0
+            material.specular_color = self.specular
+            material.specular_intensity = 1.0
+            material.nvb.ambient_color = self.ambient
+            material.nvb.ambient_intensity = 1.0
+            # Load all textures
+            for idx, txname in enumerate(self.textures):
+                if txname and txname is not nvb_def.null:
+                    tslot = material.texture_slots.create(idx)
+                    tslot.texture = nvb_utils.create_texture(
+                        txname, txname, options.filepath, options.tex_search)
+            # Set Renderhint and set up textures accordingly
+            if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
+                material.nvb.renderhint = 'NASM'
+                Material.applyNASMSettings(material, options)
+            Material.applyAlphaSettings(material, self.alpha, options)
+            # Set MTR values
+            if self.mtr:
+                material.nvb.mtrsrc = 'FILE'
+                self.mtr.create(material, options)
+        return material
+
     @staticmethod
     def generateDefaultValues(asciiLines):
         """Write default material values to ascii."""
@@ -518,9 +565,9 @@ class Trimesh(Node):
         self.shininess = 0
         self.rotatetexture = 0
         self.material = Material()
-        self.verts = []
+        self.vertex_coords = []
+        self.texture_coordinates = [[]]  # list of tex coords = uv layers
         self.facedef = []
-        self.tverts = [[]]
         self.tangents = []
         self.normals = []
         self.colors = []
@@ -550,11 +597,11 @@ class Trimesh(Node):
             elif label == 'shininess':
                 self.shininess = int(float(line[1]))
             elif label == 'verts':
-                if not self.verts:
+                if not self.vertex_coords:
                     nvals = int(line[1])
                     tmp = [next(itlines) for _ in range(nvals)]
-                    self.verts = [tuple(map(nvb_utils.str2float, v))
-                                  for v in tmp]
+                    self.vertex_coords = [tuple(map(nvb_utils.str2float, v))
+                                          for v in tmp]
             elif label == 'faces':
                 if not self.facedef:
                     nvals = int(line[1])
@@ -581,14 +628,15 @@ class Trimesh(Node):
                 tvid = 0
                 if label[6:]:  # might be '', which we interpret as 0
                     tvid = int(label[6:])
-                    tvcnt = len(self.tverts)
+                    tvcnt = len(self.texture_coordinates)
                     if tvid+1 > tvcnt:
-                        self.tverts.extend([[] for _ in range(tvid-tvcnt+1)])
-                if not self.tverts[tvid]:
+                        self.texture_coordinates.extend(
+                            [[] for _ in range(tvid-tvcnt+1)])
+                if not self.texture_coordinates[tvid]:
                     nvals = int(line[1])
                     tmp = [next(itlines) for _ in range(nvals)]
-                    self.tverts[tvid] = [(float(v[0]), float(v[1]))
-                                         for v in tmp]
+                    self.texture_coordinates[tvid] = \
+                        [(float(v[0]), float(v[1])) for v in tmp]
             else:
                 self.material.loadAsciiLine(line)
         return line
@@ -617,42 +665,15 @@ class Trimesh(Node):
                 self.tverts[0].extend([(0, 0), (0, 1), (1, 1)])
 
     @staticmethod
-    def createUVlayer2(mesh, tverts, faceuvs, uvname, uvimg=None):
-        """TODO: Doc."""
-        uvlay = None
-        if tverts and mesh.polygons:
-            uvtex = mesh.uv_textures.new(uvname)
-            uvlay = mesh.uv_layers[uvtex.name].data
-            for fidx, poly in enumerate(mesh.polygons):
-                v1, v2, v3 = faceuvs[fidx]
-                uvlay[poly.loop_start].uv = tverts[v1]
-                uvlay[poly.loop_start + 1].uv = tverts[v2]
-                uvlay[poly.loop_start + 2].uv = tverts[v3]
-                uvtex.data[fidx].image = uvimg
-        # For blender 2.8:
-        # for uvf in mesh.data.uv_textures.active.data:
-        #     uvf.image = timg
-        return uvlay
-
-    @staticmethod
-    def createUVlayer(mesh, tverts, faceuvs, uvname, uvimg=None):
-        """TODO: Doc."""
-        uvmap = None
-        if tverts and mesh.tessfaces:
-            uvmap = mesh.tessface_uv_textures.new(uvname)
-            mesh.tessface_uv_textures.active = uvmap
-            # Set uv's
-            for i in range(len(faceuvs)):
-                tessfaceUV = uvmap.data[i]
-                tessfaceUV.uv1 = tverts[faceuvs[i][0]]
-                tessfaceUV.uv2 = tverts[faceuvs[i][1]]
-                tessfaceUV.uv3 = tverts[faceuvs[i][2]]
-                tessfaceUV.image = uvimg
-        return uvmap
-
-    @staticmethod
-    def createVColors(mesh, vcolors, vcname):
+    def create_vertex_colors(mesh, vcolors, vcname):
         """Create a color map from a per-vertex color list for the mesh."""
+        # Sample data
+        # vert_uvs = [(random(), random()) for i in range(len(me.vertices))]
+        # me.uv_textures.new("test")
+        # me.uv_layers[-1].data.foreach_set("uv",
+        #     [uv for pair in [vert_uvs[l.vertex_index]
+        #      for l in me.loops] for uv in pair])
+
         cmap = None
         if vcolors:
             cmap = mesh.vertex_colors.new(vcname)
@@ -678,40 +699,71 @@ class Trimesh(Node):
                         cmap.data[lidx].color = vcolors[vidx]
         return cmap
 
-    def createMesh2(self, name, options):
+    def create_blender_mesh(self, blen_name, options):
         """TODO: Doc."""
 
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
+        # Create a Blender mesh
+        blen_mesh = bpy.data.meshes.new(name=blen_name)
         # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
+        blen_mesh.vertices.add(len(self.vertex_coords))
+        blen_mesh.vertices.foreach_set('co', unpack_list(self.vertex_coords))
+
         # Create faces
-        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
-        face_cnt = len(face_vids)
-        me.polygons.add(face_cnt)
-        me.loops.add(face_cnt * 3)
-        me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
-        me.polygons.foreach_set('loop_total', (3,) * face_cnt)
-        me.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        # Create per-Vertex normals
-        if self.normals and options.import_normals:
-            me.vertices.foreach_set('normal', unpack_list(self.normals))
-            me.create_normals_split()
+        face_vertex_indices = [v[0:3] for v in self.facedef]
+        face_cnt = len(face_vertex_indices)
+        blen_mesh.polygons.add(face_cnt)
+        blen_mesh.loops.add(face_cnt * 3)
+        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
+        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
+        blen_mesh.loops.foreach_set('vertex_index',
+                                    unpack_list(face_vertex_indices))
+        blen_mesh.validate()
+
+        # Create UV maps
+        if blen_mesh.polygons:
+            # EEEKADOODLE fix
+            # TODO: NOT WORKING !
+            face_uv_indices = \
+                [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
+                 for f in self.facedef]
+            face_uv_indices = unpack_list(face_uv_indices)
+            for layer_idx, uv_coords in enumerate(self.texture_coordinates):
+                if uv_coords:
+                    face_uv_coords = [uv_coords[uvi]
+                                      for uvi in face_uv_indices]
+                    face_uv_coords = unpack_list(face_uv_coords)
+                    uv_layer_name = "tverts"+str(layer_idx)
+                    uv_layer = blen_mesh.uv_layers.new(name=uv_layer_name)
+                    uv_layer.data.foreach_set('uv', face_uv_coords)
+
         # Create material
         material = None
-        matimg = None
         if options.importMaterials:
-            uniqueMat = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
-            material = self.material.create(options, uniqueMat)
+            # material_is_unique = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
+            # material = self.material.create(options, material_is_unique)
             if material:
-                me.materials.append(material)
+                blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)
-                me.polygons.foreach_set('material_index',
-                                        [0] * len(me.polygons))
-                tslot0 = material.texture_slots[0]
-                if tslot0 and tslot0.texture:
-                    matimg = tslot0.texture.image
+                blen_mesh.polygons.foreach_set('material_index',
+                                               [0] * len(blen_mesh.polygons))
+
+        # Create Vertex colors
+        Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
+
+        # Import smooth groups as sharp edges
+        if options.importSmoothGroups:
+            pass
+            # TODO
+
+        # Create per-Vertex normals
+        if blen_mesh.loops and self.normals and options.import_normals:
+            # TODO
+            blen_mesh.vertices.foreach_set('normal', unpack_list(self.normals))
+            blen_mesh.create_normals_split()
+
+        blen_mesh.validate()
+        return blen_mesh
+        """
         # Create uvmaps
         # EEEKADOODLE fix
         eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
@@ -747,23 +799,24 @@ class Trimesh(Node):
                     me.edges[edgeIdx].use_edge_sharp = True
             bm.free()
             del bm
-        # Create Vertex colors
-        Trimesh.createVColors(me, self.colors, 'colors')
+
         # Import custom normals
-        me.update()
-        if self.normals and me.loops and options.import_normals:
-            for l in me.loops:
+        blen_mesh.update()
+        if self.normals and blen_mesh.loops and options.import_normals:
+            for l in blen_mesh.loops:
                 l.normal[:] = self.normals[l.vertex_index]
-            me.validate(clean_customdata=False)
-            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
-            me.loops.foreach_get('normal', clnors)
-            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
-            me.use_auto_smooth = True
-            me.show_edge_sharp = True
+            blen_mesh.validate(clean_customdata=False)
+            clnors = array.array('f', [0.0] * (len(blen_mesh.loops) * 3))
+            blen_mesh.loops.foreach_get('normal', clnors)
+            blen_mesh.normals_split_custom_set(tuple(
+                                               zip(*(iter(clnors),) * 3)))
+            blen_mesh.polygons.foreach_set('use_smooth',
+                                           [True] * len(blen_mesh.polygons))
+            blen_mesh.use_auto_smooth = True
+            # me.show_edge_sharp = True
         else:
-            me.validate()
-        return me
+            blen_mesh.validate()
+        """
 
     def createMesh(self, name, options):
         """TODO: Doc."""
@@ -772,8 +825,8 @@ class Trimesh(Node):
         # Create the mesh itself
         me = bpy.data.meshes.new(name)
         # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
+        me.vertices.add(len(self.vertex_coords))
+        me.vertices.foreach_set('co', unpack_list(self.vertex_coords))
         # Create per-Vertex normals
         if self.normals and options.import_normals:
             me.vertices.foreach_set('normal', unpack_list(self.normals))
@@ -895,7 +948,7 @@ class Trimesh(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        mesh = self.createMesh(self.name, options)
+        mesh = self.create_blender_mesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         self.createObjectData(obj, options)
         return obj
@@ -1232,7 +1285,7 @@ class Danglymesh(Trimesh):
         weights for the danglymesh. The weights are called "constraints"
         in NWN. Range is [0.0, 255.0] as opposed to [0.0, 1.0] in Blender
         """
-        vgroup = obj.vertex_groups.new('constraints')
+        vgroup = obj.vertex_groups.new(name='constraints')
         for vertexIdx, constraint in enumerate(self.constraints):
             weight = constraint/255
             vgroup.add([vertexIdx], weight, 'REPLACE')
@@ -1341,7 +1394,7 @@ class Skinmesh(Trimesh):
                                                      membership[1],
                                                      'REPLACE')
                 else:
-                    vgroup = obj.vertex_groups.new(membership[0])
+                    vgroup = obj.vertex_groups.new(name=membership[0])
                     skinGroupDict[membership[0]] = vgroup
                     vgroup.add([vertIdx], membership[1], 'REPLACE')
 
@@ -1467,6 +1520,12 @@ class Emitter(Node):
         self.blender_data = []
         self.blender_data_nvb = []
 
+        self.vertex_coords = [(1.0,  1.0, 0.0),
+                              (1.0, -1.0, 0.0),
+                              (-1.0, -1.0, 0.0),
+                              (-1.0,  1.0, 0.0)]
+        self.facedef = [(0, 1, 0)]
+
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
         line = Node.loadAsciiLine(self, itlines)
@@ -1501,27 +1560,32 @@ class Emitter(Node):
             part_sys_settings.nvb.particletype == 'texture'
         part_sys_settings.count = 0  # for now
 
-    def createMesh(self, objName, options):
+    def create_blender_mesh(self, objName, options):
         """TODO: Doc."""
         # Create the mesh itself
-        mesh = bpy.data.meshes.new(objName)
-        mesh.vertices.add(4)
-        mesh.vertices[0].co = (1.0,  1.0, 0.0)
-        mesh.vertices[1].co = (1.0, -1.0, 0.0)
-        mesh.vertices[2].co = (-1.0, -1.0, 0.0)
-        mesh.vertices[3].co = (-1.0,  1.0, 0.0)
-        mesh.tessfaces.add(1)
-        mesh.tessfaces.foreach_set('vertices_raw', [0, 1, 2, 3])
+        blen_mesh = bpy.data.meshes.new(objName)
+        # Create vertices
+        blen_mesh.vertices.add(len(self.vertex_coords))
+        blen_mesh.vertices.foreach_set('co', unpack_list(self.vertex_coords))
+        # Create faces
+        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
+        face_cnt = len(face_vids)
+        blen_mesh.polygons.add(face_cnt)
+        blen_mesh.loops.add(face_cnt * 3)
+        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
+        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
+        blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vids))
+        blen_mesh.update()
 
         em_size = (max(self.xsize/100, 0), max(self.ysize/100, 0))
         scale_mat = mathutils.Matrix.Scale(em_size[0], 4, [1, 0, 0]) * \
             mathutils.Matrix.Scale(em_size[1], 4, [0, 1, 0])
-        mesh.transform(scale_mat)
-        # After calling update() tessfaces become inaccessible
-        mesh.validate()
-        mesh.update()
+        blen_mesh.transform(scale_mat)
 
-        return mesh
+        blen_mesh.validate()
+        blen_mesh.update()
+
+        return blen_mesh
 
     def createObjectData(self, obj, options):
         """TODO: Doc."""
@@ -1532,7 +1596,7 @@ class Emitter(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        mesh = self.createMesh(self.name, options)
+        mesh = self.create_blender_mesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.nvb.imporder = self.nodeidx
         obj.hide_render = True
@@ -1777,12 +1841,11 @@ class Light(Node):
 
     def createLamp(self, name):
         """TODO: Doc."""
-        lamp = bpy.data.lamps.new(name, 'POINT')
+        lamp = bpy.data.lights.new(name, 'POINT')
 
         lamp.color = self.color
         lamp.energy = self.multiplier
         lamp.distance = self.radius
-        lamp.use_sphere = True
 
         return lamp
 
@@ -1958,13 +2021,13 @@ class Aabb(Trimesh):
         Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
-    def createMesh(self, name, options):
+    def create_blender_mesh(self, name, options):
         """TODO: Doc."""
         # Create the mesh itself
         me = bpy.data.meshes.new(name)
         # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
+        me.vertices.add(len(self.vertex_coords))
+        me.vertices.foreach_set('co', unpack_list(self.vertex_coords))
         # Create faces
         face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
         face_cnt = len(face_vids)
@@ -1980,40 +2043,9 @@ class Aabb(Trimesh):
                                 [f[7] for f in self.facedef])
         return me
 
-    def createMeshOLD(self, name, options):
-        """TODO: Doc."""
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
-        # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
-        # Create faces
-        face_vids = [v[0:3] for v in self.facedef]
-        me.tessfaces.add(len(face_vids))
-        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
-        # Create materials
-        for wokMat in nvb_def.wok_materials:
-            matName = wokMat[0]
-            # Walkmesh materials will be shared across multiple walkmesh
-            # objects
-            if matName in bpy.data.materials:
-                material = bpy.data.materials[matName]
-            else:
-                material = bpy.data.materials.new(matName)
-                material.diffuse_color = wokMat[1]
-                material.diffuse_intensity = 1.0
-                material.specular_color = (0.0, 0.0, 0.0)
-                material.specular_intensity = wokMat[2]
-            me.materials.append(material)
-        me.update()
-        # Apply the walkmesh materials to each face
-        me.polygons.foreach_set('material_index',
-                                [f[7] for f in self.facedef])
-        return me
-
     def createObject(self, options):
         """TODO: Doc."""
-        mesh = self.createMesh(self.name, options)
+        mesh = self.create_blender_mesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.hide_render = True
         self.createObjectData(obj, options)

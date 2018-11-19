@@ -218,6 +218,7 @@ class ImportOptions():
     def __init__(self):
         self.filepath = ''
         self.scene = None
+        self.collection = None
         self.mdlname = 'unnamed'
         self.mtrdb = dict()
         # What to import

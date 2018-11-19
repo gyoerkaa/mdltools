@@ -7,35 +7,9 @@ import math
 import bpy
 
 
-class NVB_OT_set_open(bpy.types.Operator):
-    """Open set file"""
-    bl_idname = "nvb.set_open"
-    bl_label = "Open SET"
-
-    filename_ext = '.set'
-    filter_glob = bpy.props.StringProperty(default='*.set', options={'HIDDEN'})
-    filepath = bpy.props.StringProperty(subtype='FILE_PATH')
-
-    @classmethod
-    def poll(self, context):
-        """Always enabled."""
-        return bpy.context.scene is not None
-
-    def execute(self, context):
-        # Use the reload ops to actually do the loading
-        bpy.context.scene.nvb.set_filepath = self.filepath
-        return bpy.ops.nvb.set_reload()
-
-    def invoke(self, context, event):
-        wm = context.window_manager
-        wm.fileselect_add(self)
-
-        return {'RUNNING_MODAL'}
-
-
 class NVB_OT_set_reload(bpy.types.Operator):
     """Reload set, update current data"""
-    bl_idname = "nvb.set_reload"
+    bl_idname = 'scene.set_reload'
     bl_label = "Reload SET"
 
     def load_set(self, ascii_data):
@@ -154,10 +128,35 @@ class NVB_OT_set_reload(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class NVB_OT_set_open(bpy.types.Operator):
+    """Open set file"""
+    bl_idname = 'scene.set_open'
+    bl_label = "Open SET"
+
+    filename_ext = '.set'
+    filter_glob: bpy.props.StringProperty(default='*.set', options={'HIDDEN'})
+    filepath: bpy.props.StringProperty(subtype='FILE_PATH')
+
+    @classmethod
+    def poll(self, context):
+        """Always enabled."""
+        return bpy.context.scene is not None
+
+    def execute(self, context):
+        # Use the reload ops to actually do the loading
+        bpy.context.scene.nvb.set_filepath = self.filepath
+        return bpy.ops.scene.set_reload()
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        wm.fileselect_add(self)
+
+        return {'RUNNING_MODAL'}
+
+
 class NVB_OT_set_massimport(bpy.types.Operator):
     """Mass import specified MDLs based on set file"""
-
-    bl_idname = 'nvb.set_massimport'
+    bl_idname = 'scene.set_massimport'
     bl_label = 'Mass import selected mdl from set'
 
     def get_mdl_list(self, set_path, set_mode, lookup_name):
@@ -243,20 +242,21 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                 # mdl_loc = get_group_location(i, row_cnt, col_cnt)
                 filepath = os.path.join(mdl_dir, filename)
                 if os.path.isfile(os.fsencode(filepath)):
-                    bpy.ops.nvb.mdlimport(filepath=filepath,
-                                          import_walkmesh=True,
-                                          import_smoothgroups=True,
-                                          import_normals=True,
-                                          mat_import=True,
-                                          mat_automerge=True,
-                                          mtr_import=True,
-                                          tex_search=False,
-                                          anim_import=True,
-                                          anim_fps_use=False,
-                                          anim_fps=30,
-                                          anim_restpose=True,
-                                          rotmode='XYZ',
-                                          mdl_location=mdl_loc)
+                    bpy.ops.scene.nvb_mdlimport(
+                        filepath=filepath,
+                        import_walkmesh=True,
+                        import_smoothgroups=True,
+                        import_normals=True,
+                        mat_import=True,
+                        mat_automerge=True,
+                        mtr_import=True,
+                        tex_search=False,
+                        anim_import=True,
+                        anim_fps_use=False,
+                        anim_fps=30,
+                        anim_restpose=True,
+                        rotmode='XYZ',
+                        mdl_location=mdl_loc)
                 else:
                     self.report({'INFO'}, filename + ' not found')
 

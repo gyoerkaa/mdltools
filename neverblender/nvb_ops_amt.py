@@ -108,7 +108,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     amt_bone_shapes = dict()  # armature bone name => pseudo-bone shape
     scene = None
 
-    use_existing = bpy.props.BoolProperty(
+    use_existing: bpy.props.BoolProperty(
         name='Use Existing Bones', default=False,
         description='Use existing pseudo-bones instead of creating new ones')
 
@@ -341,7 +341,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         # Clear existing meta data, if we are to create new ones
         if create_meta_data:
             # Clear the animation list in the mdl base
-            for i in range(len(mdl_base.nvb.animList)):
+            for _ in range(len(mdl_base.nvb.animList)):
                 mdl_base.nvb.animList.remove(0)
             mdl_base.nvb.animListIdx = 0
         # Create new animation data

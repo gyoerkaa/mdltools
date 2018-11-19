@@ -81,22 +81,34 @@ def get_obj_mdl_base(obj):
     return None
 
 
-def get_mdl_base(obj=None, scene=None):
-    """Return any aurora root."""
+def get_mdl_base(obj=None, collection=None, scene=None):
+    """Return any aurora base."""
     # 1. Check the object and its parents
     match = get_obj_mdl_base(obj)
     if match:
         return match
-    # 2. Nothing was found, try checking the objects in the scene
-    if scene:
-        matches = [m for m in scene.objects if is_mdl_base(m)]
+    # 2. Nothing was found, check objects in active collection
+    if collection:
+        matches = [m for m in collection.objects if is_mdl_base(m)]
         if matches:
             return matches[0]
-    # 3. Still nothing, try checking all objects
-    matches = [m for m in bpy.data.objects if is_mdl_base(m)]
+    # 3. Still nothing, check objects in master collection
+    matches = [m for m in scene.collection.objects if is_mdl_base(m)]
     if matches:
         return matches[0]
     return None
+
+
+def get_active_collection(context):
+    """Get active collection or create a new one"""
+    scene = context.scene
+    view_layer = context.view_layer
+    if view_layer.collections.active:
+        collection = view_layer.collections.active.collection
+    else:
+        collection = scene.master_collection.new()
+        view_layer.collections.link(collection)
+    return collection
 
 
 def get_fcurve(action, data_path, index=0, group_name=None):
@@ -171,9 +183,7 @@ def create_wok_materials(mesh):
         else:
             mat = bpy.data.materials.new(matname)
             mat.diffuse_color = matcolor
-            mat.diffuse_intensity = 1.0
             mat.specular_color = (0.0, 0.0, 0.0)
-            mat.specular_intensity = 0.0
         mesh.materials.append(mat)
 
 

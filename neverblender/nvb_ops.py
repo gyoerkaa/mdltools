@@ -54,8 +54,8 @@ class NVB_OT_lensflare_move(bpy.types.Operator):
     bl_idname = 'nvb.lightflare_move'
     bl_label = 'Move an item in the flare list'
 
-    direction = bpy.props.EnumProperty(items=(('UP', 'Up', ''),
-                                              ('DOWN', 'Down', '')))
+    direction: bpy.props.EnumProperty(items=(('UP', 'Up', ''),
+                                             ('DOWN', 'Down', '')))
 
     @classmethod
     def poll(self, context):
@@ -129,23 +129,23 @@ class NVB_OT_util_minimap(bpy.types.Operator):
     bl_idname = "nvb.util_minimap"
     bl_label = "Render Minimap"
 
-    batch_mode = bpy.props.BoolProperty(
+    batch_mode: bpy.props.BoolProperty(
         name='Batch Mode',
         description='Renders pictures directly to render_dir',
         default=False)
-    render_dir = bpy.props.StringProperty(
+    render_dir: bpy.props.StringProperty(
         name='Render Directory',
         description='Directory to render images to',
         default='')
-    img_size = bpy.props.IntProperty(
+    img_size: bpy.props.IntProperty(
         name='Image Size',
         description='Image Size',
         default=32, min=8)
-    z_offset = bpy.props.FloatProperty(
+    z_offset: bpy.props.FloatProperty(
         name='Camera Distance',
         description='Camera distance to ground',
         default=20.0, min=10.0)
-    light_color = bpy.props.FloatVectorProperty(
+    light_color: bpy.props.FloatVectorProperty(
         name='Light Color',
         description='Light Color',
         subtype='COLOR_GAMMA',

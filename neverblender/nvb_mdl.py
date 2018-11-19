@@ -296,7 +296,8 @@ class Mdl():
                     obj.nvb.supermodel = self.supermodel
                     obj.nvb.classification = self.classification
                     obj.nvb.animscale = self.animscale
-                options.scene.objects.link(obj)
+                # options.scene.objects.link(obj)
+                options.collection.objects.link(obj)
             else:
                 print('Neverblender: WARNING - Invalid object ' + node.name)
         # Return the base

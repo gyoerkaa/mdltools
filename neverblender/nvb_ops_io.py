@@ -19,33 +19,33 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     bl_options = {'PRESET'}
 
     filename_ext = '.mdl'
-    filter_glob = bpy.props.StringProperty(
+    filter_glob: bpy.props.StringProperty(
             default='*.mdl',
             options={'HIDDEN'})
     # Misc Export Settings
-    export_animations = bpy.props.BoolProperty(
+    export_animations: bpy.props.BoolProperty(
             name='Export Animations',
             description='Export animations',
             default=True)
-    export_walkmesh = bpy.props.BoolProperty(
+    export_walkmesh: bpy.props.BoolProperty(
             name='Export Walkmesh',
             description='Export a walkmesh',
             default=True)
-    export_smoothgroups = bpy.props.BoolProperty(
+    export_smoothgroups: bpy.props.BoolProperty(
             name='Export Smooth Groups',
             description='Generate smooth groups from sharp edges'
                         '(When disabled every face belongs to the same group)',
             default=True)
-    export_normals = bpy.props.BoolProperty(
+    export_normals: bpy.props.BoolProperty(
             name='Export Normals and Tangents',
             description='Add normals and tangents to MDL',
             default=False)
     # UV Map Export settings
-    uv_autojoin = bpy.props.BoolProperty(
+    uv_autojoin: bpy.props.BoolProperty(
             name='Auto Join UVs',
             description='Join uv-vertices with identical coordinates',
             default=True)
-    uv_mode = bpy.props.EnumProperty(
+    uv_mode: bpy.props.EnumProperty(
             name='Mode',
             description='Determines which meshes get uv maps',
             items=(('TEX', 'Textured Meshes',
@@ -55,7 +55,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ('ALL', 'All',
                     'Add UV Maps to all meshes')),
             default='REN')
-    uv_order = bpy.props.EnumProperty(
+    uv_order: bpy.props.EnumProperty(
             name='Order',
             description='Determines ordering of uv maps in MDL',
             items=(('AL0', 'Alphabetical',
@@ -66,11 +66,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     'Export active UVMap only')),
             default='AL0')
     # Material Export Settings
-    mtr_export = bpy.props.BoolProperty(
+    mtr_export: bpy.props.BoolProperty(
             name='Export MTR',
             description='Create MTR file holding material data (if specified)',
             default=True)
-    mtr_ref = bpy.props.EnumProperty(
+    mtr_ref: bpy.props.EnumProperty(
             name='Reference Mode',
             description='Specifies the way MTRs are referenced',
             items=(('bitmap', 'bitmap',
@@ -79,19 +79,19 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     'Use "materialname" to refernce MTRs')),
             default='bitmap')
     # Blender Setting to use
-    apply_modifiers = bpy.props.BoolProperty(
+    apply_modifiers: bpy.props.BoolProperty(
             name='Apply Modifiers',
             description='Apply Modifiers before exporting',
             default=True)
-    strip_trailing = bpy.props.BoolProperty(
+    strip_trailing: bpy.props.BoolProperty(
             name='Strip Trailing Numbers',
             description='Strips trailing numbers from object names',
             default=False)
-    frame_set_zero = bpy.props.BoolProperty(
+    frame_set_zero: bpy.props.BoolProperty(
             name='Export at Frame 0',
             description='Set frame to 0 for export',
             default=False)
-    batch_mode = bpy.props.EnumProperty(
+    batch_mode: bpy.props.EnumProperty(
             name='Batch Mode',
             description='Export multiple MDLs',
             items=(('OFF', 'Off', 'Export active MDL only'),
@@ -250,93 +250,103 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     bl_label = 'Import Aurora MDL'
     bl_options = {'UNDO', 'PRESET'}
 
-    files = bpy.props.CollectionProperty(
+    files: bpy.props.CollectionProperty(
         name='File Path',
         description='Path used for importing the file',
         type=bpy.types.OperatorFileListElement)
-    directory = bpy.props.StringProperty()
-    filter_glob = bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
+    directory: bpy.props.StringProperty()
+    filter_glob: bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
     filename_ext = '.mdl'
 
-    import_walkmesh = bpy.props.BoolProperty(
+    import_walkmesh: bpy.props.BoolProperty(
         name='Import Walkmesh',
         description='Load placeable and door walkmeshes',
         default=True)
-    import_smoothgroups = bpy.props.BoolProperty(
+    import_smoothgroups: bpy.props.BoolProperty(
         name='Import Smooth Groups',
         description='Import smooth groups as sharp edges',
         default=True)
-    import_normals = bpy.props.BoolProperty(
+    import_normals: bpy.props.BoolProperty(
         name='Import Normals',
         description='Import normals from MDL',
         default=True)
     # Materials Options
-    mat_import = bpy.props.BoolProperty(
+    mat_import: bpy.props.BoolProperty(
         name='Import Materials',
         description='Import materials and textures',
         default=True)
-    mat_automerge = bpy.props.BoolProperty(
+    mat_automerge: bpy.props.BoolProperty(
         name='Auto Merge Materials',
         description='Merge materials with same settings',
         default=True)
-    mtr_import = bpy.props.BoolProperty(
+    mtr_import: bpy.props.BoolProperty(
         name='Load MTR files',
         description='Load external material files ' +
                     '(will overwride material in MDL)',
         default=True)
-    tex_search = bpy.props.BoolProperty(
+    tex_search: bpy.props.BoolProperty(
         name='Image Search',
         description='Search for images in subdirectories \
                      (Warning: May be slow)',
         default=False)
     # Animation Options
-    anim_import = bpy.props.BoolProperty(name='Import Animations',
-                                         description='Import animation data',
+    anim_import: bpy.props.BoolProperty(name='Import Animations',
+                                        description='Import animation data',
+                                        default=True)
+    anim_fps_use: bpy.props.BoolProperty(name='Use Custom fps',
+                                         description='Use custom fps value',
                                          default=True)
-    anim_fps_use = bpy.props.BoolProperty(name='Use Custom fps',
-                                          description='Use custom fps value',
-                                          default=True)
-    anim_fps = bpy.props.IntProperty(name='Scene Framerate',
-                                     description='Custom fps value',
-                                     default=30,
-                                     min=1, max=60)
-    anim_restpose = bpy.props.BoolProperty(
+    anim_fps: bpy.props.IntProperty(name='Scene Framerate',
+                                    description='Custom fps value',
+                                    default=30,
+                                    min=1, max=60)
+    anim_restpose: bpy.props.BoolProperty(
         name='Insert Rest Pose',
         description='Insert rest keyframe before every animation',
         default=True)
     # Blender Settings
-    rotmode = bpy.props.EnumProperty(
+    rotmode: bpy.props.EnumProperty(
         name='Rotation Mode',
         description='',
         items=(('AXIS_ANGLE', 'Axis Angle', ''),
                ('QUATERNION', 'Quaternion', ''),
                ('XYZ', 'Euler XYZ', '')),
         default='XYZ')
-    fix_uvs = bpy.props.BoolProperty(
-        name='Fix degenerated UVs',
-        description='Fix degeneratet UV coordinates (tverts)',
+    collections_create: bpy.props.BoolProperty(
+        name='Create Collections',
+        description='Create new collection for each imported mdl.',
         default=False)
-    mdl_location = bpy.props.FloatVectorProperty(
+    fix_uvs: bpy.props.BoolProperty(
+        name='Fix degenerated UVs',
+        description='Fix degenerated UV coordinates (tverts)',
+        default=False)
+    mdl_location: bpy.props.FloatVectorProperty(
         name='Location',
         description='Location of newly imported model',
         default=(0.0, 0.0, 0.0), size=3, options={'HIDDEN'})
-    import_geometry = bpy.props.BoolProperty(name='Import Geometry',
-                                             description='Render Lights',
-                                             default=True, options={'HIDDEN'})
-    render_lights = bpy.props.BoolProperty(name='Render Lights',
-                                           description='Render Lights',
-                                           default=False, options={'HIDDEN'})
-    render_fading = bpy.props.BoolProperty(name='Render Fading Objects',
-                                           description='Render Fading Objects',
-                                           default=True, options={'HIDDEN'})
+    import_geometry: bpy.props.BoolProperty(name='Import Geometry',
+                                            description='Render Lights',
+                                            default=True, options={'HIDDEN'})
+    render_lights: bpy.props.BoolProperty(name='Render Lights',
+                                          description='Render Lights',
+                                          default=False, options={'HIDDEN'})
+    render_fading: bpy.props.BoolProperty(name='Render Fading Objects',
+                                          description='Render Fading Objects',
+                                          default=True, options={'HIDDEN'})
 
     def mdl_import(self, context, options):
-        def load_file(mdl_filepath, options):
+        def load_file(context, mdl_filepath, options, collections_create):
             mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
             mdl_name = os.path.splitext(mdl_filename)[0]
 
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
+            # Create a new collection
+            if collections_create:
+                parent_collection = context.scene.collection
+                collection = bpy.data.collections.new(name=mdl_name)
+                parent_collection.children.link(collection)
+                options.collection = collection
             mdl = nvb_mdl.Mdl()
             mdl.read_mdl(mdl_filepath, options)
             if options.import_walkmesh:
@@ -347,7 +357,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                         mdl.read_wkm(wkm_filepath, wkm_type, options)
             mdl.create(options)
 
-        def get_location(idx):
+        def generate_location(idx):
             k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
             return (10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
                     10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
@@ -358,11 +368,11 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             pathlist.append(self.filepath)
         # Import models
         if len(pathlist) == 1:  # single model => use location in options
-            load_file(pathlist[0], options)
-        else:  # multiple models => place in a spiral, overwrite options loc.
-            for i, fp in enumerate(pathlist):
-                options.mdl_location = get_location(i)
-                load_file(fp, options)
+            load_file(context, pathlist[0], options, self.collections_create)
+        else:  # multiple models => place in a spiral, generate new locations
+            for i, filepath in enumerate(pathlist):
+                options.mdl_location = generate_location(i)
+                load_file(context, filepath, options, self.collectionss_create)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -399,6 +409,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box = layout.box()
         box.label(text='Blender Settings')
         box.prop(self, 'rotmode')
+        box.prop(self, 'collections_create')
         box.prop(self, 'fix_uvs')
 
     def execute(self, context):
@@ -406,6 +417,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options = nvb_def.ImportOptions()
         options.filepath = self.filepath
         options.scene = context.scene
+        options.collection = context.collection
         # Misc Import Settings
         options.import_geometry = self.import_geometry
         options.import_walkmesh = self.import_walkmesh
@@ -436,26 +448,26 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
     bl_idname = 'scene.nvb_superimport'
     bl_label = 'Import Supermodel'
 
-    files = bpy.props.CollectionProperty(
+    files: bpy.props.CollectionProperty(
         name='File Path',
         description='Path used for importing the file',
         type=bpy.types.OperatorFileListElement)
-    directory = bpy.props.StringProperty()
-    filter_glob = bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
+    directory: bpy.props.StringProperty()
+    filter_glob: bpy.props.StringProperty(default='*.mdl', options={'HIDDEN'})
     filename_ext = '.mdl'
 
-    anim_fps_use = bpy.props.BoolProperty(name='Use Custom fps',
-                                          description='Use custom fps value',
-                                          default=False)
-    anim_fps = bpy.props.IntProperty(name='Scene Framerate',
-                                     description='Custom fps value',
-                                     default=30,
-                                     min=1, max=60)
-    anim_restpose = bpy.props.BoolProperty(
+    anim_fps_use: bpy.props.BoolProperty(name='Use Custom fps',
+                                         description='Use custom fps value',
+                                         default=False)
+    anim_fps: bpy.props.IntProperty(name='Scene Framerate',
+                                    description='Custom fps value',
+                                    default=30,
+                                    min=1, max=60)
+    anim_restpose: bpy.props.BoolProperty(
         name='Insert Rest Pose',
         description='Insert rest keyframe before every animation',
         default=True)
-    anim_ignore_existing = bpy.props.BoolProperty(
+    anim_ignore_existing: bpy.props.BoolProperty(
         name='Ignore Existing',
         description='Do not import already existing animations',
         default=True)

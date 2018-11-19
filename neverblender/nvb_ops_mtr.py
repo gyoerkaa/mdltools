@@ -79,8 +79,8 @@ class NVB_OT_mtr_open(bpy.types.Operator):
     bl_label = "Open MTR"
 
     filename_ext = '.mtr'
-    filter_glob = bpy.props.StringProperty(default='*.mtr', options={'HIDDEN'})
-    filepath = bpy.props.StringProperty(subtype='FILE_PATH')
+    filter_glob: bpy.props.StringProperty(default='*.mtr', options={'HIDDEN'})
+    filepath: bpy.props.StringProperty(subtype='FILE_PATH')
 
     @classmethod
     def poll(self, context):

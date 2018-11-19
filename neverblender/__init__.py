@@ -69,8 +69,8 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 7, 233),
-    "blender": (2, 7, 9),
+    'version': (2, 8, 1),
+    "blender": (2, 80, 2),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
     "warning": "",
@@ -80,17 +80,69 @@ bl_info = {
 
 
 classes = (
+    nvb_props.NVB_addon_properties,
+
+    nvb_props.NVB_PG_set_element,
     nvb_props.NVB_PG_animevent,
+    nvb_props.NVB_PG_amt_event,
+    nvb_props.NVB_PG_mtrparameter,
     nvb_props.NVB_PG_anim,
     nvb_props.NVB_PG_material,
+    nvb_props.NVB_PG_scene,
     nvb_props.NVB_PG_flare,
     nvb_props.NVB_PG_lamp,
     nvb_props.NVB_PG_object,
     nvb_props.NVB_PG_bone,
+    nvb_props.NVB_PG_emitter,
+
+    nvb_ops_io.NVB_OT_mdlexport,
+    nvb_ops_io.NVB_OT_mdlimport,
+    nvb_ops_io.NVB_OT_mdl_superimport,
+
+    nvb_ops_set.NVB_OT_set_reload,
+    nvb_ops_set.NVB_OT_set_open,
+    nvb_ops_set.NVB_OT_set_massimport,
+
+    nvb_ops.NVB_OT_util_minimap,
+    nvb_ops.NVB_OT_util_transform,
+
+    nvb_ops_node.NVB_OT_util_genwok,
+    nvb_ops_node.NVB_OT_util_nodes_pwk,
+    nvb_ops_node.NVB_OT_util_nodes_dwk,
+    nvb_ops_node.NVB_OT_util_nodes_tile,
+
+    nvb_ops_amt.NVB_OT_amt_apply_pose,
+    nvb_ops_amt.NVB_OT_amt_amt2psb,
+    nvb_ops_amt.NVB_OT_amt_psb2amt,
+
+    nvb_ops_mtr.NVB_OT_mtr_generate,
+    nvb_ops_mtr.NVB_OT_mtr_embed,
+    nvb_ops_mtr.NVB_OT_mtr_open,
+    nvb_ops_mtr.NVB_OT_mtr_reload,
+    nvb_ops_mtr.NVB_OT_mtrparam_new,
+    nvb_ops_mtr.NVB_OT_mtrparam_delete,
+
+    nvb_ops_anim.NVB_OT_anim_clone,
+    nvb_ops_anim.NVB_OT_anim_scale,
+    nvb_ops_anim.NVB_OT_anim_crop,
+    nvb_ops_anim.NVB_OT_anim_pad,
+    nvb_ops_anim.NVB_OT_anim_focus,
+    nvb_ops_anim.NVB_OT_anim_new,
+    nvb_ops_anim.NVB_OT_anim_delete,
+    nvb_ops_anim.NVB_OT_anim_moveback,
+    nvb_ops_anim.NVB_OT_anim_move,
+    nvb_ops_anim.NVB_OT_anim_event_new,
+    nvb_ops_anim.NVB_OT_anim_event_delete,
+    nvb_ops_anim.NVB_OT_anim_event_move,
+    nvb_ops_anim.NVB_OT_amt_event_new,
+    nvb_ops_anim.NVB_OT_amt_event_delete,
+
+    nvb_ui.NVB_UL_set_element,
     nvb_ui.NVB_UL_lensflares,
     nvb_ui.NVB_UL_anims,
     nvb_ui.NVB_UL_anim_events,
-    nvb_ui.NVB_UL_set_element,
+    nvb_ui.NVB_UL_mtr_params,
+
     nvb_ui.NVB_PT_aurorabase,
     nvb_ui.NVB_PT_dummy,
     nvb_ui.NVB_PT_armature,
@@ -121,16 +173,16 @@ def menu_func_import(self, context):
 
 def register():
     """TODO:Doc."""
-    bpy.utils.register_module(__name__)
-    """
+    # bpy.utils.register_module(__name__)
+
     for cl in classes:
         bpy.utils.register_class(cl)
-    """
+
     bpy.types.Object.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_object)
     bpy.types.Material.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_material)
-    bpy.types.Lamp.nvb = \
+    bpy.types.Light.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_lamp)
     bpy.types.Scene.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_scene)
@@ -139,18 +191,18 @@ def register():
     bpy.types.Bone.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_bone)
 
-    bpy.types.INFO_MT_file_import.append(menu_func_import)
-    bpy.types.INFO_MT_file_export.append(menu_func_export)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def unregister():
     """TODO:Doc."""
-    bpy.types.INFO_MT_file_export.remove(menu_func_export)
-    bpy.types.INFO_MT_file_import.remove(menu_func_import)
-    """
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+    bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
+
     for cl in reversed(classes):
         bpy.utils.unregister_class(cl)
-    """
+
     del bpy.types.Object.nvb
     del bpy.types.Material.nvb
     del bpy.types.Lamp.nvb
@@ -158,7 +210,7 @@ def unregister():
     del bpy.types.ParticleSettings.nvb
     del bpy.types.Bone.nvb
 
-    bpy.utils.unregister_module(__name__)
+    # bpy.utils.unregister_module(__name__)
 
 
 if __name__ == "__main__":
