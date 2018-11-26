@@ -617,27 +617,10 @@ class Trimesh(Node):
                 self.tverts[0].extend([(0, 0), (0, 1), (1, 1)])
 
     @staticmethod
-    def createUVlayer2(mesh, tverts, faceuvs, uvname, uvimg=None):
-        """TODO: Doc."""
-        uvlay = None
-        if tverts and mesh.polygons:
-            uvtex = mesh.uv_textures.new(uvname)
-            uvlay = mesh.uv_layers[uvtex.name].data
-            for fidx, poly in enumerate(mesh.polygons):
-                v1, v2, v3 = faceuvs[fidx]
-                uvlay[poly.loop_start].uv = tverts[v1]
-                uvlay[poly.loop_start + 1].uv = tverts[v2]
-                uvlay[poly.loop_start + 2].uv = tverts[v3]
-                uvtex.data[fidx].image = uvimg
-        # For blender 2.8:
-        # for uvf in mesh.data.uv_textures.active.data:
-        #     uvf.image = timg
-        return uvlay
-
-    @staticmethod
     def createUVlayer(mesh, tverts, faceuvs, uvname, uvimg=None):
         """TODO: Doc."""
         uvmap = None
+
         if tverts and mesh.tessfaces:
             uvmap = mesh.tessface_uv_textures.new(uvname)
             mesh.tessface_uv_textures.active = uvmap
@@ -677,93 +660,6 @@ class Trimesh(Node):
                     for lidx in vert_loop_map[vidx]:
                         cmap.data[lidx].color = vcolors[vidx]
         return cmap
-
-    def createMesh2(self, name, options):
-        """TODO: Doc."""
-
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
-        # Create vertices
-        me.vertices.add(len(self.verts))
-        me.vertices.foreach_set('co', unpack_list(self.verts))
-        # Create faces
-        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
-        face_cnt = len(face_vids)
-        me.polygons.add(face_cnt)
-        me.loops.add(face_cnt * 3)
-        me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
-        me.polygons.foreach_set('loop_total', (3,) * face_cnt)
-        me.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        # Create per-Vertex normals
-        if self.normals and options.import_normals:
-            me.vertices.foreach_set('normal', unpack_list(self.normals))
-            me.create_normals_split()
-        # Create material
-        material = None
-        matimg = None
-        if options.importMaterials:
-            uniqueMat = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
-            material = self.material.create(options, uniqueMat)
-            if material:
-                me.materials.append(material)
-                # Set material idx (always 0, only a single material)
-                me.polygons.foreach_set('material_index',
-                                        [0] * len(me.polygons))
-                tslot0 = material.texture_slots[0]
-                if tslot0 and tslot0.texture:
-                    matimg = tslot0.texture.image
-        # Create uvmaps
-        # EEEKADOODLE fix
-        eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                        for f in self.facedef]
-        # eeka_faceuvs = [(f[4], f[5], f[6]) for f in self.facedef]
-        # Save fixed uvs for animeshes
-        if self.nodetype == nvb_def.Nodetype.ANIMMESH:
-            if me.name not in nvb_def.tvert_order:
-                nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
-        uvlayers = []
-        for idx, tvs in enumerate(self.tverts):
-            if tvs:  # may be []
-                uvname = me.name + '.tvert' + str(idx)
-                uvlayers.append(Trimesh.createUVlayer2(me, tvs, eeka_faceuvs,
-                                                       uvname, matimg))
-        # if len(uvmaps) > 0 and uvmaps[0] is not None:
-        #     me.uv_textures[uvmaps[0].name].active = True  # blender2.8 error!
-        # Import smooth groups as sharp edges
-        if options.importSmoothGroups:
-            me.update()
-            me.show_edge_sharp = True
-            bm = bmesh.new()
-            bm.from_mesh(me)
-            if hasattr(bm.edges, "ensure_lookup_table"):
-                bm.edges.ensure_lookup_table()
-            # Mark edge as sharp if its faces belong to different smooth groups
-            for e in bm.edges:
-                f = e.link_faces
-                if (len(f) > 1) and \
-                   (self.facedef[f[0].index][3] !=
-                        self.facedef[f[1].index][3]):
-                    edgeIdx = e.index
-                    me.edges[edgeIdx].use_edge_sharp = True
-            bm.free()
-            del bm
-        # Create Vertex colors
-        Trimesh.createVColors(me, self.colors, 'colors')
-        # Import custom normals
-        me.update()
-        if self.normals and me.loops and options.import_normals:
-            for l in me.loops:
-                l.normal[:] = self.normals[l.vertex_index]
-            me.validate(clean_customdata=False)
-            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
-            me.loops.foreach_get('normal', clnors)
-            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
-            me.use_auto_smooth = True
-            me.show_edge_sharp = True
-        else:
-            me.validate()
-        return me
 
     def createMesh(self, name, options):
         """TODO: Doc."""
@@ -1082,14 +978,19 @@ class Trimesh(Node):
                 uvmapNames.sort()
             elif options.uvmapOrder == 'AL1':
                 # Export all, sort alphabetically, put active first
-                uvmapActiveName = me.tessface_uv_textures.active.name
-                uvmapNames = [uvt.name for uvt in me.tessface_uv_textures
-                              if not uvt.name == uvmapActiveName]
-                uvmapNames.sort()
-                uvmapNames.insert(0, me.tessface_uv_textures.active.name)
+                if me.tessface_uv_textures.active:
+                    uvmapActiveName = me.tessface_uv_textures.active.name
+                    uvmapNames = [uvt.name for uvt in me.tessface_uv_textures
+                                  if not uvt.name == uvmapActiveName]
+                    uvmapNames.sort()
+                    uvmapNames.insert(0, me.tessface_uv_textures.active.name)
+                else:
+                    uvmapNames = [uvt.name for uvt in me.tessface_uv_textures]
+                    uvmapNames.sort()
             else:
                 # Export active uvmap only
-                uvmapNames.append(me.tessface_uv_textures.active.name)
+                if me.tessface_uv_textures.active:
+                    uvmapNames.append(me.tessface_uv_textures.active.name)
             # Generate the tverts for the faces
             for uvn in uvmapNames:
                 fcUVData.append(getFaceUVs(fcVertIds,
