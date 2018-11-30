@@ -878,58 +878,42 @@ class Trimesh(Node):
 
         def generateNormals(mesh, asciiLines, uvmap):
             """Generates normals and tangents."""
+
             # Generate readable normals and tangents
             mesh.calc_tangents(uvmap.name)
             # Add normals
-            oknormals = []
-            # Try vertex-per-face normals
+            """
             for i in range(len(mesh.vertices)):
                 # All normals for this vertex
                 normals = \
                     [l.normal for l in mesh.loops if l.vertex_index == i]
-                s = set([str(n) for n in normals])
-                if len(s) != 1:  # Something is not right, cannot export this
-                    oknormals = []
-                    print('Neverblender: WARNING - Invalid normals ' +
-                          obj.name)
-                    break
-                oknormals.append(normals[0])
-            if oknormals:
-                asciiLines.append('  normals ' + str(len(oknormals)))
+                mdl_normals.append(normals[0])
+            """
+            vertex_normals = [[l.normal
+                               for l in mesh.loops if l.vertex_index == vidx]
+                              for vidx in range(len(mesh.vertices))]
+            mdl_normals = [n[0] for n in vertex_normals]
+            print(mdl_normals)
+            if mdl_normals.count(None) == 0:
+                asciiLines.append('  normals ' + str(len(mdl_normals)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-                asciiLines.extend([fstr.format(*n) for n in oknormals])
-            """
-            # Try vertex normals
-            for v in mesh.vertices:
-                s = formatStr.format(l_rnd(v.normal[0], 5),
-                                     l_rnd(v.normal[1], 5),
-                                     l_rnd(v.normal[2], 5))
-                asciiLines.append(s)
-            """
+                asciiLines.extend([fstr.format(*n) for n in mdl_normals])
+            else:
+                print("Neverblender - WARNING: Invalid normals for mesh " +
+                      mesh.name)
             # Add tangents
-            oktangents = []
-            #  Vertex-per-face tangents
-            for i in range(len(mesh.vertices)):
-                # All tangents for this vertex
-                tangents = [[l.tangent, l.bitangent_sign]
-                            for l in mesh.loops if l.vertex_index == i]
-                oktangents.append(tangents[0])
-            if oktangents:
-                asciiLines.append('  tangents ' + str(len(oktangents)))
+            vertex_tangents = [[[l.tangent, l.bitangent_sign]
+                                for l in mesh.loops if l.vertex_index == vidx]
+                               for vidx in range(len(mesh.vertices))]
+            mdl_tangents = [t[0] for t in vertex_tangents]
+            if mdl_tangents.count(None) == 0:
+                asciiLines.append('  tangents ' + str(len(mdl_tangents)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
                 asciiLines.extend([fstr.format(*t[0], t[1])
-                                  for t in oktangents])
-            """
-            for face in mesh.polygons:
-                # face loops and face vertices are in the same order
-                for v_id, l_id in zip(face.vertices, face.loop_indices):
-                    # this is the loop:
-                    mesh.loops[l_id]
-                    # this is the vertex in the corner of the loop:
-                    mesh.vertices[v_id]
-            """
-            # mesh.free_normals_split()
-
+                                  for t in mdl_tangents])
+            else:
+                print("Neverblender - WARNING: Invalid tangents for mesh " +
+                      mesh.name)
         me = obj.to_mesh(options.scene,
                          options.apply_modifiers,
                          options.mesh_convert)
