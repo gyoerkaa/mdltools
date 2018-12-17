@@ -893,7 +893,6 @@ class Trimesh(Node):
                                for l in mesh.loops if l.vertex_index == vidx]
                               for vidx in range(len(mesh.vertices))]
             mdl_normals = [n[0] for n in vertex_normals]
-            print(mdl_normals)
             if mdl_normals.count(None) == 0:
                 asciiLines.append('  normals ' + str(len(mdl_normals)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
