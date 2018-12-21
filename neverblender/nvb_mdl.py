@@ -256,7 +256,7 @@ class Mdl():
 
     @staticmethod
     def generateAsciiWalkmesh(mdl_base, ascii_lines, wkmtype, options):
-        """TODO: DOC."""      
+        """TODO: DOC"""
         if wkmtype == nvb_def.Walkmeshtype.WOK:
             # Walkmesh for tiles: Append only AABB mesh
             wok = nvb_utils.get_aabb(mdl_base)
@@ -282,7 +282,7 @@ class Mdl():
                     try:
                         node = Mdl.nodelookup[nodeType]
                     except KeyError:
-                        print("Neverblender: WARNING - Unable to get node type.")
+                        print("Neverblender: WARNING - Invalid node type.")
                     else:
                         node.generateAscii(obj, ascii_lines, options, True)
 

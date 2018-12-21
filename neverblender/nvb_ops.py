@@ -124,7 +124,7 @@ class NVB_OT_light_genname(bpy.types.Operator):
 
 
 class NVB_OT_util_minimap(bpy.types.Operator):
-    """Set up rendering for minimaps."""
+    """Set up rendering for minimaps"""
 
     bl_idname = "nvb.util_minimap"
     bl_label = "Render Minimap"
@@ -210,7 +210,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         scene.render.image_settings.file_format = 'TARGA_RAW'
 
     def execute(self, context):
-        """Create camera + lamp and Renders Minimap."""
+        """Create camera + lamp and Renders Minimap"""
         if self.batch_mode:
             # Get mdl roots
             mdl_base_list = []
@@ -397,7 +397,7 @@ class NVB_OT_util_transform(bpy.types.Operator):
             self.adjust_objects(c, scl_mat * new_scl, mathutils.Matrix())
 
     def execute(self, context):
-        """TODO: DOC."""
+        """TODO: DOC"""
         mdl_base = nvb_utils.get_mdl_base(context.object)
         # Get translation and scale factors
         if not mdl_base:

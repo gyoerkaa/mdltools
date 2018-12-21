@@ -942,9 +942,10 @@ class Trimesh(Node):
         fcMatIds = [tf.material_index for tf in me.tessfaces]
         # Per face uv indices and a list of their coordinates
         fcUVData = []
-        exportUVs = ((options.uvmapMode == 'ALL') or
-                     (options.uvmapMode == 'REN' and obj.nvb.render) or
-                     (options.uvmapMode == 'TEX' and hasImgTexture))
+        exportUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.AABB) and 
+                     ((options.uvmapMode == 'ALL') or
+                      (options.uvmapMode == 'REN' and obj.nvb.render) or
+                      (options.uvmapMode == 'TEX' and hasImgTexture)))
         if exportUVs:
             joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
                        options.uvmapAutoJoin)
@@ -1861,7 +1862,7 @@ class Aabb(Trimesh):
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
         asciiLines.append('  bitmap ' + nvb_def.null)
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options, False)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
     def createMesh(self, name, options):
