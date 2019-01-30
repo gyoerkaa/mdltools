@@ -35,7 +35,7 @@ class Animation():
         new_anim.transtime = fps * self.transtime
         # new_anim.root = self.animroot
         new_anim.root_obj = noderesolver.get_obj(self.animroot, -1)
-        new_anim.frameEnd = fps * self.length + new_anim.frameStart
+        new_anim.frameEnd = round(fps * self.length, 0) + new_anim.frameStart
         # events
         for ev_time, ev_name in self.events:
             newEvent = new_anim.eventList.add()
