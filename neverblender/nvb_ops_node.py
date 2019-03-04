@@ -520,8 +520,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             pwk_y_min = -1.0
             pwk_y_max = 1.0
         # Create dummys or check existing - all parented to mdl base
-        dummy_data = [['_pwk_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
-                      ['_pwk_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
+        dummy_data = [['_PWK_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
+                      ['_PWK_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
         NVB_OT_util_nodes_pwk.create_empties(
             dummy_data, name_prefix, pwk_base, scene, objects_to_check)
 

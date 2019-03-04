@@ -846,8 +846,8 @@ class Trimesh(Node):
             blen_mesh.validate()
         """
 
+    """
     def createMesh(self, name, options):
-        """TODO: Doc."""
         if options.fix_uvs:
             self.fix_degenerated_uvs()
         # Create the mesh itself
@@ -942,11 +942,12 @@ class Trimesh(Node):
                 me.use_auto_smooth = True
                 me.auto_smooth_angle = 1.570796
         # Create Vertex colors
-        Trimesh.createVColors(me, self.colors, 'colors')
+        Trimesh.create_vertex_colors(me, self.colors, 'colors')
         me.validate()
         # me.update()
         return me
-
+    """
+    
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
