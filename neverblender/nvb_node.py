@@ -319,7 +319,7 @@ class Node(object):
 
     def __ne__(self, other):
         """TODO: DOC."""
-        return not self.__eq__(self, other)
+        return not self.__eq__(other)
 
     def __str__(self):
         """TODO: DOC."""
@@ -396,7 +396,7 @@ class Node(object):
         mat = obj.matrix_parent_inverse * obj.matrix_basis
 
         loc = mat.to_translation()
-        asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
+        asciiLines.append('  position {: 8.7f} {: 8.7f} {: 8.7f}'.format(*loc))
 
         rot = mat.to_quaternion()
         fstr = '  orientation {: 8.5f} {: 8.5f} {: 8.5f} {: 8.5f}'
@@ -931,7 +931,7 @@ class Trimesh(Node):
         fcSGrps = getSmoothGroups(obj, me, options)
         # Add vertices
         asciiLines.append('  verts ' + str(len(me.vertices)))
-        fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        fstr = '    {: 10.7f} {: 10.7f} {: 10.7f}'
         asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
         # Add normals and tangents
         uvmap = me.uv_textures.active
@@ -989,7 +989,7 @@ class Trimesh(Node):
             fcUVCoList = []
             fcUVData.append([fcUVIdList, fcUVCoList])
         # Write tverts to file (if any)
-        fstr = '    {: 5.3f} {: 5.3f}  0'
+        fstr = '    {: 6.4f} {: 6.4f}  0'
         for idx, fuvd in enumerate(fcUVData):
             if len(fuvd[1]) > 0:
                 if idx == 0:
