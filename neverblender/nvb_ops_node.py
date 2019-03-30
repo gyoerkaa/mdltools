@@ -587,7 +587,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
     def execute(self, context):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        addon = context.user_preferences.addons[__package__]
+        addon = context.preferences.addons[__package__]
         scene = bpy.context.scene
         if not mdl_base:
             self.report({'ERROR'}, 'No Aurora Base')
@@ -796,7 +796,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
     def execute(self, context):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        addon = context.user_preferences.addons[__package__]
+        addon = context.preferences.addons[__package__]
         scene = bpy.context.scene
         if not mdl_base:
             self.report({'ERROR'}, 'No Aurora Base')

@@ -28,7 +28,7 @@ class Material(object):
         self.diffuse_alpha = -1.0  # EE stores an alpha as 4th diffuse value
         self.specular = (0.0, 0.0, 0.0)
         self.alpha = 1.0
-        self.textures = [nvb_def.null]
+        self.textures = [nvb_def.null, None, None, None, None]
         self.renderhints = set()
         self.materialname = ''
         self.mtr = None
@@ -72,7 +72,17 @@ class Material(object):
             if eq:
                 return mat
         return None
+    
 
+    def find_existing_material(self, options):
+        """TODO: Doc."""
+        def get_shader(material):
+            return None
+
+        for mat in bpy.data.materials:
+            pass
+        return None
+      
     def isdefault(self):
         """Return True if the material contains only default values"""
         d = True
@@ -238,31 +248,96 @@ class Material(object):
                 self.mtr.create(material, options)
         return material
 
-    def create_blender_material(self, options, make_unique=False):
+    def add_nodes_bsdf(self, material, options)
+    {
+        # Start over with a clean node tree
+        mat.use_nodes = True
+        mat.node_tree.nodes.clear() 
+
+        # Create an output and shaders
+        node_out = mat.node_tree.nodes.new("ShaderNodeOutputMaterial")
+        node_out.location = (400.0, 400.0)
+
+        node_shader_bsdf = mat.node_tree.nodes.new("ShaderNodeBsdfPrincipled")
+        node_shader_bsdf.location = (-75, 306)
+
+        node_shader_tran = mat.node_tree.nodes.new("ShaderNodeBsdfTransparent")
+        node_shader_tran.location = (22, 440)
+
+        node_shader_mix = mat.node_tree.nodes.new("ShaderNodeMixShader")
+        node_shader_mix.location = (225.0, 375.0)
+        node_shader_mix.inputs['Fac'].default_value = 1.0
+
+        # Link nodes
+        links = mat.node_tree.links
+        links.new(node_out.inputs['Surface'], node_shader_mix.outputs['Shader'])
+        links.new(node_shader_mix.inputs[1], node_shader_tran.outputs['BSDF'])
+        links.new(node_shader_mix.inputs[2], node_shader_bsdf.outputs['BSDF'])
+
+        # Add texture maps
+        # 0 = Diffuse
+        if self.textures[0]:
+            node_tex_diffuse = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            node_tex_diffuse.label = "Texture: Diffuse"
+            node_tex_diffuse.location = (-460.0, 373.0)
+            links.new(node_shader_bsdf.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
+            links.new(node_shader_mix.inputs['Fac'], node_tex_diffuse.outputs['Alpha'])
+
+         # 1 = Normal
+        if self.textures[1]:
+            node_tex_normal = mat.node_tree.nodes.new("ShaderNodeTexImage")       
+            node_tex_normal.label = "Texture: Normal"
+            node_tex_normal.location = (-560.0, -241.0)          
+            node_normal = mat.node_tree.nodes.new("ShaderNodeNormalMap")
+            node_normal.location = (-280.0, -140.0)
+
+            links.new(node_normal.inputs['Color'], node_tex_normal.outputs['Color'])
+            links.new(node_shader_bsdf.inputs['Normal'], node_normal.outputs['Normal'])
+
+         # 2 = Specular
+        if self.textures[2]:
+            node_tex_specular = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            node_tex_specular.label = "Texture: Specular"
+
+        # 3 = Roughness
+        if self.textures[3]:
+            node_tex_roughness = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            node_tex_roughness.label = "Texture: Roughness"
+
+        # 4 = Illumination
+        if self.textures[4]:
+            node_tex_illumination = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            node_tex_illumination.label = "Texture: Illumination"
+
+        # 5 = Height
+        if self.textures[5]:
+            node_tex_height = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            node_tex_height.label = "Texture: Height"                       
+    }
+    
+    def get_blender_material(self, options, make_unique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values into this material
         if options.mtr_import:
             self.createMtr(options)
-        # Do not create if this material has default values
-        if self.isdefault():
-            return None
         # Look for similar materials to avoid duplicates
         material = None
         if options.mat_automerge and not make_unique:
-            material = Material.findMaterial(
-                self.textures, self.materialname,
-                self.diffuse, self.specular, self.alpha)
+            material = self.find_existing_material(options)
         # Create new material if necessary
         if not material:
             # Select a name for this material from
-            # 'materialname' => 'texture0'/'bitmap' => keep default
+            # 'materialname' over 'texture0'/'bitmap' over Default
             if self.materialname:
                 matname = self.materialname
             elif self.textures[0] and self.textures[0] is not nvb_def.null:
                 matname = self.textures[0].lower()
             else:
-                matname = self.name
+                matname = ""
             material = bpy.data.materials.new(matname)
+
+            self.add_nodes_bsdf(material, options)
+
             material.use_transparency = True
             material.diffuse_color = self.diffuse
             material.diffuse_intensity = 1.0
@@ -366,7 +441,7 @@ class Node(object):
 
     def __ne__(self, other):
         """TODO: DOC."""
-        return not self.__eq__(self, other)
+        return not self.__eq__(other)
 
     def __str__(self):
         """TODO: DOC."""
@@ -755,8 +830,8 @@ class Trimesh(Node):
         # Create material
         material = None
         if options.importMaterials:
-            # material_is_unique = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
-            # material = self.material.create(options, material_is_unique)
+            material_is_unique = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
+            material = self.material.get_blender_material(options, material_is_unique)
             if material:
                 blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)

@@ -237,7 +237,7 @@ class NVB_PT_armature(bpy.types.Panel):
     def draw(self, context):
         """Draw the panel."""
         obj = context.object
-        addon = context.user_preferences.addons[__package__]
+        addon = context.preferences.addons[__package__]
         layout = self.layout
 
         # Armature Helper
@@ -807,7 +807,7 @@ class NVB_PT_utils(bpy.types.Panel):
         """Draw the panel."""
         layout = self.layout
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        addon = context.user_preferences.addons[__package__]
+        addon = context.preferences.addons[__package__]
         addon_prefs = addon.preferences
         render = context.scene.render
         if mdl_base:

@@ -14,7 +14,7 @@ def NVB_anim_root_obj_poll(self, object):
 
 
 def NVB_psb_anim_mode_update(self, context):
-    addon = context.user_preferences.addons[__package__]
+    addon = context.preferences.addons[__package__]
     anim_mode = addon.preferences.util_psb_anim_mode
     if anim_mode == 'NLA_STRIPS' or anim_mode == 'NLA_TRACKS':
         addon.preferences.util_psb_insert_base = True
