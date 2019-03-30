@@ -248,47 +248,61 @@ class Material(object):
                 self.mtr.create(material, options)
         return material
 
-    def add_nodes_bsdf(self, material, options)
-    {
+    def add_nodes_bsdf(self, material, options):
+        """Setup up material nodes for Principled BSDF Shader."""
         # Start over with a clean node tree
-        mat.use_nodes = True
-        mat.node_tree.nodes.clear() 
+        material.use_nodes = True
+        material.node_tree.nodes.clear() 
+
+        # Cache because lazy
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
 
         # Create an output and shaders
-        node_out = mat.node_tree.nodes.new("ShaderNodeOutputMaterial")
+        node_out = nodes.new("ShaderNodeOutputMaterial")
         node_out.location = (400.0, 400.0)
 
-        node_shader_bsdf = mat.node_tree.nodes.new("ShaderNodeBsdfPrincipled")
-        node_shader_bsdf.location = (-75, 306)
+        node_shader_bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+        node_shader_bsdf.location = (-75.0, 306.0)
 
-        node_shader_tran = mat.node_tree.nodes.new("ShaderNodeBsdfTransparent")
-        node_shader_tran.location = (22, 440)
+        node_shader_trans = nodes.new("ShaderNodeBsdfTransparent")
+        node_shader_trans.location = (22.0, 440.0)
 
-        node_shader_mix = mat.node_tree.nodes.new("ShaderNodeMixShader")
+        node_shader_mix = nodes.new("ShaderNodeMixShader")
         node_shader_mix.location = (225.0, 375.0)
         node_shader_mix.inputs['Fac'].default_value = 1.0
 
-        # Link nodes
-        links = mat.node_tree.links
+        # Setup: 
+        # Principled BSDF  =>
+        #                     Mix Shader => Material Output
+        # Transparent BSDF =>
         links.new(node_out.inputs['Surface'], node_shader_mix.outputs['Shader'])
-        links.new(node_shader_mix.inputs[1], node_shader_tran.outputs['BSDF'])
+        links.new(node_shader_mix.inputs[1], node_shader_trans.outputs['BSDF'])
         links.new(node_shader_mix.inputs[2], node_shader_bsdf.outputs['BSDF'])
 
         # Add texture maps
         # 0 = Diffuse
         if self.textures[0]:
-            node_tex_diffuse = mat.node_tree.nodes.new("ShaderNodeTexImage")
+            # Setup: Image Texture (Color) => Principled BSDF
+            # Setup: Image Texture (Alpha) => Mix Shader (Factor)
+            node_tex_diffuse = nodes.new("ShaderNodeTexImage")
             node_tex_diffuse.label = "Texture: Diffuse"
+            node_tex_diffuse.name = "texture_diffuse"
             node_tex_diffuse.location = (-460.0, 373.0)
+
             links.new(node_shader_bsdf.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
             links.new(node_shader_mix.inputs['Fac'], node_tex_diffuse.outputs['Alpha'])
 
          # 1 = Normal
         if self.textures[1]:
-            node_tex_normal = mat.node_tree.nodes.new("ShaderNodeTexImage")       
+            # Setup: Image Texture => Normal Map => Principled BSDF
+            node_tex_normal = nodes.new("ShaderNodeTexImage")       
             node_tex_normal.label = "Texture: Normal"
-            node_tex_normal.location = (-560.0, -241.0)          
-            node_normal = mat.node_tree.nodes.new("ShaderNodeNormalMap")
+            node_tex_normal.name = "texture_normal"
+            node_tex_normal.location = (-560.0, -241.0)
+            node_tex_normal.color_space = 'NONE'
+
+            node_normal = nodes.new("ShaderNodeNormalMap")
             node_normal.location = (-280.0, -140.0)
 
             links.new(node_normal.inputs['Color'], node_tex_normal.outputs['Color'])
@@ -296,25 +310,63 @@ class Material(object):
 
          # 2 = Specular
         if self.textures[2]:
-            node_tex_specular = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            # Setup: Image Texture => Principled BSDF
+            node_tex_specular = nodes.new("ShaderNodeTexImage") 
             node_tex_specular.label = "Texture: Specular"
+            node_tex_specular.name = "texture_specular"
+
+            links.new(node_shader_bsdf.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
 
         # 3 = Roughness
         if self.textures[3]:
-            node_tex_roughness = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            # Setup: Image Texture => Principled BSDF
+            node_tex_roughness = nodes.new("ShaderNodeTexImage") 
             node_tex_roughness.label = "Texture: Roughness"
+            node_tex_roughness.name = "texture_roughness"
 
-        # 4 = Illumination
+            links.new(node_shader_bsdf.inputs['Roughness'], node_tex_roughness.outputs['Color'])
+
+        # 4 = Illumination/ Emission/ Glow
         if self.textures[4]:
-            node_tex_illumination = mat.node_tree.nodes.new("ShaderNodeTexImage") 
+            # Setup: 
+            # Image Texture => Emission Shader => 
+            #                                     Mix Shader => Material Output
+            #                  Principled BSDF => 
+            node_tex_illumination = nodes.new("ShaderNodeTexImage") 
             node_tex_illumination.label = "Texture: Illumination"
+            node_tex_illumination.name = "texture_illumination"
 
-        # 5 = Height
+        # 5 = Height/AO/Parallax
         if self.textures[5]:
-            node_tex_height = mat.node_tree.nodes.new("ShaderNodeTexImage") 
-            node_tex_height.label = "Texture: Height"                       
-    }
-    
+            # Setup: Image Texture => Displacement => Material Output
+            node_tex_height = nodes.new("ShaderNodeTexImage")
+            node_tex_height.label = "Texture: Height"
+            node_tex_height.name = "texture_height"
+            node_tex_normal.label = (-560.0, -241.0)
+
+            node_displacement = nodes.new("ShaderNodeDisplacement")
+            node_normal.location = (-280.0, -140.0)  
+
+            links.new(node_displacement.inputs['Height'], node_tex_height.outputs['Color']) 
+            links.new(node_out.inputs['Displacement'], node_displacement.outputs['Displacement'])                       
+
+    def add_nodes_specular(self, material, options):
+        """Setup up material nodes for Eevee Specular Shader."""
+        # Start over with a clean node tree
+        material.use_nodes = True
+        material.node_tree.nodes.clear() 
+
+        # Cache because lazy
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+
+        # Create an output and shaders
+        node_out = nodes.new("ShaderNodeOutputMaterial")
+        node_out.location = (400.0, 400.0)
+
+        node_shader_specular = nodes.new("ShaderNodeEeveeSpecular")
+        node_shader_specular.location = (-75.0, 306.0)
+
     def get_blender_material(self, options, make_unique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values into this material
@@ -336,30 +388,7 @@ class Material(object):
                 matname = ""
             material = bpy.data.materials.new(matname)
 
-            self.add_nodes_bsdf(material, options)
-
-            material.use_transparency = True
-            material.diffuse_color = self.diffuse
-            material.diffuse_intensity = 1.0
-            material.specular_color = self.specular
-            material.specular_intensity = 1.0
-            material.nvb.ambient_color = self.ambient
-            material.nvb.ambient_intensity = 1.0
-            # Load all textures
-            for idx, txname in enumerate(self.textures):
-                if txname and txname is not nvb_def.null:
-                    tslot = material.texture_slots.create(idx)
-                    tslot.texture = nvb_utils.create_texture(
-                        txname, txname, options.filepath, options.tex_search)
-            # Set Renderhint and set up textures accordingly
-            if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
-                material.nvb.renderhint = 'NASM'
-                Material.applyNASMSettings(material, options)
-            Material.applyAlphaSettings(material, self.alpha, options)
-            # Set MTR values
-            if self.mtr:
-                material.nvb.mtrsrc = 'FILE'
-                self.mtr.create(material, options)
+            # self.add_nodes_bsdf(material, options)
         return material
 
     @staticmethod
