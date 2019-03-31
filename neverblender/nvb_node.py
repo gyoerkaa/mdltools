@@ -79,9 +79,10 @@ class Material(object):
         def get_shader(material):
             return None
 
+        matching_mat = None
         for mat in bpy.data.materials:
             pass
-        return None
+        return matching_mat
       
     def isdefault(self):
         """Return True if the material contains only default values"""
@@ -364,8 +365,45 @@ class Material(object):
         node_out = nodes.new("ShaderNodeOutputMaterial")
         node_out.location = (400.0, 400.0)
 
-        node_shader_specular = nodes.new("ShaderNodeEeveeSpecular")
-        node_shader_specular.location = (-75.0, 306.0)
+        node_shader_spec = nodes.new("ShaderNodeEeveeSpecular")
+        node_shader_spec.location = (-75.0, 306.0)
+
+        # Add texture maps
+        # 0 = Diffuse
+        if self.textures[0]:
+            # Setup: Image Texture (Color) => Eevee Specular
+            # Setup: Image Texture (Alpha) => Eevee Specular
+            node_tex_diffuse = nodes.new("ShaderNodeTexImage")
+            node_tex_diffuse.label = "Texture: Diffuse"
+            node_tex_diffuse.name = "texture_diffuse"
+            node_tex_diffuse.location = (-460.0, 373.0)
+
+            links.new(node_shader_spec.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
+            links.new(node_shader_spec.inputs['Alpha'], node_tex_diffuse.outputs['Alpha'])
+        
+        # 1 = Normal
+        if self.textures[1]:
+            # Setup: Image Texture => Normal Map => Principled BSDF
+            node_tex_normal = nodes.new("ShaderNodeTexImage")       
+            node_tex_normal.label = "Texture: Normal"
+            node_tex_normal.name = "texture_normal"
+            node_tex_normal.location = (-560.0, -241.0)
+            node_tex_normal.color_space = 'NONE'
+
+            node_normal = nodes.new("ShaderNodeNormalMap")
+            node_normal.location = (-280.0, -140.0)
+
+            links.new(node_normal.inputs['Color'], node_tex_normal.outputs['Color'])
+            links.new(node_shader_spec.inputs['Normal'], node_normal.outputs['Normal'])
+
+         # 2 = Specular
+        if self.textures[2]:
+            # Setup: Image Texture => Principled BSDF
+            node_tex_specular = nodes.new("ShaderNodeTexImage") 
+            node_tex_specular.label = "Texture: Specular"
+            node_tex_specular.name = "texture_specular"
+
+            links.new(node_shader_spec.inputs['Specular'], node_tex_diffuse.outputs['Color'])
 
     def get_blender_material(self, options, make_unique=False):
         """Creates a blender material with the stored values."""
