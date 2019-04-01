@@ -256,35 +256,30 @@ class Mdl():
 
     @staticmethod
     def generateAsciiWalkmesh(mdl_base, ascii_lines, wkmtype, options):
-        """TODO: DOC"""
+        """TODO: DOC."""
+        wkmObjects = []
         if wkmtype == nvb_def.Walkmeshtype.WOK:
             # Walkmesh for tiles: Append only AABB mesh
             wok = nvb_utils.get_aabb(mdl_base)
             if wok:
-                Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
-                ascii_lines.append("beginwalkmeshgeom " + mdl_base.name)
-                nodeType = nvb_utils.getNodeType(wok)
-                node = Mdl.nodelookup[nodeType]
-                nvb_node.Aabb.generateAscii(wok, ascii_lines, options, True)
-                ascii_lines.append("endwalkmeshgeom " + mdl_base.name)
+                wkmObjects.append(wok)
         else:
-            # Walkmesh for doors or placeables:
-            # Append all children of the walkmesh root
-            wkmObjects = []
+            # Walkmesh for doors: Append all children of the walkmesh root
             wkmRoot = nvb_utils.get_wkm_base(mdl_base, wkmtype)
             if wkmRoot:
                 wkmObjects = [c for c in wkmRoot.children]
-            if wkmObjects:
-                Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
-                # Write Data
-                for obj in wkmObjects:
-                    nodeType = nvb_utils.getNodeType(obj)
-                    try:
-                        node = Mdl.nodelookup[nodeType]
-                    except KeyError:
-                        print("Neverblender: WARNING - Invalid node type.")
-                    else:
-                        node.generateAscii(obj, ascii_lines, options, True)
+        if not wkmObjects:  # Abort if there is nothing to write
+            return
+        Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
+        # Write Data
+        for obj in wkmObjects:
+            nodeType = nvb_utils.getNodeType(obj)
+            try:
+                node = Mdl.nodelookup[nodeType]
+            except KeyError:
+                print("Neverblender: WARNING - Unable to get node type.")
+            else:
+                node.generateAscii(obj, ascii_lines, options, True)
 
     def link_objects(self, nodelist, noderesolver, options):
         """Handles parenting and linking of objects to a scene."""
