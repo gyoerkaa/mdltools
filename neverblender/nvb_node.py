@@ -23,10 +23,10 @@ class Material(object):
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
         self.name = name
-        self.ambient = (1.0, 1.0, 1.0)
-        self.diffuse = (1.0, 1.0, 1.0)
-        self.diffuse_alpha = -1.0  # EE stores an alpha as 4th diffuse value
-        self.specular = (0.0, 0.0, 0.0)
+        self.ambient = (1.0, 1.0, 1.0, 1.0)
+        self.diffuse = (1.0, 1.0, 1.0, 1.0)
+        self.specular = (0.0, 0.0, 0.0, 1.0)
+        self.emissive = (0.0, 0.0, 0.0, 1.0)
         self.alpha = 1.0
         self.textures = [nvb_def.null, None, None, None, None]
         self.renderhints = set()
@@ -95,17 +95,23 @@ class Material(object):
         d = d and self.materialname == ''
         return d
 
+    @staticmethod
+    def parse_ascii_color(ascii_values):
+        color = [float(v) for v in ascii_values]
+        color.extend([1.0] * (4-len(color)))
+        return color
+    
     def loadAsciiLine(self, line):
         """TODO: Doc."""
         label = line[0].lower()
         if label == 'ambient':
-            self.ambient = tuple([float(v) for v in line[1:4]])
+            self.ambient = Material.parse_ascii_color(line[1:5])
         elif label == 'diffuse':
-            self.diffuse = tuple([float(v) for v in line[1:4]])
-            if len(line) > 4:  # EE may store an alpha as 4th diffuse value
-                self.diffuse_alpha = float(line[4])
+            self.diffuse = Material.parse_ascii_color(line[1:5])
         elif label == 'specular':
-            self.specular = tuple([float(v) for v in line[1:4]])
+            self.specular = Material.parse_ascii_color(line[1:5])
+        elif label in ['selfillumcolor', 'setfillumcolor']:
+            self.emissive = Material.parse_ascii_color(line[1:5])             
         elif label == 'alpha':
             self.alpha = float(line[1])
         elif label == 'materialname':
@@ -114,7 +120,7 @@ class Material(object):
             self.renderhints.add(nvb_utils.str2identifier(line[1]))
         elif label == 'bitmap':
             if self.textures[0] == nvb_def.null:  # Do not overwrite existing
-                self.textures[0] = nvb_utils.str2texture(line[1])
+                self.textures[0] = nvb_utils.str2texture(line[1])               
         elif label.startswith('texture'):
             if label[7:]:  # 'texture' is followed by a number
                 idx = int(label[7:])
@@ -355,7 +361,7 @@ class Material(object):
         """Setup up material nodes for Eevee Specular Shader."""
         # Start over with a clean node tree
         material.use_nodes = True
-        material.node_tree.nodes.clear() 
+        material.node_tree.nodes.clear()
 
         # Cache because lazy
         nodes = material.node_tree.nodes
@@ -367,28 +373,39 @@ class Material(object):
 
         node_shader_spec = nodes.new("ShaderNodeEeveeSpecular")
         node_shader_spec.location = (-75.0, 306.0)
+        node_shader_spec.inputs['Base Color'].default_value = self.diffuse
+        node_shader_spec.inputs['Specular'].default_value = self.specular
+        node_shader_spec.inputs['Emissive'].default_value = self.emissive
 
+        links.new(node_out.inputs['Surface'], node_shader_spec.outputs['BSDF'])
+        
         # Add texture maps
         # 0 = Diffuse
         if self.textures[0]:
-            # Setup: Image Texture (Color) => Eevee Specular
-            # Setup: Image Texture (Alpha) => Eevee Specular
+            # Setup: Image Texture (Color) => Eevee Specular (Base Color)           
             node_tex_diffuse = nodes.new("ShaderNodeTexImage")
             node_tex_diffuse.label = "Texture: Diffuse"
             node_tex_diffuse.name = "texture_diffuse"
             node_tex_diffuse.location = (-460.0, 373.0)
 
             links.new(node_shader_spec.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
-            links.new(node_shader_spec.inputs['Alpha'], node_tex_diffuse.outputs['Alpha'])
-        
+
+            # Setup: Image Texture (Alpha) => Invert => Eevee Specular (Tranparency)
+            node_color_invert = nodes.new("ShaderNodeInvert")
+
+            links.new(node_color_invert.inputs['Color'], node_tex_diffuse.outputs['Alpha'])
+            links.new(node_shader_spec.inputs['Transparency'], node_color_invert.outputs['Color'])
+        else: # No diffuse map, plug in (1-alpha) directly into transpareny
+            node_shader_spec.inputs['Transparency'].default_value = 1.0 - self.alpha
+
         # 1 = Normal
         if self.textures[1]:
-            # Setup: Image Texture => Normal Map => Principled BSDF
+            # Setup: Image Texture => Normal Map => Eevee Specular
             node_tex_normal = nodes.new("ShaderNodeTexImage")       
             node_tex_normal.label = "Texture: Normal"
             node_tex_normal.name = "texture_normal"
             node_tex_normal.location = (-560.0, -241.0)
-            node_tex_normal.color_space = 'NONE'
+            node_tex_normal.color_space = 'NONE'  # Single channel
 
             node_normal = nodes.new("ShaderNodeNormalMap")
             node_normal.location = (-280.0, -140.0)
@@ -398,12 +415,42 @@ class Material(object):
 
          # 2 = Specular
         if self.textures[2]:
-            # Setup: Image Texture => Principled BSDF
+            # Setup: Image Texture => Eevee Specular
             node_tex_specular = nodes.new("ShaderNodeTexImage") 
             node_tex_specular.label = "Texture: Specular"
             node_tex_specular.name = "texture_specular"
 
-            links.new(node_shader_spec.inputs['Specular'], node_tex_diffuse.outputs['Color'])
+            links.new(node_shader_spec.inputs['Specular'], node_tex_specular.outputs['Color'])
+
+       # 3 = Roughness
+        if self.textures[3]:
+            # Setup: Image Texture => Eevee Specular (Roughness)
+            node_tex_roughness = nodes.new("ShaderNodeTexImage") 
+            node_tex_roughness.label = "Texture: Roughness"
+            node_tex_roughness.name = "texture_roughness"
+            node_tex_normal.color_space = 'NONE'  # Single channel
+
+            links.new(node_shader_spec.inputs['Roughness'], node_tex_roughness.outputs['Color'])
+
+        # 4 = Illumination/ Emission/ Glow
+        if self.textures[4]:
+            # Setup: Image Texture => Eevee Specular (Emissive)
+            node_tex_illumination = nodes.new("ShaderNodeTexImage") 
+            node_tex_illumination.label = "Texture: Illumination"
+            node_tex_illumination.name = "texture_illumination"
+
+            links.new(node_shader_spec.inputs['Emissive Color'], node_tex_illumination.outputs['Color']) 
+
+        # 5 = Height (use as Ambient Occlusion)
+        if self.textures[5]:
+            # Setup: Image Texture => Eevee Specular (Ambient Occlusion)
+            node_tex_height = nodes.new("ShaderNodeTexImage")
+            node_tex_height.label = "Texture: Height"
+            node_tex_height.name = "texture_height"
+            node_tex_normal.label = (-560.0, -241.0)
+            node_tex_normal.color_space = 'NONE'  # Single channel
+            
+            links.new(node_shader_spec.inputs['Ambient Occlusion'], node_tex_height.outputs['Color'])   
 
     def get_blender_material(self, options, make_unique=False):
         """Creates a blender material with the stored values."""
@@ -703,7 +750,6 @@ class Trimesh(Node):
         self.beaming = 0
         self.inheritcolor = 0  # Unused ?
         self.transparencyhint = 0
-        self.selfillumcolor = (0.0, 0.0, 0.0)
         self.shininess = 0
         self.rotatetexture = 0
         self.material = Material()
@@ -733,9 +779,6 @@ class Trimesh(Node):
                 self.rotatetexture = int(line[1])
             elif label == 'transparencyhint':
                 self.transparencyhint = int(line[1])
-            elif ((label == 'selfillumcolor') or
-                  (label == 'setfillumcolor')):
-                self.selfillumcolor = tuple([float(v) for v in line[1:4]])
             elif label == 'shininess':
                 self.shininess = int(float(line[1]))
             elif label == 'verts':
@@ -1113,7 +1156,6 @@ class Trimesh(Node):
         obj.nvb.inheritcolor = (self.inheritcolor >= 1)
         obj.nvb.rotatetexture = (self.rotatetexture >= 1)
         obj.nvb.transparencyhint = self.transparencyhint
-        obj.nvb.selfillumcolor = self.selfillumcolor
         obj.nvb.shininess = self.shininess
         obj.color = (*self.wirecolor, 1.0)
 
