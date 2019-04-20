@@ -279,6 +279,12 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Auto Merge Materials',
         description='Merge materials with same settings',
         default=True)
+    mat_shader: bpy.props.EnumProperty(
+        name='Shader',
+        description='',
+        items=(('ShaderNodeEeveeSpecular', 'Eevee Specular', ''),
+               ('ShaderNodeBsdfPrincipled', 'Principled BSDF', '')),
+        default='ShaderNodeBsdfPrincipled')
     mtr_import: bpy.props.BoolProperty(
         name='Load MTR files',
         description='Load external material files ' +
@@ -372,7 +378,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         else:  # multiple models => place in a spiral, generate new locations
             for i, filepath in enumerate(pathlist):
                 options.mdl_location = generate_location(i)
-                load_file(context, filepath, options, self.collectionss_create)
+                load_file(context, filepath, options, self.collections_create)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -389,6 +395,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'mat_import')
         sub = box.column()
         sub.enabled = self.mat_import
+        sub.prop(self, 'mat_shader')
         sub.prop(self, 'mat_automerge')
         sub.prop(self, 'mtr_import')
         sub.prop(self, 'tex_search')
@@ -426,6 +433,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Material Options
         options.importMaterials = self.mat_import
         options.mat_automerge = self.mat_automerge
+        options.mat_shader = self.mat_shader
         options.importMTR = self.mtr_import
         options.tex_search = self.tex_search
         # Animation Options

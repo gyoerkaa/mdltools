@@ -483,6 +483,31 @@ def get_textures(material):
     return texList
 
 
+def create_image(img_name, img_path, tex_search):
+    """TODO: Doc."""
+    img_dir = os.path.dirname(img_path)
+    # Prefer tga over dds
+    img = bpy_extras.image_utils.load_image(
+        img_name + '.tga', 
+        img_dir, 
+        recursive=tex_search,
+        place_holder=False, 
+        ncase_cmp=True,
+        check_existing=True)
+    if not img:
+        img = bpy_extras.image_utils.load_image(
+            img_name + '.dds', 
+            img_dir, 
+            recursive=tex_search,
+            place_holder=False, 
+            ncase_cmp=True,
+            check_existing=True)            
+    if not img:
+        img = bpy.data.images.new(img_name, 512, 512)
+    img.name = img_name
+    return img
+
+
 def create_texture(texname, imgname, filepath, tex_search):
     """TODO: Doc."""
     if texname in bpy.data.textures:

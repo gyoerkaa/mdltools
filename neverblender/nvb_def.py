@@ -229,6 +229,7 @@ class ImportOptions():
         self.importMaterials = True
         # Additional options for textures and materials
         self.mtr_import = True
+        self.mat_shader = ""
         self.mat_automerge = True
         self.tex_search = False
         # Animation Settings

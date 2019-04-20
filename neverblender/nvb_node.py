@@ -30,7 +30,7 @@ class Material(object):
         self.alpha = 1.0
         self.textures = [nvb_def.null, None, None, None, None]
         self.renderhints = set()
-        self.materialname = ''
+        self.materialname = ""
         self.mtr = None
 
     @staticmethod
@@ -255,7 +255,7 @@ class Material(object):
                 self.mtr.create(material, options)
         return material
 
-    def add_nodes_bsdf(self, material, options):
+    def add_shader_nodes_bsdf(self, material, options):
         """Setup up material nodes for Principled BSDF Shader."""
         # Start over with a clean node tree
         material.use_nodes = True
@@ -357,11 +357,13 @@ class Material(object):
             links.new(node_displacement.inputs['Height'], node_tex_height.outputs['Color']) 
             links.new(node_out.inputs['Displacement'], node_displacement.outputs['Displacement'])                       
 
-    def add_nodes_specular(self, material, options):
+    def add_shader_nodes_specular(self, material, options):
         """Setup up material nodes for Eevee Specular Shader."""
         # Start over with a clean node tree
         material.use_nodes = True
         material.node_tree.nodes.clear()
+
+        material.blend_method = 'BLEND'
 
         # Cache because lazy
         nodes = material.node_tree.nodes
@@ -388,14 +390,31 @@ class Material(object):
             node_tex_diffuse.name = "texture_diffuse"
             node_tex_diffuse.location = (-460.0, 373.0)
 
-            links.new(node_shader_spec.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
+            node_tex_diffuse.image = nvb_utils.create_image(
+                self.texture[0], options.filepath, options.tex_search)
+            node_tex_diffuse.color_space = 'COLOR'
 
-            # Setup: Image Texture (Alpha) => Invert => Eevee Specular (Tranparency)
+            links.new(node_shader_spec.inputs['Base Color'], 
+                      node_tex_diffuse.outputs['Color'])
+
+            # Setup: Image Texture (Alpha) => Math (Multiply mdl alpha)
+            #        => Invert => Eevee Specular (Tranparency)
             node_color_invert = nodes.new("ShaderNodeInvert")
+            node_color_invert.label = "Alpha to Transparency"
+            
+            node_math = nodes.new("ShaderNodeMath")
+            node_color_invert.label = "Mdl alpha"
+            node_math.operation = 'MULTIPLY'
+            node_math.use_clamp = True
+            node_math.inputs[1].default_value = self.alpha
 
-            links.new(node_color_invert.inputs['Color'], node_tex_diffuse.outputs['Alpha'])
-            links.new(node_shader_spec.inputs['Transparency'], node_color_invert.outputs['Color'])
-        else: # No diffuse map, plug in (1-alpha) directly into transpareny
+            links.new(node_math.inputs[0], 
+                      node_tex_diffuse.outputs['Alpha'])
+            links.new(node_color_invert.inputs['Color'], 
+                      node_math.outputs['Value'])                     
+            links.new(node_shader_spec.inputs['Transparency'], 
+                      node_color_invert.outputs['Color'])
+        else: # No diffuse map, plug in (1-alpha) directly into transparency
             node_shader_spec.inputs['Transparency'].default_value = 1.0 - self.alpha
 
         # 1 = Normal
@@ -405,30 +424,43 @@ class Material(object):
             node_tex_normal.label = "Texture: Normal"
             node_tex_normal.name = "texture_normal"
             node_tex_normal.location = (-560.0, -241.0)
-            node_tex_normal.color_space = 'NONE'  # Single channel
+
+            node_tex_normal.image = nvb_utils.create_image(
+                self.textures[1], options.filepath, options.tex_search)
+            node_tex_normal.color_space = 'NONE'  # Not rgb data
 
             node_normal = nodes.new("ShaderNodeNormalMap")
             node_normal.location = (-280.0, -140.0)
 
-            links.new(node_normal.inputs['Color'], node_tex_normal.outputs['Color'])
-            links.new(node_shader_spec.inputs['Normal'], node_normal.outputs['Normal'])
+            links.new(node_normal.inputs['Color'], 
+                      node_tex_normal.outputs['Color'])
+            links.new(node_shader_spec.inputs['Normal'], 
+                      node_normal.outputs['Normal'])
 
-         # 2 = Specular
+
+        # 2 = Specular
         if self.textures[2]:
             # Setup: Image Texture => Eevee Specular
             node_tex_specular = nodes.new("ShaderNodeTexImage") 
             node_tex_specular.label = "Texture: Specular"
             node_tex_specular.name = "texture_specular"
 
+            node_tex_specular.image = nvb_utils.create_image(
+                self.textures[2], options.filepath, options.tex_search)
+            node_tex_specular.color_space = 'COLOR'
+
             links.new(node_shader_spec.inputs['Specular'], node_tex_specular.outputs['Color'])
 
-       # 3 = Roughness
+        # 3 = Roughness
         if self.textures[3]:
             # Setup: Image Texture => Eevee Specular (Roughness)
             node_tex_roughness = nodes.new("ShaderNodeTexImage") 
             node_tex_roughness.label = "Texture: Roughness"
             node_tex_roughness.name = "texture_roughness"
-            node_tex_normal.color_space = 'NONE'  # Single channel
+            
+            node_tex_roughness.image = nvb_utils.create_image(
+                self.textures[3], options.filepath, options.tex_search)
+            node_tex_roughness.color_space = 'NONE'  # Single channel
 
             links.new(node_shader_spec.inputs['Roughness'], node_tex_roughness.outputs['Color'])
 
@@ -439,6 +471,10 @@ class Material(object):
             node_tex_illumination.label = "Texture: Illumination"
             node_tex_illumination.name = "texture_illumination"
 
+            node_tex_illumination.image = nvb_utils.create_image(
+                self.textures[4], options.filepath, options.tex_search)
+            node_tex_illumination.color_space = 'NONE'  # Single channel
+
             links.new(node_shader_spec.inputs['Emissive Color'], node_tex_illumination.outputs['Color']) 
 
         # 5 = Height (use as Ambient Occlusion)
@@ -447,11 +483,21 @@ class Material(object):
             node_tex_height = nodes.new("ShaderNodeTexImage")
             node_tex_height.label = "Texture: Height"
             node_tex_height.name = "texture_height"
-            node_tex_normal.label = (-560.0, -241.0)
-            node_tex_normal.color_space = 'NONE'  # Single channel
-            
+            node_tex_height.location = (-560.0, -241.0)
+
+            node_tex_illumination.image = nvb_utils.create_image(
+                self.texture[5], options.filepath, options.tex_search)
+            node_tex_height.color_space = 'NONE'  # Single channel
+
             links.new(node_shader_spec.inputs['Ambient Occlusion'], node_tex_height.outputs['Color'])   
 
+    def add_shader_nodes(self, material, options):
+        """Select shader nodes based on options."""
+        if (option.mat_shader == 'ShaderNodeEeveeSpecular')
+            self.add_shader_nodes_specular(material, options)
+        else:
+            self.add_shader_nodes_bsdf(material, options)
+    
     def get_blender_material(self, options, make_unique=False):
         """Creates a blender material with the stored values."""
         # Load mtr values into this material
@@ -466,14 +512,15 @@ class Material(object):
             # Select a name for this material from
             # 'materialname' over 'texture0'/'bitmap' over Default
             if self.materialname:
-                matname = self.materialname
+                mat_name = self.materialname
             elif self.textures[0] and self.textures[0] is not nvb_def.null:
-                matname = self.textures[0].lower()
+                mat_name = self.textures[0].lower()
             else:
-                matname = ""
-            material = bpy.data.materials.new(matname)
+                mat_name = ""
+            material = bpy.data.materials.new(mat_name)
 
-            # self.add_nodes_bsdf(material, options)
+            self.add_shader_nodes(material, options)
+
         return material
 
     @staticmethod
