@@ -493,7 +493,7 @@ class Material(object):
 
     def add_shader_nodes(self, material, options):
         """Select shader nodes based on options."""
-        if (option.mat_shader == 'ShaderNodeEeveeSpecular')
+        if (option.mat_shader == 'ShaderNodeEeveeSpecular'):
             self.add_shader_nodes_specular(material, options)
         else:
             self.add_shader_nodes_bsdf(material, options)
