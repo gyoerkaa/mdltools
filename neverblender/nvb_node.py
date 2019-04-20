@@ -391,7 +391,7 @@ class Material(object):
             node_tex_diffuse.location = (-460.0, 373.0)
 
             node_tex_diffuse.image = nvb_utils.create_image(
-                self.texture[0], options.filepath, options.tex_search)
+                self.textures[0], options.filepath, options.tex_search)
             node_tex_diffuse.color_space = 'COLOR'
 
             links.new(node_shader_spec.inputs['Base Color'], 
@@ -486,7 +486,7 @@ class Material(object):
             node_tex_height.location = (-560.0, -241.0)
 
             node_tex_illumination.image = nvb_utils.create_image(
-                self.texture[5], options.filepath, options.tex_search)
+                self.textures[5], options.filepath, options.tex_search)
             node_tex_height.color_space = 'NONE'  # Single channel
 
             links.new(node_shader_spec.inputs['Ambient Occlusion'], node_tex_height.outputs['Color'])   
@@ -879,13 +879,13 @@ class Trimesh(Node):
             """Euclidean Distance."""
             return math.sqrt(sum([(a - b)**2 for a, b in list(zip(p0, p1))]))
 
-        tvert_cnt = len(self.tverts[0])
+        tvert_cnt = len(self.texture_coordinates[0])
         if tvert_cnt > 0:
             add_dummy_uvs = False
             for f in self.facedef:
-                uvs = self.tverts[0][f[4]], \
-                      self.tverts[0][f[5]], \
-                      self.tverts[0][f[6]]
+                uvs = self.texture_coordinates[0][f[4]], \
+                      self.texture_coordinates[0][f[5]], \
+                      self.texture_coordinates[0][f[6]]
                 min_distance = distance(uvs[0], uvs[1])
                 for p0, p1 in itertools.combinations(uvs, 2):
                     min_distance = min(min_distance, distance(p0, p1))
@@ -894,7 +894,7 @@ class Trimesh(Node):
                     add_dummy_uvs = True
                     f[4], f[5], f[6] = tvert_cnt, tvert_cnt + 1, tvert_cnt + 2
             if add_dummy_uvs:
-                self.tverts[0].extend([(0, 0), (0, 1), (1, 1)])
+                self.texture_coordinates[0].extend([(0, 0), (0, 1), (1, 1)])
 
     @staticmethod
     def create_vertex_colors(mesh, vcolors, vcname):
