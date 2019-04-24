@@ -14,7 +14,9 @@ from bpy_extras.io_utils import unpack_list, unpack_face_list
 from . import nvb_mtr
 from . import nvb_def
 from . import nvb_utils
+from . import nvb_parse
 from . import nvb_aabb
+from . import nvb_material
 
 
 class Material(object):
@@ -28,7 +30,7 @@ class Material(object):
         self.specular = (0.0, 0.0, 0.0, 1.0)
         self.emissive = (0.0, 0.0, 0.0, 1.0)
         self.alpha = 1.0
-        self.textures = [nvb_def.null, None, None, None, None]
+        self.textures = [None] * 15
         self.renderhints = set()
         self.materialname = ""
         self.mtr = None
@@ -73,17 +75,43 @@ class Material(object):
                 return mat
         return None
     
-
-    def find_existing_material(self, options):
+    @staticmethod
+    def get_texture_list(material):
         """TODO: Doc."""
-        def get_shader(material):
-            return None
+        texture_list = [None] * 15
+
+        # Only nodes are supported
+        if not material.use_nodes: 
+            return texture_list  # still empty         
+               
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+
+        # No nodes or no links == no textures
+        if ((len(nodes) <= 0) or (len(links) <= 0)):
+            return texture_list  # still empty  
+
+        output_nodes = [n for n in nodes if n.type == 'OUTPUT_MATERIAL']
+        
+        # No output node == no textures
+        if not output_nodes:
+            return texture_list  # still empty  
+
+        # If there are multiple output nodes we have to select one
+
+
+        return texture_list
+    
+    
+    def find_blender_material(self, options):
+        """TODO: Doc."""
 
         matching_mat = None
         for mat in bpy.data.materials:
             pass
         return matching_mat
-      
+
+
     def isdefault(self):
         """Return True if the material contains only default values"""
         d = True
@@ -94,73 +122,32 @@ class Material(object):
         d = d and self.textures.count(nvb_def.null) == len(self.textures)
         d = d and self.materialname == ''
         return d
-
-    @staticmethod
-    def parse_ascii_color(ascii_values):
-        color = [float(v) for v in ascii_values]
-        color.extend([1.0] * (4-len(color)))
-        return color
     
     def loadAsciiLine(self, line):
         """TODO: Doc."""
         label = line[0].lower()
         if label == 'ambient':
-            self.ambient = Material.parse_ascii_color(line[1:5])
+            self.ambient = nvb_parse.ascii_color(line[1:])
         elif label == 'diffuse':
-            self.diffuse = Material.parse_ascii_color(line[1:5])
+            self.diffuse = nvb_parse.ascii_color(line[1:])
         elif label == 'specular':
-            self.specular = Material.parse_ascii_color(line[1:5])
+            self.specular = nvb_parse.ascii_color(line[1:])
         elif label in ['selfillumcolor', 'setfillumcolor']:
-            self.emissive = Material.parse_ascii_color(line[1:5])             
+            self.emissive = nvb_parse.ascii_color(line[1:])             
         elif label == 'alpha':
-            self.alpha = float(line[1])
-        elif label == 'materialname':
-            self.materialname = nvb_utils.str2identifier(line[1])
+            self.alpha = nvb_parse.ascii_float(line[1])
+        elif label == 'materialname': 
+            self.materialname = nvb_parse.ascii_identifier(line[1])
         elif label == 'renderhint':
-            self.renderhints.add(nvb_utils.str2identifier(line[1]))
+            self.renderhints.add(nvb_parse.ascii_identifier(line[1]))
         elif label == 'bitmap':
-            if self.textures[0] == nvb_def.null:  # Do not overwrite existing
-                self.textures[0] = nvb_utils.str2texture(line[1])               
+            # bitmap == texture0, texture0 takes precedence
+            if self.textures[0] is None:
+                self.textures[0] = nvb_parse.ascii_texture(line[1])               
         elif label.startswith('texture'):
             if label[7:]:  # 'texture' is followed by a number
                 idx = int(label[7:])
-                cnt = len(self.textures)
-                if idx+1 > cnt:
-                    self.textures.extend([nvb_def.null
-                                         for _ in range(idx+1-cnt)])
-                self.textures[idx] = nvb_utils.str2texture(line[1])
-
-    @staticmethod
-    def applyNASMSettings(material, options):
-        """Apply settings to material and texture slots for default shader."""
-        # Diffuse in tslot 0
-        tslot = material.texture_slots[0]
-        if tslot is not None:
-            tslot.texture_coords = 'UV'
-            tslot.use_map_color_diffuse = True
-            tslot.use_map_normal = False
-            tslot.use_map_color_spec = False
-            tslot.use_map_alpha = True
-        # Normal in tslot 1
-        tslot = material.texture_slots[1]
-        if tslot is not None:
-            tslot.texture_coords = 'UV'
-            tslot.use_map_color_diffuse = False
-            tslot.use_map_normal = True
-            tslot.use_map_color_spec = False
-            tslot.normal_map_space = 'TANGENT'
-            tslot.texture.use_normal_map = True
-        # Specular in tslot 2
-        tslot = material.texture_slots[2]
-        if tslot is not None:
-            tslot.texture_coords = 'UV'
-            tslot.use_map_color_diffuse = False
-            tslot.use_map_normal = False
-            tslot.use_map_color_spec = True
-        # ??? in tslot 3
-        tslot = material.texture_slots[3]
-        if tslot is not None:
-            tslot.texture_coords = 'UV'
+                self.textures[idx] = nvb_parse.ascii_texture(line[1])
 
     @staticmethod
     def applyAlphaSettings(material, alpha, options):
@@ -247,280 +234,12 @@ class Material(object):
             # Set Renderhint and set up textures accordingly
             if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
                 material.nvb.renderhint = 'NASM'
-                Material.applyNASMSettings(material, options)
+                # Material.applyNASMSettings(material, options)
             Material.applyAlphaSettings(material, self.alpha, options)
             # Set MTR values
             if self.mtr:
                 material.nvb.mtrsrc = 'FILE'
                 self.mtr.create(material, options)
-        return material
-
-    def add_shader_nodes_bsdf(self, material, options):
-        """Setup up material nodes for Principled BSDF Shader."""
-        # Start over with a clean node tree
-        material.use_nodes = True
-        material.node_tree.nodes.clear() 
-
-        # Cache because lazy
-        nodes = material.node_tree.nodes
-        links = material.node_tree.links
-
-        # Create an output and shaders
-        node_out = nodes.new("ShaderNodeOutputMaterial")
-        node_out.location = (400.0, 400.0)
-
-        node_shader_bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-        node_shader_bsdf.location = (-75.0, 306.0)
-
-        node_shader_trans = nodes.new("ShaderNodeBsdfTransparent")
-        node_shader_trans.location = (22.0, 440.0)
-
-        node_shader_mix = nodes.new("ShaderNodeMixShader")
-        node_shader_mix.location = (225.0, 375.0)
-        node_shader_mix.inputs['Fac'].default_value = 1.0
-
-        # Setup: 
-        # Principled BSDF  =>
-        #                     Mix Shader => Material Output
-        # Transparent BSDF =>
-        links.new(node_out.inputs['Surface'], node_shader_mix.outputs['Shader'])
-        links.new(node_shader_mix.inputs[1], node_shader_trans.outputs['BSDF'])
-        links.new(node_shader_mix.inputs[2], node_shader_bsdf.outputs['BSDF'])
-
-        # Add texture maps
-        # 0 = Diffuse
-        if self.textures[0]:
-            # Setup: Image Texture (Color) => Principled BSDF
-            # Setup: Image Texture (Alpha) => Mix Shader (Factor)
-            node_tex_diffuse = nodes.new("ShaderNodeTexImage")
-            node_tex_diffuse.label = "Texture: Diffuse"
-            node_tex_diffuse.name = "texture_diffuse"
-            node_tex_diffuse.location = (-460.0, 373.0)
-
-            links.new(node_shader_bsdf.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
-            links.new(node_shader_mix.inputs['Fac'], node_tex_diffuse.outputs['Alpha'])
-
-         # 1 = Normal
-        if self.textures[1]:
-            # Setup: Image Texture => Normal Map => Principled BSDF
-            node_tex_normal = nodes.new("ShaderNodeTexImage")       
-            node_tex_normal.label = "Texture: Normal"
-            node_tex_normal.name = "texture_normal"
-            node_tex_normal.location = (-560.0, -241.0)
-            node_tex_normal.color_space = 'NONE'
-
-            node_normal = nodes.new("ShaderNodeNormalMap")
-            node_normal.location = (-280.0, -140.0)
-
-            links.new(node_normal.inputs['Color'], node_tex_normal.outputs['Color'])
-            links.new(node_shader_bsdf.inputs['Normal'], node_normal.outputs['Normal'])
-
-         # 2 = Specular
-        if self.textures[2]:
-            # Setup: Image Texture => Principled BSDF
-            node_tex_specular = nodes.new("ShaderNodeTexImage") 
-            node_tex_specular.label = "Texture: Specular"
-            node_tex_specular.name = "texture_specular"
-
-            links.new(node_shader_bsdf.inputs['Base Color'], node_tex_diffuse.outputs['Color'])
-
-        # 3 = Roughness
-        if self.textures[3]:
-            # Setup: Image Texture => Principled BSDF
-            node_tex_roughness = nodes.new("ShaderNodeTexImage") 
-            node_tex_roughness.label = "Texture: Roughness"
-            node_tex_roughness.name = "texture_roughness"
-
-            links.new(node_shader_bsdf.inputs['Roughness'], node_tex_roughness.outputs['Color'])
-
-        # 4 = Illumination/ Emission/ Glow
-        if self.textures[4]:
-            # Setup: 
-            # Image Texture => Emission Shader => 
-            #                                     Mix Shader => Material Output
-            #                  Principled BSDF => 
-            node_tex_illumination = nodes.new("ShaderNodeTexImage") 
-            node_tex_illumination.label = "Texture: Illumination"
-            node_tex_illumination.name = "texture_illumination"
-
-        # 5 = Height/AO/Parallax
-        if self.textures[5]:
-            # Setup: Image Texture => Displacement => Material Output
-            node_tex_height = nodes.new("ShaderNodeTexImage")
-            node_tex_height.label = "Texture: Height"
-            node_tex_height.name = "texture_height"
-            node_tex_normal.label = (-560.0, -241.0)
-
-            node_displacement = nodes.new("ShaderNodeDisplacement")
-            node_normal.location = (-280.0, -140.0)  
-
-            links.new(node_displacement.inputs['Height'], node_tex_height.outputs['Color']) 
-            links.new(node_out.inputs['Displacement'], node_displacement.outputs['Displacement'])                       
-
-    def add_shader_nodes_specular(self, material, options):
-        """Setup up material nodes for Eevee Specular Shader."""
-        # Start over with a clean node tree
-        material.use_nodes = True
-        material.node_tree.nodes.clear()
-
-        material.blend_method = 'BLEND'
-
-        # Cache because lazy
-        nodes = material.node_tree.nodes
-        links = material.node_tree.links
-
-        # Create an output and shaders
-        node_out = nodes.new("ShaderNodeOutputMaterial")
-        node_out.location = (400.0, 400.0)
-
-        node_shader_spec = nodes.new("ShaderNodeEeveeSpecular")
-        node_shader_spec.location = (-75.0, 306.0)
-        node_shader_spec.inputs['Base Color'].default_value = self.diffuse
-        node_shader_spec.inputs['Specular'].default_value = self.specular
-        node_shader_spec.inputs['Emissive'].default_value = self.emissive
-
-        links.new(node_out.inputs['Surface'], node_shader_spec.outputs['BSDF'])
-        
-        # Add texture maps
-        # 0 = Diffuse
-        if self.textures[0]:
-            # Setup: Image Texture (Color) => Eevee Specular (Base Color)           
-            node_tex_diffuse = nodes.new("ShaderNodeTexImage")
-            node_tex_diffuse.label = "Texture: Diffuse"
-            node_tex_diffuse.name = "texture_diffuse"
-            node_tex_diffuse.location = (-460.0, 373.0)
-
-            node_tex_diffuse.image = nvb_utils.create_image(
-                self.textures[0], options.filepath, options.tex_search)
-            node_tex_diffuse.color_space = 'COLOR'
-
-            links.new(node_shader_spec.inputs['Base Color'], 
-                      node_tex_diffuse.outputs['Color'])
-
-            # Setup: Image Texture (Alpha) => Math (Multiply mdl alpha)
-            #        => Invert => Eevee Specular (Tranparency)
-            node_color_invert = nodes.new("ShaderNodeInvert")
-            node_color_invert.label = "Alpha to Transparency"
-            
-            node_math = nodes.new("ShaderNodeMath")
-            node_color_invert.label = "Mdl alpha"
-            node_math.operation = 'MULTIPLY'
-            node_math.use_clamp = True
-            node_math.inputs[1].default_value = self.alpha
-
-            links.new(node_math.inputs[0], 
-                      node_tex_diffuse.outputs['Alpha'])
-            links.new(node_color_invert.inputs['Color'], 
-                      node_math.outputs['Value'])                     
-            links.new(node_shader_spec.inputs['Transparency'], 
-                      node_color_invert.outputs['Color'])
-        else: # No diffuse map, plug in (1-alpha) directly into transparency
-            node_shader_spec.inputs['Transparency'].default_value = 1.0 - self.alpha
-
-        # 1 = Normal
-        if self.textures[1]:
-            # Setup: Image Texture => Normal Map => Eevee Specular
-            node_tex_normal = nodes.new("ShaderNodeTexImage")       
-            node_tex_normal.label = "Texture: Normal"
-            node_tex_normal.name = "texture_normal"
-            node_tex_normal.location = (-560.0, -241.0)
-
-            node_tex_normal.image = nvb_utils.create_image(
-                self.textures[1], options.filepath, options.tex_search)
-            node_tex_normal.color_space = 'NONE'  # Not rgb data
-
-            node_normal = nodes.new("ShaderNodeNormalMap")
-            node_normal.location = (-280.0, -140.0)
-
-            links.new(node_normal.inputs['Color'], 
-                      node_tex_normal.outputs['Color'])
-            links.new(node_shader_spec.inputs['Normal'], 
-                      node_normal.outputs['Normal'])
-
-
-        # 2 = Specular
-        if self.textures[2]:
-            # Setup: Image Texture => Eevee Specular
-            node_tex_specular = nodes.new("ShaderNodeTexImage") 
-            node_tex_specular.label = "Texture: Specular"
-            node_tex_specular.name = "texture_specular"
-
-            node_tex_specular.image = nvb_utils.create_image(
-                self.textures[2], options.filepath, options.tex_search)
-            node_tex_specular.color_space = 'COLOR'
-
-            links.new(node_shader_spec.inputs['Specular'], node_tex_specular.outputs['Color'])
-
-        # 3 = Roughness
-        if self.textures[3]:
-            # Setup: Image Texture => Eevee Specular (Roughness)
-            node_tex_roughness = nodes.new("ShaderNodeTexImage") 
-            node_tex_roughness.label = "Texture: Roughness"
-            node_tex_roughness.name = "texture_roughness"
-            
-            node_tex_roughness.image = nvb_utils.create_image(
-                self.textures[3], options.filepath, options.tex_search)
-            node_tex_roughness.color_space = 'NONE'  # Single channel
-
-            links.new(node_shader_spec.inputs['Roughness'], node_tex_roughness.outputs['Color'])
-
-        # 4 = Illumination/ Emission/ Glow
-        if self.textures[4]:
-            # Setup: Image Texture => Eevee Specular (Emissive)
-            node_tex_illumination = nodes.new("ShaderNodeTexImage") 
-            node_tex_illumination.label = "Texture: Illumination"
-            node_tex_illumination.name = "texture_illumination"
-
-            node_tex_illumination.image = nvb_utils.create_image(
-                self.textures[4], options.filepath, options.tex_search)
-            node_tex_illumination.color_space = 'NONE'  # Single channel
-
-            links.new(node_shader_spec.inputs['Emissive Color'], node_tex_illumination.outputs['Color']) 
-
-        # 5 = Height (use as Ambient Occlusion)
-        if self.textures[5]:
-            # Setup: Image Texture => Eevee Specular (Ambient Occlusion)
-            node_tex_height = nodes.new("ShaderNodeTexImage")
-            node_tex_height.label = "Texture: Height"
-            node_tex_height.name = "texture_height"
-            node_tex_height.location = (-560.0, -241.0)
-
-            node_tex_illumination.image = nvb_utils.create_image(
-                self.textures[5], options.filepath, options.tex_search)
-            node_tex_height.color_space = 'NONE'  # Single channel
-
-            links.new(node_shader_spec.inputs['Ambient Occlusion'], node_tex_height.outputs['Color'])   
-
-    def add_shader_nodes(self, material, options):
-        """Select shader nodes based on options."""
-        if (options.mat_shader == 'ShaderNodeEeveeSpecular'):
-            self.add_shader_nodes_specular(material, options)
-        else:
-            self.add_shader_nodes_bsdf(material, options)
-    
-    def get_blender_material(self, options, make_unique=False):
-        """Creates a blender material with the stored values."""
-        # Load mtr values into this material
-        if options.mtr_import:
-            self.createMtr(options)
-        # Look for similar materials to avoid duplicates
-        material = None
-        if options.mat_automerge and not make_unique:
-            material = self.find_existing_material(options)
-        # Create new material if necessary
-        if not material:
-            # Select a name for this material from
-            # 'materialname' over 'texture0'/'bitmap' over Default
-            if self.materialname:
-                mat_name = self.materialname
-            elif self.textures[0] and self.textures[0] is not nvb_def.null:
-                mat_name = self.textures[0].lower()
-            else:
-                mat_name = ""
-            material = bpy.data.materials.new(mat_name)
-
-            self.add_shader_nodes(material, options)
-
         return material
 
     @staticmethod
@@ -799,7 +518,7 @@ class Trimesh(Node):
         self.transparencyhint = 0
         self.shininess = 0
         self.rotatetexture = 0
-        self.material = Material()
+        self.material = nvb_material.Material()
         self.vertex_coords = []
         self.texture_coordinates = [[]]  # list of tex coords = uv layers
         self.facedef = []
@@ -870,7 +589,7 @@ class Trimesh(Node):
                     self.texture_coordinates[tvid] = \
                         [(float(v[0]), float(v[1])) for v in tmp]
             else:
-                self.material.loadAsciiLine(line)
+                self.material.parse_ascii_line(line)
         return line
 
     def fix_degenerated_uvs(self):
