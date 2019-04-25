@@ -183,7 +183,7 @@ def create_wok_materials(mesh):
         else:
             mat = bpy.data.materials.new(matname)
             mat.diffuse_color = matcolor
-            mat.specular_color = (0.0, 0.0, 0.0)
+            mat.specular_intensity = 0.0
         mesh.materials.append(mat)
 
 

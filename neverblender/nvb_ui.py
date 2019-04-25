@@ -289,18 +289,6 @@ class NVB_PT_material(bpy.types.Panel):
         material = context.material
         layout = self.layout
 
-        # Ambient color parameters
-        box = layout.box()
-        row = box.row()
-        row.label(text="Ambient")
-        row.prop(material.nvb, 'ambient_color', text="")
-        row = box.row()
-        row.label(text="Diffuse")
-        row.prop(material, 'diffuse_color', text="")
-        row = box.row()
-        row.label(text="Specular")
-        row.prop(material, 'specular_color', text="")
-
         layout.separator()
         box = layout.box()
         box.prop(material.nvb, 'renderhint')
@@ -600,7 +588,6 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             box.label(text='Trimesh Properties')
 
             row = box.row()
-            row.prop(obj.nvb, 'selfillumcolor', text='Selfillum. color')
             box.prop(obj.nvb, 'shininess', text='Shininess')
             box.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()

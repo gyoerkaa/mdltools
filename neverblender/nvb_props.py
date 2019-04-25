@@ -239,10 +239,6 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     This class defines all additional properties needed by the mdl file
     format. It hold the properties for meshes, lamps and empties.
     """
-    ambient_color: bpy.props.FloatVectorProperty(
-        subtype='COLOR_GAMMA',
-        name='Ambient', description='Ambient color of the material',
-        default=(1.0, 1.0, 1.0), min=0.0, max=1.0)
     renderhint: bpy.props.EnumProperty(
         name='Renderhint',
         items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
@@ -348,7 +344,7 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                 'TODO: Unknown', 5),
                ('aligned_to_particle_dir', 'Aligned to Particle',
                 'Particles align to their angle at birth', 6),
-               ('motionblur', 'Motion Blur',
+               ('motion_blur', 'Motion Blur',
                 'Stretch and overlap particles', 7),
                ],
         default='normal', options=set())

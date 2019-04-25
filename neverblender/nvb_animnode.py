@@ -8,7 +8,7 @@ import bpy
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_node
-
+from . import nvb_material
 
 class Animnode():
     """TODO: DOC."""
@@ -25,14 +25,14 @@ class Animnode():
                          'color': ('color', 3, float,
                                    ' {:>4.2f}'),
                          'radius': ('distance', 1, float,
-                                    ' {:>6.5f}'),
-                         'selfillumcolor': ('nvb.selfillumcolor', 3, float,
-                                            ' {:>4.2f}'),
-                         'setfillumcolor': ('nvb.selfillumcolor', 3, float,
-                                            ' {:>4.2f}')}
+                                    ' {:>6.5f}')}
     # Keys that go into materials
     material_properties = {'alpha': ('', 1, float,  # Needs conversion
-                                     ' {:>4.2f}')}
+                                     ' {:>4.2f}'),
+                           'selfillumcolor': ('', 3, float,
+                                            ' {:>4.2f}'),
+                           'setfillumcolor': ('', 3, float,
+                                            ' {:>4.2f}')}
 
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
@@ -148,30 +148,35 @@ class Animnode():
     def create_data_material(self, obj, anim, options):
         """Creates animations in material actions."""
 
-        def data_conversion(label, mat, vals):
+        def data_conversion(label, node_tree, vals):
+            """TODO: Doc."""
+            node_output = nvb_material.Nodes.get_output_node(
+                    node_tree.nodes)
+            surface_input = node_output.inputs[0]
             if label == 'alpha':
-                if mat.active_texture:
-                    # Material has a texture
-                    tslotIdx = mat.active_texture_index
-                    dp = 'texture_slots[' + str(tslotIdx) + '].alpha_factor'
-                    dp_dim = 1
-                else:
-                    # No texture
-                    dp = 'alpha'
-                    dp_dim = 1
+                socket = nvb_material.Nodes.find_alpha_socket( surface_input)
+                dp = socket.path_from_id("default_value")
+                dp_dim = 1
+            elif label in ['selfillumcolor', 'setfillumcolor']:
+                socket = nvb_material.Nodes.find_emissive_socket(surface_input)
+                dp = socket.path_from_id("default_value")
+                dp_dim = 4
             return vals, dp, dp_dim
 
-        mat = obj.active_material
-        if not mat:
+        blender_mat = obj.active_material
+        if not blender_mat:
+            return
+        node_tree = blender_mat.node_tree
+        if not node_tree:
             return
         fps = options.scene.render.fps
         frame_start = anim.frameStart
-        action = nvb_utils.get_action(mat, mat.name)
+        action = nvb_utils.get_action(node_tree, blender_mat.name)
         for label, (data, data_path, data_dim) in self.material_data.items():
             frames = [fps * d[0] + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
-                    label, mat, [d[1:data_dim+1] for d in data])
+                    label, node_tree, [d[1:data_dim+1] for d in data])
             else:
                 values = [d[1:data_dim+1] for d in data]
                 dp = data_path
@@ -797,7 +802,7 @@ class Animnode():
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
         tmpLines = []
-        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines, options, True)
+        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines, options)
         asciiLines.extend(['  ' + l for l in tmpLines])
         maxsamples = -1  # Samples > 0 also means not to write metadata (again)
         maxsamples = Animnode.generate_ascii_animesh_uv(obj, anim, asciiLines,

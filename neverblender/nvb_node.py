@@ -19,284 +19,6 @@ from . import nvb_aabb
 from . import nvb_material
 
 
-class Material(object):
-    """A material read from an mdl node."""
-
-    def __init__(self, name='unnamed'):
-        """TODO: DOC."""
-        self.name = name
-        self.ambient = (1.0, 1.0, 1.0, 1.0)
-        self.diffuse = (1.0, 1.0, 1.0, 1.0)
-        self.specular = (0.0, 0.0, 0.0, 1.0)
-        self.emissive = (0.0, 0.0, 0.0, 1.0)
-        self.alpha = 1.0
-        self.textures = [None] * 15
-        self.renderhints = set()
-        self.materialname = ""
-        self.mtr = None
-
-    @staticmethod
-    def colorisclose(a, b, tol=0.05):
-        return (sum([math.isclose(v[0], v[1]) for v in zip(a, b)]) == len(a))
-
-    @staticmethod
-    def findMaterial(textures, mtrname, cdiff, cspec, alpha):
-        """TODO: Doc."""
-        def get_tslot_img(tslot):
-            """Get the image texture from a texture slot."""
-            if tslot:
-                tex = tslot.texture
-                if tex and tex.type == 'IMAGE' and tex.image:
-                    return tex.image.name
-            return ''
-
-        for mat in bpy.data.materials:
-            eq = True
-            # Check diffuse and specular color
-            eq = eq and Material.colorisclose(mat.diffuse_color, cdiff)
-            eq = eq and Material.colorisclose(mat.specular_color, cspec)
-            # Check texture names:
-            tstextures = list(map(get_tslot_img, mat.texture_slots))
-            matches = []
-            matches = itertools.zip_longest(tstextures, textures,
-                                            fillvalue='')
-            for m in matches:
-                eq = eq and (m[0] == m[1])
-            # If tslot 0 is used we need to compare alpha values too
-            # (texture 0 = diffuse)
-            if mat.texture_slots[0]:
-                eq = eq and (alpha == mat.texture_slots[0].alpha_factor)
-            else:
-                eq = eq and (alpha == mat.alpha)
-            # Check materialname (= name of MTR file)
-            if mtrname:
-                eq = eq and mat.nvb.usemtr and mat.nvb.mtrname == mtrname
-            if eq:
-                return mat
-        return None
-    
-    @staticmethod
-    def get_texture_list(material):
-        """TODO: Doc."""
-        texture_list = [None] * 15
-
-        # Only nodes are supported
-        if not material.use_nodes: 
-            return texture_list  # still empty         
-               
-        nodes = material.node_tree.nodes
-        links = material.node_tree.links
-
-        # No nodes or no links == no textures
-        if ((len(nodes) <= 0) or (len(links) <= 0)):
-            return texture_list  # still empty  
-
-        output_nodes = [n for n in nodes if n.type == 'OUTPUT_MATERIAL']
-        
-        # No output node == no textures
-        if not output_nodes:
-            return texture_list  # still empty  
-
-        # If there are multiple output nodes we have to select one
-
-
-        return texture_list
-    
-    
-    def find_blender_material(self, options):
-        """TODO: Doc."""
-
-        matching_mat = None
-        for mat in bpy.data.materials:
-            pass
-        return matching_mat
-
-
-    def isdefault(self):
-        """Return True if the material contains only default values"""
-        d = True
-        d = d and Material.colorisclose(self.ambient, (1.0, 1.0, 1.0))
-        d = d and Material.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
-        d = d and Material.colorisclose(self.specular, (0.0, 0.0, 0.0))
-        d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
-        d = d and self.textures.count(nvb_def.null) == len(self.textures)
-        d = d and self.materialname == ''
-        return d
-    
-    def loadAsciiLine(self, line):
-        """TODO: Doc."""
-        label = line[0].lower()
-        if label == 'ambient':
-            self.ambient = nvb_parse.ascii_color(line[1:])
-        elif label == 'diffuse':
-            self.diffuse = nvb_parse.ascii_color(line[1:])
-        elif label == 'specular':
-            self.specular = nvb_parse.ascii_color(line[1:])
-        elif label in ['selfillumcolor', 'setfillumcolor']:
-            self.emissive = nvb_parse.ascii_color(line[1:])             
-        elif label == 'alpha':
-            self.alpha = nvb_parse.ascii_float(line[1])
-        elif label == 'materialname': 
-            self.materialname = nvb_parse.ascii_identifier(line[1])
-        elif label == 'renderhint':
-            self.renderhints.add(nvb_parse.ascii_identifier(line[1]))
-        elif label == 'bitmap':
-            # bitmap == texture0, texture0 takes precedence
-            if self.textures[0] is None:
-                self.textures[0] = nvb_parse.ascii_texture(line[1])               
-        elif label.startswith('texture'):
-            if label[7:]:  # 'texture' is followed by a number
-                idx = int(label[7:])
-                self.textures[idx] = nvb_parse.ascii_texture(line[1])
-
-    @staticmethod
-    def applyAlphaSettings(material, alpha, options):
-        """Applies settings to correctly display alpha values
-
-           1. If there is a texture, alpha goes into texture slot, material
-              alpha is 0.0
-           2. Alpha goes in material if there is no texture.
-        """
-        material.use_transparency = True
-        material.specular_alpha = 0.0
-        tslot = material.texture_slots[0]
-        if tslot:
-            material.alpha = 0.0
-            tslot.use_map_alpha = True
-            tslot.alpha_factor = alpha
-        else:
-            material.alpha = alpha
-
-    def createMtr(self, options):
-        """Loads contents of the mtr file into the this material."""
-        self.mtr = None
-        namelist = [(self.materialname, True), (self.textures[0], False)]
-        for mtrname, alwayscreate in namelist:
-            if mtrname not in [nvb_def.null, '']:
-                if mtrname in options.mtrdb:
-                    self.mtr = options.mtrdb[mtrname]
-                else:  # Always load, use empty mtr if no file was found
-                    mtr_filename = mtrname + '.mtr'
-                    mdl_dir, _ = os.path.split(options.filepath)
-                    mtr_path = os.path.join(mdl_dir, mtr_filename)
-                    tmp = nvb_mtr.Mtr(mtrname)
-                    if tmp.loadFile(mtr_path) or alwayscreate:
-                        options.mtrdb[mtrname] = tmp
-                        self.mtr = tmp
-        # Merge values from mtr, overwrite existing
-        if self.mtr:
-            self.renderhints = self.renderhints.union(self.mtr.renderhints)
-            if self.mtr.textures:  # Transfer texture names
-                l1 = len(self.textures)
-                l2 = len(self.mtr.textures)
-                if l2 > l1:
-                    self.textures.extend(['' for _ in range(l2-l1+1)])
-                for idx, txname in enumerate(self.mtr.textures):
-                    if txname:  # null value in mtr overwrites existing in mdl
-                        self.textures[idx] = txname
-
-    def create(self, options, makeunique=False):
-        """Creates a blender material with the stored values."""
-        # Load mtr values intro this material
-        if options.mtr_import:
-            self.createMtr(options)
-        # Do not create if this material has default values
-        if self.isdefault():
-            return None
-        # Look for similar materials to avoid duplicates
-        material = None
-        if options.mat_automerge and not makeunique:
-            material = Material.findMaterial(
-                self.textures, self.materialname,
-                self.diffuse, self.specular, self.alpha)
-        # Create new material as necessary
-        if not material:
-            if self.materialname:
-                matname = self.materialname
-            elif self.textures[0] and self.textures[0] is not nvb_def.null:
-                matname = self.textures[0].lower()
-            else:
-                matname = self.name
-            material = bpy.data.materials.new(matname)
-            material.use_transparency = True
-            material.diffuse_color = self.diffuse
-            material.diffuse_intensity = 1.0
-            material.specular_color = self.specular
-            material.specular_intensity = 1.0
-            material.nvb.ambient_color = self.ambient
-            material.nvb.ambient_intensity = 1.0
-            # Load all textures
-            for idx, txname in enumerate(self.textures):
-                if txname and txname is not nvb_def.null:
-                    tslot = material.texture_slots.create(idx)
-                    tslot.texture = nvb_utils.create_texture(
-                        txname, txname, options.filepath, options.tex_search)
-            # Set Renderhint and set up textures accordingly
-            if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
-                material.nvb.renderhint = 'NASM'
-                # Material.applyNASMSettings(material, options)
-            Material.applyAlphaSettings(material, self.alpha, options)
-            # Set MTR values
-            if self.mtr:
-                material.nvb.mtrsrc = 'FILE'
-                self.mtr.create(material, options)
-        return material
-
-    @staticmethod
-    def generateDefaultValues(asciiLines):
-        """Write default material values to ascii."""
-        asciiLines.append('  ambient 1.00 1.00 1.00')
-        asciiLines.append('  diffuse 1.00 1.00 1.00')
-        asciiLines.append('  specular 0.00 0.00 0.00')
-        asciiLines.append('  bitmap ' + nvb_def.null)
-
-    @staticmethod
-    def generateAscii(obj, asciiLines, options):
-        """Write Ascii lines from the objects material for a MDL file."""
-        material = obj.active_material
-        txlist = []
-        if obj.nvb.render and material:
-            # Write Color Values
-            fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
-            asciiLines.append(fstr.format(*material.nvb.ambient_color))
-            fstr = '  diffuse {:3.2f} {:3.2f} {:3.2f}'
-            asciiLines.append(fstr.format(*material.diffuse_color))
-            fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
-            asciiLines.append(fstr.format(*material.specular_color))
-            # Get textures for this material
-            txlist = nvb_utils.get_textures(material)
-            if material.nvb.usemtr:
-                mtrname = material.nvb.mtrname
-                asciiLines.append('  ' + options.mtr_ref + ' ' + mtrname)
-                options.mtrdb.add(material.name)  # export later on demand
-            else:
-                # Add Renderhint
-                if (material.nvb.renderhint == 'NASM') or \
-                   (material.nvb.renderhint == 'AUTO' and len(txlist) > 1):
-                    asciiLines.append('  renderhint NormalAndSpecMapped')
-                # Export texture[0] as "bitmap", not "texture0"
-                if len(txlist) > 0:
-                    asciiLines.append('  bitmap ' + txlist[0][1])
-                else:
-                    asciiLines.append('  bitmap ' + nvb_def.null)
-                # Export texture1 and texture2
-                fs = '  texture{:d} {:s}'
-                asciiLines.extend([fs.format(i, n) for i, n, _ in txlist[1:3]])
-            # Alpha value:
-            # 1. Texture slots present: get alpha from 1st slot
-            # 2. No texture slots: get alpha from material
-            if material.use_transparency:
-                if len(txlist) > 0:
-                    _, _, alpha = txlist[0]
-                else:
-                    alpha = material.alpha
-                if not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
-                    asciiLines.append('  alpha {: 3.2f}'.format(alpha))
-        else:
-            Material.generateDefaultValues(asciiLines)
-        return len(txlist) > 0  # Needed later to decide whether to add UVs
-
-
 class Node(object):
     """TODO: DOC."""
 
@@ -350,11 +72,11 @@ class Node(object):
         if nvb_utils.isNumber(label):
             return line
         if label == 'node':
-            self.name = nvb_utils.str2identifier(line[2])
+            self.name = nvb_parse.ascii_identifier(line[2])
         elif label == 'endnode':
             return line
         elif label == 'parent':
-            self.parent = nvb_utils.str2identifier(line[1])
+            self.parent = nvb_parse.ascii_identifier(line[1])
         elif label == 'position':
             self.position = tuple([float(v) for v in line[1:4]])
         elif label == 'orientation':
@@ -477,9 +199,9 @@ class Reference(Node):
         if line:
             label = line[0].lower()
             if label == 'refmodel':
-                self.refmodel = nvb_utils.str2identifier(line[1])
+                self.refmodel = nvb_parse.ascii_identifier(line[1])
             elif label == 'reattachable':
-                self.reattachable = nvb_utils.str2bool(line[1])
+                self.reattachable = nvb_parse.ascii_bool(line[1])
         return line
 
     def createObjectData(self, obj, options):
@@ -532,11 +254,11 @@ class Trimesh(Node):
         if line:
             label = line[0].lower()
             if label == 'tilefade':
-                self.tilefade = int(line[1])
+                self.tilefade = nvb_parse.ascii_int(line[1])
             elif label == 'render':
-                self.render = nvb_utils.str2bool(line[1])
+                self.render = nvb_parse.ascii_bool(line[1])
             elif label == 'shadow':
-                self.shadow = nvb_utils.str2bool(line[1])
+                self.shadow = nvb_parse.ascii_bool(line[1])
             elif label == 'beaming':
                 self.beaming = int(line[1])
             elif label == 'inheritcolor':
@@ -544,7 +266,7 @@ class Trimesh(Node):
             elif label == 'rotatetexture':
                 self.rotatetexture = int(line[1])
             elif label == 'transparencyhint':
-                self.transparencyhint = int(line[1])
+                self.transparencyhint = nvb_parse.ascii_int(line[1])
             elif label == 'shininess':
                 self.shininess = int(float(line[1]))
             elif label == 'verts':
@@ -685,9 +407,17 @@ class Trimesh(Node):
         blen_mesh.loops.foreach_set('vertex_index',
                                     unpack_list(face_vertex_indices))
         blen_mesh.validate()
+        num_blen_polygons = len(blen_mesh.polygons)
 
+        if not blen_mesh.polygons:
+            return
+
+        # Set everything to smooth
+        blen_mesh.polygons.foreach_set('use_smooth', 
+                                       [True] * num_blen_polygons)
+        
         # Create UV maps
-        if blen_mesh.polygons:
+        if self.facedef:
             face_uv_indices = [(f[4], f[5], f[6]) for f in self.facedef]
             # EEEKADOODLE fix - Not necessary?
             # face_uv_indices = \
@@ -705,14 +435,15 @@ class Trimesh(Node):
 
         # Create material
         material = None
-        if options.importMaterials:
-            material_is_unique = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
-            material = self.material.get_blender_material(options, material_is_unique)
+        if self.render and options.importMaterials:
+            reuse_existing = (self.nodetype != nvb_def.Nodetype.ANIMMESH)
+            material = self.material.create_blender_material(
+                options, reuse_existing)
             if material:
                 blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)
                 blen_mesh.polygons.foreach_set('material_index',
-                                               [0] * len(blen_mesh.polygons))
+                                               [0] * num_blen_polygons)
 
         # Create Vertex colors
         Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
@@ -732,12 +463,10 @@ class Trimesh(Node):
             sgr_list = set([fd[3] for fd in self.facedef])
             if len(sgr_list) == 1 and sgr_list.pop() == 0:  # non-smooth
                 blen_mesh.polygons.foreach_set(
-                    'use_smooth', [False] * len(blen_mesh.polygons))
+                    'use_smooth', [False] * num_blen_polygons)
                 blen_mesh.use_auto_smooth = False
                 blen_mesh.auto_smooth_angle = 0.523599
             else:
-                blen_mesh.polygons.foreach_set(
-                    'use_smooth', [True] * len(blen_mesh.polygons))
                 blen_mesh.use_auto_smooth = True
                 blen_mesh.auto_smooth_angle = 1.570796
         blen_mesh.validate()
@@ -933,7 +662,7 @@ class Trimesh(Node):
         return obj
 
     @staticmethod
-    def generateAsciiMesh(obj, asciiLines, options, hasImgTexture):
+    def generateAsciiMesh(obj, asciiLines, options):
         """TODO: Doc."""
 
         def getSmoothGroups(obj, mesh, options):
@@ -1096,8 +825,7 @@ class Trimesh(Node):
         # Per face uv indices and a list of their coordinates
         fcUVData = []
         exportUVs = ((options.uvmapMode == 'ALL') or
-                     (options.uvmapMode == 'REN' and obj.nvb.render) or
-                     (options.uvmapMode == 'TEX' and hasImgTexture))
+                     (options.uvmapMode == 'REN' and obj.nvb.render))
         if exportUVs:
             joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
                        options.uvmapAutoJoin)
@@ -1173,14 +901,13 @@ class Trimesh(Node):
         s = '  wirecolor {:3.2f} {:3.2f} {:3.2f}'.format(*obj.color[:3])
         asciiLines.append(s)
 
-        hastexture = False
         if iswalkmesh:
             asciiLines.append('  ambient 1.00 1.00 1.00')
             asciiLines.append('  diffuse 1.00 1.00 1.00')
             asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap ' + nvb_def.null)
         else:
-            hastexture = Material.generateAscii(obj, asciiLines, options)
+            nvb_material.Material.generate_ascii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Self illumination color
@@ -1210,7 +937,7 @@ class Trimesh(Node):
                                   str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, hastexture)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options)
 
 
 class Animmesh(Trimesh):
@@ -1738,7 +1465,7 @@ class Light(Node):
         if (label == 'radius'):
             self.radius = float(aline[1])
         elif (label == 'shadow'):
-            self.shadow = nvb_utils.str2bool(aline[1])
+            self.shadow = nvb_parse.ascii_bool(aline[1])
         elif (label == 'multiplier'):
             self.multiplier = float(aline[1])
         elif (label == 'color'):
@@ -1997,7 +1724,7 @@ class Aabb(Trimesh):
         asciiLines.append('  diffuse 1.0 1.0 1.0')
         asciiLines.append('  specular 0.0 0.0 0.0')
         asciiLines.append('  bitmap ' + nvb_def.null)
-        Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
+        Trimesh.generateAsciiMesh(obj, asciiLines, options)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
     def create_blender_mesh(self, name, options):

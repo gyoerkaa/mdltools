@@ -284,7 +284,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         description='',
         items=(('ShaderNodeEeveeSpecular', 'Eevee Specular', ''),
                ('ShaderNodeBsdfPrincipled', 'Principled BSDF', '')),
-        default='ShaderNodeBsdfPrincipled')
+        default='ShaderNodeEeveeSpecular')
     mtr_import: bpy.props.BoolProperty(
         name='Load MTR files',
         description='Load external material files ' +
@@ -482,7 +482,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
 
     def mdl_import(self, context, options):
         def load_file(mdl_filepath, mdl_base, options):
-            mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
+            _, mdl_filename = os.path.split(mdl_filepath)
             mdl_name = os.path.splitext(mdl_filename)[0]
 
             options.mdlname = mdl_name

@@ -24,22 +24,6 @@ class Mtr(object):
         self.customGS = ''  # Geometry shader
         self.customFS = ''  # Fragment shader
 
-    def get_texture_list(self):
-        """Returns a list of 15 texture name. May contains Nones."""
-        return self.texture_list
-
-    def get_color_list(self):
-        """Returns a list of 15 colors. May contains Nones."""
-        return self.texture_list
-
-    def get_shaders(self):
-        """Returns the three shader names."""
-        return self.customVS, self.customGS, self.customFS 
-
-    def get_render_hints(self):
-        """Returns a set containing the renderhints as string."""
-        return self.renderhints 
-
     @staticmethod
     def readParamValues(str_values):
         """Parses parameter values from list of strings."""
