@@ -810,7 +810,6 @@ class Trimesh(Node):
         if iswalkmesh:
             asciiLines.append('  ambient 1.00 1.00 1.00')
             asciiLines.append('  diffuse 1.00 1.00 1.00')
-            asciiLines.append('  specular 0.00 0.00 0.00')
             asciiLines.append('  bitmap ' + nvb_def.null)
         else:
             nvb_material.Material.generate_ascii(obj, asciiLines, options)

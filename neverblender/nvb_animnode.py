@@ -822,7 +822,7 @@ class Animnode():
         # Parent
         parent_name = nvb_utils.generate_node_name(obj.parent,
                                                    options.strip_trailing)
-        asciiLines.append('  parent ' + parent_name)
+        asciiLines.append('    parent ' + parent_name)
         Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
         Animnode.generate_ascii_keys(obj, anim, asciiLines, options)
         asciiLines.append('  endnode')
