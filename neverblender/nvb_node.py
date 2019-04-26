@@ -268,7 +268,7 @@ class Trimesh(Node):
             elif label == 'transparencyhint':
                 self.transparencyhint = nvb_parse.ascii_int(line[1])
             elif label == 'shininess':
-                self.shininess = int(float(line[1]))
+                self.shininess = nvb_parse.ascii_int(line[1])
             elif label == 'verts':
                 if not self.vertex_coords:
                     nvals = int(line[1])
@@ -400,12 +400,12 @@ class Trimesh(Node):
         # Create faces
         face_vertex_indices = [v[0:3] for v in self.facedef]
         face_cnt = len(face_vertex_indices)
-        
+        # Loops
         blen_mesh.loops.add(face_cnt * 3)
-        blen_mesh.polygons.add(face_cnt)
-        
         blen_mesh.loops.foreach_set('vertex_index',
                                     unpack_list(face_vertex_indices))
+        # Polygons
+        blen_mesh.polygons.add(face_cnt)
         blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
         blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
 
@@ -878,11 +878,11 @@ class Danglymesh(Trimesh):
         if line:
             label = line[0].lower()
             if label == 'period':
-                self.period = float(line[1])
+                self.period = nvb_parse.ascii_float(line[1])
             elif label == 'tightness':
-                self.tightness = float(line[1])
+                self.tightness = nvb_parse.ascii_float(line[1])
             elif label == 'displacement':
-                self.displacement = float(line[1])
+                self.displacement = nvb_parse.ascii_float(line[1])
             elif label == 'constraints':
                 if not self.constraints:
                     vcnt = int(line[1])
@@ -963,7 +963,6 @@ class Skinmesh(Trimesh):
             """TODO: DOC."""
             return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
-        lfloat = float
         for line in asciiLines:
             # A line looks like this
             # [group_name, vertex_weight, group_name, vertex_weight]
@@ -977,8 +976,8 @@ class Skinmesh(Trimesh):
                 except IndexError:
                     continue
                 try:
-                    n = n.lower()
-                    w = lfloat(w)
+                    n = nvb_parse.ascii_identifier(n)
+                    w = nvb_parse.ascii_float(w)
                 except ValueError:
                     continue
                 if not any(gwp[0] == n for gwp in name_weight_pairs):
@@ -1361,37 +1360,37 @@ class Light(Node):
 
     def loadAsciiLine(self, itlines):
         """TODO: Doc."""
-        aline = Node.loadAsciiLine(self, itlines)
-        if not aline:
-            return aline
+        line = Node.loadAsciiLine(self, itlines)
+        if not line:
+            return line
         try:
-            label = aline[0].lower()
+            label = line[0].lower()
         except (IndexError, AttributeError):
-            return aline  # Probably empty line, skip it
+            return line  # Probably empty line, skip it
         if (label == 'radius'):
-            self.radius = float(aline[1])
+            self.radius = nvb_parse.ascii_float(line[1])
         elif (label == 'shadow'):
-            self.shadow = nvb_parse.ascii_bool(aline[1])
+            self.shadow = nvb_parse.ascii_bool(line[1])
         elif (label == 'multiplier'):
-            self.multiplier = float(aline[1])
+            self.multiplier = nvb_parse.ascii_float(line[1])
         elif (label == 'color'):
-            self.color = tuple([float(v) for v in aline[1:4]])
+            self.color = tuple([float(v) for v in line[1:4]])
         elif (label == 'ambientonly'):
-            self.ambientonly = int(aline[1])
+            self.ambientonly = nvb_parse.ascii_int(line[1])
         elif (label == 'isdynamic'):
-            self.isdynamic = int(aline[1])
+            self.isdynamic = nvb_parse.ascii_int(line[1])
         elif (label == 'affectdynamic'):
-            self.affectdynamic = int(aline[1])
+            self.affectdynamic = nvb_parse.ascii_int(line[1])
         elif (label == 'negativelight'):
-            self.negativelight = int(aline[1])
+            self.negativelight = nvb_parse.ascii_int(line[1])
         elif (label == 'lightpriority'):
-            self.lightpriority = int(aline[1])
+            self.lightpriority = nvb_parse.ascii_int(line[1])
         elif (label == 'fadinglight'):
-            self.fadinglight = int(aline[1])
+            self.fadinglight = nvb_parse.ascii_int(line[1])
         elif (label == 'lensflares'):
-            self.lensflares = int(aline[1])
+            self.lensflares = nvb_parse.ascii_int(line[1])
         elif (label == 'flareradius'):
-            self.flareradius = float(aline[1])
+            self.flareradius = nvb_parse.ascii_float(line[1])
         elif (label == 'texturenames'):
             if not self.flareTextures:
                 vcnt = self.flareNumValues[0]
@@ -1412,7 +1411,7 @@ class Light(Node):
                 vcnt = self.flareNumValues[3]
                 tmp = [next(itlines) for _ in range(vcnt)]
                 self.flareCShifts = [tuple(map(float, v)) for v in tmp]
-        return aline
+        return line
 
     def loadNumFlareValues(self, asciiLines):
         """Get the number of values for flares."""

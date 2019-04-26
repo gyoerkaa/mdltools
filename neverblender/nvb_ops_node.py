@@ -197,7 +197,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         min_bbox = (0, sys.maxsize, 0, 0, 0, 0)
         for a in angles:
             R = mathutils.Matrix.Rotation(a, 2)
-            rotated_hull = [R*p for p in chull]
+            rotated_hull = [R @ p for p in chull]
             # Get bounding box for rotated hull
             x_vals = [p.x for p in rotated_hull]
             min_x, max_x = min(x_vals), max(x_vals)
@@ -216,10 +216,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         min_y = min_bbox[4]
         max_y = min_bbox[5]
         mabr = [None] * 4
-        mabr[3] = mathutils.Vector([max_x, min_y]) * R
-        mabr[2] = mathutils.Vector([min_x, min_y]) * R
-        mabr[1] = mathutils.Vector([min_x, max_y]) * R
-        mabr[0] = mathutils.Vector([max_x, max_y]) * R
+        mabr[3] = mathutils.Vector([max_x, min_y]) @ R
+        mabr[2] = mathutils.Vector([min_x, min_y]) @ R
+        mabr[1] = mathutils.Vector([min_x, max_y]) @ R
+        mabr[0] = mathutils.Vector([max_x, max_y]) @ R
         return mabr
 
     @staticmethod
@@ -318,10 +318,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             obj_mw = obj.matrix_world
             obj_mwi = obj_mw.inverted()
             # Bisecting planes in local coordinates
-            plane_bot_co = obj_mwi * mathutils.Vector((0.0, 0.0, min_height))
+            plane_bot_co = obj_mwi @ mathutils.Vector((0.0, 0.0, min_height))
             plane_bot_no = mathutils.Vector((0.0, 0.0, -1.0))
             plane_bot_no.rotate(obj_mwi)
-            plane_top_co = obj_mwi * mathutils.Vector((0.0, 0.0, max_height))
+            plane_top_co = obj_mwi @ mathutils.Vector((0.0, 0.0, max_height))
             plane_top_no = mathutils.Vector((0.0, 0.0, 1.0))
             plane_top_no.rotate(obj_mwi)
             # Bisect mesh
@@ -351,11 +351,11 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             # Detect islands
             obj_islands = NVB_OT_util_nodes_pwk.get_bm_islands(bm)
             for isl in obj_islands:
-                isl_verts = [obj_mw * v.co for v in isl]
+                isl_verts = [obj_mw @ v.co for v in isl]
                 # Determine height
                 isl_height = max(0.1, max([v.z for v in isl_verts]))
                 mdl_islands.append([isl_verts, isl_height])
-            # mdl_islands.extend([[obj_mw * v.co for v in isl]
+            # mdl_islands.extend([[obj_mw @ v.co for v in isl]
             #                     for isl in obj_islands])
         return mdl_islands
 
@@ -433,7 +433,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         if mesh:
             pwk_obj = bpy.data.objects.new(mesh_name, mesh)
             pwk_obj.parent = pwk_base
-            scene.objects.link(pwk_obj)
+            for collection in pwk_base.users_collection:
+                 collection.objects.link(pwk_obj)
             scene.update()
             # Use modifier to dissolve faces/verts along straight lines
             modifier = pwk_obj.modifiers.new(name='Decimate', type='DECIMATE')
@@ -466,7 +467,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 obj = bpy.data.objects.new(dummy_name, None)
                 obj.location = loc
                 obj.parent = parent
-                scene.objects.link(obj)
+                for collection in parent.users_collection:
+                    collection.objects.link(obj)
         scene.update()
 
     @staticmethod
@@ -479,8 +481,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         for obj in mdl_objects:
             if obj.type == 'MESH' and \
                obj.nvb.meshtype == nvb_def.Meshtype.TRIMESH:
-                mat = mdl_base.matrix_world.inverted() * obj.matrix_world
-                vertices.extend([mat * v.co for v in obj.data.vertices])
+                mat = mdl_base.matrix_world.inverted() @ obj.matrix_world
+                vertices.extend([mat @ v.co for v in obj.data.vertices])
         # Calculate needed values
         if vertices:
             vec = sum(vertices, mathutils.Vector([0.0, 0.0, 0.0])) \
@@ -508,8 +510,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
         # Get relevant vertices
         if pwk_mesh and pwk_mesh.data.vertices:
-            mat = mdl_base.matrix_world.inverted() * pwk_mesh.matrix_world
-            vertices = [mat * v.co for v in pwk_mesh.data.vertices]
+            mat = mdl_base.matrix_world.inverted() @ pwk_mesh.matrix_world
+            vertices = [mat @ v.co for v in pwk_mesh.data.vertices]
             pwk_x_center = round(sum([v.x for v in vertices])
                                  / len(vertices), 2)
             y_coords = [v.y for v in vertices]
@@ -545,7 +547,8 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             else:  # Create new walkmesh base
                 pwk_base = bpy.data.objects.new(pwk_base_name, None)
                 pwk_base.nvb.emptytype = nvb_def.Emptytype.PWK
-                scene.objects.link(pwk_base)
+                for collection in mdl_base.users_collection:
+                    collection.objects.link(pwk_base)
             pwk_base.parent = mdl_base
             pwk_base.location = (0.0, 0.0, 0.0)  # at mdl_base
             return pwk_base
@@ -611,28 +614,25 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         """Create the door walkmesh for this mdl."""
         def get_default_mesh(meshname, dim=mathutils.Vector((0.1, 2.0, 3.0))):
             """Generate the default (walk)mesh for a generic door."""
-            verts = [dim.y, -1*dim.x, 0.0,
-                     0.0,   -1*dim.x, 0.0,
-                     dim.y, -1*dim.x, dim.z,
-                     0.0,   -1*dim.x, dim.z,
-                     dim.y,    dim.x, 0.0,
-                     0.0,      dim.x, 0.0,
-                     dim.y,    dim.x, dim.z,
-                     0.0,      dim.x, dim.z]
+            vertices = [(dim.y, -1*dim.x, 0.0),
+                        (0.0,   -1*dim.x, 0.0),
+                        (dim.y, -1*dim.x, dim.z),
+                        (0.0,   -1*dim.x, dim.z),
+                        (dim.y,    dim.x, 0.0),
+                        (0.0,      dim.x, 0.0),
+                        (dim.y,    dim.x, dim.z),
+                        (0.0,      dim.x, dim.z)]
             faces = [3, 7, 5, 1,
                      7, 3, 2, 6,
                      7, 6, 4, 5,
                      2, 0, 4, 6,
                      1, 0, 2, 3]
-            mesh = bpy.data.meshes.new(meshname)
-            # Create Verts
-            mesh.vertices.add(8)
-            mesh.vertices.foreach_set('co', verts)
-            # Create Faces
-            mesh.tessfaces.add(5)
-            mesh.tessfaces.foreach_set('vertices_raw', faces)
-            mesh.validate()
-            mesh.update()
+            faces = [(3, 7, 5), (3, 5, 1),
+                     (7, 3, 2), (7, 2, 6),
+                     (7, 6, 4), (7, 4, 5),
+                     (2, 0, 4), (2, 4, 6),
+                     (1, 0, 2), (1, 2, 3)]                     
+            mesh = nvb_utils.build_mesh(vertices, faces, 'sam')
             return mesh
 
         objects_to_check = [mdl_base]
@@ -662,11 +662,12 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
             # Create missing objects
             if newname not in bpy.data.objects:
                 mesh = get_default_mesh(newname, dimensions)
-                pwk_obj = bpy.data.objects.new(newname, mesh)
-                pwk_obj.location = (-1.0, 0.0, 0.0)
-                pwk_obj.rotation_euler = mathutils.Euler(rotation)
-                pwk_obj.parent = dwk_base
-                scene.objects.link(pwk_obj)
+                dwk_obj = bpy.data.objects.new(newname, mesh)
+                dwk_obj.location = (-1.0, 0.0, 0.0)
+                dwk_obj.rotation_euler = mathutils.Euler(rotation)
+                dwk_obj.parent = dwk_base
+                for collection in dwk_base.users_collection:
+                    collection.objects.link(dwk_obj)
 
     @staticmethod
     def create_empties(empty_data, prefix, parent, scene, obj_list=[]):
@@ -684,7 +685,8 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                 obj = bpy.data.objects.new(dummy_name, None)
                 obj.location = loc
                 obj.parent = parent
-                scene.objects.link(obj)
+                for collection in parent.users_collection:
+                    collection.objects.link(obj)
         scene.update()
 
     @staticmethod
@@ -731,23 +733,19 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         if sam_list:
             return sam_list.pop(0)
         # Create Mesh
-        verts = [-1.0, 0.0, 0.0,
-                 +1.0, 0.0, 0.0,
-                 -1.0, 0.0, 3.0,
-                 +1.0, 0.0, 3.0]
-        faces = [1, 0, 2, 3]
-        sam_mesh = bpy.data.meshes.new('sam')
-        sam_mesh.vertices.add(4)
-        sam_mesh.vertices.foreach_set('co', verts)
-        sam_mesh.tessfaces.add(1)
-        sam_mesh.tessfaces.foreach_set('vertices_raw', faces)
-        sam_mesh.validate()
-        sam_mesh.update()
+        vertices = [(-1.0, 0.0, 0.0),
+                 (+1.0, 0.0, 0.0),
+                 (-1.0, 0.0, 3.0),
+                 (+1.0, 0.0, 3.0)]
+        faces = [(0, 2, 3),
+                 (3, 1, 0)]
+        sam_mesh = nvb_utils.build_mesh(vertices, faces, 'sam')
         # Create object
         sam_obj = bpy.data.objects.new('sam', sam_mesh)
         sam_obj.location = (0.0, 0.0, 0.0)
-        scene.objects.link(sam_obj)
         sam_obj.parent = mdl_base
+        for collection in mdl_base.users_collection:
+            collection.objects.link(sam_obj)
         sam_obj.nvb.shadow = False
         return sam_obj
 
@@ -775,7 +773,8 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
             dwk_base = bpy.data.objects.new(newname, None)
             dwk_base.nvb.emptytype = nvb_def.Emptytype.DWK
             dwk_base.parent = mdl_base
-            scene.objects.link(dwk_base)
+            for collection in mdl_base.users_collection:
+                collection.objects.link(dwk_base)
         # Create recessary dummy nodes (emtpies) for dwk
         NVB_OT_util_nodes_dwk.create_dwk_dummys(mdl_base, dwk_base, prefix,
                                                 scene, dwk_mode)
@@ -818,25 +817,17 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
     def create_wok_mesh(mdl_base, scene, existing_objects, name_prefix,
                         wok_mode=None):
         """Adds necessary (walkmesh) objects to mdlRoot."""
-        def create_wok_mesh(meshname):
-            """Ge the bounding box for all object in the mesh."""
-            verts = [+5.0, +5.0, 0.0,
-                     +5.0, -5.0, 0.0,
-                     -5.0, +5.0, 0.0,
-                     -5.0, -5.0, 0.0]
-            faces = [0, 2, 3, 0,
-                     3, 1, 0, 0]
-            mesh = bpy.data.meshes.new(meshname)
-            # Create Verts
-            mesh.vertices.add(len(verts) / 3)
-            mesh.vertices.foreach_set('co', verts)
-            # Create Faces
-            mesh.tessfaces.add(len(faces) / 4)
-            mesh.tessfaces.foreach_set('vertices_raw', faces)
-            mesh.validate()
-            mesh.update()
-            return mesh
+        def get_default_mesh(mesh_name, dim=mathutils.Vector((5.0, 5.0, 0.0))):
+            vertices = [(+dim.x, +dim.y, dim.z),
+                        (+dim.x, -dim.y, dim.z),
+                        (-dim.x, +dim.y, dim.z),
+                        (-dim.x, -dim.y, dim.z)]
+            faces = [(0, 2, 3),
+                     (3, 1, 0)]
+            mesh = nvb_utils.build_mesh(vertices, faces, mesh_name)
+            return mesh          
 
+        
         wok_name = name_prefix + '_wok'
         # Check for existing aabb nodes in the mdl
         existing_aabb = [o for o in existing_objects
@@ -845,13 +836,15 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
             wok_obj = existing_aabb.pop(0)
             wok_obj.name = wok_name
         else:    # Add a new plane for the wok
-            mesh = create_wok_mesh(wok_name)
+            mesh = get_default_mesh(wok_name)
+
             nvb_utils.create_wok_materials(mesh)
             wok_obj = bpy.data.objects.new(wok_name, mesh)
             wok_obj.nvb.meshtype = nvb_def.Meshtype.AABB
             wok_obj.location = (0.0, 0.0, 0.0)
             wok_obj.parent = mdl_base
-            scene.objects.link(wok_obj)
+            for collection in mdl_base.users_collection:
+                collection.objects.link(wok_obj)
 
     @staticmethod
     def create_main_lights(mdl_base, scene, existing_objects, name_prefix,
@@ -874,12 +867,13 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
             max_cnt = max(0, min(len(loc_list), cnt))
             for i in range(1, max_cnt+1):
                 obj_name = name_prefix + 'ml' + str(i)
-                lamp_data = bpy.data.lamps.new(obj_name, 'POINT')
+                lamp_data = bpy.data.lights.new(obj_name, 'POINT')
                 obj = bpy.data.objects.new(obj_name, lamp_data)
                 obj.hide_render = True  # Mainlights should not be rendered
                 obj.parent = mdl_base
                 obj.location = loc_list[i-1]
-                scene.objects.link(obj)
+                for collection in mdl_base.users_collection:
+                    collection.objects.link(obj)
 
     @staticmethod
     def create_source_lights(mdl_base, scene, existing_objects, name_prefix,
@@ -904,7 +898,8 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
                 obj = bpy.data.objects.new(obj_name, None)
                 obj.parent = mdl_base
                 obj.location = loc_list[i-1]
-                scene.objects.link(obj)
+                for collection in mdl_base.users_collection:
+                    collection.objects.link(obj)
 
     def setup_tile(self, mdl_base, scene):
         """Add necessary (walkmesh) objects to mdlRoot."""

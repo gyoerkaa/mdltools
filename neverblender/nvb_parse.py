@@ -6,7 +6,7 @@ def ascii_identifier(s):
     """Convert to lower case. Convert 'null' to empty string."""
     if (not s or s.lower() == nvb_def.null):
         return ""
-    return s.lower()
+    return s
 
 
 def ascii_texture(s):

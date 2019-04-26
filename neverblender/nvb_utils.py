@@ -25,15 +25,17 @@ class NodeResolver():
 
     def insert_obj(self, node_name, node_idx, obj_name):
         """TODO: DOC."""
-        if node_name not in self.nodes:
-            self.nodes[node_name] = []
-        self.nodes[node_name].append((obj_name, node_idx))
+        search_name = node_name.lower()
+        if search_name not in self.nodes:
+            self.nodes[search_name] = []
+        self.nodes[search_name].append((obj_name, node_idx))
 
     def get_obj(self, node_name, node_idx):
         """TODO: DOC."""
-        if node_name not in self.nodes:
+        search_name = node_name.lower()
+        if search_name not in self.nodes:
             return None
-        matches = self.nodes[node_name]
+        matches = self.nodes[search_name]
         if len(matches) == 1:  # Only one object was created using this name
             return bpy.data.objects[matches[0][0]]
         elif len(matches) > 1:
@@ -46,9 +48,10 @@ class NodeResolver():
 
     def get_obj_parent(self, node_name, node_idx):
         """TODO: DOC."""
-        if node_name not in self.nodes:
+        search_name = node_name.lower()
+        if search_name not in self.nodes:
             return None
-        matches = self.nodes[node_name]
+        matches = self.nodes[search_name]
         if len(matches) == 1:
             # Only one object was created using this node name
             return bpy.data.objects[matches[0][0]]
@@ -506,6 +509,23 @@ def create_image(img_name, img_path, tex_search):
         img = bpy.data.images.new(img_name, 512, 512)
     img.name = img_name
     return img
+
+
+def build_mesh(vertex_list, face_list, mesh_name):
+    mesh = bpy.data.meshes.new(mesh_name)
+    # Create Verts
+    mesh.vertices.add(len(vertex_list))
+    mesh.vertices.foreach_set('co', [c for v in vertex_list for c in v])
+    # Create Loops
+    mesh.loops.add(len(face_list) * 3)
+    mesh.loops.foreach_set('vertex_index', [i for f in face_list for i in f])
+    # Create Polygons
+    mesh.polygons.add(len(face_list))
+    mesh.polygons.foreach_set('loop_start', range(0, len(face_list) * 3, 3))
+    mesh.polygons.foreach_set('loop_total', (3,) * len(face_list))
+    mesh.validate()
+    mesh.update()
+    return mesh
 
 
 def create_texture(texname, imgname, filepath, tex_search):
