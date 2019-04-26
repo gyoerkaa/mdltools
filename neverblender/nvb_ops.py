@@ -18,7 +18,7 @@ class NVB_OT_lensflare_new(bpy.types.Operator):
     def execute(self, context):
         """TODO: DOC."""
         obj = context.object
-        if (obj.type == 'LAMP'):
+        if (obj.type == 'LIGHT'):
             obj.data.nvb.flareList.add()
         return {'FINISHED'}
 

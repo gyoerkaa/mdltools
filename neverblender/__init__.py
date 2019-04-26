@@ -103,6 +103,10 @@ classes = (
     nvb_ops_set.NVB_OT_set_open,
     nvb_ops_set.NVB_OT_set_massimport,
 
+    nvb_ops.NVB_OT_lensflare_new,
+    nvb_ops.NVB_OT_lensflare_delete,
+    nvb_ops.NVB_OT_lensflare_move,
+
     nvb_ops.NVB_OT_util_minimap,
     nvb_ops.NVB_OT_util_transform,
 
