@@ -273,10 +273,12 @@ class Nodes(object):
             return None
 
         tex_list = [None] * 15
+        col_list = [None] * 15
+        alpha = 1.0
 
         # Only nodes are supported
         if not material.use_nodes: 
-            return tex_list  # still empty         
+            return tex_list, col_list, alpha  # still empty         
                
         nodes = material.node_tree.nodes
 
@@ -295,7 +297,7 @@ class Nodes(object):
         
         # Surface is not linked to anything == no other textures
         if not node_out.inputs[0].links:
-            return tex_list
+            return tex_list, col_list, alpha
 
         node_main_shader = get_main_shader(node_out)
         if node_main_shader.type == 'BSDF_PRINCIPLED':
@@ -432,9 +434,27 @@ class Nodes(object):
 
             links.new(node_shd_bsdf.inputs[7], node_tex_rough.outputs[0])
 
-        # 4 = Illumination/ Emission/ Glow
-        node_shd_emit.inputs[0].default_value = color_list[4]
+        # 4 = Height/AO/Parallax
         if texture_list[4]:
+            # Setup: Image Texture => Displacement => Material Output
+            node_tex_height = nodes.new('ShaderNodeTexImage')
+            node_tex_height.label = "Texture: Height"
+            node_tex_height.name = "tex_height"
+            node_tex_height.label = (243.0, 154.0)
+
+            node_tex_norm.image = nvb_utils.create_image(
+                texture_list[4], img_filepath, img_search)
+            node_tex_norm.color_space = 'NONE'  # Not rgb data
+
+            node_displ = nodes.new('ShaderNodeDisplacement')
+            node_displ.location = (546.0, 210.0)
+
+            links.new(node_displ.inputs[0], node_tex_height.outputs[0])
+            links.new(node_out.inputs[2], node_displ.outputs[0])
+        
+        # 5 = Illumination/ Emission/ Glow
+        node_shd_emit.inputs[0].default_value = color_list[5]
+        if texture_list[5]:
             # Setup: 
             # Image Texture => Emission Shader => 
             #                                     Mix Shader => Material Output
@@ -445,28 +465,10 @@ class Nodes(object):
             node_tex_emit.location = (-510.0, 420.0)
 
             node_tex_norm.image = nvb_utils.create_image(
-                texture_list[4], img_filepath, img_search)
+                texture_list[5], img_filepath, img_search)
             node_tex_norm.color_space = 'COLOR'
 
-            links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])
-
-        # 5 = Height/AO/Parallax
-        if texture_list[5]:
-            # Setup: Image Texture => Displacement => Material Output
-            node_tex_height = nodes.new('ShaderNodeTexImage')
-            node_tex_height.label = "Texture: Height"
-            node_tex_height.name = "tex_height"
-            node_tex_height.label = (243.0, 154.0)
-
-            node_tex_norm.image = nvb_utils.create_image(
-                texture_list[5], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
-
-            node_displ = nodes.new('ShaderNodeDisplacement')
-            node_displ.location = (546.0, 210.0)
-
-            links.new(node_displ.inputs[0], node_tex_height.outputs[0])
-            links.new(node_out.inputs[2], node_displ.outputs[0])
+            links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])            
     
     @staticmethod
     def add_node_data_spec(material, 
@@ -570,23 +572,8 @@ class Nodes(object):
 
             links.new(node_shader_spec.inputs[2], node_tex_rough.outputs[0])
 
-        # 4 = Illumination/ Emission/ Glow
-        node_shader_spec.inputs[3].default_value = color_list[4]
+        # 4 = Height (use as Ambient Occlusion)
         if texture_list[4]:
-            # Setup: Image Texture => Eevee Specular (Emissive)
-            node_tex_emit = nodes.new('ShaderNodeTexImage') 
-            node_tex_emit.label = "Texture: Emissive"
-            node_tex_emit.name = "tex_emissive"
-            node_tex_emit.location = (-63.0, 267.0)
-
-            node_tex_emit.image = nvb_utils.create_image(
-                texture_list[4], img_filepath, img_search)
-            node_tex_emit.color_space = 'NONE'  # Single channel
-
-            links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0]) 
-
-        # 5 = Height (use as Ambient Occlusion)
-        if texture_list[5]:
             # Setup: Image Texture => Eevee Specular (Ambient Occlusion)
             node_tex_height = nodes.new('ShaderNodeTexImage')
             node_tex_height.label = "Texture: Height"
@@ -594,10 +581,25 @@ class Nodes(object):
             node_tex_height.location = (105.0, -267.0)
 
             node_tex_height.image = nvb_utils.create_image(
-                texture_list[5], img_filepath, img_search)
+                texture_list[4], img_filepath, img_search)
             node_tex_height.color_space = 'NONE'  # Single channel
 
-            links.new(node_shader_spec.inputs[9], node_tex_height.outputs[0])   
+            links.new(node_shader_spec.inputs[9], node_tex_height.outputs[0]) 
+
+        # 5 = Illumination/ Emission/ Glow
+        node_shader_spec.inputs[3].default_value = color_list[5]
+        if texture_list[5]:
+            # Setup: Image Texture => Eevee Specular (Emissive)
+            node_tex_emit = nodes.new('ShaderNodeTexImage') 
+            node_tex_emit.label = "Texture: Emissive"
+            node_tex_emit.name = "tex_emissive"
+            node_tex_emit.location = (-63.0, 267.0)
+
+            node_tex_emit.image = nvb_utils.create_image(
+                texture_list[5], img_filepath, img_search)
+            node_tex_emit.color_space = 'NONE'  # Single channel
+
+            links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0])              
     
     @staticmethod
     def add_node_data(material, shader_type, 
@@ -626,7 +628,7 @@ class Material(object):
         self.texture_list = [None] * 15
         self.color_list = [(1.0, 1.0, 1.0, 1.0)] * 15
         self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Specular
-        self.color_list[3] = (0.0, 0.0, 0.0, 1.0)  # Illumiation/Emission
+        self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Illumination/Emission
         self.renderhints = set()
         self.mtr_name = None
         self.mtr = None

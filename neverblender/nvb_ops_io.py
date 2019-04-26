@@ -133,9 +133,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         else:  # Get multiple objects
             obj_list = []
             if options.batch_mode == 'SCN':
-                obj_list = bpy.context.scene.objects
+                # Get all object in scene (master collection)
+                obj_list = bpy.context.scene.collection.all_objects
             elif options.batch_mode == 'SEL':
-                obj_list = bpy.context.selected.objects
+                # Get all selected objects
+                obj_list = bpy.context.selected_objects
             for obj in obj_list:
                 base = nvb_utils.get_obj_mdl_base(obj)
                 if base and (base not in mdl_list):
@@ -150,7 +152,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             options.classification = mdl_base.nvb.classification
             # Export MDL
             ascii_lines = []
-            nvb_mdl.Mdl.generateAscii(mdl_base, ascii_lines, options)
+            nvb_mdl.Mdl.generate_ascii(mdl_base, ascii_lines, options)
             with open(os.fsencode(options.filepath), 'w') as f:
                 f.write('\n'.join(ascii_lines))
             # Export walkmesh for MDL
@@ -158,8 +160,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                 wkm_type = get_walkmeshtype(mdl_base)
                 wkm_ext = '.' + wkm_type
                 ascii_lines = []
-                nvb_mdl.Mdl.generateAsciiWalkmesh(mdl_base, ascii_lines,
-                                                  wkm_type, options)
+                nvb_mdl.Mdl.generate_ascii_wkm(mdl_base, ascii_lines,
+                                               wkm_type, options)
                 if ascii_lines:
                     wkm_path = get_filepath(mdl_path, wkm_name, wkm_ext)
                     with open(os.fsencode(wkm_path), 'w') as f:
@@ -347,20 +349,28 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
+
             # Create a new collection
-            if collections_create:
-                parent_collection = context.scene.collection
-                collection = bpy.data.collections.new(name=mdl_name)
-                parent_collection.children.link(collection)
-                options.collection = collection
+            parent_collection = context.scene.collection
+            collection = bpy.data.collections.new(name=mdl_name)
+            parent_collection.children.link(collection)
+            options.collection = collection
+
             mdl = nvb_mdl.Mdl()
-            mdl.read_mdl(mdl_filepath, options)
+            mdl.parse_mdl(mdl_filepath, options)
+
             if options.import_walkmesh:
-                for wkm_type in nvb_def.Walkmeshtype.IMPORT:
-                    wkm_filename = mdl_name + '.' + wkm_type
-                    wkm_filepath = os.path.join(mdl_filedir, wkm_filename)
-                    if os.path.isfile(os.fsencode(wkm_filepath)):
-                        mdl.read_wkm(wkm_filepath, wkm_type, options)
+                # Try loading the placeable walkmesh (pwk)    
+                pwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.PWK
+                pwk_filepath = os.path.join(mdl_filedir, pwk_filename)
+                if os.path.isfile(os.fsencode(pwk_filepath)):
+                    mdl.parse_wkm(pwk_filepath ,nvb_def.Walkmeshtype.PWK, options)
+                # Try loading the door walkmesh (dwk)
+                dwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.DWK
+                dwk_filepath = os.path.join(mdl_filedir, dwk_filename)
+                if os.path.isfile(os.fsencode(dwk_filepath)):
+                    mdl.parse_wkm(dwk_filepath ,nvb_def.Walkmeshtype.DWK, options)
+
             mdl.create(options)
 
         def generate_location(idx):
@@ -488,7 +498,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
             mdl = nvb_mdl.Mdl()
-            mdl.read_mdl(mdl_filepath, options)
+            mdl.parse_mdl(mdl_filepath, options)
             mdl.create_super(mdl_base, options)
 
         # Build list of files

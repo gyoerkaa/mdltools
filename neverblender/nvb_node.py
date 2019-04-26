@@ -400,13 +400,16 @@ class Trimesh(Node):
         # Create faces
         face_vertex_indices = [v[0:3] for v in self.facedef]
         face_cnt = len(face_vertex_indices)
-        blen_mesh.polygons.add(face_cnt)
+        
         blen_mesh.loops.add(face_cnt * 3)
-        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
-        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
+        blen_mesh.polygons.add(face_cnt)
+        
         blen_mesh.loops.foreach_set('vertex_index',
                                     unpack_list(face_vertex_indices))
-        blen_mesh.validate()
+        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
+        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
+
+        blen_mesh.validate(clean_customdata=False)
         num_blen_polygons = len(blen_mesh.polygons)
 
         if not blen_mesh.polygons:
@@ -415,26 +418,10 @@ class Trimesh(Node):
         # Set everything to smooth
         blen_mesh.polygons.foreach_set('use_smooth', 
                                        [True] * num_blen_polygons)
+        print(blen_name)
+        print(len(self.facedef))
         
-        # Create UV maps
-        if self.facedef:
-            face_uv_indices = [(f[4], f[5], f[6]) for f in self.facedef]
-            # EEEKADOODLE fix - Not necessary?
-            # face_uv_indices = \
-            #    [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-            #     for f in self.facedef]
-            face_uv_indices = unpack_list(face_uv_indices)
-            for layer_idx, uv_coords in enumerate(self.texture_coordinates):
-                if uv_coords:
-                    face_uv_coords = [uv_coords[uvi]
-                                      for uvi in face_uv_indices]
-                    face_uv_coords = unpack_list(face_uv_coords)
-                    uv_layer_name = "tverts"+str(layer_idx)
-                    uv_layer = blen_mesh.uv_layers.new(name=uv_layer_name)
-                    uv_layer.data.foreach_set('uv', face_uv_coords)
-
         # Create material
-        material = None
         if self.render and options.importMaterials:
             reuse_existing = (self.nodetype != nvb_def.Nodetype.ANIMMESH)
             material = self.material.create_blender_material(
@@ -443,7 +430,27 @@ class Trimesh(Node):
                 blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)
                 blen_mesh.polygons.foreach_set('material_index',
-                                               [0] * num_blen_polygons)
+                                               [0] * num_blen_polygons)       
+        
+        # Create UV maps
+        if self.facedef:
+            face_uv_indices = [(f[4], f[5], f[6]) for f in self.facedef]
+            # EEEKADOODLE fix - Not necessary?
+            # face_uv_indices = \
+            #    [(f[5], f[6], f[4]) if f[6] == 0 else (f[4], f[5], f[6])
+            #     for f in self.facedef]
+            face_uv_indices = unpack_list(face_uv_indices)
+            
+            for layer_idx, uv_coords in enumerate(self.texture_coordinates):
+                if uv_coords:
+                    face_uv_coords = [uv_coords[uvi]
+                                      for uvi in face_uv_indices]
+                    face_uv_coords = unpack_list(face_uv_coords)
+                    uv_layer = blen_mesh.uv_layers.new(do_init=False)
+                    uv_layer.name = "tverts"+str(layer_idx)
+                    print(len(uv_layer.data))
+                    print(len(face_uv_coords))
+                    uv_layer.data.foreach_set('uv', face_uv_coords[:2*len(uv_layer.data)])
 
         # Create Vertex colors
         Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
@@ -469,7 +476,8 @@ class Trimesh(Node):
             else:
                 blen_mesh.use_auto_smooth = True
                 blen_mesh.auto_smooth_angle = 1.570796
-        blen_mesh.validate()
+        blen_mesh.validate(clean_customdata=False)
+
         return blen_mesh
         """
         # Create uvmaps
@@ -525,108 +533,6 @@ class Trimesh(Node):
         else:
             blen_mesh.validate()
         """
-
-    """
-    def createMesh(self, name, options):
-        if options.fix_uvs:
-            self.fix_degenerated_uvs()
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
-        # Create vertices
-        me.vertices.add(len(self.vertex_coords))
-        me.vertices.foreach_set('co', unpack_list(self.vertex_coords))
-        # Create per-Vertex normals
-        if self.normals and options.import_normals:
-            me.vertices.foreach_set('normal', unpack_list(self.normals))
-        # Create faces
-        face_vids = [v[0:3] for v in self.facedef]
-        me.tessfaces.add(len(face_vids))
-        me.tessfaces.foreach_set('vertices_raw', unpack_face_list(face_vids))
-        # Create material
-        material = None
-        matimg = None
-        if options.importMaterials:
-            uniqueMat = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
-            material = self.material.create(options, uniqueMat)
-            if material:
-                me.materials.append(material)
-                # Set material idx (always 0, only a single material)
-                me.tessfaces.foreach_set('material_index',
-                                         [0] * len(me.tessfaces))
-                tslot0 = material.texture_slots[0]
-                if tslot0 and tslot0.texture:
-                    matimg = tslot0.texture.image
-        # Create uvmaps
-        # EEEKADOODLE fix
-        eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                        for f in self.facedef]
-        # Save fixed uvs for animeshes
-        if self.nodetype == nvb_def.Nodetype.ANIMMESH:
-            if me.name not in nvb_def.tvert_order:
-                nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
-        # Iterate in reverse so the first uvmap can be set to active
-        uvmap = None
-        for idx, tvs in reversed(list(enumerate(self.tverts))):
-            if tvs:  # may be []
-                uvname = me.name + '.tvert' + str(idx)
-                uvmap = Trimesh.createUVlayer(me, tvs, eeka_faceuvs,
-                                              uvname, matimg)
-        if uvmap:
-            me.uv_textures[uvmap.name].active = True  # blender 2.8 error!
-        # Import smooth groups as sharp edges
-        if options.importSmoothGroups:
-            me.update()
-            me.show_edge_sharp = True
-            bm = bmesh.new()
-            bm.from_mesh(me)
-            if hasattr(bm.edges, "ensure_lookup_table"):
-                bm.edges.ensure_lookup_table()
-            # Mark edge as sharp if its faces belong to different smooth groups
-            for e in bm.edges:
-                f = e.link_faces
-                if (len(f) > 1) and \
-                   (self.facedef[f[0].index][3] !=
-                        self.facedef[f[1].index][3]):
-                    edgeIdx = e.index
-                    me.edges[edgeIdx].use_edge_sharp = True
-            bm.free()
-            del bm
-        # Import custom normals
-        me.update()
-        if self.normals and me.loops and options.import_normals:
-            # Use normals for shading
-            # TODO: Test this... faster?
-            # me.normals_split_custom_set_from_vertices(self.normals)
-            for l in me.loops:
-                l.normal[:] = self.normals[l.vertex_index]
-            me.validate(clean_customdata=False)
-            clnors = array.array('f', [0.0] * (len(me.loops) * 3))
-            me.loops.foreach_get('normal', clnors)
-            me.create_normals_split()
-            me.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
-            me.polygons.foreach_set('use_smooth', [True] * len(me.polygons))
-            me.use_auto_smooth = True
-            me.show_edge_sharp = True
-        elif options.importSmoothGroups:
-            # Use shading groups for shading
-            sgr_list = set([fd[3] for fd in self.facedef])
-            if len(sgr_list) == 1 and sgr_list.pop() == 0:
-                # single smoothgroup 0 means non-smooth
-                me.polygons.foreach_set('use_smooth',
-                                        [False] * len(me.polygons))
-                me.use_auto_smooth = False
-                me.auto_smooth_angle = 0.523599
-            else:
-                me.polygons.foreach_set('use_smooth',
-                                        [True] * len(me.polygons))
-                me.use_auto_smooth = True
-                me.auto_smooth_angle = 1.570796
-        # Create Vertex colors
-        Trimesh.create_vertex_colors(me, self.colors, 'colors')
-        me.validate()
-        # me.update()
-        return me
-    """
     
     def createObjectData(self, obj, options):
         """TODO: Doc."""

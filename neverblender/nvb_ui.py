@@ -494,8 +494,9 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
                      icon='TRIA_UP', text='').direction = 'UP'
         col.operator('nvb.lightflare_move',
                      icon='TRIA_DOWN', text='').direction = 'DOWN'
-        if data.nvb.flareListIdx >= 0 and len(data.nvb.flareList) > 0:
-            item = data.nvb.flareList[data.nvb.flareListIdx]
+        flare_idx = data.nvb.flareListIdx 
+        if flare_idx >= 0 and len(data.nvb.flareList) > flare_idx:
+            item = data.nvb.flareList[flare_idx]
             sub = layout.column()
             sub.enabled = data.nvb.uselensflares
             sub.prop(item, 'texture')

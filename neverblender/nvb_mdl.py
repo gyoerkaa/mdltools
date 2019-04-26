@@ -159,7 +159,7 @@ class Mdl():
         # TODO: Implement binary import or call external compiler
         pass
 
-    def read_mdl(self, filepath, options):
+    def parse_mdl(self, filepath, options):
         """Parse a single mdl file."""
         with open(os.fsencode(filepath), 'rb') as f:
             if bytes(f.read(1)) == b'\x00':
@@ -167,8 +167,8 @@ class Mdl():
                 return
         with open(os.fsencode(filepath), 'r') as f:
             self.read_ascii_mdl(f.read(), options)
-
-    def read_wkm(self, filepath, wkm_type, options):
+ 
+    def parse_wkm(self, filepath, wkm_type, options):
         """Parse a single walkmesh file."""
         with open(os.fsencode(filepath), 'rb') as f:
             if bytes(f.read(1)) == b'\x00':
@@ -178,7 +178,7 @@ class Mdl():
             self.read_ascii_wkm(f.read(), wkm_type, options)
 
     @staticmethod
-    def generateAsciiHeader(mdl_base, ascii_lines, options):
+    def generate_ascii_header(mdl_base, ascii_lines, options):
         """TODO: DOC."""
         mdlname = mdl_base.name
         mdlclass = mdl_base.nvb.classification.upper()
@@ -194,7 +194,7 @@ class Mdl():
         ascii_lines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
 
     @staticmethod
-    def generateAsciiGeometry(obj, ascii_lines, options):
+    def generate_ascii_geometry(obj, ascii_lines, options):
         """TODO: DOC."""
         if nvb_utils.is_wkm_base(obj):
             return
@@ -211,10 +211,10 @@ class Mdl():
         children.sort(key=lambda c: c.name)
         children.sort(key=lambda c: c.nvb.imporder)
         for c in children:
-            Mdl.generateAsciiGeometry(c, ascii_lines, options)
+            Mdl.generate_ascii_geometry(c, ascii_lines, options)
 
     @staticmethod
-    def generateAsciiAnimations(mdl_base, ascii_lines, options):
+    def generate_ascii_animations(mdl_base, ascii_lines, options):
         """TODO: DOC."""
         if mdl_base.nvb.animList:
             ascii_lines.append('')
@@ -224,7 +224,7 @@ class Mdl():
                                                  ascii_lines, options)
 
     @staticmethod
-    def generateAsciiMeta(mdl_base, ascii_lines, options):
+    def generate_ascii_meta(mdl_base, ascii_lines, options):
         """Add creation time to a list of ascii lines."""
         ct = datetime.now()
         ascii_lines.append(ct.strftime('# Exported from blender %A, %Y-%m-%d'))
@@ -234,28 +234,26 @@ class Mdl():
         ascii_lines.append('filedependancy ' + blend)
 
     @staticmethod
-    def generateAscii(mdl_base, ascii_lines, options):
+    def generate_ascii(mdl_base, ascii_lines, options):
         """TODO: DOC."""
-        # The Names of exported geometry nodes. We'll need this for skinmeshes
-        # and animations
-        mdlname = mdl_base.name
+        mdl_name = mdl_base.name
         # Creation time, etc
-        Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
+        Mdl.generate_ascii_meta(mdl_base, ascii_lines, options)
         # Header
-        Mdl.generateAsciiHeader(mdl_base, ascii_lines, options)
+        Mdl.generate_ascii_header(mdl_base, ascii_lines, options)
         # Geometry
-        ascii_lines.append('beginmodelgeom ' + mdlname)
-        Mdl.generateAsciiGeometry(mdl_base, ascii_lines, options)
-        ascii_lines.append('endmodelgeom ' + mdlname)
+        ascii_lines.append('beginmodelgeom ' + mdl_name)
+        Mdl.generate_ascii_geometry(mdl_base, ascii_lines, options)
+        ascii_lines.append('endmodelgeom ' + mdl_name)
         # Animations
         if options.export_animations:
-            Mdl.generateAsciiAnimations(mdl_base, ascii_lines, options)
+            Mdl.generate_ascii_animations(mdl_base, ascii_lines, options)
         # The End
-        ascii_lines.append('donemodel ' + mdlname)
+        ascii_lines.append('donemodel ' + mdl_name)
         ascii_lines.append('')
 
     @staticmethod
-    def generateAsciiWalkmesh(mdl_base, ascii_lines, wkmtype, options):
+    def generate_ascii_wkm(mdl_base, ascii_lines, wkmtype, options):
         """TODO: DOC."""
         wkmObjects = []
         if wkmtype == nvb_def.Walkmeshtype.WOK:
@@ -270,7 +268,7 @@ class Mdl():
                 wkmObjects = [c for c in wkmRoot.children]
         if not wkmObjects:  # Abort if there is nothing to write
             return
-        Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
+        Mdl.generate_ascii_meta(mdl_base, ascii_lines, options)
         # Write Data
         for obj in wkmObjects:
             nodeType = nvb_utils.getNodeType(obj)

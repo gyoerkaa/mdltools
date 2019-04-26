@@ -93,7 +93,7 @@ def get_mdl_base(obj=None, collection=None, scene=None):
         if matches:
             return matches[0]
     # 3. Still nothing, check objects in master collection
-    matches = [m for m in scene.collection.objects if is_mdl_base(m)]
+    matches = [m for m in scene.collection.all_objects if is_mdl_base(m)]
     if matches:
         return matches[0]
     return None
