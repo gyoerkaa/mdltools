@@ -594,7 +594,7 @@ class Trimesh(Node):
 
         def mesh_get_normals(mesh, uvmap):
             """Get normals and tangets for this mesh."""
-            mesh.calc_tangents(uvmap.name)  # calls calc_normals_split()
+            mesh.calc_tangents(uvmap=uvmap.name)  # calls calc_normals_split()
 
             # per_loop_data = [(l.vertex_index, l.normal, l.tangent, l.bitangent_sign)
             #                  for l in mesh.loops]
@@ -608,13 +608,24 @@ class Trimesh(Node):
             tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
             return normals, tangents
 
-        def mesh_get_uvs(mesh, merge_uvs):
+        def mesh_get_uvs(mesh, uvs_to_export, merge_uvs=False):
             """Get normals and tangets for this mesh."""
             uv_indices = []  # per face uv indices
             uv_coords = []
-
+            for l in mesh.polygons:
+                pass
 
             return uv_indices, uv_coords
+
+        def mesh_get_vertex_colors(mesh):
+            """Get per-vertex vertex colors."""
+            vcolors = mesh.vertex_colors.active
+            if not vcolors:
+                return []
+            vcolor_data = vcolors.data
+            per_loop_data = {l.vertex_index: vc.color[:]
+                             for l, vc in zip(mesh.loops, vcolor_data)}
+            return per_loop_data.values()
 
         def getFaceUVs(faceData, uvMapData, join=True):
             """Get a list of uvmap indices and uvmap coodinates."""
@@ -656,65 +667,6 @@ class Trimesh(Node):
                     faceUVIdList.append(uvidx)
             return faceUVIdList, faceUVCoList
 
-        def generateVColors(mesh, asciiLines):
-            """Generate per-vert. vertex-colors from per-loop vertex-colors."""
-            cmap = me.vertex_colors.active
-            if cmap:
-                # Per vertex vertex-color list
-                vcolors = [(1.0, 1.0, 1.0)] * len(mesh.vertices)
-                # Get all loops for each vertex
-                vert_loop_map = {}
-                for l in mesh.loops:
-                    if l.vertex_index in vert_loop_map:
-                        vert_loop_map[l.vertex_index].append(l.index)
-                    else:
-                        vert_loop_map[l.vertex_index] = [l.index]
-                # Get color for each vertex (in every loop)
-                for vidx in vert_loop_map:
-                    for lidx in vert_loop_map[vidx]:
-                        vcolors[vidx] = cmap.data[lidx].color[:3]
-                asciiLines.append('  colors ' + str(len(mesh.vertices)))
-                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-                asciiLines.extend([fstr.format(*vc) for vc in vcolors])
-
-        def generateNormals(mesh, asciiLines, uvmap):
-            """Generates normals and tangents."""
-            # Generate readable normals and tangents
-            mesh.calc_tangents(uvmap.name)
-            # Add normals
-            oknormals = []
-            # Try vertex-per-face normals
-            for i in range(len(mesh.vertices)):
-                # All normals for this vertex
-                normals = \
-                    [l.normal for l in mesh.loops if l.vertex_index == i]
-                s = set([str(n) for n in normals])
-                if len(s) != 1:  # Something is not right, cannot export this
-                    oknormals = []
-                    print('Neverblender: WARNING - Invalid normals ' +
-                          obj.name)
-                    break
-                oknormals.append(normals[0])
-            if oknormals:
-                asciiLines.append('  normals ' + str(len(oknormals)))
-                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-                asciiLines.extend([fstr.format(*n) for n in oknormals])
-
-            # Add tangents
-            oktangents = []
-            #  Vertex-per-face tangents
-            for i in range(len(mesh.vertices)):
-                # All tangents for this vertex
-                tangents = [[l.tangent, l.bitangent_sign]
-                            for l in mesh.loops if l.vertex_index == i]
-                oktangents.append(tangents[0])
-            if oktangents:
-                asciiLines.append('  tangents ' + str(len(oktangents)))
-                fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
-                asciiLines.extend([fstr.format(*t[0], t[1])
-                                  for t in oktangents])
-            # mesh.free_normals_split()
-
         me = obj.to_mesh(options.depsgraph,
                          options.apply_modifiers,
                          calc_undeformed=False)
@@ -751,12 +703,9 @@ class Trimesh(Node):
 
         # Per face uv indices and a list of their coordinates
         me_face_uvs = []
-        fcUVData = []
+        me_uv_coord_list = []
         if (options.uvmapMode == 'ALL') or \
            (options.uvmapMode == 'REN' and not obj.hide_render):
-            merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
-                         options.uvmapAutoJoin)
-            me_face_uvs = mesh_get_uvs(me, merge_uvs)
             # Adds scaling factor from the texture slot to uv coordinates
             # uvScale = (1.0, 1.0)
             # if obj.active_material:
@@ -779,32 +728,40 @@ class Trimesh(Node):
                                 if not uvl.name == uv_name_active]
                     uv_name_list.sort()
                     uv_name_list = [uv_name_active] + uv_name_list
-            # Generate the tverts for the faces
-            for uvn in uv_name_list:
-                fcUVData.append(getFaceUVs(me_face_vert,
-                                           me.tessface_uv_textures[uvn].data,
-                                           merge_uvs))
-            if not fcUVData:
-                fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
-                fcUVCoList = []
-                fcUVData.append([fcUVIdList, fcUVCoList])
-        else:
-            fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
-            fcUVCoList = []
-            fcUVData.append([fcUVIdList, fcUVCoList])
+            # Check if we can merge uvs
+            merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
+                         (len(uv_name_list) <= 1) and
+                         options.uvmapAutoJoin)
+            # Generate the tverts for the
+            if uv_name_list:
+                me_face_uvs, tmp_uvs = mesh_get_uvs(me,
+                                                    uv_name_list[:3],
+                                                    merge_uvs)
+                me_uv_coord_list.append(tmp_uvs)
+        if not me_face_uvs:
+            me_face_uvs = [[0, 0, 0]] * len(me.polygons)
+            me_uv_coord_list = []
+
         # Write tverts to file (if any)
-        fstr = '    {: 5.3f} {: 5.3f}  0'
-        for idx, fuvd in enumerate(fcUVData):
-            if len(fuvd[1]) > 0:
-                if idx == 0:
-                    ascii_lines.append('  tverts ' +
-                                       str(len(fuvd[1])))
-                else:
-                    ascii_lines.append('  tverts' + str(idx) + ' ' +
-                                       str(len(fuvd[1])))
-                ascii_lines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
+        if me_uv_coord_list:
+            fstr = '    {: 5.3f} {: 5.3f}  0'
+            # First list entry as "tverts"
+            fstr_tv = '  tverts {:d}'
+            coords = me_uv_coord_list[0]
+            ascii_lines.append(fstr_tv.format(len(coords)))
+            ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+            # Other list entries as "tvertsN"
+            fstr_tv = '  tverts{:d} {:d}'
+            for idx, coords in enumerate(me_uv_coord_list[1:]):
+                ascii_lines.append(fstr_tv.format(idx+1, len(coords)))
+                ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+
         # Vertex color
-        generateVColors(me, ascii_lines)
+        me_vert_colors = mesh_get_vertex_colors(me)
+        ascii_lines.append('  colors ' + str(len(me.vertices)))
+        fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
+
         # Write faces to file
         vdigs = str(max(1, len(str(len(me_face_vert)))))  # Digits for vertices
         sdigs = str(max(1, len(str(max(me_face_grp)))))  # Digits for smoothgrps
