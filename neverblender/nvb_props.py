@@ -27,6 +27,22 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
     compiler_path: bpy.props.StringProperty(name="Path to compiler",
                                             subtype='FILE_PATH')
+    export_mat_mtr_ref: bpy.props.EnumProperty(
+            name="MTR Reference",
+            description="Specify the way MTRs are referenced",
+            items=[('bitmap', 
+                    "bitmap", "Use 'bitmap' to refernce MTRs", 0),
+                   ('materialname', 
+                    "materialname", "Use 'materialname' to refernce MTRs", 1)],
+            default='bitmap')
+    export_mat_diffuse_ref: bpy.props.EnumProperty(
+        name="Diffuse Texture Reference",
+        description="Specify the way the diffuse textures are referenced",
+        items=[('bitmap', 
+                "bitmap", "Diffuse as 'bitmap'", 0),
+               ('texture0', 
+                "texture0", "Diffuse as 'texture0'", 1)],
+        default='bitmap')
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
         name='Type',
@@ -122,11 +138,12 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         default='ACTION', update=NVB_psb_anim_mode_update)
 
     def draw(self, context):
-        pass
-        # layout = self.layout
-        # layout.prop(self, 'compiler_path')
-        # layout.prop(self, 'decompiler_path')
-
+        layout = self.layout
+        #  layout.prop(self, 'compiler_path')
+        box = layout.box()
+        box.label(text='Material Export Settings')
+        box.prop(self, 'export_mat_diffuse_ref')
+        box.prop(self, 'export_mat_mtr_ref')
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""

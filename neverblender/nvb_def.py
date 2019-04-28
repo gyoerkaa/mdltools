@@ -252,8 +252,11 @@ class ExportOptions():
 
     def __init__(self):
         """TODO: DOC."""
-        self.filepath = ''
+        
         self.scene = None
+        self.depsgraph = None
+        self.filepath = ''
+        
         self.mdlname = 'unnamed'
         self.mtrdb = set()
         self.classification = Classification.UNKNOWN
@@ -269,6 +272,7 @@ class ExportOptions():
         # Additional options for textures and materials
         self.mtr_export = True
         self.mtr_ref = 'bitmap'
+        self.mat_diffuse_ref = 'bitmap'
         # Blender Settings
         self.apply_modifiers = True
         self.mesh_convert = 'RENDER'

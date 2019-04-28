@@ -117,7 +117,7 @@ class Node(object):
         """TODO: DOC."""
         if obj.parent is None:  # Rootdummys get no data at all
             return
-        mat = obj.matrix_parent_inverse * obj.matrix_basis
+        mat = obj.matrix_parent_inverse @ obj.matrix_basis
 
         loc = mat.to_translation()
         asciiLines.append('  position {: 8.5f} {: 8.5f} {: 8.5f}'.format(*loc))
@@ -416,11 +416,9 @@ class Trimesh(Node):
             return
 
         # Set everything to smooth
-        blen_mesh.polygons.foreach_set('use_smooth', 
+        blen_mesh.polygons.foreach_set('use_smooth',
                                        [True] * num_blen_polygons)
-        print(blen_name)
-        print(len(self.facedef))
-        
+
         # Create material
         if self.render and options.importMaterials:
             reuse_existing = (self.nodetype != nvb_def.Nodetype.ANIMMESH)
@@ -430,8 +428,8 @@ class Trimesh(Node):
                 blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)
                 blen_mesh.polygons.foreach_set('material_index',
-                                               [0] * num_blen_polygons)       
-        
+                                               [0] * num_blen_polygons)
+
         # Create UV maps
         if self.facedef:
             face_uv_indices = [(f[4], f[5], f[6]) for f in self.facedef]
@@ -440,7 +438,7 @@ class Trimesh(Node):
             #    [(f[5], f[6], f[4]) if f[6] == 0 else (f[4], f[5], f[6])
             #     for f in self.facedef]
             face_uv_indices = unpack_list(face_uv_indices)
-            
+
             for layer_idx, uv_coords in enumerate(self.texture_coordinates):
                 if uv_coords:
                     face_uv_coords = [uv_coords[uvi]
@@ -448,8 +446,6 @@ class Trimesh(Node):
                     face_uv_coords = unpack_list(face_uv_coords)
                     uv_layer = blen_mesh.uv_layers.new(do_init=False)
                     uv_layer.name = "tverts"+str(layer_idx)
-                    print(len(uv_layer.data))
-                    print(len(face_uv_coords))
                     uv_layer.data.foreach_set('uv', face_uv_coords[:2*len(uv_layer.data)])
 
         # Create Vertex colors
@@ -533,7 +529,7 @@ class Trimesh(Node):
         else:
             blen_mesh.validate()
         """
-    
+
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
@@ -568,23 +564,53 @@ class Trimesh(Node):
         return obj
 
     @staticmethod
-    def generateAsciiMesh(obj, asciiLines, options):
+    def generateAsciiMesh(obj, ascii_lines, options):
         """TODO: Doc."""
 
-        def getSmoothGroups(obj, mesh, options):
-            smoothGroups = []
+        def mesh_triangulate(mesh):
+            """Triangulate a msesh using bmesh to retain sharp edges."""
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            bmesh.ops.triangulate(bm, faces=bm.faces)
+            bm.to_mesh(mesh)
+            bm.free()
+            del bm
+
+        def mesh_get_smoothgroups(mesh, obj, options):
+            """Get the smoothing group for each face."""
+            groups = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.export_smoothgroups):
                 # 0 = Do not use smoothgroups
-                smoothGroups = [0] * len(mesh.polygons)
+                groups = [0] * len(mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
                  (options.export_normals):
                 # All faces belong to smooth group 1
-                smoothGroups = [1] * len(mesh.polygons)
+                groups = [1] * len(mesh.polygons)
             else:
-                smoothGroups, _ = mesh.calc_smooth_groups()
-            return smoothGroups
+                groups, _ = mesh.calc_smooth_groups()
+            return groups
+
+        def mesh_get_normals(mesh, uvmap):
+            """Get normals and tangets for this mesh."""
+            mesh.calc_tangents(uvmap.name)  # calls calc_normals_split()
+
+            # per_loop_data = [(l.vertex_index, l.normal, l.tangent, l.bitangent_sign)
+            #                  for l in mesh.loops]
+            # per_vertex_data = [[(n, t, b) for n, t, b in per_loop_data if i == vidx]
+            #                    for vidx in range(len(mesh.vertices))]
+            per_vertex_data = {l.vertex_index: (l.normal,
+                                                l.tangent,
+                                                l.bitangent_sign)
+                               for l in mesh.loops}
+            normals = [d[0] for d in per_vertex_data.values()]
+            tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
+            return normals, tangents
+
+        def mesh_get_uvs(mesh):
+            """Get normals and tangets for this mesh."""
+            return []
 
         def getFaceUVs(faceData, uvMapData, join=True):
             """Get a list of uvmap indices and uvmap coodinates."""
@@ -669,14 +695,7 @@ class Trimesh(Node):
                 asciiLines.append('  normals ' + str(len(oknormals)))
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
                 asciiLines.extend([fstr.format(*n) for n in oknormals])
-            """
-            # Try vertex normals
-            for v in mesh.vertices:
-                s = formatStr.format(l_rnd(v.normal[0], 5),
-                                     l_rnd(v.normal[1], 5),
-                                     l_rnd(v.normal[2], 5))
-                asciiLines.append(s)
-            """
+
             # Add tangents
             oktangents = []
             #  Vertex-per-face tangents
@@ -690,49 +709,47 @@ class Trimesh(Node):
                 fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
                 asciiLines.extend([fstr.format(*t[0], t[1])
                                   for t in oktangents])
-            """
-            for face in mesh.polygons:
-                # face loops and face vertices are in the same order
-                for v_id, l_id in zip(face.vertices, face.loop_indices):
-                    # this is the loop:
-                    mesh.loops[l_id]
-                    # this is the vertex in the corner of the loop:
-                    mesh.vertices[v_id]
-            """
             # mesh.free_normals_split()
 
-        me = obj.to_mesh(options.scene,
+        me = obj.to_mesh(options.depsgraph,
                          options.apply_modifiers,
-                         options.mesh_convert)
-        for p in me.polygons:
-            p.use_smooth = True
-        # Triangulation (doing it with bmesh to retain edges marked as sharp)
-        bm = bmesh.new()
-        bm.from_mesh(me)
-        bmesh.ops.triangulate(bm, faces=bm.faces)
-        bm.to_mesh(me)
-        bm.free()
-        del bm
-        me.calc_tessface()  # Recalculate tessfaces after triangulation
+                         calc_undeformed=False)
+        # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
 
-        # Generate Smoothgroups
-        fcSGrps = getSmoothGroups(obj, me, options)
+        # Triangulate
+        mesh_triangulate(me)
+
         # Add vertices
-        asciiLines.append('  verts ' + str(len(me.vertices)))
+        me_vertices = me.vertices
+        ascii_lines.append('  verts ' + str(len(me_vertices)))
         fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-        asciiLines.extend([fstr.format(*v.co) for v in me.vertices])
+        ascii_lines.extend([fstr.format(*v.co) for v in me_vertices])
+
         # Add normals and tangents
         uvmap = me.uv_textures.active
-        if uvmap and options.export_normals and obj.nvb.render:
-            generateNormals(me, asciiLines, uvmap)
+        if uvmap and options.export_normals and not obj.hide_render:
+            me_normals, me_tangents = mesh_get_normals(me, uvmap)
+            ascii_lines.append('  normals ' + str(len(me_normals)))
+            fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+            ascii_lines.extend([fstr.format(*n) for n in me_normals])
+            del me_normals
+            ascii_lines.append('  tangents ' + str(len(me_tangents)))
+            fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
+            ascii_lines.extend([fstr.format(*t) for n in me_tangents])
+            del me_tangents
+
+        # Generate Smoothgroups
+        me_face_grp = mesh_get_smoothgroups(me, obj, options)
+
         # Face vertex indices and face materials
-        fcVertIds = [tuple(tf.vertices) for tf in me.tessfaces]
-        fcMatIds = [tf.material_index for tf in me.tessfaces]
+        me_face_vert = [tuple(p.vertices) for p in me.polygons]
+        me_face_mat = [p.material_index for p in me.polygons]
+
         # Per face uv indices and a list of their coordinates
+        me_face_uv = mesh_get_uvs(me)
         fcUVData = []
-        exportUVs = ((options.uvmapMode == 'ALL') or
-                     (options.uvmapMode == 'REN' and obj.nvb.render))
-        if exportUVs:
+        if (options.uvmapMode == 'ALL') or \
+           (options.uvmapMode == 'REN' and not obj.hide_render):
             joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
                        options.uvmapAutoJoin)
             # Adds scaling factor from the texture slot to uv coordinates
@@ -774,29 +791,29 @@ class Trimesh(Node):
         for idx, fuvd in enumerate(fcUVData):
             if len(fuvd[1]) > 0:
                 if idx == 0:
-                    asciiLines.append('  tverts ' +
-                                      str(len(fuvd[1])))
+                    ascii_lines.append('  tverts ' +
+                                       str(len(fuvd[1])))
                 else:
-                    asciiLines.append('  tverts' + str(idx) + ' ' +
-                                      str(len(fuvd[1])))
-                asciiLines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
+                    ascii_lines.append('  tverts' + str(idx) + ' ' +
+                                       str(len(fuvd[1])))
+                ascii_lines.extend([fstr.format(v[0], v[1]) for v in fuvd[1]])
         # Vertex color
-        generateVColors(me, asciiLines)
+        generateVColors(me, ascii_lines)
         # Write faces to file
-        vdigs = str(max(1, len(str(len(me.vertices)))))  # Digits for vertices
-        sdigs = str(max(1, len(str(max(fcSGrps)))))  # Digits for smoothgrps
-        udigs = str(max(1, len(str(len(fcUVData[0][1])))))  # Digits for UVs
-        mdigs = str(max(1, len(str(max(fcMatIds)))))
+        vdigs = str(max(1, len(str(len(me_face_vert)))))  # Digits for vertices
+        sdigs = str(max(1, len(str(max(me_face_grp)))))  # Digits for smoothgrps
+        udigs = str(max(1, len(str(len(me_face_uv[0][1])))))  # Digits for UVs
+        mdigs = str(max(1, len(str(max(me_face_mat)))))
         # Zip face data
-        faces = [[*fcVertIds[i], fcSGrps[i], *fcUVData[0][0][i], fcMatIds[i]]
-                 for i in range(len(fcVertIds))]
-        asciiLines.append('  faces ' + str(len(faces)))
+        faces = [[*me_face_vert[i], me_face_grp[i], *fcUVData[0][0][i], me_face_mat[i]]
+                 for i in range(len(me_face_vert))]
+        ascii_lines.append('  faces ' + str(len(faces)))
         fstr = '    ' + \
                '{:' + vdigs + 'd} {:' + vdigs + 'd} {:' + vdigs + 'd}  ' + \
                '{:' + sdigs + 'd}  ' + \
                '{:' + udigs + 'd} {:' + udigs + 'd} {:' + udigs + 'd}  ' + \
                '{:' + mdigs + 'd}'
-        asciiLines.extend([fstr.format(*f) for f in faces])
+        ascii_lines.extend([fstr.format(*f) for f in faces])
         bpy.data.meshes.remove(me)
 
     @classmethod
@@ -815,14 +832,9 @@ class Trimesh(Node):
             nvb_material.Material.generate_ascii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
-            # Self illumination color
-            col = obj.nvb.selfillumcolor
-            if round(sum(col), 2) > 0.0:  # Skip default value
-                s = '  selfillumcolor {:3.2f} {:3.2f} {:3.2f}'.format(*col)
-                asciiLines.append(s)
             # Render and Shadow
-            if not (obj.nvb.shadow and obj.nvb.render):  # Skip default value
-                asciiLines.append('  render ' + str(int(obj.nvb.render)))
+            if not obj.nvb.shadow or obj.hide_render:  # Skip default value
+                asciiLines.append('  render ' + str(int(not obj.hide_render)))
                 asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             # Beaming
             val = int(obj.nvb.beaming)
@@ -1552,9 +1564,9 @@ class Aabb(Trimesh):
     @staticmethod
     def generateAsciiAABB(obj, asciiLines, options):
         """TODO: Doc."""
-        walkmesh = obj.to_mesh(options.scene,
+        walkmesh = obj.to_mesh(options.depsgraph,
                                options.apply_modifiers,
-                               options.mesh_convert)
+                               calc_undeformed=False)
 
         faceList = []
         faceIdx = 0

@@ -15,302 +15,525 @@ class Nodes(object):
     """Collection of function for dealing with shader nodes."""
 
     @staticmethod
-    def get_texture_name(texture_node):
-        """Get a texture from a texture node."""
-        # Try reading an image from the texture node
-        try:
-            img = texture_node.image
-            if img.filepath:
-                return os.path.splitext(os.path.basename(img.filepath))[0]
-            elif img.name:
-                return os.path.splitext(os.path.basename(img.name))[0]
-        except AttributeError:
-            pass  # Node does not have an image texture
-        if texture_node.label:
-            return texture_node.label
-        else:
-            return "ERROR"
-    
-    @staticmethod
-    def get_texture_map(node_input):
-        """Get the texture of there is one. None otherwise."""
-        texture_name = None
-        default_value = None
-
-        if node_input.links:
-            linked_node = node_input.links[0].from_node
-            
-            if linked_node.type == 'TEX_IMAGE':
-                # texture node, grab image
-                texture_name = Nodes.get_texture_name(linked_node)
-            elif linked_node.type == 'MIX_RGB':
-                # Mix node, grab default value and texture
-                if linked_node.inputs[1].links:  # socket 1 is linked
-                    tex_node = linked_node.inputs[1].links[0].from_node
-                    if tex_node.type == 'TEX_IMAGE':
-                        texture_name = Nodes.get_texture_name(tex_node)
-                    default_value = linked_node.inputs[2].default_value
-                elif linked_node.inputs[2].links:  # socket 2 is linked
-                    tex_node = linked_node.inputs[1].links[0].from_node
-                    if tex_node.type == 'TEX_IMAGE':
-                        texture_name = Nodes.get_texture_name(tex_node)
-                    default_value = linked_node.inputs[1].default_value
-                else:  # No linked socket
-                    default_value = linked_node.outputs[0].default_value
-            elif linked_node.type == 'RGB':
-                # Color node, set output color
-                default_value = linked_node.outputs[0].default_value
-        else:
-            default_value = node_input.default_value
-        # Convert default value to list
-        if default_value:
-            try:
-                default_value = list(default_value)
-            except TypeError:
-                default_value = [default_value]
-        return texture_name, default_value
-
-    @staticmethod
-    def get_normal_map(node_input):
-        """Get the normal map of there is one. None otherwise."""
-        texture_name = None
-        default_value = None
-
-        if node_input.links:
-            node_normal = node_input.links[0].from_node
-            if node_normal and node_normal.inputs[1].links:
-                node_tex = node_normal.inputs[1].links[0].from_node
-                texture_name = Nodes.get_texture_name(node_tex)
-        return texture_name, default_value
-   
-    @staticmethod
-    def get_height_map(node_input):
-        """Get the height map of there is one. None otherwise."""
-        texture_name = None
-        default_value = None
-
-        if node_input.links:
-            linked_node = node_input.inputs[0].links[0].from_node 
-            texture_name = Nodes.get_texture_name(linked_node)
-        return texture_name, default_value
-    
-    @staticmethod
-    def find_emissive_socket(node_input):
-        """Read the socket from which to take emissive. May be None."""
-        if node_input.links:
-            node = node_input.links[0].from_node
-            if node.type == 'EMISSION':
+    def find_alpha_socket(node):
+        """Get the socket from which to take alpha. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Surface
+            if socket.is_linked:
+                return Nodes.find_alpha_socket(socket.links[0].from_node)
+        elif node.type == 'MATH':  # Return one of these
+            # Use the value from the first unconnected socket
+            if not node.inputs[0].links:
                 return node.inputs[0]
-            elif node.type == 'EEVEE_SPECULAR':
-                return node.inputs[3]
-            elif node.type == 'MIX_SHADER':
-                # Go down both shader input slots
-                tmp_node = Nodes.find_emissive_socket(node.inputs[1])
-                if tmp_node is not None:
-                    return tmp_node
-                else:
-                    return Nodes.find_emissive_socket(node.inputs[2])
+            if not node.inputs[1].links:
+                return node.inputs[1]
+            else:
+                return None  # No unconnected sockets
+        elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
+            socket = node.inputs[4]  # 4 = Transparency
+            if socket.is_linked:
+                return Nodes.find_alpha_socket(socket.links[0].from_node)
+        elif node.type == 'INVERT':  # Go down the node tree
+            socket = node.inputs[1]  # 1 = Color
+            if socket.is_linked:
+                return Nodes.find_alpha_socket(socket.links[0].from_node)
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Factor
+            if socket.is_linked:
+                return Nodes.find_alpha_socket(socket.links[0].from_node)
         return None
 
     @staticmethod
-    def get_emissive_map(node_input):
-        """Get the emissive map if there is one. None otherwise."""
-        texture_name = None
-        default_value = None
-        
-        emissive_input = Nodes.find_emissive_socket(node_input)
-        if emissive_input:
-            texture_name, default_value = Nodes.get_texture_map(emissive_input)
-        return texture_name, default_value
-    
-    @staticmethod
-    def find_alpha_socket(node_input):
-        """Read the socket from which to take alpha. May be None."""
-        alpha_socket = None
-        if node_input.links:
-            node = node_input.links[0].from_node
-            if node.type == 'MATH':
-                # Use the value from the first unconnected socket
-                if not node.inputs[0].links:
-                    alpha_socket = node.inputs[0]
-                if not node.inputs[1].links:
-                    alpha_socket = node.inputs[1]
-                else:
-                    alpha_socket = None  # No unconnected sockets
-            elif node.type == 'EEVEE_SPECULAR':
-                # Follow socket 4 (transparency)
-                alpha_socket = Nodes.find_alpha_socket(node.inputs[4])
-            elif node.type == 'INVERT':
-                # Follow socket 1 (color)
-                alpha_socket = Nodes.find_alpha_socket(node.inputs[1])
-            elif node.type == 'MIX_SHADER':
-                # Follow socket 0 (factor)
-                alpha_socket = Nodes.find_alpha_socket(node.inputs[0])
-        return alpha_socket   
+    def find_diffuse_socket(node):
+        """Get the socket from which to take diffuse data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Surface
+            if socket.is_linked:
+                return Nodes.find_diffuse_socket(socket.links[0].from_node)
+        elif node.type == 'EEVEE_SPECULAR':  # Return this sockett
+            return node.inputs[0]  # 0 = Base Color
+        elif node.type == 'BSDF_PRINCIPLED':  # Return this socket
+            return node.inputs[0]  #  0 = Base Color
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_diffuse_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_diffuse_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_diffuse_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_diffuse_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
 
-    @staticmethod 
-    def get_output_node(nodes):
+        return None
+
+    @staticmethod
+    def find_emissive_socket(node):
+        """Get the socket from which to take emissive data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socket = node.inputs[0]  # Surface
+            if socket.is_linked:
+                return Nodes.find_emissive_socket(socket.links[0].from_node)
+        elif node.type == 'EMISSION':  # # Return this socket
+            return node.inputs[0]  # Color
+        elif node.type == 'EEVEE_SPECULAR':  # # Return this socket
+            return node.inputs[3]  # Emissive Color
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_emissive_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_emissive_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_emissive_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_emissive_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+
+        return None
+
+    @staticmethod
+    def find_height_socket(node):
+        """Get the socket from which to take height data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socketA = node.inputs[0]  # Surface
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_height_socket(socketA.links[0].from_node)
+            socketB = node.inputs[2]  # Displacement
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_height_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
+            socket = node.inputs[9]  # Ambient Occlusion
+            if socket.is_linked:
+                return Nodes.find_height_socket(socket.links[0].from_node)
+        elif node.type == 'DISPLACEMENT':  # Return this socket
+            return node.inputs[0]  # 0 = Height
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_height_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_height_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_height_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_height_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+
+        return None
+
+    @staticmethod
+    def find_normal_socket(node):
+        """Get the socket from which to take normal data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            # Surface
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_normal_socket(socketA.links[0].from_node)
+            # Displacement
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_normal_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
+            socket = node.inputs[5]  # 5 = Normal
+            if socket.is_linked:
+                return Nodes.find_normal_socket(socket.links[0].from_node)
+        elif node.type == 'BSDF_PRINCIPLED':  # Go down the node tree
+            socket = node.inputs[17]  # 17 = Normal
+            if socket.is_linked:
+                return Nodes.find_normal_socket(socket.links[0].from_node)
+        elif node.type == 'DISPLACEMENT':  # Go down the node tree
+            socket = node.inputs[3]  # 3 = Normal
+            if socket.is_linked:
+                return Nodes.find_normal_socket(socket.links[0].from_node)
+        elif node.type == 'NORMAL_MAP':  # Return this socket
+            return node.inputs[1]  # 1 = Color
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_normal_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_normal_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_normal_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_normal_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+
+        return None
+
+    @staticmethod
+    def find_roughness_socket(node):
+        """Get the socket from which to take roughness data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Surface
+            if socket.is_linked:
+                return Nodes.find_roughness_socket(socket.links[0].from_node)
+        elif node.type == 'EEVEE_SPECULAR':  # Return this sockett
+            return node.inputs[2]  # 2 = Roughness
+        elif node.type == 'BSDF_PRINCIPLED':  # Return this socket
+            return node.inputs[7]  # 7 = Roughness
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_roughness_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_roughness_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_roughness_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_roughness_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+
+        return None
+
+    @staticmethod
+    def find_specular_socket(node):
+        """Get the socket from which to take specular data. May be None."""
+        if not node:
+            return None
+        if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Surface
+            node = None
+            if socket.is_linked:
+                return Nodes.find_specular_socket(socket.links[0].from_node)
+        elif node.type == 'EEVEE_SPECULAR':  # Return this socket
+            socket = node.inputs[1]  # 1 = Specular
+            return socket
+        elif node.type == 'BSDF_PRINCIPLED':  # Return socket
+            socket = node.inputs[5]  # 5 = Specular
+            return socket
+        elif node.type == 'MIX_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_specular_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_specular_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'ADD_SHADER':  # Go down the node tree
+            # Shader A
+            socketA = node.inputs[0]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.find_specular_socket(socketA.links[0].from_node)
+            # Shader B
+            socketB = node.inputs[1]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.find_specular_socket(socketB.links[0].from_node)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+
+        return None
+
+    @staticmethod
+    def get_output_node(material):
         """Search for the output node in this node list."""
-        # No nodes or no links == no textures
+        # Material has to use nodes
+        if not material.use_nodes:
+            return None
+
+        nodes = material.node_tree.nodes
+        # No nodes or no links
         if (len(nodes) <= 0):
-            return None 
+            return None
 
         output_nodes = [n for n in nodes if n.type == 'OUTPUT_MATERIAL']
 
         # No output node == no textures
         if not output_nodes:
-            return None 
+            return None
 
         # If there are multiple output nodes we have to choose one
         # We'll pick the one with the most input links
         output_nodes.sort(
-            key=(lambda n: len([i for i in n.inputs if i.is_linked])), 
+            key=(lambda n: len([i for i in n.inputs if i.is_linked])),
             reverse=True)
         return output_nodes[0]
 
     @staticmethod
-    def get_alpha_value(node_input):
-        """Search for an alpha value from this socket."""
-        alpha_input = Nodes.find_alpha_socket(node_input)
-        if alpha_input:
-            return alpha_input.default_value
-        return 1.0
+    def get_texture_node(socket):
+        """Get texture node. May be none."""
+        if not socket or not socket.is_linked:
+            return None
+        node = socket.links[0].from_node
+
+        if node.type.startswith('TEX_'):  # Return this node
+            return node
+        elif node.type == 'MIX_RGB':  # Go down the node tree
+            # Color A
+            socketA = node.inputs[1]
+            nodeA = None
+            if socketA.is_linked:
+                nodeA = Nodes.get_texture_node(socketA)
+            # Color B
+            socketB = node.inputs[2]
+            nodeB = None
+            if socketB.is_linked:
+                nodeB = Nodes.get_texture_node(socketB)
+            # Prefer A over B
+            if nodeA:
+                return nodeA
+            return nodeB
+        elif node.type == 'SEPRGB':  # Go down the node tree
+            socket = node.inputs[0]  # 0 = Image
+            if socket.is_linked:
+                return Nodes.get_texture_node(socket)
+        return None
 
     @staticmethod
-    def get_node_data_bsdf(node_out, node_shader_main):
-        """Get the list of texture names for Principled BSDF shaders."""
+    def get_color_socket(socket):
+        """Get ta color socket connected to this socket. May be none."""
+        if not socket:
+            return None
 
-        tex_list = [None] * 15 
-        color_list = [None] * 15
-        alpha_val = 1.0
+        if socket.is_linked:
+            node = socket.links[0].from_node
 
-        # Alpha should be mexed in from a math node
-        shader_input = node_out.inputs[0]  # Transparency
-        alpha_val = Nodes.get_alpha_value(shader_input)
-
-        # Diffuse 
-        # NWN = 0, Principled BSDF = 0
-        shader_input = node_shader_main.inputs[0]  # 'Base Color'
-        tex_list[0], color_list[0] = Nodes.get_texture_map(shader_input)
-
-        # Normal 
-        # NWN = 1, Principled BSDF = 17
-        shader_input = node_shader_main.inputs[17]  # 'Normal'
-        tex_list[1], color_list[1] = Nodes.get_normal_map(shader_input)
-
-        # Specular
-        # NWN = 2, Principled BSDF = 5
-        shader_input = node_shader_main.inputs[5]  # 'Specular'
-        tex_list[2], color_list[2] = Nodes.get_texture_map(shader_input)           
-
-        # Roughness 
-        # NWN = 3, Principled BSDF = 7
-        shader_input = node_shader_main.inputs[7]  # 'Roughness'
-        tex_list[3], color_list[3] = Nodes.get_texture_map(shader_input)
-        
-        # Height/Ambient Occlusion 
-        # NWN = 4, Plugged directly into material output
-
-        # Emissive/Illumination
-        # NWN = 5, Emissive Shader mixed into Principled BSDF
-        shader_input = node_out.inputs[0]
-        tex_list[5], color_list[5] = Nodes.get_emissive_map(shader_input)
-
-        return tex_list, color_list, alpha_val           
+            if node.type == 'MIX_RGB':
+                # Mix node, grab color from first unlinked node
+                if not node.inputs[1].is_linked:
+                    return node.inputs[1]
+                elif not node.inputs[2].is_linked:
+                    return node.inputs[2]
+                else:  # Both sockets are linked
+                    socketA = Nodes.get_color_socket(node.inputs[1])
+                    socketB = Nodes.get_color_socket(node.inputs[2])
+                    if socketA:
+                        return socketA
+                    return socketB
+            elif node.type == 'SEPRGB':
+                # RGB Separation, follow input 0 (Image)
+                return Nodes.get_color_socket(node.inputs[0])
+            elif node.type == 'RGB':  # Return the output socket
+                return node.outputs[0]
+        elif socket.type == 'RGBA':
+            return socket
+        return None
 
     @staticmethod
-    def get_node_data_spec(node_out, node_shader_main):
-        """Get the list of texture names from Eevee Specular shaders."""
-        
-        tex_list = [None] * 15 
-        color_list = [None] * 15
-        alpha_val = 1.0
+    def get_alpha_value(alpha_socket, fail_value=1.0):
+        """Get tha alpha value from the socket."""
+        if alpha_socket:
+            return alpha_socket.default_value
+        return fail_value
 
-        # Alpha should be inverted and plugged into transparency
-        shader_input = node_shader_main.inputs[4]  # Transparency
-        alpha_val = Nodes.get_alpha_value(shader_input)
-        
-        # Diffuse (NWN = 0, Eevee Specular = 0)
-        shader_input = node_shader_main.inputs[0]  # Base Color
-        tex_list[0], color_list[0] = Nodes.get_texture_map(shader_input)
+    @staticmethod
+    def get_color_value(color_socket, fail_value=(1.0, 1.0, 1.0, 1.0)):
+        """Get tha alpha value from the socket."""
+        if color_socket:
+            return color_socket.default_value
+        return fail_value
 
-        # Normal (NWN = 1, Eevee Specular = 5)
-        shader_input = node_shader_main.inputs[5]  # Normal
-        tex_list[1], color_list[1] = Nodes.get_normal_map(shader_input)
+    @staticmethod
+    def get_texture_name(texture_node, fail_value="ERROR"):
+        """Get a texture from a texture node."""
+        # No texture node: None=Null
+        if not texture_node:
+            return None
+        # texture node has no image: Use node label
+        img = texture_node.image
+        if not img:
+            if texture_node.label:
+                return texture_node.label
+            else:
+                return fail_value
+        # Get name from filepath or (Blender's) image name
+        if img.filepath:
+            return os.path.splitext(os.path.basename(img.filepath))[0]
+        elif img.name:
+            return os.path.splitext(os.path.basename(img.name))[0]
+        return fail_value
 
-        # Specular (NWN = 2, Eevee Specular = 1)
-        shader_input = node_shader_main.inputs[1]  # Specular
-        tex_list[2], color_list[2] = Nodes.get_texture_map(shader_input)           
-
-        # Roughness (NWN = 3, Eevee Specular = 2)
-        shader_input = node_shader_main.inputs[2]  # Roughness
-        tex_list[3], color_list[3] = Nodes.get_texture_map(shader_input)
-
-        # Height/Ambient Occlusion (NWN = 4, Eevee Specular = 9)
-        shader_input = node_shader_main.inputs[9]  # Ambient Occlusion
-        tex_list[4], color_list[4] = Nodes.get_texture_map(shader_input)
-
-        # Emissive/Illumination (NWN = 5, Eevee Specular = 3)
-        shader_input = node_shader_main.inputs[3]  # Emissive Color
-        tex_list[5], color_list[5] = Nodes.get_texture_map(shader_input)
-
-
-        return tex_list, color_list, alpha_val
-    
     @staticmethod
     def get_node_data(material):
         """Get the list of texture names for this material."""
-        def get_main_shader(node):
-            """Return the first connected Specular or BSDF node."""  
-            if node.type in ['BSDF_PRINCIPLED', 'EEVEE_SPECULAR']:
-                return node
-            # Go down the node tree
-            for ni in node.inputs:
-                if ni.type == 'SHADER' and ni.links:
-                    input_node = get_main_shader(ni.links[0].from_node)
-                    if input_node is not None:
-                        return input_node
-            return None
+        def get_data_tuple(input_node, default_color=(1.0, 1.0, 1.0, 1.0)):
+            """Get texture and color from an input name."""
+            texture_node = Nodes.get_texture_node(input_socket)
+            texture = None
+            if texture_node:
+                texture = Nodes.get_texture_name(texture_node)
 
-        tex_list = [None] * 15
-        col_list = [None] * 15
+            color_socket = Nodes.get_color_socket(input_socket)
+            color = default_color
+            if color_socket:
+                color = Nodes.get_color_value(color_socket, default_color)
+            return texture, color
+
+        texture_list = [None] * 15
+        color_list = [None] * 15
         alpha = 1.0
 
-        # Only nodes are supported
-        if not material.use_nodes: 
-            return tex_list, col_list, alpha  # still empty         
-               
-        nodes = material.node_tree.nodes
+        node_out = Nodes.get_output_node(material)
+        if not node_out:
+            return texture_list, color_list, alpha  # still empty
 
-        node_out = Nodes.get_output_node(nodes)
+        # Alpha should be inverted and plugged into transparency
+        input_socket = Nodes.find_alpha_socket(node_out)
+        alpha = Nodes.get_alpha_value(input_socket)
 
-        # Try reading height map (5) and normal map (1)
-        # from displacement socket of output_node.
-        # These may be overwritten later from shader node values
-        if node_out.inputs[2].links:
-            node_displ = node_out.inputs[2].links[0].from_node
-            if node_displ.type == 'DISPLACEMENT':
-                # Height map (5)
-                tex_list[5], _ = Nodes.get_height_map(node_displ.inputs[0])
-                # Normal map (1)
-                tex_list[1], _ = Nodes.get_normal_map(node_displ.inputs[3])
-        
-        # Surface is not linked to anything == no other textures
-        if not node_out.inputs[0].links:
-            return tex_list, col_list, alpha
+        # Diffuse (0)
+        input_socket = Nodes.find_diffuse_socket(node_out)
+        texture_list[0], color_list[0] = get_data_tuple(input_socket,
+                                                        (1.0, 1.0, 1.0, 1.0))
 
-        node_main_shader = get_main_shader(node_out)
-        if node_main_shader.type == 'BSDF_PRINCIPLED':
-            tex_list, col_list, alpha = Nodes.get_node_data_bsdf(
-                node_out, node_main_shader)
-        elif node_main_shader.type == 'EEVEE_SPECULAR':
-            tex_list, col_list, alpha = Nodes.get_node_data_spec(
-                node_out, node_main_shader)
+        # Normal (1)
+        input_socket = Nodes.find_normal_socket(node_out)
+        texture_list[1], _ = get_data_tuple(input_socket)
 
-        return tex_list, col_list, alpha
-     
+        # Specular (2)
+        input_socket = Nodes.find_specular_socket(node_out)
+        texture_list[2], color_list[2] = get_data_tuple(input_socket,
+                                                        (0.0, 0.0, 0.0, 1.0))
+
+        # Roughness (3)
+        input_socket = Nodes.find_roughness_socket(node_out)
+        texture_list[3], _ = get_data_tuple(input_socket)
+
+        # Height/Ambient Occlusion (4)
+        input_socket = Nodes.find_height_socket(node_out)
+        texture_list[4], _ = get_data_tuple(input_socket)
+
+        # Emissive/Illumination (5)
+        input_socket = Nodes.find_emissive_socket(node_out)
+        texture_list[5], color_list[5] = get_data_tuple(input_socket,
+                                                        (0.0, 0.0, 0.0, 1.0))
+
+        return texture_list, color_list, alpha
+
     @staticmethod
-    def add_node_data_bsdf(material, 
+    def add_node_data_bsdf(material,
                            texture_list, color_list, alpha,
                            img_filepath, img_search = False):
         """Setup up material nodes for Principled BSDF Shader."""
@@ -332,7 +555,7 @@ class Nodes(object):
 
         node_shd_mix_trans = nodes.new('ShaderNodeMixShader')
         node_shd_mix_trans.label = "Mix: Transparency"
-        node_shd_mix_trans.name = "mix_transparency"
+        node_shd_mix_trans.name = "shd_transparency_mix"
         node_shd_mix_trans.location = (492.0, 646.0)
         node_shd_mix_trans.inputs[0].default_value = alpha
 
@@ -349,30 +572,29 @@ class Nodes(object):
         node_shd_emit.name = "shd_emission"
         node_shd_emit.location = (-125.0, 442.0)
 
-        node_shd_mix_emit = nodes.new('ShaderNodeMixShader')
-        node_shd_mix_emit.label = "Mix: Emission"
-        node_shd_mix_emit.name = "mix_emission"
-        node_shd_mix_emit.location = (251, 400.0)
-        node_shd_mix_emit.inputs[0].default_value = 0.5
+        node_shd_add_emit = nodes.new('ShaderNodeAddShader')
+        node_shd_add_emit.label = "Add: Emission"
+        node_shd_add_emit.name = "shd_emission_add"
+        node_shd_add_emit.location = (251, 400.0)
 
-        # Setup: 
+        # Setup:
         #                     Math Multiply    =>
         #                     Transparent BSDF =>
-        #                                         Mix Transp => Output 
-        # Emission         =>               
+        #                                         Mix Transp => Output
+        # Emission         =>
         #                     Mix Emit         =>
         # Principled BSDF  =>
         links.new(node_out.inputs[0], node_shd_mix_trans.outputs[0])
-        
+
         links.new(node_shd_mix_trans.inputs[0], node_math_trans.outputs[0])
         links.new(node_shd_mix_trans.inputs[1], node_shd_trans.outputs[0])
-        links.new(node_shd_mix_trans.inputs[2], node_shd_mix_emit.outputs[0])
+        links.new(node_shd_mix_trans.inputs[2], node_shd_add_emit.outputs[0])
 
-        links.new(node_shd_mix_emit.inputs[1], node_shd_emit.outputs[0])
-        links.new(node_shd_mix_emit.inputs[2], node_shd_bsdf.outputs[0])
+        links.new(node_shd_add_emit.inputs[0], node_shd_emit.outputs[0])
+        links.new(node_shd_add_emit.inputs[1], node_shd_bsdf.outputs[0])
 
         # Add texture maps
-        # 0 = Diffuse       
+        # 0 = Diffuse
         if texture_list[0]:
             # Setup: Image Texture (Color) => Principled BSDF
             # Setup: Image Texture (Alpha) => Mix Transparent (Factor)
@@ -391,7 +613,7 @@ class Nodes(object):
          # 1 = Normal
         if texture_list[1]:
             # Setup: Image Texture => Normal Map => Principled BSDF
-            node_tex_norm = nodes.new('ShaderNodeTexImage')   
+            node_tex_norm = nodes.new('ShaderNodeTexImage')
             node_tex_norm.label = "Texture: Normal"
             node_tex_norm.name = "tex_normal"
             node_tex_norm.location = (-668.0, -267.0)
@@ -451,14 +673,14 @@ class Nodes(object):
 
             links.new(node_displ.inputs[0], node_tex_height.outputs[0])
             links.new(node_out.inputs[2], node_displ.outputs[0])
-        
+
         # 5 = Illumination/ Emission/ Glow
         node_shd_emit.inputs[0].default_value = color_list[5]
         if texture_list[5]:
-            # Setup: 
-            # Image Texture => Emission Shader => 
+            # Setup:
+            # Image Texture => Emission Shader =>
             #                                     Mix Shader => Material Output
-            #                  Principled BSDF => 
+            #                  Principled BSDF =>
             node_tex_emit = nodes.new('ShaderNodeTexImage')
             node_tex_emit.label = "Texture: Emissive"
             node_tex_emit.name = "tex_emissive"
@@ -468,10 +690,10 @@ class Nodes(object):
                 texture_list[5], img_filepath, img_search)
             node_tex_norm.color_space = 'COLOR'
 
-            links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])            
-    
+            links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])
+
     @staticmethod
-    def add_node_data_spec(material, 
+    def add_node_data_spec(material,
                            texture_list, color_list, alpha,
                            img_filepath, img_search = False):
         """Setup up material nodes for Eevee Specular Shader."""
@@ -486,9 +708,9 @@ class Nodes(object):
         node_shader_spec = nodes.new('ShaderNodeEeveeSpecular')
         node_shader_spec.location = (564.0, 359.0)
 
-        links.new(node_out.inputs['Surface'], 
+        links.new(node_out.inputs['Surface'],
                   node_shader_spec.outputs['BSDF'])
-        
+
         # Add texture maps
 
         # 0 = Diffuse = Base Color
@@ -509,10 +731,10 @@ class Nodes(object):
         node_math.use_clamp = True
         node_math.inputs[1].default_value = alpha
 
-        links.new(node_invert.inputs[1], node_math.outputs[0])                     
+        links.new(node_invert.inputs[1], node_math.outputs[0])
         links.new(node_shader_spec.inputs[4], node_invert.outputs[0])
-        if texture_list[0]:           
-            # Setup: Image Texture (Color) => Eevee Specular (Base Color)           
+        if texture_list[0]:
+            # Setup: Image Texture (Color) => Eevee Specular (Base Color)
             node_tex_diff = nodes.new('ShaderNodeTexImage')
             node_tex_diff.label = "Texture: Diffuse"
             node_tex_diff.name = "tex_diffuse"
@@ -528,7 +750,7 @@ class Nodes(object):
         # 1 = Normal
         if texture_list[1]:
             # Setup: Image Texture => Normal Map => Eevee Specular
-            node_tex_norm = nodes.new('ShaderNodeTexImage')      
+            node_tex_norm = nodes.new('ShaderNodeTexImage')
             node_tex_norm.label = "Texture: Normal"
             node_tex_norm.name = "tex_normal"
             node_tex_norm.location = (-179.0, -174.0)
@@ -584,13 +806,13 @@ class Nodes(object):
                 texture_list[4], img_filepath, img_search)
             node_tex_height.color_space = 'NONE'  # Single channel
 
-            links.new(node_shader_spec.inputs[9], node_tex_height.outputs[0]) 
+            links.new(node_shader_spec.inputs[9], node_tex_height.outputs[0])
 
         # 5 = Illumination/ Emission/ Glow
         node_shader_spec.inputs[3].default_value = color_list[5]
         if texture_list[5]:
             # Setup: Image Texture => Eevee Specular (Emissive)
-            node_tex_emit = nodes.new('ShaderNodeTexImage') 
+            node_tex_emit = nodes.new('ShaderNodeTexImage')
             node_tex_emit.label = "Texture: Emissive"
             node_tex_emit.name = "tex_emissive"
             node_tex_emit.location = (-63.0, 267.0)
@@ -599,23 +821,23 @@ class Nodes(object):
                 texture_list[5], img_filepath, img_search)
             node_tex_emit.color_space = 'NONE'  # Single channel
 
-            links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0])              
-    
+            links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0])
+
     @staticmethod
-    def add_node_data(material, shader_type, 
+    def add_node_data(material, shader_type,
                       texture_list, color_list, alpha,
                       img_filepath, img_search = False):
         """Select shader nodes based on options."""
         if (shader_type == 'ShaderNodeEeveeSpecular'):
-            Nodes.add_node_data_spec(material, 
+            Nodes.add_node_data_spec(material,
                                      texture_list, color_list, alpha,
                                      img_filepath, img_search)
         else:
-            Nodes.add_node_data_bsdf(material, 
+            Nodes.add_node_data_bsdf(material,
                                      texture_list, color_list, alpha,
                                      img_filepath, img_search)
-         
-  
+
+
 
 class Material(object):
     """A material read from an mdl node."""
@@ -636,10 +858,10 @@ class Material(object):
     @staticmethod
     def colorisclose(a, b, tol=0.05):
         return (sum([math.isclose(v[0], v[1]) for v in zip(a, b)]) == len(a))
-    
+
     def generate_material_name(self):
-        """Generates a material name for use in blender.""" 
-        
+        """Generates a material name for use in blender."""
+
         # 'materialname' over 'texture0'/'bitmap' over Default
         if self.mtr_name:
             mat_name = self.mtr_name
@@ -649,15 +871,16 @@ class Material(object):
         else:
             mat_name = ""  # Blender will a default name
         return mat_name
-    
+
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
         for blender_mat in bpy.data.materials:
             tex_list, col_list, alpha = Nodes.get_node_data(blender_mat)
             #if ( (tex_list == self.texture_list) and
-            #     (col_list == self.color_list) and 
+            #     (col_list == self.color_list) and
             #     math.isclose(alpha, self.alpha) ):
             if ( (tex_list == self.texture_list) and
+                 Material.colorisclose(col_list[5], self.color_list[5]) and
                  math.isclose(alpha, self.alpha) ):
                 return blender_mat
         return None
@@ -671,7 +894,7 @@ class Material(object):
         d = d and self.texture_list.count(nvb_def.null) == len(self.texture_list)
         d = d and self.materialname == ''
         return d
-    
+
     def parse_ascii_line(self, line):
         """TODO: Doc."""
         label = line[0].lower()
@@ -682,10 +905,10 @@ class Material(object):
         elif label == 'specular':
             self.color_list[2] = nvb_parse.ascii_color(line[1:])
         elif label in ['selfillumcolor', 'setfillumcolor']:
-            self.color_list[4] = nvb_parse.ascii_color(line[1:])            
+            self.color_list[4] = nvb_parse.ascii_color(line[1:])
         elif label == 'alpha':
             self.alpha = nvb_parse.ascii_float(line[1])
-        elif label == 'materialname': 
+        elif label == 'materialname':
             self.materialname = nvb_parse.ascii_identifier(line[1])
         elif label == 'renderhint':
             self.renderhints.add(nvb_parse.ascii_identifier(line[1]))
@@ -695,14 +918,14 @@ class Material(object):
                 self.texture_list[0] = nvb_parse.ascii_texture(line[1])
             # bitmap as materialname, materialname takes precedence
             if self.mtr_name is None:
-                self.mtr_name = nvb_parse.ascii_identifier(line[1])          
+                self.mtr_name = nvb_parse.ascii_identifier(line[1])
         elif label.startswith('texture'):
             if label[7:]:  # 'texture' is followed by a number
                 idx = int(label[7:])
                 self.texture_list[idx] = nvb_parse.ascii_texture(line[1])
-    
+
     def mtr_read(self, options):
-        """Read the contents of the mtr file specified in the mdl file."""       
+        """Read the contents of the mtr file specified in the mdl file."""
         if not self.mtr and self.mtr_name:
             if self.mtr_name in options.mtrdb:
                 self.mtr_data = options.mtrdb[self.mtr_name]
@@ -714,21 +937,21 @@ class Material(object):
                 if mtr.read_mtr(mtr_path):
                     options.mtrdb[self.mtr_name] = mtr
                     self.mtr = mtr
-    
+
     def mtr_merge(self):
-        """Merges the contents of the mtr file into this material."""            
+        """Merges the contents of the mtr file into this material."""
         # Merge values from mtr into this material
         if self.mtr:
             self.renderhints = self.renderhints.union(self.mtr.renderhints)
             # Load all existing textures from the mtr into the material
-            self.texture_list = [t2 if t2 is not None else t1 
-                                 for t1, t2 in zip(self.texture_list, 
+            self.texture_list = [t2 if t2 is not None else t1
+                                 for t1, t2 in zip(self.texture_list,
                                                    self.mtr.texture_list)]
             # Load all existing colors from the mtr into the material
-            self.color_list = [c2 if c2 is not None else c1 
-                               for c1, c2 in zip(self.color_list, 
+            self.color_list = [c2 if c2 is not None else c1
+                               for c1, c2 in zip(self.color_list,
                                                  self.mtr.color_list)]
-                             
+
     def create_blender_material(self, options, reuse_existing=True):
         """Returns a blender material with the stored values."""
         # Load mtr values into this material
@@ -754,18 +977,13 @@ class Material(object):
         return blender_mat
 
     @staticmethod
-    def generate_default_values(ascii_lines):
-        """Write default material values to ascii."""
-        ascii_lines.append('  ambient 1.00 1.00 1.00')
-        ascii_lines.append('  diffuse 1.00 1.00 1.00')
-        ascii_lines.append('  specular 0.00 0.00 0.00')
-        ascii_lines.append('  bitmap ' + nvb_def.null)
-
-    @staticmethod
     def generate_ascii(obj, ascii_lines, options):
         """Write Ascii lines from the objects material for a MDL file."""
         material = obj.active_material
-        if obj.nvb.render and material:
+        if obj.hide_render and material:
+            tex_list = [None] * 15
+            col_list = [None] * 15
+            alpha = 1.0
             tex_list, col_list, alpha = Nodes.get_node_data(material)
             # Write colors
             fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
@@ -775,25 +993,31 @@ class Material(object):
             fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
             ascii_lines.append(fstr.format(*col_list[2]))
             # Write textures
-            if material.nvb.usemtr:
-                mtrname = material.nvb.mtrname
-                ascii_lines.append('  ' + options.mtr_ref + ' ' + mtrname)
+            if options.mtr_export:
+                mtr_name = material.name
+                ascii_lines.append('  ' + options.mtr_ref + ' ' + mtr_name)
                 options.mtrdb.add(material.name)  # export later on demand
             else:
                 # Add Renderhint
                 if (len(tex_list) > 1):
                     ascii_lines.append('  renderhint NormalAndSpecMapped')
-                # Export texture[0] as "bitmap", not "texture0"
-                if len(tex_list) > 0:
-                    ascii_lines.append('  bitmap ' + tex_list[0])
+                # Export texture 0 (diffuse) as "bitmap" or "texture0"
+                fstr = '  ' + options.mat_diffuse_ref + ' {:s}'
+                if tex_list[0]:
+                    ascii_lines.append(fstr.format(tex_list[0]))
                 else:
-                    ascii_lines.append('  bitmap ' + nvb_def.null)
-                # Export texture1 and texture2
+                    ascii_lines.append(fstr.format(nvb_def.null))
+                # Export texture 1 (normal) and 2 (specular)
                 fstr = '  texture{:d} {:s}'
-                ascii_lines.extend([fstr.format(i, t) for i, t in enumerate(tex_list[1:3])])
+                for idx, tex_name in enumerate(tex_list[1:3]):
+                    if tex_name:
+                        ascii_lines.append(fstr.format(idx, tex_name))
             # Write Alpha
             if not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
                 fstr = '  alpha {: 3.2f}'
                 ascii_lines.append(fstr.format(alpha))
         else:
-            Material.generate_default_values(ascii_lines)
+            ascii_lines.append('  ambient 1.00 1.00 1.00')
+            ascii_lines.append('  diffuse 1.00 1.00 1.00')
+            ascii_lines.append('  specular 0.00 0.00 0.00')
+            ascii_lines.append('  bitmap ' + nvb_def.null)

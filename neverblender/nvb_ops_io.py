@@ -70,14 +70,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export MTR',
             description='Create MTR file holding material data (if specified)',
             default=True)
-    mtr_ref: bpy.props.EnumProperty(
-            name='Reference Mode',
-            description='Specifies the way MTRs are referenced',
-            items=(('bitmap', 'bitmap',
-                    'Use "bitmap" to refernce MTRs'),
-                   ('materialname', 'materialname',
-                    'Use "materialname" to refernce MTRs')),
-            default='bitmap')
     # Blender Setting to use
     apply_modifiers: bpy.props.BoolProperty(
             name='Apply Modifiers',
@@ -126,7 +118,9 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Gather MDLs to export
         mdl_list = []
         if options.batch_mode == 'OFF':  # Get active object only
-            base = nvb_utils.get_mdl_base(bpy.context.object)
+            base = nvb_utils.get_mdl_base(context.object,
+                                          options.scene.collection,
+                                          options.scene)
             wkm_name = os.path.splitext(os.path.basename(options.filepath))[0]
             if base:
                 mdl_list.append((base, options.filepath, wkm_name))
@@ -197,9 +191,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box = layout.box()
         box.label(text='Material Settings')
         box.prop(self, 'mtr_export')
-        sub = box.row(align=True)
-        sub.active = self.mtr_export
-        sub.prop(self, 'mtr_ref')
+        # sub = box.row(align=True)
+        # sub.active = self.mtr_export
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
@@ -211,9 +204,13 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
 
     def execute(self, context):
         """TODO: DOC."""
+        addon = context.preferences.addons[__package__]
+        addon_prefs = addon.preferences
+
         options = nvb_def.ExportOptions()
         options.filepath = self.filepath
         options.scene = context.scene
+        options.depsgraph = context.depsgraph
         # Misc Export Settings
         options.export_animations = self.export_animations
         options.export_walkmesh = self.export_walkmesh
@@ -225,7 +222,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.uvmapOrder = self.uv_order
         # Material Export Settings
         options.mtr_export = self.mtr_export
-        options.mtr_ref = self.mtr_ref
+        options.mtr_ref = addon_prefs.export_mat_mtr_ref
+        options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Blender Settings
         options.apply_modifiers = self.apply_modifiers
         options.strip_trailing = self.strip_trailing
@@ -236,7 +234,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         wm = context.window_manager
         wm.fileselect_add(self)
         # Generate a file name from active object
-        mdl_base = nvb_utils.get_mdl_base(context.object)
+        scene = context.scene
+        mdl_base = nvb_utils.get_mdl_base(context.object,
+                                          scene.collection,
+                                          scene)
         if mdl_base:
             generated_name = nvb_utils.generate_node_name(mdl_base, True)
             self.filepath = generated_name + '.mdl'
@@ -360,7 +361,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             mdl.parse_mdl(mdl_filepath, options)
 
             if options.import_walkmesh:
-                # Try loading the placeable walkmesh (pwk)    
+                # Try loading the placeable walkmesh (pwk)
                 pwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.PWK
                 pwk_filepath = os.path.join(mdl_filedir, pwk_filename)
                 if os.path.isfile(os.fsencode(pwk_filepath)):

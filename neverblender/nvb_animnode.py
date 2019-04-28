@@ -148,23 +148,22 @@ class Animnode():
     def create_data_material(self, obj, anim, options):
         """Creates animations in material actions."""
 
-        def data_conversion(label, node_tree, vals):
+        def data_conversion(label, material_out, vals):
             """TODO: Doc."""
-            node_output = nvb_material.Nodes.get_output_node(
-                    node_tree.nodes)
-            surface_input = node_output.inputs[0]
             if label == 'alpha':
-                socket = nvb_material.Nodes.find_alpha_socket( surface_input)
-                dp = socket.path_from_id("default_value")
+                socket0 = nvb_material.Nodes.find_alpha_socket(material_out)
+                dp = socket0.path_from_id("default_value")
                 dp_dim = 1
             elif label in ['selfillumcolor', 'setfillumcolor']:
-                socket = nvb_material.Nodes.find_emissive_socket(surface_input)
-                dp = socket.path_from_id("default_value")
-                dp_dim = 4
+                socket1 = nvb_material.Nodes.find_emissive_socket(material_out)
+                socket0 = nvb_material.Nodes.get_color_socket(socket1)
+                dp = socket0.path_from_id("default_value")
+                dp_dim = 3
             return vals, dp, dp_dim
 
         blender_mat = obj.active_material
-        if not blender_mat:
+        blendet_mat_out = nvb_material.Nodes.get_output_node(blender_mat)
+        if not blendet_mat_out:
             return
         node_tree = blender_mat.node_tree
         if not node_tree:
@@ -176,7 +175,7 @@ class Animnode():
             frames = [fps * d[0] + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
-                    label, node_tree, [d[1:data_dim+1] for d in data])
+                    label, blendet_mat_out, [d[1:data_dim+1] for d in data])
             else:
                 values = [d[1:data_dim+1] for d in data]
                 dp = data_path
