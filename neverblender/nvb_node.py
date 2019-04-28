@@ -735,7 +735,7 @@ class Trimesh(Node):
             del me_normals
             ascii_lines.append('  tangents ' + str(len(me_tangents)))
             fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
-            ascii_lines.extend([fstr.format(*t) for n in me_tangents])
+            ascii_lines.extend([fstr.format(*t) for t in me_tangents])
             del me_tangents
 
         # Generate Smoothgroups
@@ -775,7 +775,7 @@ class Trimesh(Node):
                 uvmapNames.append(me.tessface_uv_textures.active.name)
             # Generate the tverts for the faces
             for uvn in uvmapNames:
-                fcUVData.append(getFaceUVs(fcVertIds,
+                fcUVData.append(getFaceUVs(me_face_vert,
                                            me.tessface_uv_textures[uvn].data,
                                            joinUVs))
             if not fcUVData:
