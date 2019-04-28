@@ -64,7 +64,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     'Alphabetical ordering, active UVMap will be first'),
                    ('ACT', 'Active Only',
                     'Export active UVMap only')),
-            default='AL0')
+            default='ACT')
     # Material Export Settings
     mtr_export: bpy.props.BoolProperty(
             name='Export MTR',

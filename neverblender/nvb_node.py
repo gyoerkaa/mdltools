@@ -608,9 +608,13 @@ class Trimesh(Node):
             tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
             return normals, tangents
 
-        def mesh_get_uvs(mesh):
+        def mesh_get_uvs(mesh, merge_uvs):
             """Get normals and tangets for this mesh."""
-            return []
+            uv_indices = []  # per face uv indices
+            uv_coords = []
+
+
+            return uv_indices, uv_coords
 
         def getFaceUVs(faceData, uvMapData, join=True):
             """Get a list of uvmap indices and uvmap coodinates."""
@@ -726,9 +730,9 @@ class Trimesh(Node):
         ascii_lines.extend([fstr.format(*v.co) for v in me_vertices])
 
         # Add normals and tangents
-        uvmap = me.uv_textures.active
-        if uvmap and options.export_normals and not obj.hide_render:
-            me_normals, me_tangents = mesh_get_normals(me, uvmap)
+        uv_layer = me.uv_layers.active
+        if uv_layer and options.export_normals and not obj.hide_render:
+            me_normals, me_tangents = mesh_get_normals(me, uv_layer)
             ascii_lines.append('  normals ' + str(len(me_normals)))
             fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
             ascii_lines.extend([fstr.format(*n) for n in me_normals])
@@ -746,38 +750,40 @@ class Trimesh(Node):
         me_face_mat = [p.material_index for p in me.polygons]
 
         # Per face uv indices and a list of their coordinates
-        me_face_uv = mesh_get_uvs(me)
+        me_face_uvs = []
         fcUVData = []
         if (options.uvmapMode == 'ALL') or \
            (options.uvmapMode == 'REN' and not obj.hide_render):
-            joinUVs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
-                       options.uvmapAutoJoin)
+            merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
+                         options.uvmapAutoJoin)
+            me_face_uvs = mesh_get_uvs(me, merge_uvs)
             # Adds scaling factor from the texture slot to uv coordinates
             # uvScale = (1.0, 1.0)
             # if obj.active_material:
             #     if obj.active_material.active_texture:
 
             # Find out which UV maps to export and their order:
-            uvmapNames = []
-            if options.uvmapOrder == 'AL0':
-                # Export all, sort alphabetically
-                uvmapNames = [uvt.name for uvt in me.tessface_uv_textures]
-                uvmapNames.sort()
-            elif options.uvmapOrder == 'AL1':
-                # Export all, sort alphabetically, put active first
-                uvmapActiveName = me.tessface_uv_textures.active.name
-                uvmapNames = [uvt.name for uvt in me.tessface_uv_textures
-                              if not uvt.name == uvmapActiveName]
-                uvmapNames.sort()
-                uvmapNames.insert(0, me.tessface_uv_textures.active.name)
-            else:
-                # Export active uvmap only
-                uvmapNames.append(me.tessface_uv_textures.active.name)
+            uv_name_list = []
+            if me.uv_layers.active:
+                uv_name_active = me.uv_layers.active.name
+                if options.uvmapOrder == 'ACT':
+                    # Export active uvmap only
+                    uv_name_list = [uv_name_active]
+                elif options.uvmapOrder in ['AL0']:
+                    # Export all, sort alphabetically
+                    uv_name_list = [uvl.name for uvl in me.uv_layers]
+                    uv_name_list.sort()
+                elif options.uvmapOrder in ['AL1']:
+                    # Export all, sort alphabetically, put active first
+                    uv_name_list= [uvl.name for uvl in me.uv_layers.active
+                                if not uvl.name == uv_name_active]
+                    uv_name_list.sort()
+                    uv_name_list = [uv_name_active] + uv_name_list
             # Generate the tverts for the faces
-            for uvn in uvmapNames:
+            for uvn in uv_name_list:
                 fcUVData.append(getFaceUVs(me_face_vert,
                                            me.tessface_uv_textures[uvn].data,
-                                           joinUVs))
+                                           merge_uvs))
             if not fcUVData:
                 fcUVIdList = [[0, 0, 0] for _ in range(len(me.tessfaces))]
                 fcUVCoList = []
@@ -802,7 +808,7 @@ class Trimesh(Node):
         # Write faces to file
         vdigs = str(max(1, len(str(len(me_face_vert)))))  # Digits for vertices
         sdigs = str(max(1, len(str(max(me_face_grp)))))  # Digits for smoothgrps
-        udigs = str(max(1, len(str(len(me_face_uv[0][1])))))  # Digits for UVs
+        udigs = str(max(1, len(str(len(me_face_uvs[0][1])))))  # Digits for UVs
         mdigs = str(max(1, len(str(max(me_face_mat)))))
         # Zip face data
         faces = [[*me_face_vert[i], me_face_grp[i], *fcUVData[0][0][i], me_face_mat[i]]
