@@ -29,20 +29,24 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                                             subtype='FILE_PATH')
     export_mat_mtr_ref: bpy.props.EnumProperty(
             name="MTR Reference",
-            description="Specify the way MTRs are referenced",
-            items=[('bitmap', 
-                    "bitmap", "Use 'bitmap' to refernce MTRs", 0),
-                   ('materialname', 
-                    "materialname", "Use 'materialname' to refernce MTRs", 1)],
+            description="Specify the way MTR files are referenced",
+            items=[('bitmap',
+                    "bitmap", "Use 'bitmap'", 0),
+                   ('materialname',
+                    "materialname", "Use 'materialname'", 1)],
             default='bitmap')
     export_mat_diffuse_ref: bpy.props.EnumProperty(
         name="Diffuse Texture Reference",
         description="Specify the way the diffuse textures are referenced",
-        items=[('bitmap', 
+        items=[('bitmap',
                 "bitmap", "Diffuse as 'bitmap'", 0),
-               ('texture0', 
+               ('texture0',
                 "texture0", "Diffuse as 'texture0'", 1)],
         default='bitmap')
+    export_wirecolor: bpy.props.BoolProperty(
+        name="Export Wirecolor", default=True,
+        description="Use Blender's Object Color property to hold Wirecolor")
+
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
         name='Type',
@@ -141,9 +145,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         layout = self.layout
         #  layout.prop(self, 'compiler_path')
         box = layout.box()
-        box.label(text='Material Export Settings')
+        box.label(text='Export Settings')
         box.prop(self, 'export_mat_diffuse_ref')
         box.prop(self, 'export_mat_mtr_ref')
+        box.prop(self, 'export_wirecolor')
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""

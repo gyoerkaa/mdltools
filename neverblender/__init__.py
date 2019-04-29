@@ -150,7 +150,6 @@ classes = (
     nvb_ui.NVB_PT_aurorabase,
     nvb_ui.NVB_PT_dummy,
     nvb_ui.NVB_PT_armature,
-    nvb_ui.NVB_PT_material,
     nvb_ui.NVB_PT_set,
     nvb_ui.NVB_PT_mtr,
     nvb_ui.NVB_PT_lamp_data,

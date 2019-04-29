@@ -243,8 +243,8 @@ class ImportOptions():
         self.rotmode = 'XYZ'
         self.fix_uvs = False
         self.mdl_location = (0.0, 0.0, 0.0)
-        self.render_lights = False
-        self.render_fading = True
+        self.hide_lights = True
+        self.hide_fading = False
 
 
 class ExportOptions():
@@ -252,11 +252,11 @@ class ExportOptions():
 
     def __init__(self):
         """TODO: DOC."""
-        
+
         self.scene = None
         self.depsgraph = None
         self.filepath = ''
-        
+
         self.mdlname = 'unnamed'
         self.mtrdb = set()
         self.classification = Classification.UNKNOWN

@@ -269,31 +269,6 @@ class NVB_PT_armature(bpy.types.Panel):
         layout.separator()
 
 
-class NVB_PT_material(bpy.types.Panel):
-    """Property panel for material properties.
-
-    """
-
-    bl_label = 'Aurora Material Properties'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'material'
-
-    @classmethod
-    def poll(cls, context):
-        """TODO: DOC."""
-        return (context.object and context.material is not None)
-
-    def draw(self, context):
-        """TODO: DOC."""
-        material = context.material
-        layout = self.layout
-
-        layout.separator()
-        box = layout.box()
-        box.prop(material.nvb, 'renderhint')
-
-
 class NVB_PT_set(bpy.types.Panel):
     """Property panel for loading set files.
 
@@ -494,7 +469,7 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
                      icon='TRIA_UP', text='').direction = 'UP'
         col.operator('nvb.lightflare_move',
                      icon='TRIA_DOWN', text='').direction = 'DOWN'
-        flare_idx = data.nvb.flareListIdx 
+        flare_idx = data.nvb.flareListIdx
         if flare_idx >= 0 and len(data.nvb.flareList) > flare_idx:
             item = data.nvb.flareList[flare_idx]
             sub = layout.column()
@@ -593,7 +568,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             box.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()
             col = split.column()
-            col.prop(obj.nvb, 'render', text='Render')
+            col.prop(obj, 'hide_render', text='Render')
             col.prop(obj.nvb, 'shadow', text='Shadow')
             col = split.column()
             col.prop(obj.nvb, 'beaming', text='Beaming')

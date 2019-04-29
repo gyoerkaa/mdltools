@@ -216,6 +216,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.export_walkmesh = self.export_walkmesh
         options.export_smoothgroups = self.export_smoothgroups
         options.export_normals = self.export_normals
+        options.export_wirecolor = addon_prefs.export_wirecolor
         # UV Map settings
         options.uvmapAutoJoin = self.uv_autojoin
         options.uvmapMode = self.uv_mode
@@ -336,12 +337,12 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     import_geometry: bpy.props.BoolProperty(name='Import Geometry',
                                             description='Render Lights',
                                             default=True, options={'HIDDEN'})
-    render_lights: bpy.props.BoolProperty(name='Render Lights',
-                                          description='Render Lights',
-                                          default=False, options={'HIDDEN'})
-    render_fading: bpy.props.BoolProperty(name='Render Fading Objects',
-                                          description='Render Fading Objects',
-                                          default=True, options={'HIDDEN'})
+    hide_lights: bpy.props.BoolProperty(name='Hide Lights',
+                                        description='Do not render Lights',
+                                        default=True, options={'HIDDEN'})
+    hide_fading: bpy.props.BoolProperty(name='Hide Fading Objects',
+                                        description='Do not render Fading Objects',
+                                        default=False, options={'HIDDEN'})
 
     def mdl_import(self, context, options):
         def load_file(context, mdl_filepath, options, collections_create):
@@ -456,8 +457,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.rotmode = self.rotmode
         options.fix_uvs = self.fix_uvs
         options.mdl_location = self.mdl_location
-        options.render_lights = self.render_lights
-        options.render_fading = self.render_fading
+        options.hide_lights = self.hide_lights
+        options.hide_fading = self.hide_fading
         return self.mdl_import(context, options)
 
 

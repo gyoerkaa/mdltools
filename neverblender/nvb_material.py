@@ -876,9 +876,7 @@ class Material(object):
         """Finds a material in blender with the same settings as this one."""
         for blender_mat in bpy.data.materials:
             tex_list, col_list, alpha = Nodes.get_node_data(blender_mat)
-            #if ( (tex_list == self.texture_list) and
-            #     (col_list == self.color_list) and
-            #     math.isclose(alpha, self.alpha) ):
+            # Compare textures, emissive color(5) and alpha
             if ( (tex_list == self.texture_list) and
                  Material.colorisclose(col_list[5], self.color_list[5]) and
                  math.isclose(alpha, self.alpha) ):
@@ -986,11 +984,11 @@ class Material(object):
             alpha = 1.0
             tex_list, col_list, alpha = Nodes.get_node_data(material)
             # Write colors
-            fstr = '  ambient {:3.2f} {:3.2f} {:3.2f}'
+            fstr = '  ambient' + 3 * ' {:3.2f}'
             ascii_lines.append(fstr.format([1.0] * 3))
-            fstr = '  diffuse {:3.2f} {:3.2f} {:3.2f}'
+            fstr = '  diffuse' + 3 * ' {:3.2f}'
             ascii_lines.append(fstr.format(*col_list[0]))
-            fstr = '  specular {:3.2f} {:3.2f} {:3.2f}'
+            fstr = '  specular' + 3 * ' {:3.2f}'
             ascii_lines.append(fstr.format(*col_list[2]))
             # Write textures
             if options.mtr_export:

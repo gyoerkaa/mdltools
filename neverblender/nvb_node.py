@@ -535,19 +535,18 @@ class Trimesh(Node):
         Node.createObjectData(self, obj, options)
 
         obj.nvb.meshtype = self.meshtype
-        if self.tilefade == 1:
-            obj.nvb.tilefade = nvb_def.Tilefade.FADE
-        elif self.tilefade == 2:
-            obj.nvb.tilefade = nvb_def.Tilefade.BASE
-        elif self.tilefade == 4:
-            obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
-        else:
-            obj.nvb.tilefade = nvb_def.Tilefade.NONE
-        if (self.tilefade >= 1) and not options.render_fading:
-            obj.hide_render = True
-        if not self.render:
-            obj.nvb.render = False
-            obj.hide_render = True
+
+        obj.hide_render = not self.render
+        obj.nvb.tilefade = nvb_def.Tilefade.NONE
+        if (self.tilefade >= 1):
+            obj.hide_render = obj.hide_render and options.hide_fading
+            if self.tilefade == 1:
+                obj.nvb.tilefade = nvb_def.Tilefade.FADE
+            elif self.tilefade == 2:
+                obj.nvb.tilefade = nvb_def.Tilefade.BASE
+            elif self.tilefade == 4:
+                obj.nvb.tilefade = nvb_def.Tilefade.NEIGHBOUR
+
         obj.nvb.shadow = self.shadow
         obj.nvb.beaming = (self.beaming >= 1)
         obj.nvb.inheritcolor = (self.inheritcolor >= 1)
@@ -608,22 +607,79 @@ class Trimesh(Node):
             tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
             return normals, tangents
 
-        def mesh_get_uvs(mesh, uvs_to_export, merge_uvs=False):
-            """Get normals and tangets for this mesh."""
-            uv_indices = []  # per face uv indices
-            uv_coords = []
-            for l in mesh.polygons:
-                pass
+        def mesh_get_uvs_to_export(mesh, uv_order='ACT'):
+            """Get a list of uv layers to export."""
+            uv_layer_list = []
+            if mesh.uv_layers.active:
+                if uv_order == 'ACT':
+                    # Export active uvmap only
+                    uv_layer_list = [mesh.uv_layers.active]
+                elif uv_order == 'AL0':
+                    # Export all, sort alphabetically
+                    uv_layer_list = [uvl for uvl in mesh.uv_layers]
+                    uv_layer_list.sort()
+                elif uv_order == 'AL1':
+                    # Export all, sort alphabetically, put active first
+                    uv_active_name = mesh.uv_layers.active.name
+                    uv_layer_list = [uvl for uvl in mesh.uv_layers
+                                     if not uvl.name == uv_active_name]
+                    uv_layer_list.sort()
+                    uv_layer_list = [mesh.uv_layers.active] + uv_layer_list
+            return uv_layer_list[:3]
 
-            return uv_indices, uv_coords
+        def mesh_get_uvs(mesh, uvl_to_export, merge_uvs=False):
+            """Get UV data for this mesh."""
+            sig_dig = 3
+            uv_indices = [[*p.loop_indices] for p in mesh.polygons]
+            uv_coord_list = []
+            # Grab the uv coordinates for all layers we have to export
+            for uvl in uvl_to_export:
+                uv_coords = [tuple(map(lambda x: round(x, sig_dig), d.uv))
+                             for d in uvl.data]
+                uv_coord_list.append(uv_coords)
+            # We can merge if there is only a single set of uv coordinates
+            if (len(uv_coord_list) == 1) and merge_uvs:
+                merged_coord_list = []
+                merged_indices = []
+                # Keyable tuples of per-loop uv-coords across all uv-layers
+                # uv_coords = [tuple([c for lc in uvl_coords for c in lc])
+                #              for uvl_coords in zip(*uv_coord_list)]
+                uv_coords = [co for co in zip(*uv_coord_list)]
+                uv_unique = dict()
+                idx_cnt = 0
+                for indices in uv_indices:
+                    new_indices = list(range(len(indices)))
+                    new_coords = []
+                    for idx in indices:
+                        coords = uv_coords[i]
+                        if coords in unique_uvs:
+                            new_indices = unique_uvs[coords]
+                        else:
+                            unique_uvs[coords] = idx_cnt
+                        idx_cnt = idx_cnt + 1
+                    merged_indices.append(new_indices)
+                    merged_coord_list.append(new_coords)
+
+                unique_uvs = set(uv_coords)
+                merged_indices = []
+                uv_coords = uv_coord_list[0]
+                for indices in uv_indices:
+                    for i in indices:
+
+                    uv = uv_coords[idx]
+                    unique_uvs[uv].append(idx)
+
+
+
+            return uv_indices,  uv_coord_list
 
         def mesh_get_vertex_colors(mesh):
-            """Get per-vertex vertex colors."""
+            """Get per-vertex vertex colors as list of RGBs."""
             vcolors = mesh.vertex_colors.active
             if not vcolors:
                 return []
             vcolor_data = vcolors.data
-            per_loop_data = {l.vertex_index: vc.color[:]
+            per_loop_data = {l.vertex_index: vc.color[:3]
                              for l, vc in zip(mesh.loops, vcolor_data)}
             return per_loop_data.values()
 
@@ -678,32 +734,12 @@ class Trimesh(Node):
         # Add vertices
         me_vertices = me.vertices
         ascii_lines.append('  verts ' + str(len(me_vertices)))
-        fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        fstr = '   ' + 3 * ' {: 8.5f}'
         ascii_lines.extend([fstr.format(*v.co) for v in me_vertices])
 
-        # Add normals and tangents
-        uv_layer = me.uv_layers.active
-        if uv_layer and options.export_normals and not obj.hide_render:
-            me_normals, me_tangents = mesh_get_normals(me, uv_layer)
-            ascii_lines.append('  normals ' + str(len(me_normals)))
-            fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
-            ascii_lines.extend([fstr.format(*n) for n in me_normals])
-            del me_normals
-            ascii_lines.append('  tangents ' + str(len(me_tangents)))
-            fstr = '    {: 8.5f} {: 8.5f} {: 8.5f} {: 3.1f}'
-            ascii_lines.extend([fstr.format(*t) for t in me_tangents])
-            del me_tangents
-
-        # Generate Smoothgroups
-        me_face_grp = mesh_get_smoothgroups(me, obj, options)
-
-        # Face vertex indices and face materials
-        me_face_vert = [tuple(p.vertices) for p in me.polygons]
-        me_face_mat = [p.material_index for p in me.polygons]
-
         # Per face uv indices and a list of their coordinates
-        me_face_uvs = []
-        me_uv_coord_list = []
+        me_face_uv = [[0, 0, 0]] * len(me.polygons)
+        dig_u = 1  # digits for formatting
         if (options.uvmapMode == 'ALL') or \
            (options.uvmapMode == 'REN' and not obj.hide_render):
             # Adds scaling factor from the texture slot to uv coordinates
@@ -711,72 +747,75 @@ class Trimesh(Node):
             # if obj.active_material:
             #     if obj.active_material.active_texture:
 
-            # Find out which UV maps to export and their order:
-            uv_name_list = []
-            if me.uv_layers.active:
-                uv_name_active = me.uv_layers.active.name
-                if options.uvmapOrder == 'ACT':
-                    # Export active uvmap only
-                    uv_name_list = [uv_name_active]
-                elif options.uvmapOrder in ['AL0']:
-                    # Export all, sort alphabetically
-                    uv_name_list = [uvl.name for uvl in me.uv_layers]
-                    uv_name_list.sort()
-                elif options.uvmapOrder in ['AL1']:
-                    # Export all, sort alphabetically, put active first
-                    uv_name_list= [uvl.name for uvl in me.uv_layers.active
-                                if not uvl.name == uv_name_active]
-                    uv_name_list.sort()
-                    uv_name_list = [uv_name_active] + uv_name_list
+            # Find out which UV layers to export:
+            uv_layer_list = mesh_get_uvs_to_export(me, options.uvmapOrder)
+
             # Check if we can merge uvs
             merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
-                         (len(uv_name_list) <= 1) and
                          options.uvmapAutoJoin)
-            # Generate the tverts for the
-            if uv_name_list:
-                me_face_uvs, tmp_uvs = mesh_get_uvs(me,
-                                                    uv_name_list[:3],
-                                                    merge_uvs)
-                me_uv_coord_list.append(tmp_uvs)
-        if not me_face_uvs:
-            me_face_uvs = [[0, 0, 0]] * len(me.polygons)
-            me_uv_coord_list = []
 
-        # Write tverts to file (if any)
-        if me_uv_coord_list:
-            fstr = '    {: 5.3f} {: 5.3f}  0'
-            # First list entry as "tverts"
-            fstr_tv = '  tverts {:d}'
-            coords = me_uv_coord_list[0]
-            ascii_lines.append(fstr_tv.format(len(coords)))
-            ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
-            # Other list entries as "tvertsN"
-            fstr_tv = '  tverts{:d} {:d}'
-            for idx, coords in enumerate(me_uv_coord_list[1:]):
-                ascii_lines.append(fstr_tv.format(idx+1, len(coords)))
+            # Generate the tverts
+            me_uv_coord_list = []
+            if uv_layer_list:
+                me_face_uv, me_uv_coord_list = mesh_get_uvs(
+                    me, uv_layer_list, merge_uvs)
+                dig_u = len(str(len(me_uv_coord_list[0])))
+
+            # Write tverts to file (if any)
+            if me_uv_coord_list:
+                fstr = '    {: 5.3f} {: 5.3f}  0'
+                # First list entry as "tverts"
+                fstr_tv = '  tverts {:d}'
+                coords = me_uv_coord_list[0]
+                ascii_lines.append(fstr_tv.format(len(coords)))
                 ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+                # Other list entries as "tvertsN"
+                fstr_tv = '  tverts{:d} {:d}'
+                for idx, coords in enumerate(me_uv_coord_list[1:]):
+                    ascii_lines.append(fstr_tv.format(idx+1, len(coords)))
+                    ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+                del me_uv_coord_list
+
+                # Write normals and tangents
+                if options.export_normals and not obj.hide_render:
+                    normal_uv = uv_layer_list[0].name
+                    me_normals, me_tangents = mesh_get_normals(me, normal_uv)
+
+                    ascii_lines.append('  normals ' + str(len(me_normals)))
+                    fstr = '   ' + 3 * ' {: 8.5f}'
+                    ascii_lines.extend([fstr.format(*n) for n in me_normals])
+                    del me_normals
+
+                    ascii_lines.append('  tangents ' + str(len(me_tangents)))
+                    fstr = '   ' + 3 * ' {: 8.5f}' + ' {: 3.1f}'
+                    ascii_lines.extend([fstr.format(*t) for t in me_tangents])
+                    del me_tangents
+
+        # Generate Smoothgroups
+        me_face_grp = mesh_get_smoothgroups(me, obj, options)
+        dig_g = max(1, len(str(max(me_face_grp)))) # digits for formatting
+
+        # Face vertex indices
+        me_face_vert = [tuple(p.vertices) for p in me.polygons]
+        dig_v = max(1, len(str(len(me_vertices)))) # digits for formatting
+
+        # Face material indices
+        me_face_mat = [p.material_index for p in me.polygons]
+        dig_m = max(1, len(str(max(me_face_mat))))  # digits for formatting
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
-        ascii_lines.append('  colors ' + str(len(me.vertices)))
-        fstr = '    {: 8.5f} {: 8.5f} {: 8.5f}'
+        ascii_lines.append('  colors ' + str(len(me_vert_colors)))
+        fstr = '   ' + 3 * ' {:3.2f}'
         ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
 
         # Write faces to file
-        vdigs = str(max(1, len(str(len(me_face_vert)))))  # Digits for vertices
-        sdigs = str(max(1, len(str(max(me_face_grp)))))  # Digits for smoothgrps
-        udigs = str(max(1, len(str(len(me_face_uvs[0][1])))))  # Digits for UVs
-        mdigs = str(max(1, len(str(max(me_face_mat)))))
-        # Zip face data
-        faces = [[*me_face_vert[i], me_face_grp[i], *fcUVData[0][0][i], me_face_mat[i]]
-                 for i in range(len(me_face_vert))]
-        ascii_lines.append('  faces ' + str(len(faces)))
-        fstr = '    ' + \
-               '{:' + vdigs + 'd} {:' + vdigs + 'd} {:' + vdigs + 'd}  ' + \
-               '{:' + sdigs + 'd}  ' + \
-               '{:' + udigs + 'd} {:' + udigs + 'd} {:' + udigs + 'd}  ' + \
-               '{:' + mdigs + 'd}'
-        ascii_lines.extend([fstr.format(*f) for f in faces])
+        face_data = zip(me_face_vert, me_face_grp, me_face_uv, me_face_mat)
+        ascii_lines.append('  faces ' + str(len(me_face_vert)))
+        fstr = '   ' + \
+               3 * (' {:' + str(dig_v) + 'd}') + ' {:' + str(dig_g) + 'd} ' + \
+               3 * (' {:' + str(dig_u) + 'd}') + ' {:' + str(dig_m) + 'd}'
+        ascii_lines.extend([fstr.format(*fd) for fd in face_data])
         bpy.data.meshes.remove(me)
 
     @classmethod
@@ -784,14 +823,11 @@ class Trimesh(Node):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
-        s = '  wirecolor {:3.2f} {:3.2f} {:3.2f}'.format(*obj.color[:3])
-        asciiLines.append(s)
+        if options.export_wirecolor:
+            fstr = '  wirecolor' + 3 * '{:3.2f}'
+            asciiLines.append(fstr.format(*obj.color[:3]))
 
-        if iswalkmesh:
-            asciiLines.append('  ambient 1.00 1.00 1.00')
-            asciiLines.append('  diffuse 1.00 1.00 1.00')
-            asciiLines.append('  bitmap ' + nvb_def.null)
-        else:
+        if  not iswalkmesh:
             nvb_material.Material.generate_ascii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
@@ -1448,9 +1484,9 @@ class Light(Node):
             data.nvb.isdynamic = (self.isdynamic >= 1)
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
             # Disable rendering in blender if tile light (color may be black)
-            if obj.name.endswith('ml1') or obj.name.endswith('ml2') or \
-               not options.render_lights:
-                obj.hide_render = True
+            obj.hide_render = options.hide_lights or \
+                              obj.name.endswith('ml1') or  \
+                              obj.name.endswith('ml2')
             # Create lensflares
             numflares = min(self.flareNumValues)
             if (self.flareradius > 0) or (numflares > 0):
