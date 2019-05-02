@@ -629,49 +629,33 @@ class Trimesh(Node):
 
         def mesh_get_uvs(mesh, uvl_to_export, merge_uvs=False):
             """Get UV data for this mesh."""
-            sig_dig = 3
+            sig_dig = 4
             uv_indices = [[*p.loop_indices] for p in mesh.polygons]
-            uv_coord_list = []
             # Grab the uv coordinates for all layers we have to export
-            for uvl in uvl_to_export:
-                uv_coords = [tuple(map(lambda x: round(x, sig_dig), d.uv))
-                             for d in uvl.data]
-                uv_coord_list.append(uv_coords)
+            uv_coord_list = [[tuple(map(lambda x: round(x, sig_dig), d.uv))
+                              for d in uvl.data] for uvl in uvl_to_export]
             # We can merge if there is only a single set of uv coordinates
-            if (len(uv_coord_list) == 1) and merge_uvs:
-                merged_coord_list = []
-                merged_indices = []
+            if merge_uvs:
                 # Keyable tuples of per-loop uv-coords across all uv-layers
                 # uv_coords = [tuple([c for lc in uvl_coords for c in lc])
                 #              for uvl_coords in zip(*uv_coord_list)]
-                uv_coords = [co for co in zip(*uv_coord_list)]
-                uv_unique = dict()
-                idx_cnt = 0
-                for indices in uv_indices:
-                    new_indices = list(range(len(indices)))
-                    new_coords = []
-                    for idx in indices:
-                        coords = uv_coords[i]
-                        if coords in unique_uvs:
-                            new_indices = unique_uvs[coords]
-                        else:
-                            unique_uvs[coords] = idx_cnt
-                        idx_cnt = idx_cnt + 1
-                    merged_indices.append(new_indices)
-                    merged_coord_list.append(new_coords)
+                uv_tuples = [co for co in zip(*uv_coord_list)]
+                uv_tuples_unique = dict()
+                idx_unique = 0
+                uv_index_trans = dict()
+                for idx, uv_tuple in enumerate(uv_tuples):
+                    if uv_tuple in uv_tuples_unique:
+                        uv_index_trans[idx] = uv_tuples_unique[uv_tuple]
+                    else:
+                        uv_tuples_unique[uv_tuple] = idx_unique
+                        uv_index_trans[idx] = idx_unique
+                        idx_unique = idx_unique + 1
+                # Adjust the uv indices to unique coordinates
+                uv_indices = [[uv_index_trans[i] for i in uvi]
+                              for uvi in uv_indices]
+                uv_coord_list = list(zip(*uv_tuples_unique.keys()))
 
-                unique_uvs = set(uv_coords)
-                merged_indices = []
-                uv_coords = uv_coord_list[0]
-                for indices in uv_indices:
-                    for i in indices:
-
-                    uv = uv_coords[idx]
-                    unique_uvs[uv].append(idx)
-
-
-
-            return uv_indices,  uv_coord_list
+            return uv_indices, uv_coord_list
 
         def mesh_get_vertex_colors(mesh):
             """Get per-vertex vertex colors as list of RGBs."""
@@ -682,46 +666,6 @@ class Trimesh(Node):
             per_loop_data = {l.vertex_index: vc.color[:3]
                              for l, vc in zip(mesh.loops, vcolor_data)}
             return per_loop_data.values()
-
-        def getFaceUVs(faceData, uvMapData, join=True):
-            """Get a list of uvmap indices and uvmap coodinates."""
-
-            def joinUV(uvco, fvidx, uvlist):
-                """Add the uv coordinale to the list and return the index."""
-                listItem = [fvidx, uvco]
-                if listItem in uvlist:
-                    return uvlist.index(listItem)
-                else:
-                    uvlist.append(listItem)
-                    return (len(uvlist)-1)
-
-            faceUVIdList = []  # Per face uv indices
-            faceUVCoList = []  # uv coordinates
-            # Pairs of tuples of vertex indices vX_idx and
-            # uv coordinates uvX_co
-            # [(v1_idx, v2_idx, v3,idx), (uv1_co, uv2_co, uv3_co)]
-            pairs = zip(faceData, [[d.uv1, d.uv2, d.uv3] for d in uvMapData])
-            if join:
-                tmpList = []
-                for p in pairs:
-                    uvidx = [-1, -1, -1]
-                    for i in range(3):
-                        listItem = [p[0][i], p[1][i]]
-                        if listItem in tmpList:
-                            uvidx[i] = tmpList.index(listItem)
-                        else:
-                            tmpList.append(listItem)
-                            uvidx[i] = len(tmpList)-1
-                    faceUVIdList.append(uvidx)
-                faceUVCoList = [e[1] for e in tmpList]
-            else:
-                for p in pairs:
-                    uvidx = [-1, -1, -1]
-                    for i in range(3):
-                        faceUVCoList.append(p[1][i])
-                        uvidx[i] = len(faceUVCoList)-1
-                    faceUVIdList.append(uvidx)
-            return faceUVIdList, faceUVCoList
 
         me = obj.to_mesh(options.depsgraph,
                          options.apply_modifiers,
@@ -763,7 +707,7 @@ class Trimesh(Node):
 
             # Write tverts to file (if any)
             if me_uv_coord_list:
-                fstr = '    {: 5.3f} {: 5.3f}  0'
+                fstr = '    {: 7.4f} {: 7.4f}  0'
                 # First list entry as "tverts"
                 fstr_tv = '  tverts {:d}'
                 coords = me_uv_coord_list[0]
@@ -805,9 +749,10 @@ class Trimesh(Node):
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
-        ascii_lines.append('  colors ' + str(len(me_vert_colors)))
-        fstr = '   ' + 3 * ' {:3.2f}'
-        ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
+        if me_vert_colors:
+            ascii_lines.append('  colors ' + str(len(me_vert_colors)))
+            fstr = '   ' + 3 * ' {:3.2f}'
+            ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
 
         # Write faces to file
         face_data = zip(me_face_vert, me_face_grp, me_face_uv, me_face_mat)
@@ -815,7 +760,8 @@ class Trimesh(Node):
         fstr = '   ' + \
                3 * (' {:' + str(dig_v) + 'd}') + ' {:' + str(dig_g) + 'd} ' + \
                3 * (' {:' + str(dig_u) + 'd}') + ' {:' + str(dig_m) + 'd}'
-        ascii_lines.extend([fstr.format(*fd) for fd in face_data])
+        ascii_lines.extend([fstr.format(*fd[0], fd[1], *fd[2], fd[3])
+                            for fd in face_data])
         bpy.data.meshes.remove(me)
 
     @classmethod
@@ -824,7 +770,7 @@ class Trimesh(Node):
         Node.generateAsciiData(obj, asciiLines, options, iswalkmesh)
 
         if options.export_wirecolor:
-            fstr = '  wirecolor' + 3 * '{:3.2f}'
+            fstr = '  wirecolor' + 3 * ' {:3.2f}'
             asciiLines.append(fstr.format(*obj.color[:3]))
 
         if  not iswalkmesh:
@@ -837,15 +783,15 @@ class Trimesh(Node):
                 asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             # Beaming
             val = int(obj.nvb.beaming)
-            if val != 0:  # Skip default value
+            if val > 0:  # Skip default value
                 asciiLines.append('  beaming ' + str(val))
-            # INherit color from parent
+            # Inherit color from parent
             val = int(obj.nvb.inheritcolor)
-            if val != 0:  # Skip default value
+            if val > 0:  # Skip default value
                 asciiLines.append('  inheritcolor ' + str(val))
             # Transparency hint (rendering order)
             val = obj.nvb.transparencyhint
-            if val != 0:  # Skip default value
+            if val > 0:  # Skip default value
                 asciiLines.append('  transparencyhint ' + str(val))
             # These two are for tiles only
             if options.classification == nvb_def.Classification.TILE:

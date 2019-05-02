@@ -6,6 +6,8 @@ import re
 from . import nvb_utils
 from . import nvb_def
 from . import nvb_parse
+from .nvb_materialnode import Materialnode
+
 
 class Mtr(object):
     """A material read from an mtr file."""
@@ -82,7 +84,7 @@ class Mtr(object):
         elif label == 'specular':
             self.color_list[2] = nvb_parse.ascii_color(line[1:])
         elif label == 'roughness':
-            self.color_list[3] = nvb_parse.ascii_color(line[1:])            
+            self.color_list[3] = nvb_parse.ascii_color(line[1:])
         elif label in ['selfillumcolor', 'setfillumcolor']:
             self.color_list[4] = nvb_parse.ascii_color(line[1:])
         elif label == 'parameter':
@@ -108,32 +110,35 @@ class Mtr(object):
     @staticmethod
     def generateAscii(material, options):
         """Generate a mtr file as asciilines."""
-        asciiLines = []
-        txlist = nvb_utils.get_textures(material)
+        ascii_lines = []
+        tex_list, col_list, alpha = Materialnode.get_node_data(material)
+        # Clean up texture list, delete trailing "null"
+        tex_list = [t if t else nvb_def.null for t in tex_list]
+        while tex_list[-1] == nvb_def.null:
+            _ = tex_list.pop()
         # Add shader specification
         if material.nvb.shadervs or material.nvb.shaderfs:
-            asciiLines.append('// Shaders')
+            ascii_lines.append('// Shaders')
             if material.nvb.shadervs:
-                asciiLines.append('customshaderVS ' + material.nvb.shadervs)
+                ascii_lines.append('customshaderVS ' + material.nvb.shadervs)
             if material.nvb.shaderfs:
-                asciiLines.append('customshaderFS ' + material.nvb.shaderfs)
-            asciiLines.append('')
+                ascii_lines.append('customshaderFS ' + material.nvb.shaderfs)
+            ascii_lines.append('')
         # Add Renderhint
-        if (material.nvb.renderhint == 'AUTO' and len(txlist) > 1 and
-            not (material.nvb.shadervs or material.nvb.shaderfs)) or \
-           (material.nvb.renderhint == 'NASM'):
-            asciiLines.append('// Renderhints')
-            asciiLines.append('renderhint NormalAndSpecMapped')
-            asciiLines.append('')
+        if (tex_list and (tex_list[:3].count(nvb_def.null) <= 1)) and \
+            not (material.nvb.shadervs or material.nvb.shaderfs)):
+            ascii_lines.append('// Renderhint')
+            ascii_lines.append('renderhint NormalAndSpecMapped')
+            ascii_lines.append('')
         # Add list of textures
-        if len(txlist) > 0:
-            asciiLines.append('// Textures')
+        if len(tex_list) > 0:
+            ascii_lines.append('// Textures')
             fstr = 'texture{:d} {:s}'
-            asciiLines.extend([fstr.format(i, n) for i, n, _ in txlist])
-            asciiLines.append('')
+            ascii_lines.extend([fstr.format(i, n) for i, n, _ in tex_list])
+            ascii_lines.append('')
         # Add parameters
         if len(material.nvb.mtrparam_list) > 0:
-            asciiLines.append('// Parameters')
+            ascii_lines.append('// Parameters')
             existing_params = []
             for pa in material.nvb.mtrparam_list:
                 if pa.pname.lower() not in existing_params:  # Keep unique
@@ -147,8 +152,8 @@ class Mtr(object):
                         elif pa.ptype == 'float':  # up to 4 floats
                             sv = ' '.join([str(v) for v in vals[:4]])
                             line = 'parameter float ' + pa.pname + ' ' + sv
-                    asciiLines.append(line)
-        return asciiLines
+                    ascii_lines.append(line)
+        return ascii_lines
 
     @staticmethod
     def saveFile(material, options):

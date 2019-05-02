@@ -8,7 +8,7 @@ import bpy
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_node
-from . import nvb_material
+from .nvb_materialnode import Materialnode
 
 class Animnode():
     """TODO: DOC."""
@@ -151,18 +151,18 @@ class Animnode():
         def data_conversion(label, material_out, vals):
             """TODO: Doc."""
             if label == 'alpha':
-                socket0 = nvb_material.Nodes.find_alpha_socket(material_out)
+                socket0 = Materialnode.find_alpha_socket(material_out)
                 dp = socket0.path_from_id("default_value")
                 dp_dim = 1
             elif label in ['selfillumcolor', 'setfillumcolor']:
-                socket1 = nvb_material.Nodes.find_emissive_socket(material_out)
-                socket0 = nvb_material.Nodes.get_color_socket(socket1)
+                socket1 = Materialnode.find_emissive_socket(material_out)
+                socket0 = Materialnode.get_color_socket(socket1)
                 dp = socket0.path_from_id("default_value")
                 dp_dim = 3
             return vals, dp, dp_dim
 
         blender_mat = obj.active_material
-        blendet_mat_out = nvb_material.Nodes.get_output_node(blender_mat)
+        blendet_mat_out = Materialnode.get_output_node(blender_mat)
         if not blendet_mat_out:
             return
         node_tree = blender_mat.node_tree
@@ -468,38 +468,48 @@ class Animnode():
                 key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
 
     @staticmethod
-    def get_keys_material(mat, anim, key_data, options):
+    def get_keys_material(blender_mat, anim, key_data, options):
         """Get keys from material actions."""
-        def get_exports(action):
+        def get_exports(action, material_out):
             """Get a list of data paths to export."""
+
             # [value name, value dimension, value format,
             #  data path name, data path dimension, conversion func., default]
-            exports = [['ambient', 3, ' {:>4.2f}',
-                        'nvb.ambient_color', 3, None, [0.0, 0.0, 0.0]]]
-            # Aplha can be animated with the following data paths
-            # 1. 'texture_slots[X].alpha_factor' - which is texture slot alpha
-            # 2. 'alpha' - which is material alpha
-            # We only want one of those, alpha_factor takes precendence
-            dp_alpha_factor = [fc.data_path for fc in action.fcurves
-                               if fc.data_path.endswith('.alpha_factor')]
-            if dp_alpha_factor:
-                exports.append(['alpha', 1, ' {:>4.2f}',
-                                dp_alpha_factor[0], 1, None, [0.0]])
-            else:
-                exports.append(['alpha', 1, ' {:>4.2f}',
-                                'alpha', 1, None, [0.0]])
+            exports = []
+            # Aplha value
+            socket0 = Materialnode.find_alpha_socket(material_out)
+            dp = socket0.path_from_id("default_value")
+            exports.append(['alpha', 1, ' {:>4.2f}',
+                            dp, 1, None, [1.0]])
+            # Self Illumination color
+            socket1 = Materialnode.find_emissive_socket(material_out)
+            socket0 = Materialnode.get_color_socket(socket1)
+            dp = socket0.path_from_id("default_value")
+            exports.append(['alpha', 3, ' {:>4.2f}',
+                             dp, 4, None, [0.0, 0.0, 0.0, 0.0]])
             return exports
 
-        action = mat.animation_data.action
+        blendet_mat_out = Materialnode.get_output_node(blender_mat)
+        if not blendet_mat_out:
+            return
+        # Get the action from which to export from
+        node_tree = blender_mat.node_tree
+        if not node_tree:
+            return
+        anim_data = node_tree.animation_data.action
+        if not anim_data:
+            return
+        action = anim_data.action
         if not action:
             return
-        # List of exportable data paths with formats and conversion functions
-        exports = get_exports(action)
+        # Grab animation meta data
         fps = options.scene.render.fps
         anim_start = anim.frameStart
         anim_end = anim.frameEnd
+        # List of exportable data paths with formats and conversion functions
+        exports = get_exports(action, blendet_mat_out)
         # Get keyframe data
-        all_fcurves = action.fcurves
+        all_fcurves = node_tree.fcurves
         for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, _, \
                 default_val in exports:
             fcu = [all_fcurves.find(data_path=dp_name, index=i)
@@ -511,7 +521,7 @@ class Animnode():
                       for i in range(dp_dim)]))
                 keyed_frames.sort()
                 aur_values = [[fcu[i].evaluate(f) if fcu[i] else default_val[i]
-                              for i in range(dp_dim)] for f in keyed_frames]
+                              for i in range(aur_dim)] for f in keyed_frames]
                 # values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
                 #           for f in frames]
                 aur_times = [(f - anim_start) / fps for f in keyed_frames]
@@ -577,14 +587,19 @@ class Animnode():
             return [[*q.axis, q.angle] for q in
                     [m.to_quaternion() for m in mats]]
 
-        action = obj.animation_data.action
+        # Get the action from which to export from
+        anim_data = obj.animation_data
+        if not anim_data:
+            return
+        action = anim_data.action
         if not action:
             return
-        # List of exportable data paths with formats and conversion functions
-        exports = get_exports(obj.rotation_mode)
+        # Grab animation meta data
         fps = options.scene.render.fps
         anim_start = anim.frameStart
         anim_end = anim.frameEnd
+        # List of exportable data paths with formats and conversion functions
+        exports = get_exports(obj.rotation_mode)
         # Get keyframe data
         all_fcurves = action.fcurves
         for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, dp_conversion, \
@@ -614,21 +629,22 @@ class Animnode():
     @staticmethod
     def generate_ascii_keys(obj, anim, asciiLines, options):
         """TODO: DOC."""
-        kdata = []
+        key_data = []
+
         # 1. Object animation data
-        if obj.animation_data:
-            Animnode.get_keys_object(obj, anim, kdata, options)
+        Animnode.get_keys_object(obj, anim, key_data, options)
         # 2. Material animation data
-        mat = obj.active_material
-        if mat and mat.animation_data:
-            Animnode.get_keys_material(mat, anim, kdata, options)
+        Animnode.get_keys_material(obj, anim, key_data, options)
         # 3. particle System/Emitter animation data
         part_sys = obj.particle_systems.active
         if part_sys and part_sys.settings.animation_data:
-            Animnode.get_keys_emitter(part_sys.settings, anim, kdata, options)
+            Animnode.get_keys_emitter(part_sys.settings,
+                                      anim,
+                                      key_data,
+                                      options)
         # Add keys to ascii lines
         time_fstr = '{:> 6.3f}'
-        for key_name, keys, val_fstr in kdata:
+        for key_name, keys, val_fstr in key_data:
             num_keys = len(keys)
             if num_keys > 0:  # Create a key list
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
