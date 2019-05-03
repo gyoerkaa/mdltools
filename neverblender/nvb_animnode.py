@@ -325,17 +325,12 @@ class Animnode():
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
-        fps = options.scene.render.fps
-        if not obj.data:
-            return
-        if not obj.data.uv_layers.active:
-            return
+
+
         uvlayer = obj.data.uv_layers.active
-        # Check if the original uv/tvert order was saved
-        if obj.data.name not in nvb_def.tvert_order:
+        if not uvlayer:
             return
-        tvert_order = [v for sl in nvb_def.tvert_order[obj.data.name]
-                       for v in sl]
+        fps = options.scene.render.fps
         # Sanity check: Sample period can't be 0
         if self.sampleperiod <= 0.00001:
             return
@@ -343,10 +338,10 @@ class Animnode():
         #               sampleperiod
         if animlength % self.sampleperiod > 0.0:
             return
-        numSamples = int(animlength / self.sampleperiod) + 1
+        num_samples = int(animlength / self.sampleperiod) + 1
         # Sanity check: Number of animtverts = number tverts * numSamples
-        numTVerts = len(tvert_order)
-        if (len(self.animtverts) != numTVerts * numSamples):
+        num_uvs = len(uvlayer.data)
+        if (len(self.animtverts) != num_uvs * num_samples):
             print("Neverblender: WARNING - animtvert sample size mismatch: " +
                   obj.name)
             return
@@ -366,13 +361,13 @@ class Animnode():
         # We need to create two curves for each uv, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
-        dpPrefix = 'uv_layers["' + uvlayer.name + '"].data['
+        dp_fstr = 'uv_layers["' + uvlayer.name + '"].data[{:d}].uv'
         # uvIdx = order in blender, tvertIdx = order in mdl
-        for uvIdx, tvertIdx in enumerate(tvert_order):
-            dp = dpPrefix + str(uvIdx) + '].uv'
+        for loop_idx, uv_idx in enumerate(uvlayer.data):
+            dp = dp_fstr.format(loop_idx)
             curveU = nvb_utils.get_fcurve(action, dp, 0)
             curveV = nvb_utils.get_fcurve(action, dp, 1)
-            samples = self.animtverts[tvertIdx::numTVerts]
+            samples = self.animtverts[loop_idx::num_uvs]
             for sampleIdx, co in enumerate(samples):
                 frame = frameStart + (sampleIdx * sampleDistance)
                 curveU.keyframe_points.insert(frame, co[0], options=kfOptions)
@@ -490,15 +485,15 @@ class Animnode():
             return exports
 
         # Get the active blender material and output node
-        blender_mat = obj.active_material
-        if not blender_mat:
+        blend_mat = obj.active_material
+        if not blend_mat:
             return
-        blendet_mat_out = Materialnode.get_output_node(blender_mat)
-        if not blendet_mat_out:
-            returndp
+        blend_mat_out = Materialnode.get_output_node(blend_mat)
+        if not blend_mat_out:
+            return
         # Get the action from which to export keyframes
         try:
-            action = blender_mat.node_tree.animation_data.action
+            action = blend_mat.node_tree.animation_data.action
         except AttributeError:
             return
         # Grab animation meta data
@@ -506,7 +501,7 @@ class Animnode():
         anim_start = anim.frameStart
         anim_end = anim.frameEnd
         # List of exportable data paths with formats and conversion functions
-        exports = get_exports(action, blendet_mat_out)
+        exports = get_exports(action, blend_mat_out)
         # Get keyframe data
         all_fcurves = action.fcurves
         for aur_name, aur_dim, aur_fstr, dp, dp_dim, _, \
@@ -738,7 +733,7 @@ class Animnode():
         if not obj.data.uv_layers.active:
             return
         # Original uv data. Needed to fill in values for unanimated uv's.
-        obj.data.update(calc_tessface=True)
+        obj.data.update()
         tf_uv = obj.data.tessface_uv_textures.active.data
         tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
         tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]

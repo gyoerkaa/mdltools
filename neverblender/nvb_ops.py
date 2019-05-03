@@ -337,6 +337,74 @@ class NVB_OT_util_transform(bpy.types.Operator):
                     fcu[i].keyframe_points.foreach_set('co', data)
                     fcu[i].update()
 
+    def adjust_animations2(self, obj, vecS, vecT):
+        """TODO: DOC."""
+        def adjust_loc(obj, kfvalues, matS, vecT):
+            vec_list = [mathutils.Vector(vec) + vecT for vec in kfvalues]
+            return [v @ matS for v in vec_list]
+            # return [mathutils.Vector(v * s for v, s in zip(vec, vecS))
+            #         for vec in vec_list]
+
+        def adjust_axan(obj, kfvalues, matS, vecT):
+            mat_list = [mathutils.Quaternion(v[1:], v[0]).to_matrix()
+                        for v in kfvalues]
+            mat_list = [m @ matS for m in mat_list]
+            quat_list = [m.to_quaternion() for m in mat_list]
+            return [[q.angle, *q.axis] for q in quat_list]
+
+        def adjust_quat(obj, kfvalues, matS, vecT):
+            mat_list = [mathutils.Quaternion(v).to_matrix()
+                        for v in kfvalues]
+            mat_list = [m @ matS for m in mat_list]
+            return [list(m.to_quaternion()) for m in mat_list]
+
+        def adjust_eul(obj, kfvalues, matS, vecT):
+            mat_list = [mathutils.Euler(v, 'XYZ').to_matrix()
+                        for v in kfvalues]
+            mat_list = [m @ matS for m in mat_list]
+            # Euler Filter
+            euls = []
+            e = obj.rotation_euler
+            for m in mat_list:
+                e = m.to_euler('XYZ', e)
+                euls.append(e)
+            return euls
+
+        if not (obj.animation_data and obj.animation_data.action):
+            return
+        action = obj.animation_data.action
+
+        matS = mathutils.Matrix([[vecS[0], 0, 0],
+                                 [0, vecS[1], 0],
+                                 [0, 0, vecS[2]]])
+
+        dp_list = [('rotation_axis_angle', 4, adjust_axan),
+                   ('rotation_quaternion', 4, adjust_quat),
+                   ('rotation_euler', 3, adjust_eul),
+                   ('location', 3, adjust_loc)]
+        all_fcu = action.fcurves
+        for dp, dp_dim, adjust_func in dp_list:
+            fcu = [all_fcu.find(data_path=dp, index=i)
+                   for i in range(dp_dim)]
+            if fcu.count(None) < 1:
+                print(dp)
+                frames = list(set().union(
+                    *[[k.co[0] for k in fcu[i].keyframe_points]
+                      for i in range(dp_dim)]))
+                frames.sort()
+                values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
+                          for f in frames]
+                print(values)
+                # Adjust kfp to new coordinates
+                values = adjust_func(obj, values, matS, vecT)
+                print(values)
+                # Write back adjusted kfp values
+                for i in range(dp_dim):
+                    single_vals = [v[i] for v in values]
+                    data = [d for z in zip(frames, single_vals) for d in z]
+                    fcu[i].keyframe_points.foreach_set('co', data)
+                    fcu[i].update()
+
     def adjust_objects(self, obj, scl_mat, trn_mat):
         for c in obj.children:
             old_vT, old_mR, old_vS = c.matrix_basis.decompose()
@@ -358,26 +426,28 @@ class NVB_OT_util_transform(bpy.types.Operator):
             # Only immediate children have their translation adjusted
             self.adjust_objects(c, scl_mat @ new_scl, mathutils.Matrix())
 
-    def adjust_objects2(self, obj, par_vS, par_vT):
+    def adjust_objects2(self, obj, par_vS, par_vT=None):
         for chi in obj.children:
             chi_vT, chi_mR, chi_vS = chi.matrix_basis.decompose()
-            # Adjust translation, keep rotation, ditch scale
-            new_vT = Vector(a * b for a, b in zip(chi_vT, par_vS)) + par_vT
-            c.matrix_basis = Matrix.Translation(new_vT) @ chi_mR.to_matrix().to_4x4()
-            # Get scale matrix
-            new_scl = (mathutils.Matrix.Scale(chi_vS[0], 4, [1, 0, 0]) @
-                       mathutils.Matrix.Scale(chi_vS[1], 4, [0, 1, 0]) @
-                       mathutils.Matrix.Scale(chi_vS[2], 4, [0, 0, 1]))
+            # Adjust translation with parent scale and translation (if any)
+            new_vT = mathutils.Vector(a * b for a, b in zip(chi_vT, par_vS))
+            if par_vT:
+                new_vT = new_vT + par_vT
+            # Keep rotation
+            chi.matrix_basis = mathutils.Matrix.Translation(new_vT) @ \
+                               chi_mR.to_matrix().to_4x4()
             # Apply to data
             if chi.type == 'MESH':
                 me = chi.data
                 for v in me.vertices:
-                    v.co = v.co @ scl_mat @ new_scl
+                    v.co = mathutils.Vector(a * b *c for a, b, c in
+                                            zip(v.co, par_vS, chi_vS))
                 me.update()
             # Apply to animations
-            self.adjust_animations(chi, scl_mat, trn_mat)
+            self.adjust_animations2(chi, par_vS, par_vT)
             # Only immediate children have their translation adjusted
-            self.adjust_objects2(chi, scl_mat @ new_scl, mathutils.Matrix())
+            self.adjust_objects2(chi, mathutils.Vector(a * b for a, b in
+                                                       zip(par_vS, chi_vS)))
 
 
     def execute(self, context):
@@ -395,11 +465,6 @@ class NVB_OT_util_transform(bpy.types.Operator):
             # Undo root transformations
             mdl_base.matrix_basis = matR.to_matrix().to_4x4()  # keep rot
             # Apply translation to immediate children and scale to all
-            trn = mathutils.Matrix.Translation(vecT).to_4x4()
-            scl = (mathutils.Matrix.Scale(vecS[0], 4, [1, 0, 0]) @
-                   mathutils.Matrix.Scale(vecS[1], 4, [0, 1, 0]) @
-                   mathutils.Matrix.Scale(vecS[2], 4, [0, 0, 1]))
-            self.adjust_objects(mdl_base, scl, trn)
             self.adjust_objects2(mdl_base, vecS, vecT)
             context.scene.update()
             return {'FINISHED'}

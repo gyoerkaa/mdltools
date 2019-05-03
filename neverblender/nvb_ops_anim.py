@@ -415,15 +415,23 @@ class NVB_OT_anim_pad(bpy.types.Operator):
             # Objects animation
             self.pad_frames(obj, frame_start, frame_end)
             # Material animation
-            if obj.active_material:
-                self.pad_frames(obj.active_material, frame_start, frame_end)
+            try:
+                pad_target = obj.active_material.node_tree
+                self.pad_frames(pad_target, frame_start, frame_end)
+            except AttributeError:
+                pass
             # Shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.pad_frames(obj.data.shape_keys, frame_start, frame_end)
+            try:
+                pad_target = obj.data.shape_keys
+                self.pad_frames(pad_target, frame_start, frame_end)
+            except AttributeError:
+                pass
             # Emitter animation
-            part_sys = obj.particle_systems.active
-            if part_sys:
-                self.pad_frames(part_sys.settings, frame_start, frame_end)
+            try:
+                pad_target = obj.particle_systems.active.settings
+                self.pad_frames(pad_target, frame_start, frame_end)
+            except AttributeError:
+                pass
         # Update the animations in the list
         totalPadding = self.pad_back + self.pad_front
         for a in mdl_base.nvb.animList:
@@ -546,18 +554,26 @@ class NVB_OT_anim_delete(bpy.types.Operator):
         obj_list = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, obj_list)
         for obj in obj_list:
-            # Objects animation
+            # Object animation
             self.delete_frames(obj, frame_start, frame_end)
             # Material animation
-            if obj.active_material:
-                self.delete_frames(obj.active_material, frame_start, frame_end)
+            try:
+                del_target = obj.active_material.node_tree
+                self.delete_frames(del_target, frame_start, frame_end)
+            except AttributeError:
+                pass
             # Shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.delete_frames(obj.data.shape_keys, frame_start, frame_end)
+            try:
+                del_target = obj.data.shape_keys
+                self.delete_frames(del_target, frame_start, frame_end)
+            except AttributeError:
+                pass
             # Emitter animation
-            part_sys = obj.particle_systems.active
-            if part_sys:
-                self.delete_frames(part_sys.settings, frame_start, frame_end)
+            try:
+                del_target = obj.particle_systems.active.settings
+                self.delete_frames(del_target, frame_start, frame_end)
+            except AttributeError:
+                pass
         # Remove animation from List
         anim_list.remove(anim_list_idx)
         if anim_list_idx > 0:
@@ -624,17 +640,23 @@ class NVB_OT_anim_moveback(bpy.types.Operator):
             # Object animation
             self.move_frames(obj, old_start, old_end, start)
             # Material animation
-            mat = obj.active_material
-            if mat:
-                self.move_frames(mat, old_start, old_end, start)
+            try:
+                move_target = obj.active_material.node_tree
+                self.move_frames(move_target, old_start, old_end, start)
+            except AttributeError:
+                pass
             # Shape key animation
-            if obj.data and obj.data.shape_keys:
-                self.move_frames(obj.data.shape_keys,
-                                 old_start, old_end, start)
+            try:
+                move_target = obj.data.shape_keys
+                self.move_frames(move_target, old_start, old_end, start)
+            except AttributeError:
+                pass
             # Emitter animation
-            part_sys = obj.particle_systems.active
-            if part_sys:
-                self.move_frames(part_sys.settings, old_start, old_end, start)
+            try:
+                move_target = obj.particle_systems.active.settings
+                self.move_frames(move_target, old_start, old_end, start)
+            except AttributeError:
+                pass
         # Adjust animations in the list
         for e in anim.eventList:
             e.frame = start + (e.frame - old_start)
