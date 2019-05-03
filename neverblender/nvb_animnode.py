@@ -452,8 +452,8 @@ class Animnode():
             exports.append([aur_name, dp_dim, aur_fstr, dp, dp_dim])
         # Get keyframe data
         all_fcurves = action.fcurves
-        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim in exports:
-            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+        for aur_name, aur_dim, aur_fstr, dp, dp_dim in exports:
+            fcu = [all_fcurves.find(data_path=dp, index=i)
                    for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
@@ -468,7 +468,7 @@ class Animnode():
                 key_data.append([aur_name, aur_keys, aur_dim * aur_fstr])
 
     @staticmethod
-    def get_keys_material(blender_mat, anim, key_data, options):
+    def get_keys_material(obj, anim, key_data, options):
         """Get keys from material actions."""
         def get_exports(action, material_out):
             """Get a list of data paths to export."""
@@ -485,22 +485,21 @@ class Animnode():
             socket1 = Materialnode.find_emissive_socket(material_out)
             socket0 = Materialnode.get_color_socket(socket1)
             dp = socket0.path_from_id("default_value")
-            exports.append(['alpha', 3, ' {:>4.2f}',
-                             dp, 4, None, [0.0, 0.0, 0.0, 0.0]])
+            exports.append(['selfillumcolor', 3, ' {:>4.2f}',
+                             dp, 3, None, [0.0, 0.0, 0.0]])
             return exports
 
+        # Get the active blender material and output node
+        blender_mat = obj.active_material
+        if not blender_mat:
+            return
         blendet_mat_out = Materialnode.get_output_node(blender_mat)
         if not blendet_mat_out:
-            return
-        # Get the action from which to export from
-        node_tree = blender_mat.node_tree
-        if not node_tree:
-            return
-        anim_data = node_tree.animation_data.action
-        if not anim_data:
-            return
-        action = anim_data.action
-        if not action:
+            returndp
+        # Get the action from which to export keyframes
+        try:
+            action = blender_mat.node_tree.animation_data.action
+        except AttributeError:
             return
         # Grab animation meta data
         fps = options.scene.render.fps
@@ -509,10 +508,10 @@ class Animnode():
         # List of exportable data paths with formats and conversion functions
         exports = get_exports(action, blendet_mat_out)
         # Get keyframe data
-        all_fcurves = node_tree.fcurves
-        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, _, \
+        all_fcurves = action.fcurves
+        for aur_name, aur_dim, aur_fstr, dp, dp_dim, _, \
                 default_val in exports:
-            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+            fcu = [all_fcurves.find(data_path=dp, index=i)
                    for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
@@ -562,12 +561,12 @@ class Animnode():
 
         def convert_loc(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
-            return [(pinv * mathutils.Matrix.Translation(v)).to_translation()
+            return [(pinv @ mathutils.Matrix.Translation(v)).to_translation()
                     for v in kfvalues]
 
         def convert_eul(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
-            mats = [pinv * mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
+            mats = [pinv @ mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
             return [[*q.axis, q.angle] for q in
                     [m.to_quaternion() for m in mats]]
@@ -575,24 +574,22 @@ class Animnode():
         def convert_axan(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
             mats = \
-                [pinv * mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
+                [pinv @ mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                  for v in kfvalues]
             return [[*q.axis, q.angle] for q in
                     [m.to_quaternion() for m in mats]]
 
         def convert_quat(obj, kfvalues):
             pinv = obj.matrix_parent_inverse
-            mats = [pinv * mathutils.Quaternion(v).to_matrix().to_4x4()
+            mats = [pinv @ mathutils.Quaternion(v).to_matrix().to_4x4()
                     for v in kfvalues]
             return [[*q.axis, q.angle] for q in
                     [m.to_quaternion() for m in mats]]
 
         # Get the action from which to export from
-        anim_data = obj.animation_data
-        if not anim_data:
-            return
-        action = anim_data.action
-        if not action:
+        try:
+            action = obj.animation_data.action
+        except AttributeError:
             return
         # Grab animation meta data
         fps = options.scene.render.fps
@@ -602,9 +599,9 @@ class Animnode():
         exports = get_exports(obj.rotation_mode)
         # Get keyframe data
         all_fcurves = action.fcurves
-        for aur_name, aur_dim, aur_fstr, dp_name, dp_dim, dp_conversion, \
+        for aur_name, aur_dim, aur_fstr, dp, dp_dim, dp_conversion, \
                 default_val in exports:
-            fcu = [all_fcurves.find(data_path=dp_name, index=i)
+            fcu = [all_fcurves.find(data_path=dp, index=i)
                    for i in range(dp_dim)]
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(

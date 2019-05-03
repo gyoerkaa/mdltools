@@ -111,7 +111,7 @@ class Mtr(object):
     def generateAscii(material, options):
         """Generate a mtr file as asciilines."""
         ascii_lines = []
-        tex_list, col_list, alpha = Materialnode.get_node_data(material)
+        tex_list, col_list, _ = Materialnode.get_node_data(material)
         # Clean up texture list, delete trailing "null"
         tex_list = [t if t else nvb_def.null for t in tex_list]
         while tex_list[-1] == nvb_def.null:
@@ -126,7 +126,7 @@ class Mtr(object):
             ascii_lines.append('')
         # Add Renderhint
         if (tex_list and (tex_list[:3].count(nvb_def.null) <= 1)) and \
-            not (material.nvb.shadervs or material.nvb.shaderfs)):
+            not (material.nvb.shadervs or material.nvb.shaderfs):
             ascii_lines.append('// Renderhint')
             ascii_lines.append('renderhint NormalAndSpecMapped')
             ascii_lines.append('')
@@ -134,7 +134,8 @@ class Mtr(object):
         if len(tex_list) > 0:
             ascii_lines.append('// Textures')
             fstr = 'texture{:d} {:s}'
-            ascii_lines.extend([fstr.format(i, n) for i, n, _ in tex_list])
+            ascii_lines.extend([fstr.format(i, t)
+                                for i, t in enumerate(tex_list)])
             ascii_lines.append('')
         # Add parameters
         if len(material.nvb.mtrparam_list) > 0:

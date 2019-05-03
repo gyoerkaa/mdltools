@@ -31,6 +31,7 @@ from . import nvb_anim
 from . import nvb_animnode
 from . import nvb_mtr
 from . import nvb_props
+from . import nvb_material
 
 from . import nvb_ops
 from . import nvb_ops_io
@@ -53,6 +54,7 @@ if 'bpy' in locals():
         importlib.reload(nvb_animnode)
         importlib.reload(nvb_mtr)
         importlib.reload(nvb_props)
+        importlib.reload(nvb_material)
 
         importlib.reload(nvb_ops)
         importlib.reload(nvb_ops_io)
@@ -208,7 +210,7 @@ def unregister():
 
     del bpy.types.Object.nvb
     del bpy.types.Material.nvb
-    del bpy.types.Lamp.nvb
+    del bpy.types.Light.nvb
     del bpy.types.Scene.nvb
     del bpy.types.ParticleSettings.nvb
     del bpy.types.Bone.nvb

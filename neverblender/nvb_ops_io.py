@@ -162,11 +162,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                         f.write('\n'.join(ascii_lines))
         # Export MTRs
         if options.mtr_export:
-            for mat_name in options.mtrdb:
-                mat = bpy.data.materials[mat_name]
-                ascii_lines = nvb_mtr.Mtr.generateAscii(mat, options)
+            for mtr_name, blen_mat_name in options.mtr_export_list:
+                blen_mat = bpy.data.materials[blen_mat_name]
+                ascii_lines = nvb_mtr.Mtr.generateAscii(blen_mat, options)
                 mtr_path = get_filepath(options.filepath,
-                                        mat.nvb.mtrname, '.mtr')
+                                        mtr_name, '.mtr')
                 with open(os.fsencode(mtr_path), 'w') as f:
                     f.write('\n'.join(ascii_lines))
         return {'FINISHED'}

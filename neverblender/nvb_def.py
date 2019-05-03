@@ -258,7 +258,7 @@ class ExportOptions():
         self.filepath = ''
 
         self.mdlname = 'unnamed'
-        self.mtrdb = set()
+        self.mtr_export_list = set()
         self.classification = Classification.UNKNOWN
         # Misc options
         self.export_animations = True

@@ -715,8 +715,8 @@ class Trimesh(Node):
                 ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
                 # Other list entries as "tvertsN"
                 fstr_tv = '  tverts{:d} {:d}'
-                for idx, coords in enumerate(me_uv_coord_list[1:]):
-                    ascii_lines.append(fstr_tv.format(idx+1, len(coords)))
+                for idx, coords in enumerate(me_uv_coord_list[1:], 1):
+                    ascii_lines.append(fstr_tv.format(idx, len(coords)))
                     ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
                 del me_uv_coord_list
 
@@ -1507,74 +1507,53 @@ class Aabb(Trimesh):
         self.meshtype = nvb_def.Meshtype.AABB
 
     @staticmethod
-    def generateAsciiAABB(obj, asciiLines, options):
+    def generateAsciiAABB(obj, ascii_lines, options):
         """TODO: Doc."""
-        walkmesh = obj.to_mesh(options.depsgraph,
-                               options.apply_modifiers,
-                               calc_undeformed=False)
+        def mesh_triangulate(mesh):
+            """Triangulate a msesh using bmesh to retain sharp edges."""
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            bmesh.ops.triangulate(bm, faces=bm.faces)
+            bm.to_mesh(mesh)
+            bm.free()
+            del bm
 
-        faceList = []
-        faceIdx = 0
-        for tessface in walkmesh.tessfaces:
-            if (len(tessface.vertices) == 3):
+        me = obj.to_mesh(options.depsgraph,
+                         options.apply_modifiers,
+                         calc_undeformed=False)
+        mesh_triangulate(me)
+
+        poly_list = []
+        for poly_idx, poly in enumerate(me.polygons):
+            if (len(poly.vertices) == 3):
                 # Tri
-                v0 = tessface.vertices[0]
-                v1 = tessface.vertices[1]
-                v2 = tessface.vertices[2]
+                v0, v1, v2 = poly.vertices[:3]
 
-                centroid = mathutils.Vector((walkmesh.vertices[v0].co +
-                                             walkmesh.vertices[v1].co +
-                                             walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx,
-                                 [walkmesh.vertices[v0].co,
-                                  walkmesh.vertices[v1].co,
-                                  walkmesh.vertices[v2].co],
+                centroid = mathutils.Vector((me.vertices[v0].co +
+                                             me.vertices[v1].co +
+                                             me.vertices[v2].co)/3)
+                poly_list.append((poly_idx,
+                                 [me.vertices[v0].co,
+                                  me.vertices[v1].co,
+                                  me.vertices[v2].co],
                                  centroid))
-                faceIdx += 1
-
-            elif (len(tessface.vertices) == 4):
-                # Quad
-                v0 = tessface.vertices[0]
-                v1 = tessface.vertices[1]
-                v2 = tessface.vertices[2]
-                v3 = tessface.vertices[3]
-
-                centroid = mathutils.Vector((walkmesh.vertices[v0].co +
-                                             walkmesh.vertices[v1].co +
-                                             walkmesh.vertices[v2].co)/3)
-                faceList.append((faceIdx,
-                                 [walkmesh.vertices[v0].co,
-                                  walkmesh.vertices[v1].co,
-                                  walkmesh.vertices[v2].co],
-                                 centroid))
-                faceIdx += 1
-
-                centroid = mathutils.Vector((walkmesh.vertices[v2].co +
-                                             walkmesh.vertices[v3].co +
-                                             walkmesh.vertices[v0].co)/3)
-                faceList.append((faceIdx,
-                                 [walkmesh.vertices[v2].co,
-                                  walkmesh.vertices[v3].co,
-                                  walkmesh.vertices[v0].co],
-                                 centroid))
-                faceIdx += 1
-            else:  # Ngon or not a polygon (shouldn't happen with tessfaces)
+            else:  # Ngon or not a tri (shouldn't happen)
                 print('Neverblender: WARNING - Ngon in walkmesh. \
                        Unable to generate aabb.')
                 return
 
-        aabbTree = []
-        nvb_aabb.generate_tree(aabbTree, faceList)
+        aabb_tree = []
+        nvb_aabb.generate_tree(aabb_tree, poly_list)
 
-        if aabbTree:
-            fstr = '  aabb ' + \
-                   '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
-                   '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
-            asciiLines.append(fstr.format(*aabbTree.pop(0)))
-            fstr = '    ' + \
-                   '{: 5.2f} {: 5.2f} {: 5.2f}  ' + \
-                   '{: 5.2f} {: 5.2f} {: 5.2f} {: 3d}'
-            asciiLines.extend([fstr.format(*bb) for bb in aabbTree])
+        if aabb_tree:
+            fstr = '  aabb' + \
+                   3 * ' {: 7.5f}' + ' ' + \
+                   3 * ' {: 7.5f}' + ' {: 3d}'
+            ascii_lines.append(fstr.format(*aabb_tree.pop(0)))
+            fstr = '      ' + \
+                   3 * ' {: 7.5f}' + ' ' + \
+                   3 * ' {: 7.5f}' + ' {: 3d}'
+            ascii_lines.extend([fstr.format(*bb) for bb in aabb_tree])
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=True):
