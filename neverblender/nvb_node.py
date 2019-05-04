@@ -614,13 +614,13 @@ class Trimesh(Node):
                 elif uv_order == 'AL0':
                     # Export all, sort alphabetically
                     uv_layer_list = [uvl for uvl in mesh.uv_layers]
-                    uv_layer_list.sort()
+                    uv_layer_list.sort(key=lambda l: l.name)
                 elif uv_order == 'AL1':
                     # Export all, sort alphabetically, put active first
                     uv_active_name = mesh.uv_layers.active.name
                     uv_layer_list = [uvl for uvl in mesh.uv_layers
                                      if not uvl.name == uv_active_name]
-                    uv_layer_list.sort()
+                    uv_layer_list.sort(key=lambda l: l.name)
                     uv_layer_list = [mesh.uv_layers.active] + uv_layer_list
             return uv_layer_list[:3]
 
