@@ -257,7 +257,7 @@ class NVB_PT_armature(bpy.types.Panel):
 
         box = layout.box()
         box.label(text='Apply Restpose')
-        box.operator('nvb.amt_apply_pose', icon='POSE_DATA')
+        box.operator('nvb.amt_apply_pose', icon='UV_DATA')
         layout.separator()
 
         box = layout.box()
@@ -265,7 +265,7 @@ class NVB_PT_armature(bpy.types.Panel):
         box.prop(addon.preferences, 'util_psb_anim_mode')
         box.prop(obj.nvb, 'util_psb_anim_target')
         box.operator('nvb.amt_amt2psb', text='Copy Animations',
-                     icon='NODETREE').use_existing = True
+                     icon='UV_DATA').use_existing = True
         layout.separator()
 
 

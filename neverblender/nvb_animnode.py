@@ -361,7 +361,7 @@ class Animnode():
         # We need to create two curves for each uv, one for each coordinate
         kfOptions = {'FAST'}
         frameStart = anim.frameStart
-        dp_fstr = 'uv_layers["' + uvlayer.name + '"].data[{:d}].uv'
+        dp_fstr = '"uv_layers["' + uvlayer.name + '"].data[{:d}].uv'
         # uvIdx = order in blender, tvertIdx = order in mdl
         for loop_idx, uv_idx in enumerate(uvlayer.data):
             dp = dp_fstr.format(loop_idx)
