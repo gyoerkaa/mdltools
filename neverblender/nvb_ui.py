@@ -339,32 +339,14 @@ class NVB_PT_mtr(bpy.types.Panel):
     def draw_header(self, context):
         mat = context.material
 
-        self.layout.prop(mat.nvb, 'usemtr', text='')
+        self.layout.prop(mat.nvb, 'use_mtr', text='')
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
         mat = context.material
 
-        layout.enabled = mat.nvb.usemtr
-
-        layout.prop(mat.nvb, 'mtrname')
-
-        layout.separator()
-        row = layout.row()
-        row.prop(mat.nvb, 'mtrsrc', expand=True)
-        layout.separator()
-        if mat.nvb.mtrsrc == 'FILE':
-            row = layout.row(align=True)
-            row.operator('nvb.mtr_embed', icon='UGLYPACKAGE', text='')
-            row.prop(mat.nvb, 'mtrpath', text='')
-            row.operator('nvb.mtr_open', icon='FILEBROWSER', text='')
-            row.operator('nvb.mtr_reload', icon='NDOF_TURN', text='')
-        elif mat.nvb.mtrsrc == 'TEXT':
-            row = layout.row(align=True)
-            row.prop_search(mat.nvb, 'mtrtext', bpy.data, 'texts', text='')
-            row.operator('nvb.mtr_generate', icon='IMPORT', text='')
-            row.operator('nvb.mtr_reload', icon='NDOF_TURN', text='')
+        layout.enabled = mat.nvb.use_mtr
 
         layout.separator()
         box = layout.box()

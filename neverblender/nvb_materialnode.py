@@ -407,7 +407,7 @@ class Materialnode(object):
 
     @staticmethod
     def get_color_socket(socket):
-        """Get ta color socket connected to this socket. May be none."""
+        """Get the color socket connected to this socket. May be none."""
         if not socket:
             return None
 
@@ -589,6 +589,7 @@ class Materialnode(object):
 
         # Add texture maps
         # 0 = Diffuse
+        node_shd_bsdf.inputs[0].default_value = color_list[0]
         if texture_list[0]:
             # Setup: Image Texture (Color) => Principled BSDF
             # Setup: Image Texture (Alpha) => Mix Transparent (Factor)
@@ -637,6 +638,7 @@ class Materialnode(object):
             links.new(node_shd_bsdf.inputs[5], node_tex_spec.outputs[0])
 
         # 3 = Roughness
+        node_shd_bsdf.inputs[7].default_value = color_list[3][0]
         if texture_list[3]:
             # Setup: Image Texture => Principled BSDF
             node_tex_rough = nodes.new('ShaderNodeTexImage')

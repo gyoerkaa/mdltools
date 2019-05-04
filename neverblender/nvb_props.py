@@ -261,30 +261,10 @@ class NVB_PG_material(bpy.types.PropertyGroup):
     This class defines all additional properties needed by the mdl file
     format. It hold the properties for meshes, lamps and empties.
     """
-    renderhint: bpy.props.EnumProperty(
-        name='Renderhint',
-        items=[('AUTO', 'Auto', 'Depending on number of textures', 0),
-               ('NONE', 'None', 'No renderhint', 1),
-               ('NASM', 'NormalAndSpecMapped', 'Normal & Specular Mapped', 2)],
-        default='AUTO', options=set())
     # MTR Panel
-    usemtr: bpy.props.BoolProperty(name='Use MTR',
-                                   description='Use external MTR file',
-                                   default=False, options=set())
-    mtrname: bpy.props.StringProperty(name='Name',
-                                      description='Data name',
-                                      default='', options=set())
-    mtrsrc: bpy.props.EnumProperty(
-        name='Source',
-        items=[('TEXT', 'Text', 'From text block', 0),
-               ('FILE', 'File', 'From file', 1)],
-        default='FILE', options=set())
-    mtrtext: bpy.props.StringProperty(name='Text Block',
-                                      description='Blender Text Block',
-                                      default='', options=set())
-    mtrpath: bpy.props.StringProperty(name='Filepath',
-                                      description='Path to MTR file',
-                                      default='', options=set())
+    use_mtr: bpy.props.BoolProperty(name='Use MTR',
+                                    description='Write date to MTR file',
+                                    default=False, options=set())
     # For gui editing
     shadervs: bpy.props.StringProperty(name='Vertex Shader',
                                        description='Specify Vertex shader',

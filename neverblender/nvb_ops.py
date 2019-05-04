@@ -283,9 +283,8 @@ class NVB_OT_util_transform(bpy.types.Operator):
         """TODO: DOC."""
         def adjust_loc(obj, kfvalues, scl_mat, trn_mat):
             vecs = [mathutils.Vector(v) for v in kfvalues]
-            mats = [v @ trn_mat @ scl_mat for v in vecs]
-            return mats
-            return [m.to_translation() for m in mats]
+            vecs = [v @ trn_mat @ scl_mat for v in vecs]
+            return vecs
 
         def adjust_axan(obj, kfvalues, scl_mat, trn_mat):
             mats = [mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4() @
@@ -340,28 +339,24 @@ class NVB_OT_util_transform(bpy.types.Operator):
     def adjust_animations2(self, obj, vecS, vecT):
         """TODO: DOC."""
         def adjust_loc(obj, kfvalues, matS, vecT):
-            vec_list = [mathutils.Vector(vec) + vecT for vec in kfvalues]
-            return [v @ matS for v in vec_list]
-            # return [mathutils.Vector(v * s for v, s in zip(vec, vecS))
-            #         for vec in vec_list]
+            vec_list = [mathutils.Vector(vec) @ matS for vec in kfvalues]
+            vec_list = [vec + vecT for vec in vec_list]
+            return vec_list
 
         def adjust_axan(obj, kfvalues, matS, vecT):
-            mat_list = [mathutils.Quaternion(v[1:], v[0]).to_matrix()
+            mat_list = [mathutils.Quaternion(v[1:], v[0]).to_matrix() @ matS
                         for v in kfvalues]
-            mat_list = [m @ matS for m in mat_list]
             quat_list = [m.to_quaternion() for m in mat_list]
             return [[q.angle, *q.axis] for q in quat_list]
 
         def adjust_quat(obj, kfvalues, matS, vecT):
-            mat_list = [mathutils.Quaternion(v).to_matrix()
+            mat_list = [mathutils.Quaternion(v).to_matrix() @ matS
                         for v in kfvalues]
-            mat_list = [m @ matS for m in mat_list]
             return [list(m.to_quaternion()) for m in mat_list]
 
         def adjust_eul(obj, kfvalues, matS, vecT):
-            mat_list = [mathutils.Euler(v, 'XYZ').to_matrix()
+            mat_list = [mathutils.Euler(v, 'XYZ').to_matrix() @ matS
                         for v in kfvalues]
-            mat_list = [m @ matS for m in mat_list]
             # Euler Filter
             euls = []
             e = obj.rotation_euler
@@ -387,23 +382,21 @@ class NVB_OT_util_transform(bpy.types.Operator):
             fcu = [all_fcu.find(data_path=dp, index=i)
                    for i in range(dp_dim)]
             if fcu.count(None) < 1:
-                print(dp)
                 frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
                       for i in range(dp_dim)]))
                 frames.sort()
                 values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
                           for f in frames]
-                print(values)
                 # Adjust kfp to new coordinates
                 values = adjust_func(obj, values, matS, vecT)
-                print(values)
                 # Write back adjusted kfp values
                 for i in range(dp_dim):
                     single_vals = [v[i] for v in values]
                     data = [d for z in zip(frames, single_vals) for d in z]
                     fcu[i].keyframe_points.foreach_set('co', data)
-                    fcu[i].update()
+                list(map(lambda c: c.update(), fcu))
+        action.fcurves.update()
 
     def adjust_objects(self, obj, scl_mat, trn_mat):
         for c in obj.children:
@@ -449,7 +442,6 @@ class NVB_OT_util_transform(bpy.types.Operator):
             self.adjust_objects2(chi, mathutils.Vector(a * b for a, b in
                                                        zip(par_vS, chi_vS)))
 
-
     def execute(self, context):
         """TODO: DOC."""
         mdl_base = nvb_utils.get_mdl_base(context.object)
@@ -467,4 +459,5 @@ class NVB_OT_util_transform(bpy.types.Operator):
             # Apply translation to immediate children and scale to all
             self.adjust_objects2(mdl_base, vecS, vecT)
             context.scene.update()
+            context.scene.collection.objects.update()
             return {'FINISHED'}

@@ -40,9 +40,13 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export Normals and Tangents',
             description='Add normals and tangents to MDL',
             default=False)
+    export_mtr: bpy.props.BoolProperty(
+            name='Export MTR',
+            description='Export material data to MTR files',
+            default=True)
     # UV Map Export settings
-    uv_autojoin: bpy.props.BoolProperty(
-            name='Auto Join UVs',
+    uv_merge: bpy.props.BoolProperty(
+            name='Merge UVs',
             description='Join uv-vertices with identical coordinates',
             default=True)
     uv_mode: bpy.props.EnumProperty(
@@ -65,11 +69,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ('ACT', 'Active Only',
                     'Export active UVMap only')),
             default='ACT')
-    # Material Export Settings
-    mtr_export: bpy.props.BoolProperty(
-            name='Export MTR',
-            description='Create MTR file holding material data (if specified)',
-            default=True)
     # Blender Setting to use
     apply_modifiers: bpy.props.BoolProperty(
             name='Apply Modifiers',
@@ -161,14 +160,12 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                     with open(os.fsencode(wkm_path), 'w') as f:
                         f.write('\n'.join(ascii_lines))
         # Export MTRs
-        if options.mtr_export:
-            for mtr_name, blen_mat_name in options.mtr_export_list:
-                blen_mat = bpy.data.materials[blen_mat_name]
-                ascii_lines = nvb_mtr.Mtr.generateAscii(blen_mat, options)
-                mtr_path = get_filepath(options.filepath,
-                                        mtr_name, '.mtr')
-                with open(os.fsencode(mtr_path), 'w') as f:
-                    f.write('\n'.join(ascii_lines))
+        for mtr_name, blen_mat_name in options.mtr_list:
+            blen_mat = bpy.data.materials[blen_mat_name]
+            ascii_lines = nvb_mtr.Mtr.generate_ascii(blen_mat, options)
+            mtr_path = get_filepath(options.filepath, mtr_name, '.mtr')
+            with open(os.fsencode(mtr_path), 'w') as f:
+                f.write('\n'.join(ascii_lines))
         return {'FINISHED'}
 
     def draw(self, context):
@@ -180,19 +177,14 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.prop(self, 'export_walkmesh')
         box.prop(self, 'export_smoothgroups')
         box.prop(self, 'export_normals')
+        box.prop(self, 'export_mtr')
         # UV Map settings
         box = layout.box()
         box.label(text='UV Map Settings')
         sub = box.column()
-        sub.prop(self, 'uv_autojoin')
+        sub.prop(self, 'uv_merge')
         sub.prop(self, 'uv_mode')
         sub.prop(self, 'uv_order')
-        # Material Export Settings
-        box = layout.box()
-        box.label(text='Material Settings')
-        box.prop(self, 'mtr_export')
-        # sub = box.row(align=True)
-        # sub.active = self.mtr_export
         # Blender Settings
         box = layout.box()
         box.label(text='Blender Settings')
@@ -218,11 +210,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.export_normals = self.export_normals
         options.export_wirecolor = addon_prefs.export_wirecolor
         # UV Map settings
-        options.uvmapAutoJoin = self.uv_autojoin
-        options.uvmapMode = self.uv_mode
-        options.uvmapOrder = self.uv_order
+        options.uv_merge = self.uv_merge
+        options.uv_level = self.uv_mode
+        options.uv_order = self.uv_order
         # Material Export Settings
-        options.mtr_export = self.mtr_export
+        options.export_mtr = self.export_mtr
         options.mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Blender Settings
@@ -280,8 +272,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         description='Import materials and textures',
         default=True)
     mat_automerge: bpy.props.BoolProperty(
-        name='Auto Merge Materials',
-        description='Merge materials with same settings',
+        name='Merge Materials',
+        description='Merge materials with the same values',
         default=True)
     mat_shader: bpy.props.EnumProperty(
         name='Shader',
@@ -290,7 +282,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                ('ShaderNodeBsdfPrincipled', 'Principled BSDF', '')),
         default='ShaderNodeEeveeSpecular')
     mtr_import: bpy.props.BoolProperty(
-        name='Load MTR files',
+        name='Import MTR files',
         description='Load external material files ' +
                     '(will overwride material in MDL)',
         default=True)
@@ -407,7 +399,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box.prop(self, 'mat_import')
         sub = box.column()
         sub.enabled = self.mat_import
-        sub.prop(self, 'mat_shader')
+        sub.prop(self, 'mat_shader', text='')
         sub.prop(self, 'mat_automerge')
         sub.prop(self, 'mtr_import')
         sub.prop(self, 'tex_search')

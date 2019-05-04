@@ -684,19 +684,19 @@ class Trimesh(Node):
         # Per face uv indices and a list of their coordinates
         me_face_uv = [[0, 0, 0]] * len(me.polygons)
         dig_u = 1  # digits for formatting
-        if (options.uvmapMode == 'ALL') or \
-           (options.uvmapMode == 'REN' and not obj.hide_render):
+        if (options.uv_level == 'ALL') or \
+           (options.uv_level == 'REN' and not obj.hide_render):
             # Adds scaling factor from the texture slot to uv coordinates
             # uvScale = (1.0, 1.0)
             # if obj.active_material:
             #     if obj.active_material.active_texture:
 
             # Find out which UV layers to export:
-            uv_layer_list = mesh_get_uvs_to_export(me, options.uvmapOrder)
+            uv_layer_list = mesh_get_uvs_to_export(me, options.uv_order)
 
             # Check if we can merge uvs
             merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
-                         options.uvmapAutoJoin)
+                         options.uv_merge)
 
             # Generate the tverts
             me_uv_coord_list = []

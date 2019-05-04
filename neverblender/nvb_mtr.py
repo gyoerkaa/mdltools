@@ -36,6 +36,27 @@ class Mtr(object):
             values.append(float(sv))
         return values
 
+    @staticmethod
+    def get_mtr_name(blen_material, strip_trailing=False):
+        """Parses parameter values from list of strings."""
+        mtr_name = blen_material.name
+        if strip_trailing:
+            mtr_name = nvb_utils.strip_trailing_numbers(mtr_name)
+        return mtr_name
+
+    @staticmethod
+    def get_mtr_params(blen_material):
+        """Parses parameter values from list of strings."""
+        param_list = []
+        for pa in blen_material.nvb.mtrparam_list:
+            if pa.pname.lower() not in param_list:  # Keep unique
+                param_name = pa.pname.lower()
+                param_type = pa.ptype
+                param_values = [float(v) for v in pa.pvalue.strip().split()]
+                param = (pa.pname.lower(), param_type, param_values)
+                param_list.append(param)
+        return param_list
+
     def read_mtr(self, filepath):
         """Load contents of a mtr file."""
         if not filepath:
@@ -50,18 +71,6 @@ class Mtr(object):
         ascii_data = mtrFile.read()
         self.parse_ascii(ascii_data)
         mtrFile.close()
-        return True
-
-    def loadTextBlock(self, txt_block):
-        """Load content of a blender text block."""
-        if not txt_block:
-            return False
-        # Generate a name, strip trailing numbers (".001") and ".mtr"
-        match = re.match('([\\w\\-]+)[\\.mtr]?[\\.\\d+]*', txt_block.name)
-        if match:
-            self.name = match.group(1)
-        ascii_data = txt_block.as_string()
-        self.parse_ascii(ascii_data)
         return True
 
     def parse_ascii(self, ascii_data):
@@ -108,13 +117,13 @@ class Mtr(object):
                 self.texture_list[idx] = nvb_parse.ascii_texture(line[1])
 
     @staticmethod
-    def generateAscii(material, options):
+    def generate_ascii(material, options):
         """Generate a mtr file as asciilines."""
         ascii_lines = []
         tex_list, col_list, _ = Materialnode.get_node_data(material)
         # Clean up texture list, delete trailing "null"
         tex_list = [t if t else nvb_def.null for t in tex_list]
-        while tex_list[-1] == nvb_def.null:
+        while tex_list and tex_list[-1] == nvb_def.null:
             _ = tex_list.pop()
         # Add shader specification
         if material.nvb.shadervs or material.nvb.shaderfs:
@@ -155,51 +164,3 @@ class Mtr(object):
                             line = 'parameter float ' + pa.pname + ' ' + sv
                     ascii_lines.append(line)
         return ascii_lines
-
-    @staticmethod
-    def saveFile(material, options):
-        if material.nvb.usemtr and options.exportMTR:
-            asciiLines = Mtr.generateAscii(material, options)
-            with open(os.fsencode(options.filepath), 'w') as f:
-                f.write('\n'.join(asciiLines))
-
-    def create(self, material, options):
-        """Generate the values from the mtr for the material."""
-        def setup_listitem(item, data):
-            if data[0] == 'int':  # Only a single int
-                item.ptype = 'int'
-                item.pvalue = str(int(data[1][0]))
-            elif data[0] == 'float':  # Up to four floats
-                item.ptype = 'float'
-                item.pvalue = ' '.join([str(v) for v in data[1][:4]])
-
-        material.nvb.usemtr = True
-        material.nvb.mtrname = self.name
-        material.nvb.mtrpath = self.filepath
-        material.nvb.shadervs = self.customshaderVS
-        material.nvb.shaderfs = self.customshaderFS
-        # Load renderhint and set up textures accordingly
-        if nvb_def.Renderhint.NORMALANDSPECMAPPED in self.renderhints:
-            material.nvb.renderhint = 'NASM'
-        # Load parameters
-        if self.parameters:
-            existing_params = []
-            # Adjust existing params
-            for listitem in material.nvb.mtrparam_list:
-                if listitem.pname in self.parameters:
-                    setup_listitem(listitem, self.parameters[listitem.pname])
-                    existing_params.append(listitem.pname)
-            # Add new params
-            for pname, pdata in self.parameters.items():
-                if pname not in existing_params:
-                    listitem = material.nvb.mtrparam_list.add()
-                    listitem.pname = pname
-                    setup_listitem(listitem, pdata)
-        # Load textures
-        for idx, txname in enumerate(self.texture_list):
-            if txname:
-                tslot = material.texture_slots[idx]
-                if not tslot:
-                    tslot = material.texture_slots.create(idx)
-                tslot.texture = nvb_utils.create_texture(
-                    txname, txname, options.filepath, options.tex_search)

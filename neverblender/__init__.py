@@ -121,10 +121,6 @@ classes = (
     nvb_ops_amt.NVB_OT_amt_amt2psb,
     nvb_ops_amt.NVB_OT_amt_psb2amt,
 
-    nvb_ops_mtr.NVB_OT_mtr_generate,
-    nvb_ops_mtr.NVB_OT_mtr_embed,
-    nvb_ops_mtr.NVB_OT_mtr_open,
-    nvb_ops_mtr.NVB_OT_mtr_reload,
     nvb_ops_mtr.NVB_OT_mtrparam_new,
     nvb_ops_mtr.NVB_OT_mtrparam_delete,
 

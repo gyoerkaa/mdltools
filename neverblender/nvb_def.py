@@ -258,21 +258,21 @@ class ExportOptions():
         self.filepath = ''
 
         self.mdlname = 'unnamed'
-        self.mtr_export_list = set()
+        # Hiden settings and properties for internal use
+        self.mtr_ref = 'bitmap'
+        self.mat_diffuse_ref = 'bitmap'
+        self.mtr_list = set()
         self.classification = Classification.UNKNOWN
         # Misc options
         self.export_animations = True
         self.export_walkmesh = True
         self.export_smoothgroups = True
         self.export_normals = False
+        self.export_mtr = True
         # UV Map Settings
-        self.uvmapAutoJoin = True
-        self.uvmapMode = 'REN'
-        self.uvmapOrder = 'AL0'
-        # Additional options for textures and materials
-        self.mtr_export = True
-        self.mtr_ref = 'bitmap'
-        self.mat_diffuse_ref = 'bitmap'
+        self.uv_merge = True
+        self.uv_level = 'REN'
+        self.uv_order = 'AL0'
         # Blender Settings
         self.apply_modifiers = True
         self.mesh_convert = 'RENDER'
