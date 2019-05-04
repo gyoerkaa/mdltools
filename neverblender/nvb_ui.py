@@ -550,7 +550,7 @@ class NVB_PT_mesh_object(bpy.types.Panel):
             box.prop(obj.nvb, 'tilefade', text='Tilefade')
             split = box.split()
             col = split.column()
-            col.prop(obj, 'hide_render', text='Render')
+            col.prop(obj.nvb, 'render', text='Render')
             col.prop(obj.nvb, 'shadow', text='Shadow')
             col = split.column()
             col.prop(obj.nvb, 'beaming', text='Beaming')

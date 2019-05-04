@@ -47,6 +47,20 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         name="Export Wirecolor", default=True,
         description="Use Blender's Object Color property to hold Wirecolor")
 
+    import_dummy_type: bpy.props.EnumProperty(
+        name="Dummy Type",
+        description="Type of the Empty to use for Dummies",
+        items=[('PLAIN_AXES', "Plain Axes", "", 0),
+               ('ARROWS', "Arrows", "", 1),
+               ('SINGLE_ARROW', "Single Arrow", "", 2),
+               ('CIRCLE', "Circle", "", 3),
+               ('CUBE', "Cube", "", 4),
+               ('SPHERE', "Sphere", "", 5),],
+        default='PLAIN_AXES')
+    import_dummy_size: bpy.props.FloatProperty(
+        name='Dummy Size',
+        description='Size of the Empty to use for Dummies',
+        default=1.0, min=0.1, max=1.0)
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
         name='Type',
@@ -55,8 +69,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                (nvb_def.Walkmeshtype.DWK,
                 'Door', 'Setup objects for doors', 1),
                (nvb_def.Walkmeshtype.WOK,
-                'Tile', 'Setup objects for tiles', 2),
-               ],
+                'Tile', 'Setup objects for tiles', 2),],
         default=nvb_def.Walkmeshtype.PWK)
     util_nodes_dwk_mode: bpy.props.EnumProperty(
         name='Mode',
@@ -144,11 +157,21 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         #  layout.prop(self, 'compiler_path')
-        box = layout.box()
+        split = layout.split(factor=0.5)
+
+        col = split.column()
+        box = col.box()
         box.label(text='Export Settings')
         box.prop(self, 'export_mat_diffuse_ref')
         box.prop(self, 'export_mat_mtr_ref')
         box.prop(self, 'export_wirecolor')
+
+        col = split.column()
+        box = col.box()
+        box.label(text='Import Settings')
+        box.prop(self, 'import_dummy_type')
+        box.prop(self, 'import_dummy_size')
+
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""

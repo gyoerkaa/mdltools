@@ -163,6 +163,9 @@ class Dummy(Node):
         Node.createObjectData(self, obj, options)
         obj.nvb.emptytype = self.emptytype
 
+        obj.empty_display_type = options.dummy_type
+        obj.empty_display_size = options.dummy_size
+
 
 class Patch(Node):
     """Same as a plain Dummy."""
@@ -340,16 +343,9 @@ class Trimesh(Node):
     @staticmethod
     def create_vertex_colors(mesh, vcolors, vcname):
         """Create a color map from a per-vertex color list for the mesh."""
-        # Sample data
-        # vert_uvs = [(random(), random()) for i in range(len(me.vertices))]
-        # me.uv_textures.new("test")
-        # me.uv_layers[-1].data.foreach_set("uv",
-        #     [uv for pair in [vert_uvs[l.vertex_index]
-        #      for l in me.loops] for uv in pair])
-
         cmap = None
         if vcolors:
-            cmap = mesh.vertex_colors.new(vcname)
+            cmap = mesh.vertex_colors.new(name=vcname)
             # Get all loops for each vertex
             vert_loop_map = {}
             for l in mesh.loops:
@@ -536,10 +532,11 @@ class Trimesh(Node):
 
         obj.nvb.meshtype = self.meshtype
 
+        obj.nvb.render = self.render
         obj.hide_render = not self.render
         obj.nvb.tilefade = nvb_def.Tilefade.NONE
         if (self.tilefade >= 1):
-            obj.hide_render = obj.hide_render and options.hide_fading
+            obj.hide_render = True
             if self.tilefade == 1:
                 obj.nvb.tilefade = nvb_def.Tilefade.FADE
             elif self.tilefade == 2:
@@ -591,9 +588,9 @@ class Trimesh(Node):
                 groups, _ = mesh.calc_smooth_groups()
             return groups
 
-        def mesh_get_normals(mesh, uvmap):
+        def mesh_get_normals(mesh, uvl_name):
             """Get normals and tangets for this mesh."""
-            mesh.calc_tangents(uvmap=uvmap.name)  # calls calc_normals_split()
+            mesh.calc_tangents(uvmap=uvl_name)  # calls calc_normals_split()
 
             # per_loop_data = [(l.vertex_index, l.normal, l.tangent, l.bitangent_sign)
             #                  for l in mesh.loops]
@@ -685,7 +682,7 @@ class Trimesh(Node):
         me_face_uv = [[0, 0, 0]] * len(me.polygons)
         dig_u = 1  # digits for formatting
         if (options.uv_level == 'ALL') or \
-           (options.uv_level == 'REN' and not obj.hide_render):
+           (options.uv_level == 'REN' and obj.nvb.render):
             # Adds scaling factor from the texture slot to uv coordinates
             # uvScale = (1.0, 1.0)
             # if obj.active_material:
@@ -721,7 +718,7 @@ class Trimesh(Node):
                 del me_uv_coord_list
 
                 # Write normals and tangents
-                if options.export_normals and not obj.hide_render:
+                if options.export_normals and obj.nvb.render:
                     normal_uv = uv_layer_list[0].name
                     me_normals, me_tangents = mesh_get_normals(me, normal_uv)
 
@@ -778,8 +775,8 @@ class Trimesh(Node):
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Render and Shadow
-            if not obj.nvb.shadow or obj.hide_render:  # Skip default value
-                asciiLines.append('  render ' + str(int(not obj.hide_render)))
+            if not obj.nvb.shadow or not obj.nvb.render:  # Skip default value
+                asciiLines.append('  render ' + str(int(obj.nvb.render)))
                 asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             # Beaming
             val = int(obj.nvb.beaming)

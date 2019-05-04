@@ -173,7 +173,7 @@ class Material(object):
 
         fstr_col = '  {:s}' + 3 * ' {:3.2f}'
         fstr_tex0 = '  ' + options.mat_diffuse_ref + ' {:s}'
-        if not obj.hide_render and blen_material:
+        if obj.nvb.render and blen_material:
             tex_list, col_list, alpha = \
                 Materialnode.get_node_data(blen_material)
             # Clean up texture list, delete trailing "null"

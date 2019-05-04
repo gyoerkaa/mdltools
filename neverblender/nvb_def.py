@@ -216,12 +216,19 @@ class ImportOptions():
     """Holds all import options."""
 
     def __init__(self):
-        self.filepath = ''
+        """TODO: DOC."""
+        self.filepath = ""
+        self.mdlname = "unnamed"
         self.scene = None
         self.collection = None
-        self.mdlname = 'unnamed'
+
         self.mtrdb = dict()
-        # What to import
+        # Hidden settings and properties for internal use
+        self.hide_lights = True
+        self.hide_fading = False
+        self.dummy_type = 'PLAIN_AXES'
+        self.dummy_size = 1.0
+        # Misc options
         self.import_geometry = True
         self.import_walkmesh = True
         self.importSmoothGroups = True
@@ -243,8 +250,6 @@ class ImportOptions():
         self.rotmode = 'XYZ'
         self.fix_uvs = False
         self.mdl_location = (0.0, 0.0, 0.0)
-        self.hide_lights = True
-        self.hide_fading = False
 
 
 class ExportOptions():
@@ -252,13 +257,13 @@ class ExportOptions():
 
     def __init__(self):
         """TODO: DOC."""
-
+        self.filepath = ""
+        self.mdlname = "unnamed"
         self.scene = None
+        self.collection = None
         self.depsgraph = None
-        self.filepath = ''
 
-        self.mdlname = 'unnamed'
-        # Hiden settings and properties for internal use
+        # Hidden settings and properties for internal use
         self.mtr_ref = 'bitmap'
         self.mat_diffuse_ref = 'bitmap'
         self.mtr_list = set()

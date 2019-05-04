@@ -200,23 +200,23 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         addon_prefs = addon.preferences
 
         options = nvb_def.ExportOptions()
+        # Hidden seeting for internal use
         options.filepath = self.filepath
         options.scene = context.scene
         options.depsgraph = context.depsgraph
+        options.export_wirecolor = addon_prefs.export_wirecolor
+        options.mtr_ref = addon_prefs.export_mat_mtr_ref
+        options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Misc Export Settings
         options.export_animations = self.export_animations
         options.export_walkmesh = self.export_walkmesh
         options.export_smoothgroups = self.export_smoothgroups
         options.export_normals = self.export_normals
-        options.export_wirecolor = addon_prefs.export_wirecolor
+        options.export_mtr = self.export_mtr
         # UV Map settings
         options.uv_merge = self.uv_merge
         options.uv_level = self.uv_mode
         options.uv_order = self.uv_order
-        # Material Export Settings
-        options.export_mtr = self.export_mtr
-        options.mtr_ref = addon_prefs.export_mat_mtr_ref
-        options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Blender Settings
         options.apply_modifiers = self.apply_modifiers
         options.strip_trailing = self.strip_trailing
@@ -425,10 +425,18 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
     def execute(self, context):
         """TODO: DOC."""
+        addon = context.preferences.addons[__package__]
+        addon_prefs = addon.preferences
+
         options = nvb_def.ImportOptions()
+        # Hidden settings for internal use
         options.filepath = self.filepath
         options.scene = context.scene
         options.collection = context.collection
+        options.dummy_type = addon_prefs.import_dummy_type
+        options.dummy_size = addon_prefs.import_dummy_size
+        options.hide_lights = self.hide_lights
+        options.hide_fading = self.hide_fading
         # Misc Import Settings
         options.import_geometry = self.import_geometry
         options.import_walkmesh = self.import_walkmesh
@@ -449,8 +457,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.rotmode = self.rotmode
         options.fix_uvs = self.fix_uvs
         options.mdl_location = self.mdl_location
-        options.hide_lights = self.hide_lights
-        options.hide_fading = self.hide_fading
         return self.mdl_import(context, options)
 
 
