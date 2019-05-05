@@ -60,7 +60,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     import_dummy_size: bpy.props.FloatProperty(
         name='Dummy Size',
         description='Size of the Empty to use for Dummies',
-        default=1.0, min=0.1, max=1.0)
+        default=0.5, min=0.1, max=1.0)
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
         name='Type',

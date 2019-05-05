@@ -622,16 +622,11 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                         (0.0,      dim.x, 0.0),
                         (dim.y,    dim.x, dim.z),
                         (0.0,      dim.x, dim.z)]
-            faces = [3, 7, 5, 1,
-                     7, 3, 2, 6,
-                     7, 6, 4, 5,
-                     2, 0, 4, 6,
-                     1, 0, 2, 3]
             faces = [(3, 7, 5), (3, 5, 1),
                      (7, 3, 2), (7, 2, 6),
                      (7, 6, 4), (7, 4, 5),
                      (2, 0, 4), (2, 4, 6),
-                     (1, 0, 2), (1, 2, 3)]                     
+                     (1, 0, 2), (1, 2, 3)]
             mesh = nvb_utils.build_mesh(vertices, faces, 'sam')
             return mesh
 
@@ -825,9 +820,9 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
             faces = [(0, 2, 3),
                      (3, 1, 0)]
             mesh = nvb_utils.build_mesh(vertices, faces, mesh_name)
-            return mesh          
+            return mesh
 
-        
+
         wok_name = name_prefix + '_wok'
         # Check for existing aabb nodes in the mdl
         existing_aabb = [o for o in existing_objects

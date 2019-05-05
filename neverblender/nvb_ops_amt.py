@@ -59,7 +59,8 @@ class NVB_OT_amt_apply_pose(bpy.types.Operator):
                    ('location', 3, adjust_loc)]
         for dp_suffix, dp_dim, adjust_func in dp_list:
             dp = 'pose.bones["' + posebone.name + '"].' + dp_suffix
-            fcu = [source_fcu.find(dp, i)for i in range(dp_dim)]
+            fcu = [source_fcu.find(data_path=dp, index=i)
+                   for i in range(dp_dim)]
             if fcu.count(None) < 1:
                 frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points]
@@ -106,7 +107,11 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     mats_edit_bone = dict()  # armature bone name => edit_bone.matrix
     amb_psb_pairs = []  # (armature bone name, pseudo bone name) tuples
     amt_bone_shapes = dict()  # armature bone name => pseudo-bone shape
+
     scene = None
+    collection = None
+    dummy_type = 'PLAIN_AXES'
+    dummy_size = 0.5
 
     use_existing: bpy.props.BoolProperty(
         name='Use Existing Bones', default=False,
@@ -118,40 +123,34 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         psd_bone_root = None
         if anim_mode in ['NLA_STRIPS', 'NLA_TRACKS'] or create_base:
             mdl_base = bpy.data.objects.new(armature.name+'.mdl', None)
-            self.scene.objects.link(mdl_base)
+            self.collection.objects.link(mdl_base)
             psd_bone_root = mdl_base
         if create_root:
             psd_bone_root = bpy.data.objects.new('rootdummy', None)
             psd_bone_root.parent = mdl_base
             psd_bone_root.location = armature.location
-            self.scene.objects.link(psd_bone_root)
+            self.collection.objects.link(psd_bone_root)
         context.scene.update()
         return mdl_base, psd_bone_root
 
     def create_mesh(self, mvector, meshname):
         """Create a mesh with the shape of a blender bone."""
-        verts = [+0.0, +0.0, 0.0,
-                 -0.1, -0.1, 0.1,
-                 -0.1, +0.1, 0.1,
-                 +0.1, -0.1, 0.1,
-                 +0.1, +0.1, 0.1,
-                 +0.0, +0.0, 1.0]
-        faces = [0, 1, 2, 0,
-                 0, 2, 4, 0,
-                 0, 4, 3, 0,
-                 0, 3, 1, 0,
-                 4, 2, 5, 0,
-                 3, 4, 5, 0,
-                 2, 1, 5, 0,
-                 1, 3, 5, 0]
-        mesh = bpy.data.meshes.new(meshname)
-        # Create Verts
-        mesh.vertices.add(len(verts)/3)
-        mesh.vertices.foreach_set('co', verts)
-        # Create Faces
-        mesh.tessfaces.add(len(faces)/4)
-        mesh.tessfaces.foreach_set('vertices_raw', faces)
-        mesh.validate()
+        vertices = [(+0.0, +0.0, 0.0),
+                    (-0.1, -0.1, 0.1),
+                    (-0.1, +0.1, 0.1),
+                    (+0.1, -0.1, 0.1),
+                    (+0.1, +0.1, 0.1),
+                    (+0.0, +0.0, 1.0)]
+        faces = [(0, 1, 2),
+                 (0, 2, 4),
+                 (0, 4, 3),
+                 (0, 3, 1),
+                 (4, 2, 5),
+                 (3, 4, 5),
+                 (2, 1, 5),
+                 (1, 3, 5)]
+        mesh = nvb_utils.build_mesh(vertices, faces, meshname)
+
         rot = mathutils.Vector((0, 0, 1)).rotation_difference(mvector)
         mesh.transform(mathutils.Matrix.Rotation(rot.angle, 4, rot.axis))
         mesh.transform(mathutils.Matrix.Scale(mvector.length, 4))
@@ -166,16 +165,21 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         if amt_bone.parent:
             psb_head = psb_head - amt_bone.parent.head_local
             psb_tail = psb_tail - amt_bone.parent.head_local
-        # Create the mesh for the pseudo bone
-        mesh = None
-        if amt_bone.nvb.psd_bone_shape != 'EMT':
+        # Create pseudo bone object
+        if amt_bone.nvb.psd_bone_shape == 'EMT':
+            # Pseudo Bone will be an Empty
+            psb = bpy.data.objects.new(amt_bone.name, None)
+            psb.empty_display_type = self.dummy_type
+            psb.empty_display_size = self.dummy_size
+        else:
+            # Pseudo Bone will be a Mesh
             mesh = self.create_mesh(psb_tail-psb_head, amt_bone.name)
-        # Create object holding the mesh
-        psb = bpy.data.objects.new(amt_bone.name, mesh)
+            psb = bpy.data.objects.new(amt_bone.name, mesh)
+
         psb.location = psb_head
         psb.parent = psb_parent
         psb.nvb.render = False
-        bpy.context.scene.objects.link(psb)
+        self.collection.objects.link(psb)
         # Create matrix for animation conversion
         self.amb_psb_pairs.append([amt_bone.name, psb.name])
         self.mats_edit_bone[amt_bone.name] = amt_bone.matrix_local.copy()
@@ -289,7 +293,8 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         # Transfer keyframes
         for psd_dp, group_name, dp_dim, kfp_convert, kfp_dfl in dp_list:
             amt_dp = 'pose.bones["' + amb_name + '"].' + psd_dp
-            amt_fcu = [source_fcu.find(amt_dp, i) for i in range(dp_dim)]
+            amt_fcu = [source_fcu.find(data_path=amt_dp, index=i)
+                       for i in range(dp_dim)]
             if amt_fcu.count(None) < dp_dim:  # disregard empty animations
                 # Get keyed frames
                 frames = list(set().union(
@@ -317,9 +322,9 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         event_names = [ev.name for ev in amt.nvb.amt_event_list]
         event_data = []
         for ev_idx, ev_name in enumerate(event_names):
-            data_path = 'nvb.amt_event_list[' + str(ev_idx) + '].fire'
+            dp= 'nvb.amt_event_list[' + str(ev_idx) + '].fire'
             for action in amt_action_list:
-                fcu = action.fcurves.find(data_path, 0)
+                fcu = action.fcurves.find(data_path=dp, index=0)
                 if fcu:
                     event_data.extend([(p.co[0], ev_name)
                                        for p in fcu.keyframe_points])
@@ -388,13 +393,19 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
     def execute(self, context):
         """Create pseudo bones and copy animations"""
         armature = context.object
-        addon = context.preferences.addons[__package__]
 
-        anim_mode = addon.preferences.util_psb_anim_mode
-        create_base = addon.preferences.util_psb_insert_base
-        create_root = addon.preferences.util_psb_insert_root
+        addon = context.preferences.addons[__package__]
+        addon_prefs = addon.preferences
+
+        anim_mode = addon_prefs.util_psb_anim_mode
+        create_base = addon_prefs.util_psb_insert_base
+        create_root = addon_prefs.util_psb_insert_root
 
         self.scene = context.scene
+        self.collection = context.collection
+        self.dummy_type = addon_prefs.import_dummy_type
+        self.dummy_size = addon_prefs.import_dummy_size
+
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
 
@@ -589,30 +600,42 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
 
         def convert_loc(amt, posebone, kfvalues, cmat):
             mats = [cmat @ mathutils.Matrix.Translation(v) for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                    'LOCAL') for m in mats]
+            mats = [amt.convert_space(pose_bone=posebone,
+                                      matrix=m,
+                                      from_space='LOCAL_WITH_PARENT',
+                                      to_space='LOCAL')
+                    for m in mats]
             return [list(m.to_translation()) for m in mats]
 
         def convert_axan(amt, posebone, kfvalues, cmat):
             mats = [cmat @
                     mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                     for v in kfvalues]
-            quats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                     'LOCAL').to_quaternion() for m in mats]
+            quats = [amt.convert_space(pose_bone=posebone,
+                                      matrix=m,
+                                      from_space='LOCAL_WITH_PARENT',
+                                      to_space='LOCAL').to_quaternion()
+                     for m in mats]
             return [[q.angle, *q.axis] for q in quats]
 
         def convert_quat(amt, posebone, kfvalues, cmat):
             mats = [cmat @ mathutils.Quaternion(v).to_matrix().to_4x4()
                     for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                    'LOCAL') for m in mats]
+            mats = [amt.convert_space(pose_bone=posebone,
+                                      matrix=m,
+                                      from_space='LOCAL_WITH_PARENT',
+                                      to_space='LOCAL').to_quaternion()
+                    for m in mats]
             return [list(m.to_quaternion()) for m in mats]
 
         def convert_eul(amt, posebone, kfvalues, cmat):
             mats = [cmat @ mathutils.Euler(v, 'XYZ').to_matrix().to_4x4()
                     for v in kfvalues]
-            mats = [amt.convert_space(posebone, m, 'LOCAL_WITH_PARENT',
-                    'LOCAL') for m in mats]
+            mats = [amt.convert_space(pose_bone=posebone,
+                                      matrix=m,
+                                      from_space='LOCAL_WITH_PARENT',
+                                      to_space='LOCAL')
+                    for m in mats]
             # Convert to Euler (with filter)
             euls = []
             e = posebone.rotation_euler
@@ -633,7 +656,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                        ('rotation_euler', 3, convert_eul),
                        ('location', 3, convert_loc)]
             for dp, dp_dim, convert_func in dp_list:
-                psb_fcu = [source_fcu.find(dp, i) for i in range(dp_dim)]
+                psb_fcu = [source_fcu.find(data_path=dp, index=i)
+                           for i in range(dp_dim)]
                 if psb_fcu.count(None) < 1:
                     amt_dp = 'pose.bones["' + amt_bone_name + '"].' + dp
                     # Get keyed frames
@@ -758,11 +782,14 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             psd_bone_root = context.object
 
         # Create armature
-        # bpy.ops.object.add(type='ARMATURE', location=psd_bone_root.location)
-        amt_data = bpy.data.objects
-        amt = context.scene.objects.active
+        bpy.ops.object.add(type='ARMATURE', location=psd_bone_root.location)
+        amt = context.active_object
         amt.name = mdl_base.name + '.armature'
         amt.rotation_mode = psd_bone_root.rotation_mode
+        # amt_data = bpy.data.armatures.new(mdl_base.name + '.armature')
+        # amt = bpy.data.objects.new(mdl_base.name + '.armature', amt_data)
+        # context.view_layer.objects.active = amt
+        # amt.rotation_mode = psd_bone_root.rotation_mode
 
         # Create the bones
         self.create_bones(context, amt, psd_bone_root,

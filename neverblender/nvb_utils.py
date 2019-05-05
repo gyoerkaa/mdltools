@@ -491,38 +491,38 @@ def create_image(img_name, img_path, tex_search):
     img_dir = os.path.dirname(img_path)
     # Prefer tga over dds
     img = bpy_extras.image_utils.load_image(
-        img_name + '.tga', 
-        img_dir, 
+        img_name + '.tga',
+        img_dir,
         recursive=tex_search,
-        place_holder=False, 
+        place_holder=False,
         ncase_cmp=True,
         check_existing=True)
     if not img:
         img = bpy_extras.image_utils.load_image(
-            img_name + '.dds', 
-            img_dir, 
+            img_name + '.dds',
+            img_dir,
             recursive=tex_search,
-            place_holder=False, 
+            place_holder=False,
             ncase_cmp=True,
-            check_existing=True)            
+            check_existing=True)
     if not img:
         img = bpy.data.images.new(img_name, 512, 512)
     img.name = img_name
     return img
 
 
-def build_mesh(vertex_list, face_list, mesh_name):
+def build_mesh(vertex_list, face_list, mesh_name, vpf=3):
     mesh = bpy.data.meshes.new(mesh_name)
     # Create Verts
     mesh.vertices.add(len(vertex_list))
     mesh.vertices.foreach_set('co', [c for v in vertex_list for c in v])
     # Create Loops
-    mesh.loops.add(len(face_list) * 3)
+    mesh.loops.add(len(face_list) * vpf)
     mesh.loops.foreach_set('vertex_index', [i for f in face_list for i in f])
     # Create Polygons
     mesh.polygons.add(len(face_list))
-    mesh.polygons.foreach_set('loop_start', range(0, len(face_list) * 3, 3))
-    mesh.polygons.foreach_set('loop_total', (3,) * len(face_list))
+    mesh.polygons.foreach_set('loop_start', range(0, len(face_list) * vpf, vpf))
+    mesh.polygons.foreach_set('loop_total', (vpf,) * len(face_list))
     mesh.validate()
     mesh.update()
     return mesh
