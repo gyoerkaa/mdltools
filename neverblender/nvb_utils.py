@@ -511,18 +511,18 @@ def create_image(img_name, img_path, tex_search):
     return img
 
 
-def build_mesh(vertex_list, face_list, mesh_name, vpf=3):
+def build_mesh(vertices, faces, mesh_name, vpf=3):
     mesh = bpy.data.meshes.new(mesh_name)
     # Create Verts
-    mesh.vertices.add(len(vertex_list))
-    mesh.vertices.foreach_set('co', [c for v in vertex_list for c in v])
+    mesh.vertices.add(len(vertices))
+    mesh.vertices.foreach_set('co', [c for v in vertices for c in v])
     # Create Loops
-    mesh.loops.add(len(face_list) * vpf)
-    mesh.loops.foreach_set('vertex_index', [i for f in face_list for i in f])
+    mesh.loops.add(len(faces) * vpf)
+    mesh.loops.foreach_set('vertex_index', [i for f in faces for i in f])
     # Create Polygons
-    mesh.polygons.add(len(face_list))
-    mesh.polygons.foreach_set('loop_start', range(0, len(face_list) * vpf, vpf))
-    mesh.polygons.foreach_set('loop_total', (vpf,) * len(face_list))
+    mesh.polygons.add(len(faces))
+    mesh.polygons.foreach_set('loop_start', range(0, len(faces) * vpf, vpf))
+    mesh.polygons.foreach_set('loop_total', (vpf,) * len(faces))
     mesh.validate()
     mesh.update()
     return mesh

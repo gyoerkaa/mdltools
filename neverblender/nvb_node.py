@@ -1,17 +1,13 @@
 """TODO: DOC."""
 
 import math
-import array
-import copy
-import os
 import itertools
 
 import mathutils
 import bpy
 import bmesh
-from bpy_extras.io_utils import unpack_list, unpack_face_list
+from bpy_extras.io_utils import unpack_list
 
-from . import nvb_mtr
 from . import nvb_def
 from . import nvb_utils
 from . import nvb_parse
@@ -442,7 +438,8 @@ class Trimesh(Node):
                     face_uv_coords = unpack_list(face_uv_coords)
                     uv_layer = blen_mesh.uv_layers.new(do_init=False)
                     uv_layer.name = "tverts"+str(layer_idx)
-                    uv_layer.data.foreach_set('uv', face_uv_coords[:2*len(uv_layer.data)])
+                    uv_layer.data.foreach_set(
+                        'uv', face_uv_coords[:2*len(uv_layer.data)])
 
         # Create Vertex colors
         Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
@@ -592,9 +589,11 @@ class Trimesh(Node):
             """Get normals and tangets for this mesh."""
             mesh.calc_tangents(uvmap=uvl_name)  # calls calc_normals_split()
 
-            # per_loop_data = [(l.vertex_index, l.normal, l.tangent, l.bitangent_sign)
+            # per_loop_data = [(l.vertex_index,
+            #                   l.normal, l.tangent, l.bitangent_sign)
             #                  for l in mesh.loops]
-            # per_vertex_data = [[(n, t, b) for n, t, b in per_loop_data if i == vidx]
+            # per_vertex_data = [[(n, t, b) for n, t, b in per_loop_data
+            #                     if i == vidx]
             #                    for vidx in range(len(mesh.vertices))]
             per_vertex_data = {l.vertex_index: (l.normal,
                                                 l.tangent,
@@ -714,7 +713,8 @@ class Trimesh(Node):
                 fstr_tv = '  tverts{:d} {:d}'
                 for idx, coords in enumerate(me_uv_coord_list[1:], 1):
                     ascii_lines.append(fstr_tv.format(idx, len(coords)))
-                    ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+                    ascii_lines.extend([fstr.format(c[0], c[1])
+                                        for c in coords])
                 del me_uv_coord_list
 
                 # Write normals and tangents
@@ -734,11 +734,11 @@ class Trimesh(Node):
 
         # Generate Smoothgroups
         me_face_grp = mesh_get_smoothgroups(me, obj, options)
-        dig_g = max(1, len(str(max(me_face_grp)))) # digits for formatting
+        dig_g = max(1, len(str(max(me_face_grp))))  # digits for formatting
 
         # Face vertex indices
         me_face_vert = [tuple(p.vertices) for p in me.polygons]
-        dig_v = max(1, len(str(len(me_vertices)))) # digits for formatting
+        dig_v = max(1, len(str(len(me_vertices))))  # digits for formatting
 
         # Face material indices
         me_face_mat = [p.material_index for p in me.polygons]
@@ -770,7 +770,7 @@ class Trimesh(Node):
             fstr = '  wirecolor' + 3 * ' {:3.2f}'
             asciiLines.append(fstr.format(*obj.color[:3]))
 
-        if  not iswalkmesh:
+        if not iswalkmesh:
             nvb_material.Material.generate_ascii(obj, asciiLines, options)
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
@@ -1428,8 +1428,7 @@ class Light(Node):
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
             # Disable rendering in blender if tile light (color may be black)
             obj.hide_render = options.hide_lights or \
-                              obj.name.endswith('ml1') or  \
-                              obj.name.endswith('ml2')
+                obj.name.endswith('ml1') or obj.name.endswith('ml2')
             # Create lensflares
             numflares = min(self.flareNumValues)
             if (self.flareradius > 0) or (numflares > 0):

@@ -434,7 +434,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             pwk_obj = bpy.data.objects.new(mesh_name, mesh)
             pwk_obj.parent = pwk_base
             for collection in pwk_base.users_collection:
-                 collection.objects.link(pwk_obj)
+                collection.objects.link(pwk_obj)
             scene.update()
             # Use modifier to dissolve faces/verts along straight lines
             modifier = pwk_obj.modifiers.new(name='Decimate', type='DECIMATE')
@@ -729,9 +729,9 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
             return sam_list.pop(0)
         # Create Mesh
         vertices = [(-1.0, 0.0, 0.0),
-                 (+1.0, 0.0, 0.0),
-                 (-1.0, 0.0, 3.0),
-                 (+1.0, 0.0, 3.0)]
+                    (+1.0, 0.0, 0.0),
+                    (1.0, 0.0, 3.0),
+                    (+1.0, 0.0, 3.0)]
         faces = [(0, 2, 3),
                  (3, 1, 0)]
         sam_mesh = nvb_utils.build_mesh(vertices, faces, 'sam')
@@ -821,7 +821,6 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
                      (3, 1, 0)]
             mesh = nvb_utils.build_mesh(vertices, faces, mesh_name)
             return mesh
-
 
         wok_name = name_prefix + '_wok'
         # Check for existing aabb nodes in the mdl

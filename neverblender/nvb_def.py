@@ -217,24 +217,25 @@ class ImportOptions():
 
     def __init__(self):
         """TODO: DOC."""
-        self.filepath = ""
         self.mdlname = "unnamed"
+        self.mtrdb = dict()
+
+        # Hidden settings and properties for internal use
+        self.filepath = ""
         self.scene = None
         self.collection = None
-
-        self.mtrdb = dict()
-        # Hidden settings and properties for internal use
         self.hide_lights = True
         self.hide_fading = False
         self.dummy_type = 'PLAIN_AXES'
         self.dummy_size = 1.0
+        self.mdl_location = (0.0, 0.0, 0.0)
         # Misc options
         self.import_geometry = True
         self.import_walkmesh = True
         self.importSmoothGroups = True
         self.import_normals = True
-        self.importMaterials = True
         # Additional options for textures and materials
+        self.importMaterials = True
         self.mtr_import = True
         self.mat_shader = ""
         self.mat_automerge = True
@@ -249,7 +250,7 @@ class ImportOptions():
         # Blender Settings
         self.rotmode = 'XYZ'
         self.fix_uvs = False
-        self.mdl_location = (0.0, 0.0, 0.0)
+        self.collections_use = True
 
 
 class ExportOptions():
@@ -266,6 +267,7 @@ class ExportOptions():
         # Hidden settings and properties for internal use
         self.mtr_ref = 'bitmap'
         self.mat_diffuse_ref = 'bitmap'
+        self.export_metadata = True
         self.mtr_list = set()
         self.classification = Classification.UNKNOWN
         # Misc options

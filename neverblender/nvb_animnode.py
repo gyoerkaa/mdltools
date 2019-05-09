@@ -10,6 +10,7 @@ from . import nvb_utils
 from . import nvb_node
 from .nvb_materialnode import Materialnode
 
+
 class Animnode():
     """TODO: DOC."""
 
@@ -30,9 +31,9 @@ class Animnode():
     material_properties = {'alpha': ('', 1, float,  # Needs conversion
                                      ' {:>4.2f}'),
                            'selfillumcolor': ('', 3, float,
-                                            ' {:>4.2f}'),
+                                              ' {:>4.2f}'),
                            'setfillumcolor': ('', 3, float,
-                                            ' {:>4.2f}')}
+                                              ' {:>4.2f}')}
 
     def __init__(self, name='UNNAMED'):
         """TODO: DOC."""
@@ -172,7 +173,7 @@ class Animnode():
         frame_start = anim.frameStart
         action = nvb_utils.get_action(node_tree, blender_mat.name)
         for label, (data, data_path, data_dim) in self.material_data.items():
-            frames = [fps * d[0] + frame_start for d in data]
+            frames = [round(fps * d[0], 3) + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
                     label, blendet_mat_out, [d[1:data_dim+1] for d in data])
@@ -226,7 +227,7 @@ class Animnode():
         frame_start = anim.frameStart
         action = nvb_utils.get_action(obj, options.mdlname + '.' + obj.name)
         for label, (data, data_path, data_dim) in self.object_data.items():
-            frames = [fps * d[0] + frame_start for d in data]
+            frames = [round(fps * d[0], 3) + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
                     label, obj, [d[1:data_dim+1] for d in data], options)
@@ -249,7 +250,7 @@ class Animnode():
         frame_start = anim.frameStart
         action = nvb_utils.get_action(part_settings, part_settings.name)
         for label, (data, data_path, data_dim) in self.emitter_data.items():
-            frames = [fps * d[0] + frame_start for d in data]
+            frames = [round(fps * d[0], 3) + frame_start for d in data]
             values = [d[1:data_dim+1] for d in data]
             dp = data_path
             dp_dim = data_dim
@@ -325,7 +326,6 @@ class Animnode():
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
-
 
         uvlayer = obj.data.uv_layers.active
         if not uvlayer:
@@ -453,7 +453,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= k.co[0] <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end]
                       for i in range(dp_dim)]))
                 keyed_frames.sort()
                 aur_values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
@@ -481,7 +481,7 @@ class Animnode():
             socket0 = Materialnode.get_color_socket(socket1)
             dp = socket0.path_from_id("default_value")
             exports.append(['selfillumcolor', 3, ' {:>4.2f}',
-                             dp, 3, None, [0.0, 0.0, 0.0]])
+                            dp, 3, None, [0.0, 0.0, 0.0]])
             return exports
 
         # Get the active blender material and output node
@@ -511,7 +511,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= k.co[0] <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end]
                       for i in range(dp_dim)]))
                 keyed_frames.sort()
                 aur_values = [[fcu[i].evaluate(f) if fcu[i] else default_val[i]
@@ -601,7 +601,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= k.co[0] <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end]
                       for i in range(dp_dim) if fcu[i]]))
                 keyed_frames.sort()
                 # Get values at keyed frames and convert
@@ -642,6 +642,7 @@ class Animnode():
                 asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
+                asciiLines.append('    endlist')
 
     @staticmethod
     def generate_ascii_animesh_shapes(obj, anim, asciiLines, options,

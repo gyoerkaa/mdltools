@@ -34,13 +34,13 @@ class Animation():
         # new_anim.ttime = self.transtime
         new_anim.transtime = fps * self.transtime
         # new_anim.root = self.animroot
-        new_anim.root_obj = noderesolver.get_obj(self.animroot, -1) 
+        new_anim.root_obj = noderesolver.get_obj(self.animroot, -1)
         new_anim.frameEnd = round(fps * self.length, 0) + new_anim.frameStart
         # events
         for ev_time, ev_name in self.events:
             newEvent = new_anim.eventList.add()
             newEvent.name = ev_name
-            newEvent.frame = fps * ev_time + new_anim.frameStart
+            newEvent.frame = round(fps * ev_time, 0) + new_anim.frameStart
         # Load the animation into the objects/actions
         for node in self.nodes:
             obj = noderesolver.get_obj(node.name, node.nodeidx)
@@ -113,13 +113,8 @@ class Animation():
         ascii_lines.append('newanim ' + anim.name + ' ' + mdl_base.name)
         ascii_lines.append('  length ' + str(round(anim_length, 3)))
         # Get transition time
-        if anim.transtime > 0.0:
-            ascii_lines.append('  transtime ' +
-                               str(round(anim.transtime/fps, 3)))
-        else:
-            # Legacy support: Use old param as not to break old blend files
-            ascii_lines.append('  transtime ' +
-                               str(round(anim.ttime, 3)))
+        ascii_lines.append('  transtime ' +
+                           str(round(anim.transtime/fps, 3)))
         # Get anim root
         if anim.root_obj:
             root_obj_name = nvb_utils.generate_node_name(

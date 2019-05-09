@@ -5,6 +5,7 @@ import os
 from . import nvb_utils
 from . import nvb_def
 
+
 class Materialnode(object):
     """Collection of function for dealing with shader nodes."""
 
@@ -832,4 +833,3 @@ class Materialnode(object):
             Materialnode.add_node_data_bsdf(material,
                                      texture_list, color_list, alpha,
                                      img_filepath, img_search)
-

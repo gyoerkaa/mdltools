@@ -428,12 +428,12 @@ class NVB_OT_util_transform(bpy.types.Operator):
                 new_vT = new_vT + par_vT
             # Keep rotation
             chi.matrix_basis = mathutils.Matrix.Translation(new_vT) @ \
-                               chi_mR.to_matrix().to_4x4()
+                chi_mR.to_matrix().to_4x4()
             # Apply to data
             if chi.type == 'MESH':
                 me = chi.data
                 for v in me.vertices:
-                    v.co = mathutils.Vector(a * b *c for a, b, c in
+                    v.co = mathutils.Vector(a * b * c for a, b, c in
                                             zip(v.co, par_vS, chi_vS))
                 me.update()
             # Apply to animations

@@ -322,7 +322,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         event_names = [ev.name for ev in amt.nvb.amt_event_list]
         event_data = []
         for ev_idx, ev_name in enumerate(event_names):
-            dp= 'nvb.amt_event_list[' + str(ev_idx) + '].fire'
+            dp = 'nvb.amt_event_list[' + str(ev_idx) + '].fire'
             for action in amt_action_list:
                 fcu = action.fcurves.find(data_path=dp, index=0)
                 if fcu:
@@ -612,9 +612,9 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                     mathutils.Quaternion(v[1:], v[0]).to_matrix().to_4x4()
                     for v in kfvalues]
             quats = [amt.convert_space(pose_bone=posebone,
-                                      matrix=m,
-                                      from_space='LOCAL_WITH_PARENT',
-                                      to_space='LOCAL').to_quaternion()
+                                       matrix=m,
+                                       from_space='LOCAL_WITH_PARENT',
+                                       to_space='LOCAL').to_quaternion()
                      for m in mats]
             return [[q.angle, *q.axis] for q in quats]
 

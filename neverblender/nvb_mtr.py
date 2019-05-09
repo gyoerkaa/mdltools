@@ -1,7 +1,6 @@
 """TODO: DOC."""
 
 import os
-import re
 
 from . import nvb_utils
 from . import nvb_def
@@ -53,7 +52,7 @@ class Mtr(object):
                 param_name = pa.pname.lower()
                 param_type = pa.ptype
                 param_values = [float(v) for v in pa.pvalue.strip().split()]
-                param = (pa.pname.lower(), param_type, param_values)
+                param = (param_name, param_type, param_values)
                 param_list.append(param)
         return param_list
 
@@ -135,7 +134,7 @@ class Mtr(object):
             ascii_lines.append('')
         # Add Renderhint
         if (tex_list and (tex_list[:3].count(nvb_def.null) <= 1)) and \
-            not (material.nvb.shadervs or material.nvb.shaderfs):
+           not (material.nvb.shadervs or material.nvb.shaderfs):
             ascii_lines.append('// Renderhint')
             ascii_lines.append('renderhint NormalAndSpecMapped')
             ascii_lines.append('')

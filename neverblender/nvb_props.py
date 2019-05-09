@@ -46,6 +46,9 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     export_wirecolor: bpy.props.BoolProperty(
         name="Export Wirecolor", default=True,
         description="Use Blender's Object Color property to hold Wirecolor")
+    export_metadata: bpy.props.BoolProperty(
+        name="Export Metadata", default=True,
+        description="Include export time and filedependancy in the mdl")
 
     import_dummy_type: bpy.props.EnumProperty(
         name="Dummy Type",
@@ -55,7 +58,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                ('SINGLE_ARROW', "Single Arrow", "", 2),
                ('CIRCLE', "Circle", "", 3),
                ('CUBE', "Cube", "", 4),
-               ('SPHERE', "Sphere", "", 5),],
+               ('SPHERE', "Sphere", "", 5), ],
         default='PLAIN_AXES')
     import_dummy_size: bpy.props.FloatProperty(
         name='Dummy Size',
@@ -69,7 +72,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                (nvb_def.Walkmeshtype.DWK,
                 'Door', 'Setup objects for doors', 1),
                (nvb_def.Walkmeshtype.WOK,
-                'Tile', 'Setup objects for tiles', 2),],
+                'Tile', 'Setup objects for tiles', 2), ],
         default=nvb_def.Walkmeshtype.PWK)
     util_nodes_dwk_mode: bpy.props.EnumProperty(
         name='Mode',
@@ -165,6 +168,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'export_mat_diffuse_ref')
         box.prop(self, 'export_mat_mtr_ref')
         box.prop(self, 'export_wirecolor')
+        box.prop(self, 'export_metadata')
 
         col = split.column()
         box = col.box()

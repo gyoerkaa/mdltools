@@ -204,9 +204,10 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.filepath = self.filepath
         options.scene = context.scene
         options.depsgraph = context.depsgraph
-        options.export_wirecolor = addon_prefs.export_wirecolor
         options.mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
+        options.export_metadata = addon_prefs.export_metadata
+        options.export_wirecolor = addon_prefs.export_wirecolor
         # Misc Export Settings
         options.export_animations = self.export_animations
         options.export_walkmesh = self.export_walkmesh
@@ -271,7 +272,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Import Materials',
         description='Import materials and textures',
         default=True)
-    mat_automerge: bpy.props.BoolProperty(
+    mat_merge: bpy.props.BoolProperty(
         name='Merge Materials',
         description='Merge materials with the same values',
         default=True)
@@ -280,7 +281,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         description='',
         items=(('ShaderNodeEeveeSpecular', 'Eevee Specular', ''),
                ('ShaderNodeBsdfPrincipled', 'Principled BSDF', '')),
-        default='ShaderNodeEeveeSpecular')
+        default='ShaderNodeBsdfPrincipled')
     mtr_import: bpy.props.BoolProperty(
         name='Import MTR files',
         description='Load external material files ' +
@@ -314,9 +315,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                ('QUATERNION', 'Quaternion', ''),
                ('XYZ', 'Euler XYZ', '')),
         default='XYZ')
-    collections_create: bpy.props.BoolProperty(
-        name='Create Collections',
-        description='Create new collection for each imported mdl.',
+    collections_use: bpy.props.BoolProperty(
+        name='Use Collections',
+        description='Create a collection for each imported mdl',
         default=False)
     fix_uvs: bpy.props.BoolProperty(
         name='Fix degenerated UVs',
@@ -326,29 +327,33 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Location',
         description='Location of newly imported model',
         default=(0.0, 0.0, 0.0), size=3, options={'HIDDEN'})
-    import_geometry: bpy.props.BoolProperty(name='Import Geometry',
-                                            description='Render Lights',
-                                            default=True, options={'HIDDEN'})
-    hide_lights: bpy.props.BoolProperty(name='Hide Lights',
-                                        description='Do not render Lights',
-                                        default=True, options={'HIDDEN'})
-    hide_fading: bpy.props.BoolProperty(name='Hide Fading Objects',
-                                        description='Do not render Fading Objects',
-                                        default=False, options={'HIDDEN'})
+    import_geometry: bpy.props.BoolProperty(
+        name='Import Geometry',
+        description='If disabled this will add animations to existing meshes',
+        default=True, options={'HIDDEN'})
+    hide_lights: bpy.props.BoolProperty(
+        name='Hide Lights',
+        description='Do not render Lights',
+        default=True, options={'HIDDEN'})
+    hide_fading: bpy.props.BoolProperty(
+        name='Hide Fading Objects',
+        description='Do not render Fading Objects',
+        default=False, options={'HIDDEN'})
 
     def mdl_import(self, context, options):
-        def load_file(context, mdl_filepath, options, collections_create):
+        def load_file(context, mdl_filepath, options):
             mdl_filedir, mdl_filename = os.path.split(mdl_filepath)
             mdl_name = os.path.splitext(mdl_filename)[0]
 
             options.mdlname = mdl_name
             options.filepath = mdl_filepath
 
-            # Create a new collection
-            parent_collection = context.scene.collection
-            collection = bpy.data.collections.new(name=mdl_name)
-            parent_collection.children.link(collection)
-            options.collection = collection
+            # Create a new collection parented to the master collection
+            if options.collections_use:
+                parent_collection = options.scene.collection
+                new_collection = bpy.data.collections.new(name=mdl_name)
+                parent_collection.children.link(new_collection)
+                options.collection = new_collection
 
             mdl = nvb_mdl.Mdl()
             mdl.parse_mdl(mdl_filepath, options)
@@ -358,13 +363,14 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                 pwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.PWK
                 pwk_filepath = os.path.join(mdl_filedir, pwk_filename)
                 if os.path.isfile(os.fsencode(pwk_filepath)):
-                    mdl.parse_wkm(pwk_filepath ,nvb_def.Walkmeshtype.PWK, options)
+                    mdl.parse_wkm(pwk_filepath,
+                                  nvb_def.Walkmeshtype.PWK, options)
                 # Try loading the door walkmesh (dwk)
                 dwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.DWK
                 dwk_filepath = os.path.join(mdl_filedir, dwk_filename)
                 if os.path.isfile(os.fsencode(dwk_filepath)):
-                    mdl.parse_wkm(dwk_filepath ,nvb_def.Walkmeshtype.DWK, options)
-
+                    mdl.parse_wkm(dwk_filepath,
+                                  nvb_def.Walkmeshtype.DWK, options)
             mdl.create(options)
 
         def generate_location(idx):
@@ -377,12 +383,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         if not pathlist:
             pathlist.append(self.filepath)
         # Import models
-        if len(pathlist) == 1:  # single model => use location in options
-            load_file(context, pathlist[0], options, self.collections_create)
-        else:  # multiple models => place in a spiral, generate new locations
-            for i, filepath in enumerate(pathlist):
-                options.mdl_location = generate_location(i)
-                load_file(context, filepath, options, self.collections_create)
+        for i, filepath in enumerate(pathlist):
+            options.mdl_location = generate_location(i)
+            load_file(context, filepath, options)
         return {'FINISHED'}
 
     def draw(self, context):
@@ -400,7 +403,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         sub = box.column()
         sub.enabled = self.mat_import
         sub.prop(self, 'mat_shader', text='')
-        sub.prop(self, 'mat_automerge')
+        sub.prop(self, 'mat_merge')
         sub.prop(self, 'mtr_import')
         sub.prop(self, 'tex_search')
 
@@ -420,7 +423,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         box = layout.box()
         box.label(text='Blender Settings')
         box.prop(self, 'rotmode')
-        box.prop(self, 'collections_create')
+        box.prop(self, 'collections_use')
         box.prop(self, 'fix_uvs')
 
     def execute(self, context):
@@ -437,6 +440,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.dummy_size = addon_prefs.import_dummy_size
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
+        options.mdl_location = self.mdl_location
         # Misc Import Settings
         options.import_geometry = self.import_geometry
         options.import_walkmesh = self.import_walkmesh
@@ -444,9 +448,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.import_normals = self.import_normals
         # Material Options
         options.importMaterials = self.mat_import
-        options.mat_automerge = self.mat_automerge
+        options.mat_automerge = self.mat_merge
         options.mat_shader = self.mat_shader
-        options.importMTR = self.mtr_import
+        options.mtr_import = self.mtr_import
         options.tex_search = self.tex_search
         # Animation Options
         options.anim_import = self.anim_import
@@ -456,7 +460,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         # Blender Settings
         options.rotmode = self.rotmode
         options.fix_uvs = self.fix_uvs
-        options.mdl_location = self.mdl_location
+        options.collections_use = self.collections_use
+
         return self.mdl_import(context, options)
 
 

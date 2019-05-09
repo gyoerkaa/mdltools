@@ -1,13 +1,10 @@
 import math
 import os
-import itertools
 
-import mathutils
 import bpy
 
 from . import nvb_mtr
 from . import nvb_def
-from . import nvb_utils
 from . import nvb_parse
 from .nvb_materialnode import Materialnode
 
@@ -51,9 +48,9 @@ class Material(object):
         for blen_mat in bpy.data.materials:
             tex_list, col_list, alpha = Materialnode.get_node_data(blen_mat)
             # Compare textures, emissive color(5) and alpha
-            if ( (tex_list == self.texture_list) and
-                 Material.colorisclose(col_list[5], self.color_list[5]) and
-                 math.isclose(alpha, self.alpha) ):
+            if (tex_list == self.texture_list) and \
+               Material.colorisclose(col_list[5], self.color_list[5]) and \
+               math.isclose(alpha, self.alpha):
                 return blen_mat
         return None
 
@@ -115,7 +112,7 @@ class Material(object):
         # Try opening "bitmap" = "texture0"
         elif self.texture_list[0]:
             if self.texture_list[0] in options.mtrdb:
-                self.mtr_data =  options.mtrdb[self.texture_list[0]]
+                self.mtr_data = options.mtrdb[self.texture_list[0]]
             else:
                 mtr_path = get_mtr_path(self.texture_list[0], options.filepath)
                 if os.path.isfile(mtr_path):
@@ -156,7 +153,7 @@ class Material(object):
             blender_mat.show_transparent_back = False
 
             blender_mat.nvb.use_mtr = bool(self.mtr_name) or \
-                                      self.mtr_data is not None
+                self.mtr_data is not None
 
             blender_mat.use_nodes = True
             blender_mat.node_tree.nodes.clear()

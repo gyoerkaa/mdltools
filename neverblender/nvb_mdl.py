@@ -167,7 +167,7 @@ class Mdl():
                 return
         with open(os.fsencode(filepath), 'r') as f:
             self.read_ascii_mdl(f.read(), options)
- 
+
     def parse_wkm(self, filepath, wkm_type, options):
         """Parse a single walkmesh file."""
         with open(os.fsencode(filepath), 'rb') as f:
@@ -225,13 +225,19 @@ class Mdl():
 
     @staticmethod
     def generate_ascii_meta(mdl_base, ascii_lines, options):
-        """Add creation time to a list of ascii lines."""
-        ct = datetime.now()
-        ascii_lines.append(ct.strftime('# Exported from blender %A, %Y-%m-%d'))
-        blend = os.path.basename(bpy.data.filepath)
-        if not blend:
-            blend = 'unknown'
-        ascii_lines.append('filedependancy ' + blend)
+        """Add creation time and name of source file."""
+        blend_file = "unknown"
+        time_str = ""
+        if options.export_metadata:
+            # Add current date
+            ct = datetime.now()
+            time_str = ct.strftime(" on %A, %Y-%m-%d")
+            # filedependancy (blend file name)
+            blend_file = os.path.basename(bpy.data.filepath)
+            if not blend_file:
+                blend_file = "unknown"
+        ascii_lines.append("# Exported from Blender" + time_str)
+        ascii_lines.append("filedependancy " + blend_file)
 
     @staticmethod
     def generate_ascii(mdl_base, ascii_lines, options):
@@ -279,7 +285,7 @@ class Mdl():
             else:
                 node.generateAscii(obj, ascii_lines, options, True)
 
-    def link_objects(self, nodelist, noderesolver, options):
+    def link_objects(self, nodelist, noderesolver, collection):
         """Handles parenting and linking of objects to a scene."""
         obj = None
         for node in nodelist:
@@ -295,7 +301,7 @@ class Mdl():
                     obj.nvb.classification = self.classification
                     obj.nvb.animscale = self.animscale
                 # options.scene.objects.link(obj)
-                options.collection.objects.link(obj)
+                collection.objects.link(obj)
             else:
                 print('Neverblender: WARNING - Invalid object ' + node.name)
         # Return the base
@@ -358,34 +364,57 @@ class Mdl():
                 wkmroot.emptytype = nvb_def.Emptytype.PWK
             wkmnodes.insert(0, wkmroot)
 
+        def create_wkm_collection(mdl_collection, wkm_name, create_new=True):
+            wkm_collection = None
+            if not create_new:
+                wkm_collection = mdl_collection
+            elif wkm_name in mdl_collection.children:
+                wkm_collection = mdl_collection.children[wkm_name]
+            else:
+                wkm_collection = bpy.data.collections.new(name=wkm_name)
+                mdl_collection.children.link(wkm_collection)
+            return wkm_collection
+
         # Create mdl objects
-        mdlresolver = nvb_utils.NodeResolver()
-        Mdl.create_objects(self.mdlnodes, mdlresolver, options)
-        mdl_base = self.link_objects(self.mdlnodes, mdlresolver, options)
+        mdl_resolver = nvb_utils.NodeResolver()
+        Mdl.create_objects(self.mdlnodes, mdl_resolver, options)
+        mdl_base = self.link_objects(self.mdlnodes,
+                                     mdl_resolver,
+                                     options.collection)
         # Create pwk objects
         if self.pwknodes:
-            wkmresolver = nvb_utils.NodeResolver()
+            wkm_resolver = nvb_utils.NodeResolver()
+            wkm_collection = create_wkm_collection(options.collection,
+                                                   mdl_base.name + "_pwk",
+                                                   options.collections_use)
             create_wkm_base(self.mdlnodes, self.pwknodes,
                             nvb_def.Walkmeshtype.PWK, options)
-            Mdl.create_objects(self.pwknodes, wkmresolver, options)
-            wkm_base = self.link_objects(self.pwknodes, wkmresolver, options)
+            Mdl.create_objects(self.pwknodes, wkm_resolver, options)
+            wkm_base = self.link_objects(self.pwknodes,
+                                         wkm_resolver,
+                                         wkm_collection)
             wkm_base.parent = mdl_base
-            del wkmresolver
+            del wkm_resolver
         # Create dwk objects
         if self.dwknodes:
-            wkmresolver = nvb_utils.NodeResolver()
+            wkm_resolver = nvb_utils.NodeResolver()
+            wkm_collection = create_wkm_collection(options.collection,
+                                                   mdl_base.name + "_dwk",
+                                                   options.collections_use)
             create_wkm_base(self.mdlnodes, self.dwknodes,
                             nvb_def.Walkmeshtype.DWK, options)
-            Mdl.create_objects(self.dwknodes, wkmresolver, options)
-            wkm_base = self.link_objects(self.dwknodes, wkmresolver, options)
+            Mdl.create_objects(self.dwknodes, wkm_resolver, options)
+            wkm_base = self.link_objects(self.dwknodes,
+                                         wkm_resolver,
+                                         wkm_collection)
             wkm_base.parent = mdl_base
-            del wkmresolver
+            del wkm_resolver
         # Create animations
         if options.anim_import:
             if options.anim_fps_use:
                 options.scene.render.fps = options.anim_fps
             self.create_animations(self.animations,
-                                   mdl_base, mdlresolver, options)
+                                   mdl_base, mdl_resolver, options)
         # Set mdl base position
         mdl_base.location = options.mdl_location
 
