@@ -45,8 +45,16 @@ class Material(object):
 
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
+        print("looking for: ")
+        print(self.texture_list)
+        print(self.color_list[5])
+        print(self.alpha)
         for blen_mat in bpy.data.materials:
             tex_list, col_list, alpha = Materialnode.get_node_data(blen_mat)
+            print("test: ")
+            print(tex_list)
+            print(col_list[5])
+            print(alpha)
             # Compare textures, emissive color(5) and alpha
             if (tex_list == self.texture_list) and \
                Material.colorisclose(col_list[5], self.color_list[5]) and \

@@ -10,6 +10,11 @@ class Materialnode(object):
     """Collection of function for dealing with shader nodes."""
 
     @staticmethod
+    def is_texture_node(node):
+        """Return true if this socket is a textrue socket."""
+        return node.type.startswith('TEX_')
+
+    @staticmethod
     def find_alpha_socket(node):
         """Get the socket from which to take alpha. May be None."""
         if not node:
@@ -153,9 +158,16 @@ class Materialnode(object):
         elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
             socket = node.inputs[9]  # Ambient Occlusion
             if socket.is_linked:
-                return Materialnode.find_height_socket(socket.links[0].from_node)
+                 # Return this socket if linked directly to a texture
+                linked_node = socket.links[0].from_node
+                if Materialnode.is_texture_node(linked_node):
+                    return socket
+                else:
+                    return Materialnode.find_height_socket(linked_node)
         elif node.type == 'DISPLACEMENT':  # Return this socket
             return node.inputs[0]  # 0 = Height
+        elif node.type == 'AMBIENT_OCCLUSION':  # Return this socket
+            return node.inputs[1]  # 0 = Distance
         elif node.type == 'MIX_SHADER':  # Go down the node tree
             # Shader A
             socketA = node.inputs[1]
@@ -383,7 +395,7 @@ class Materialnode(object):
             return None
         node = socket.links[0].from_node
 
-        if node.type.startswith('TEX_'):  # Return this node
+        if Materialnode.is_texture_node(node):  # Return this node
             return node
         elif node.type == 'MIX_RGB':  # Go down the node tree
             # Color A
@@ -453,22 +465,25 @@ class Materialnode(object):
     @staticmethod
     def get_texture_name(texture_node, fail_value="ERROR"):
         """Get a texture from a texture node."""
-        # No texture node: None=Null
-        if not texture_node:
-            return None
-        # texture node has no image: Use node label
-        img = texture_node.image
-        if not img:
-            if texture_node.label:
-                return texture_node.label
+        def name_from_label(node):
+            if node.label:
+                return node.label
             else:
-                return fail_value
+                return node.name
+        img = None
+        # No texture node: None=Null
+        if texture_node:
+            try:
+                img = texture_node.image
+            except AttributeError:
+                pass
         # Get name from filepath or (Blender's) image name
-        if img.filepath:
-            return os.path.splitext(os.path.basename(img.filepath))[0]
-        elif img.name:
-            return os.path.splitext(os.path.basename(img.name))[0]
-        return fail_value
+        if img:
+            if img.filepath:
+                return os.path.splitext(os.path.basename(img.filepath))[0]
+            elif img.name:
+                return os.path.splitext(os.path.basename(img.name))[0]
+        return name_from_label(texture_node)
 
     @staticmethod
     def get_node_data(material):
@@ -634,7 +649,7 @@ class Materialnode(object):
 
             node_tex_spec.image = nvb_utils.create_image(
                 texture_list[2], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
+            node_tex_spec.color_space = 'NONE'  # Not rgb data
 
             links.new(node_shd_bsdf.inputs[5], node_tex_spec.outputs[0])
 
@@ -647,9 +662,9 @@ class Materialnode(object):
             node_tex_rough.name = "tex_roughness"
             node_tex_rough.location = (-612.0, 46.0)
 
-            node_tex_norm.image = nvb_utils.create_image(
+            node_tex_rough.image = nvb_utils.create_image(
                 texture_list[3], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
+            node_tex_rough.color_space = 'NONE'  # Not rgb data
 
             links.new(node_shd_bsdf.inputs[7], node_tex_rough.outputs[0])
 
@@ -659,11 +674,11 @@ class Materialnode(object):
             node_tex_height = nodes.new('ShaderNodeTexImage')
             node_tex_height.label = "Texture: Height"
             node_tex_height.name = "tex_height"
-            node_tex_height.label = (243.0, 154.0)
+            node_tex_height.location = (243.0, 154.0)
 
-            node_tex_norm.image = nvb_utils.create_image(
+            node_tex_height.image = nvb_utils.create_image(
                 texture_list[4], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
+            node_tex_height.color_space = 'NONE'  # Not rgb data
 
             node_displ = nodes.new('ShaderNodeDisplacement')
             node_displ.location = (546.0, 210.0)
@@ -683,9 +698,9 @@ class Materialnode(object):
             node_tex_emit.name = "tex_emissive"
             node_tex_emit.location = (-510.0, 420.0)
 
-            node_tex_norm.image = nvb_utils.create_image(
+            node_tex_emit.image = nvb_utils.create_image(
                 texture_list[5], img_filepath, img_search)
-            node_tex_norm.color_space = 'COLOR'
+            node_tex_emit.color_space = 'COLOR'
 
             links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])
 
@@ -793,7 +808,7 @@ class Materialnode(object):
 
         # 4 = Height (use as Ambient Occlusion)
         if texture_list[4]:
-            # Setup: Image Texture => Eevee Specular (Ambient Occlusion)
+            # Setup: Image Texture => AO => Eevee Specular (Ambient Occlusion)
             node_tex_height = nodes.new('ShaderNodeTexImage')
             node_tex_height.label = "Texture: Height"
             node_tex_height.name = "tex_height"
@@ -803,7 +818,11 @@ class Materialnode(object):
                 texture_list[4], img_filepath, img_search)
             node_tex_height.color_space = 'NONE'  # Single channel
 
-            links.new(node_shader_spec.inputs[9], node_tex_height.outputs[0])
+            node_ao = nodes.new('ShaderNodeAmbientOcclusion')
+            node_ao.location = (372.0, -119.0)
+
+            links.new(node_ao.inputs[1], node_tex_height.outputs[0])
+            links.new(node_shader_spec.inputs[9], node_ao.outputs[1])
 
         # 5 = Illumination/ Emission/ Glow
         node_shader_spec.inputs[3].default_value = color_list[5]

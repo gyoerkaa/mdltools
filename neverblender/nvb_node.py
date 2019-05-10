@@ -1,5 +1,6 @@
 """TODO: DOC."""
 
+import array
 import math
 import itertools
 
@@ -452,7 +453,18 @@ class Trimesh(Node):
         if self.normals and blen_mesh.loops and options.import_normals:
             # Create normals and use them for shading
             blen_mesh.vertices.foreach_set('normal', unpack_list(self.normals))
+
             blen_mesh.create_normals_split()
+            per_loop_normals = [no for vidx_list in face_vertex_indices
+                                for vidx in vidx_list
+                                for no in self.normals[vidx]]
+            blen_mesh.loops.foreach_set("normal", per_loop_normals)
+
+            clnors = array.array('f', [0.0] * (len(blen_mesh.loops) * 3))
+            blen_mesh.loops.foreach_get("normal", clnors)
+            blen_mesh.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
+            blen_mesh.use_auto_smooth = True
+
         elif options.importSmoothGroups:
             # Use shading groups for shading
             # (single smoothgroup with value 0 means non-smooth)
@@ -462,66 +474,12 @@ class Trimesh(Node):
                     'use_smooth', [False] * num_blen_polygons)
                 blen_mesh.use_auto_smooth = False
                 blen_mesh.auto_smooth_angle = 0.523599
-            else:
+            else:  # fully smooth
                 blen_mesh.use_auto_smooth = True
                 blen_mesh.auto_smooth_angle = 1.570796
         blen_mesh.validate(clean_customdata=False)
 
         return blen_mesh
-        """
-        # Create uvmaps
-        # EEEKADOODLE fix
-        eeka_faceuvs = [(f[5], f[6], f[4]) if f[2] == 0 else (f[4], f[5], f[6])
-                        for f in self.facedef]
-        # eeka_faceuvs = [(f[4], f[5], f[6]) for f in self.facedef]
-        # Save fixed uvs for animeshes
-        if self.nodetype == nvb_def.Nodetype.ANIMMESH:
-            if me.name not in nvb_def.tvert_order:
-                nvb_def.tvert_order[me.name] = copy.deepcopy(eeka_faceuvs)
-        uvlayers = []
-        for idx, tvs in enumerate(self.tverts):
-            if tvs:  # may be []
-                uvname = me.name + '.tvert' + str(idx)
-                uvlayers.append(Trimesh.createUVlayer2(me, tvs, eeka_faceuvs,
-                                                       uvname, matimg))
-        # if len(uvmaps) > 0 and uvmaps[0] is not None:
-        #     me.uv_textures[uvmaps[0].name].active = True  # blender2.8 error!
-        # Import smooth groups as sharp edges
-        if options.importSmoothGroups:
-            me.update()
-            me.show_edge_sharp = True
-            bm = bmesh.new()
-            bm.from_mesh(me)
-            if hasattr(bm.edges, "ensure_lookup_table"):
-                bm.edges.ensure_lookup_table()
-            # Mark edge as sharp if its faces belong to different smooth groups
-            for e in bm.edges:
-                f = e.link_faces
-                if (len(f) > 1) and \
-                   (self.facedef[f[0].index][3] !=
-                        self.facedef[f[1].index][3]):
-                    edgeIdx = e.index
-                    me.edges[edgeIdx].use_edge_sharp = True
-            bm.free()
-            del bm
-
-        # Import custom normals
-        blen_mesh.update()
-        if self.normals and blen_mesh.loops and options.import_normals:
-            for l in blen_mesh.loops:
-                l.normal[:] = self.normals[l.vertex_index]
-            blen_mesh.validate(clean_customdata=False)
-            clnors = array.array('f', [0.0] * (len(blen_mesh.loops) * 3))
-            blen_mesh.loops.foreach_get('normal', clnors)
-            blen_mesh.normals_split_custom_set(tuple(
-                                               zip(*(iter(clnors),) * 3)))
-            blen_mesh.polygons.foreach_set('use_smooth',
-                                           [True] * len(blen_mesh.polygons))
-            blen_mesh.use_auto_smooth = True
-            # me.show_edge_sharp = True
-        else:
-            blen_mesh.validate()
-        """
 
     def createObjectData(self, obj, options):
         """TODO: Doc."""
