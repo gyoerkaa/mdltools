@@ -3,9 +3,8 @@
 import math
 
 import mathutils
-import collections
-import copy
 import bpy
+from bpy_extras.io_utils import unpack_list
 
 from . import nvb_def
 from . import nvb_utils
@@ -50,6 +49,7 @@ class Animnode():
 
         # Animesh Data
         self.sampleperiod = 0.0
+        self.facedef = []
         self.animtverts = []
         self.animverts = []
 
@@ -112,6 +112,11 @@ class Animnode():
             # Animeshes
             elif label == 'sampleperiod':
                 self.sampleperiod = float(line[1])
+            elif label == 'faces':
+                if not self.facedef:
+                    valcnt = int(line[1])
+                    self.facedef = [list(map(int, v))
+                                    for v in ascii_lines[i+1:i+valcnt+1]]
             elif label == 'animverts':
                 if not self.animverts:
                     valcnt = int(line[1])
@@ -121,7 +126,7 @@ class Animnode():
             elif label == 'animtverts':
                 if not self.animtverts:
                     valcnt = int(line[1])
-                    self.animtverts = [list(map(float, v))
+                    self.animtverts = [(float(v[0]), float(v[1]))
                                        for v in ascii_lines[i+1:i+valcnt+1]]
                     self.uvdata = True
             else:  # Check for keys
@@ -271,8 +276,7 @@ class Animnode():
         # Sanity check: Sample period can't be 0
         if self.sampleperiod < 0.001:
             return
-        # Sanity check: animation length has to be a multiple of
-        #               sampleperiod
+        # Sanity check: animation length == multiple of sampleperiod
         if animlength % self.sampleperiod > 0.0:
             return
         sample_cnt = int(animlength / self.sampleperiod) + 1
@@ -311,52 +315,38 @@ class Animnode():
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
-
-        uvlayer = obj.data.uv_layers.active
-        if not uvlayer:
+        blen_mesh = obj.data
+        if not blen_mesh:
             return
-        fps = options.scene.render.fps
-        # Sanity check: Sample period can't be 0
+        # Sanity Check: Sample period can't be 0
         if self.sampleperiod <= 0.00001:
+            print("Neverblender: WARNING - animtvert period is 0: " +
+                  obj.name)
             return
-        # Sanity check: animation length has to be a multiple of
-        #               sampleperiod
+        # Sanity Check: animation length == multiple of sampleperiod
         if animlength % self.sampleperiod > 0.0:
+            print("Neverblender: WARNING - sampleperiod mismatch: " +
+                  obj.name)
             return
         num_samples = int(animlength / self.sampleperiod) + 1
-        # Sanity check: Number of animtverts = number tverts * numSamples
-        num_uvs = len(uvlayer.data)
-        if (len(self.animtverts) != num_uvs * num_samples):
+        # Sanity Check
+        if len(self.animtverts) % num_samples > 0.0:
             print("Neverblender: WARNING - animtvert sample size mismatch: " +
                   obj.name)
             return
-        sampleDistance = fps * self.sampleperiod
-
-        # Get animation data, create it if necessary
-        animData = obj.data.animation_data
-        if not animData:
-            animData = obj.data.animation_data_create()
-        # Get action, create one if necessary
-        action = animData.action
-        if not action:
-            action = bpy.data.actions.new(name=obj.name)
-            action.use_fake_user = True
-            animData.action = action
-        # Insert keyframes
-        # We need to create two curves for each uv, one for each coordinate
-        kfOptions = {'FAST'}
-        frameStart = anim.frameStart
-        dp_fstr = '"uv_layers["' + uvlayer.name + '"].data[{:d}].uv'
-        # uvIdx = order in blender, tvertIdx = order in mdl
-        for loop_idx, uv_idx in enumerate(uvlayer.data):
-            dp = dp_fstr.format(loop_idx)
-            curveU = nvb_utils.get_fcurve(action, dp, 0)
-            curveV = nvb_utils.get_fcurve(action, dp, 1)
-            samples = self.animtverts[loop_idx::num_uvs]
-            for sampleIdx, co in enumerate(samples):
-                frame = frameStart + (sampleIdx * sampleDistance)
-                curveU.keyframe_points.insert(frame, co[0], options=kfOptions)
-                curveV.keyframe_points.insert(frame, co[1], options=kfOptions)
+        sample_size = int(len(self.animtverts) / num_samples)
+        # Create uv layers
+        face_uv_indices = [tuple(f[4:7]) for f in self.facedef]
+        face_uv_indices = unpack_list(face_uv_indices)
+        sample_fstr = 'animtverts.'+anim.name+'.{:d}'
+        sampler = enumerate(zip(*[iter(self.animtverts)] * sample_size))
+        for sample_idx, sample in sampler:
+            face_uv_coords = [sample[i] for i in face_uv_indices]
+            face_uv_coords = unpack_list(face_uv_coords)
+            uv_layer = blen_mesh.uv_layers.new(do_init=False)
+            uv_layer.name = sample_fstr.format(sample_idx)
+            uv_layer.data.foreach_set(
+                'uv', face_uv_coords[:2*len(uv_layer.data)])
 
     @staticmethod
     def create_restpose(obj, frame=1):
@@ -651,8 +641,7 @@ class Animnode():
         fcu = action.fcurves.find(data_path='eval_time', index=0)
         if not fcu:
             return -1
-
-        # Cache values for speed
+        # Gather animation data
         anim_start = anim.frameStart
         anim_end = anim.frameEnd
         fps = options.scene.render.fps
@@ -701,84 +690,54 @@ class Animnode():
         return num_samples
 
     @staticmethod
-    def generate_ascii_animesh_uv(obj, anim, asciiLines, options,
-                                  numAnimVerts=0):
+    def generate_ascii_animesh_uv(obj, anim, ascii_lines, options,
+                                  required_samples=0):
         """Add data for animated texture coordinates."""
-        return -1
-        """
-        if not obj.active_material:
-            return
-        if not obj.active_material.active_texture:
-            return
-        if not obj.data.uv_layers.active:
-            return
-        # Original uv data. Needed to fill in values for unanimated uv's.
-        obj.data.update()
-        tf_uv = obj.data.tessface_uv_textures.active.data
-        tessfaceUVList = [[f.uv1, f.uv2, f.uv3] for f in tf_uv]
-        tessfaceUVList = [[uv.x, uv.y] for f in tessfaceUVList for uv in f]
-        # Cache values for speed
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
+        blen_mesh = obj.data
+        if not blen_mesh:
+            return -1
+        anim_uv_prefix = "animtverts."+ anim.name
+        anim_uv_layers = [l for l in blen_mesh.uv_layers
+                          if l.name.startswith(anim_uv_prefix)]
+        # No anim tverts
+        if not anim_uv_layers:
+            return -1
+        # Gather animation data
+        anim_start = anim.frameStart
+        anim_end = anim.frameEnd
         fps = options.scene.render.fps
-        if obj.data.animation_data:
-            # Get the animation data from the object data
-            # (not from the object itself!)
-            action = obj.data.animation_data.action
-            if action:
-                # Get the correct data path
-                uvname = obj.data.uv_layers.active.name
-                dpPrefix = 'uv_layers["' + uvname + '"].data['
-                tf = len(dpPrefix)
-                keys = collections.OrderedDict()  # {frame:values}
-                for fcurve in action.fcurves:
-                    dp = fcurve.data_path
-                    if dp.startswith(dpPrefix):
-                        uvIdx = int(dp[tf:-4])
-                        axis = fcurve.array_index
-                        kfp = [p for p in fcurve.keyframe_points
-                               if animStart <= p.co[0] <= animEnd]
-                        for p in kfp:
-                            frame = int(round(p.co[0]))
-                            if frame in keys:
-                                values = keys[frame]
-                            else:
-                                values = copy.deepcopy(tessfaceUVList)
-                            values[uvIdx][axis] = p.co[1]
-                            keys[frame] = values
-                # Misc data for export
-                numUVs = len(tessfaceUVList)
-                numAnimUVs = sum([len(l) for f, l in keys.items()])
-                if numAnimVerts > 0:
-                    numSamples = min(numAnimVerts, len(keys))
-                    # Sanity check
-                    if numAnimUVs != numSamples * numUVs:
-                        print("Neverblender: " +
-                              "WARNING - anim verts/tverts mismatch: " +
-                              obj.name + " (using default min value)")
-                    # We can recover from here, but results may be wrong
-                else:
-                    numSamples = len(keys)
-                    # Sanity check
-                    if numAnimUVs != numSamples * numUVs:
-                        print("Neverblender: " +
-                              "WARNING - animvert sample size mismatch: " +
-                              obj.name)
-                        return
-                    animlength = (animEnd-animStart) / fps
-                    sampleperiod = animlength / (numSamples-1)
-                    # Add meta data
-                    asciiLines.append('    sampleperiod ' +
-                                      str(round(sampleperiod, 5)))
-                # Create ascii representation and add it to the output
-                asciiLines.append('    animtverts ' + str(numAnimUVs))
-                for frame, key in keys.items():
-                    fstr = '      {: 6.3f} {: 6.3f}  0'
-                    asciiLines.extend([fstr.format(*v) for v in key])
-                asciiLines.append('    endlist')
-                return numSamples
-        return -1
-        """
+        # Misc data for export
+        num_samples = len(anim_uv_layers)
+        num_tverts = len(anim_uv_layers[0].data)
+        if required_samples > 0:
+            # Not necessary to add meta data
+            # BUT: Sanity check
+            if required_samples != num_samples:
+                print("Neverblender: " +
+                        "WARNING - anim verts/tverts mismatch: " +
+                        obj.name)
+                return -1
+        else:
+            # Add meta data
+            ascii_lines.append('    clipu 0.0')
+            ascii_lines.append('    clipv 0.0')
+            ascii_lines.append('    clipw 1.0')
+            ascii_lines.append('    cliph 1.0')
+
+            anim_length = (anim_end - anim_start) / fps
+            sample_period = anim_length / (num_samples - 1)
+            ascii_lines.append('    sampleperiod ' +
+                               str(round(sample_period, 5)))
+        # Create ascii representation and add it to the output
+        ascii_lines.append('    animtverts ' + str(num_samples * num_tverts))
+        fstr = '      {: 7.4f} {: 7.4f}  0'
+        uv_coord_list = [[tuple(map(lambda x: round(x, 4), d.uv))
+                         for d in uvl.data] for uvl in anim_uv_layers]
+        for coords in uv_coord_list:
+            ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+        ascii_lines.append('    endlist')
+
+        return num_samples
 
     @staticmethod
     def generate_ascii_animesh(obj, anim, asciiLines, options):

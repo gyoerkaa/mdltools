@@ -567,13 +567,15 @@ class Trimesh(Node):
                     uv_layer_list = [mesh.uv_layers.active]
                 elif uv_order == 'AL0':
                     # Export all, sort alphabetically
-                    uv_layer_list = [uvl for uvl in mesh.uv_layers]
+                    uv_layer_list = [l for l in mesh.uv_layers
+                                     if not l.name.startswith("animtverts.")]
                     uv_layer_list.sort(key=lambda l: l.name)
                 elif uv_order == 'AL1':
                     # Export all, sort alphabetically, put active first
                     uv_active_name = mesh.uv_layers.active.name
-                    uv_layer_list = [uvl for uvl in mesh.uv_layers
-                                     if not uvl.name == uv_active_name]
+                    uv_layer_list = [l for l in mesh.uv_layers
+                                     if not l.name != uv_active_name and
+                                        not l.name.startswith("animtverts.")]
                     uv_layer_list.sort(key=lambda l: l.name)
                     uv_layer_list = [mesh.uv_layers.active] + uv_layer_list
             return uv_layer_list[:3]
@@ -661,9 +663,9 @@ class Trimesh(Node):
                 fstr = '    {: 7.4f} {: 7.4f}  0'
                 # First list entry as "tverts"
                 fstr_tv = '  tverts {:d}'
-                coords = me_uv_coord_list[0]
-                ascii_lines.append(fstr_tv.format(len(coords)))
-                ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords])
+                coords0 = me_uv_coord_list[0]
+                ascii_lines.append(fstr_tv.format(len(coords0)))
+                ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords0])
                 # Other list entries as "tvertsN"
                 fstr_tv = '  tverts{:d} {:d}'
                 for idx, coords in enumerate(me_uv_coord_list[1:], 1):
