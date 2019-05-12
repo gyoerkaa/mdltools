@@ -1,5 +1,7 @@
 """TODO: DOC."""
 
+import math
+
 import mathutils
 import collections
 import copy
@@ -263,6 +265,7 @@ class Animnode():
     def create_data_shape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
         fps = options.scene.render.fps
+        frame_start = anim.frameStart
         if not obj.data:
             return
         # Sanity check: Sample period can't be 0
@@ -272,57 +275,39 @@ class Animnode():
         #               sampleperiod
         if animlength % self.sampleperiod > 0.0:
             return
-        numSamples = int(animlength / self.sampleperiod) + 1
+        sample_cnt = int(animlength / self.sampleperiod) + 1
         # Sanity check: Number of animtverts = number verts * numSamples
-        numVerts = len(obj.data.vertices)
-        if (len(self.animverts) != numVerts * numSamples):
+        vert_cnt = len(obj.data.vertices)
+        if (len(self.animverts) != vert_cnt * sample_cnt):
             print("Neverblender: WARNING - animvert sample size mismatch: " +
                   obj.name)
             return
-        sampleDistance = fps * self.sampleperiod
-        # Get the shape key name
-        if obj.nvb.aurorashapekey:
-            shapekeyname = obj.nvb.aurorashapekey
-        else:
-            shapekeyname = nvb_def.shapekeyname
-        # Create a basis shapekey
-        obj.shape_key_add(name='basis', from_mix=False)
-        # Get or create the shape key to hold the animation
-        if obj.data.shape_keys and \
-           shapekeyname in obj.data.shape_keys.key_blocks:
-            keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
-        else:
-            keyBlock = obj.shape_key_add(name=shapekeyname,
-                                         from_mix=False)
-            keyBlock.value = 1.0
-            obj.active_shape_key_index = 1
-            obj.nvb.aurorashapekey = keyBlock.name
-        # Get animation data, create it if necessary
-        animData = obj.data.shape_keys.animation_data
-        if not animData:
-            animData = obj.data.shape_keys.animation_data_create()
+        # Add Basis key holding original mesh data
+        shape_keys = obj.data.shape_keys
+        if not shape_keys or 'Basis' not in shape_keys.key_blocks:
+            sk = obj.shape_key_add(name='Basis', from_mix=False)
+            shape_keys = obj.data.shape_keys  # Might be created now
+            shape_keys.name = options.mdlname + '.' + obj.name + '.sk'
+        shape_keys.use_relative = False
+        # Add absolute shape Keys
+        sk_frame_list = []
+        for idx in range(sample_cnt):
+            sk_name = anim.name + str(idx)
+            sk = obj.shape_key_add(name=sk_name, from_mix=False)
+            sk_frame_list.append(sk.frame)
+            sk_values = self.animverts[idx*vert_cnt:(idx+1)*vert_cnt]
+            sk_values = [c for coords in sk_values for c in coords]
+            sk.data.foreach_set('co', sk_values)
         # Get action, create one if necessary
-        action = animData.action
-        if not action:
-            action = bpy.data.actions.new(name=obj.name)
-            action.use_fake_user = True
-            animData.action = action
+        action = nvb_utils.get_action(shape_keys, shape_keys.name)
         # Insert keyframes
-        # We need to create three curves for each vert, one for each coordinate
         kfOptions = {'FAST'}
-        frameStart = anim.frameStart
-        dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
-        for vertIdx in range(numVerts):
-            dp = dpPrefix + str(vertIdx) + '].co'
-            curveX = nvb_utils.get_fcurve(action, dp, 0)
-            curveY = nvb_utils.get_fcurve(action, dp, 1)
-            curveZ = nvb_utils.get_fcurve(action, dp, 2)
-            samples = self.animverts[vertIdx::numVerts]
-            for sampleIdx, co in enumerate(samples):
-                frame = frameStart + (sampleIdx * sampleDistance)
-                curveX.keyframe_points.insert(frame, co[0], options=kfOptions)
-                curveY.keyframe_points.insert(frame, co[1], options=kfOptions)
-                curveZ.keyframe_points.insert(frame, co[2], options=kfOptions)
+        sample_dist = fps * self.sampleperiod
+        fcu = nvb_utils.get_fcurve(action, 'eval_time', 0)
+        for idx, eval_time in enumerate(sk_frame_list):
+            kfp_frame = frame_start + (idx * sample_dist)
+            fcu.keyframe_points.insert(kfp_frame, eval_time, options=kfOptions)
+        fcu.update()
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
@@ -645,88 +630,82 @@ class Animnode():
                 asciiLines.append('    endlist')
 
     @staticmethod
-    def generate_ascii_animesh_shapes(obj, anim, asciiLines, options,
-                                      numAnimUVs=0):
+    def generate_ascii_animesh_shapes(obj, anim, ascii_lines, options,
+                                      required_samples=0):
         """Add data for animated vertices."""
-        shapekeyname = obj.nvb.aurorashapekey
-        if not shapekeyname:
-            return
-        if not obj.data.shape_keys:
-            # No animated vertices here
-            return
-        if shapekeyname not in obj.data.shape_keys.key_blocks:
-            # No animated vertices here
-            return
-        keyBlock = obj.data.shape_keys.key_blocks[shapekeyname]
-        # Original vertex data. Needed to fill in values for unanimated
-        # vertices.
-        mesh = obj.to_mesh(options.scene,
-                           options.applyModifiers,
-                           options.meshConvert)
+
+        # Must be absolute shapekeys
+        shape_keys = obj.data.shape_keys
+        if not shape_keys or shape_keys.use_relative:
+            return -1
+        # There need to be key blocks
+        key_blocks = obj.data.shape_keys.key_blocks
+        if not key_blocks:
+            return -1
+        # Get the action from which to export from
+        try:
+            action = shape_keys.animation_data.action
+        except AttributeError:
+            return -1
+        # Get eval time fcurve
+        fcu = action.fcurves.find(data_path='eval_time', index=0)
+        if not fcu:
+            return -1
+
         # Cache values for speed
-        animStart = anim.frameStart
-        animEnd = anim.frameEnd
+        anim_start = anim.frameStart
+        anim_end = anim.frameEnd
         fps = options.scene.render.fps
-        vertexList = [[v.co[0], v.co[1], v.co[2]] for v in mesh.vertices]
-        if obj.data.shape_keys.animation_data:
-            # Get the animation data
-            action = obj.data.shape_keys.animation_data.action
-            if action:
-                dpPrefix = 'key_blocks["' + keyBlock.name + '"].data['
-                tf = len(dpPrefix)
-                keys = collections.OrderedDict()  # {frame:values}
-                for fcurve in action.fcurves:
-                    dp = fcurve.data_path
-                    if dp.startswith(dpPrefix):
-                        vertexIdx = int(dp[tf:-4])
-                        axis = fcurve.array_index
-                        kfp = [p for p in fcurve.keyframe_points
-                               if animStart <= p.co[0] <= animEnd]
-                        for p in kfp:
-                            frame = int(round(p.co[0]))
-                            if frame in keys:
-                                values = keys[frame]
-                            else:
-                                values = copy.deepcopy(vertexList)
-                            values[vertexIdx][axis] = p.co[1]
-                            keys[frame] = values
-                # Misc data
-                numVerts = len(vertexList)
-                numAnimVerts = sum([len(l) for _, l in keys.items()])
-                if numAnimUVs > 0:
-                    numSamples = min(numAnimUVs, len(keys))
-                    # Sanity check
-                    if numAnimVerts != numSamples * numVerts:
-                        print("Neverblender: " +
-                              "WARNING - anim verts/tverts mismatch: " +
-                              obj.name + " (using min value)")
-                    # We can recover from here, but results may be wrong
-                else:
-                    numSamples = len(keys)
-                    # Sanity check
-                    if numAnimVerts != numSamples * numVerts:
-                        print("Neverblender: " +
-                              "WARNING - animvert sample size mismatch: " +
-                              obj.name)
-                        return
-                    animlength = (animEnd-animStart) / fps
-                    sampleperiod = animlength / (numSamples-1)
-                    # Add some meta data
-                    asciiLines.append('    sampleperiod ' +
-                                      str(round(sampleperiod, 5)))
-                # Create ascii representation and add it to the output
-                asciiLines.append('    animverts ' + str(numAnimVerts))
-                for frame, key in keys.items():
-                    fstr = '      {: 6.3f} {: 6.3f} {: 6.3f}'
-                    asciiLines.extend([fstr.format(*v) for v in key])
-                asciiLines.append('    endlist')
-                return numSamples
-        return -1
+
+        eval_times = [k.co[1] for k in fcu.keyframe_points
+                      if anim_start <= round(k.co[0], 5) <= anim_end]
+        # rel_kb = [(kb.frame, kb.data) for kb in key_blocks if not kb.mute]
+        anim_verts = []
+        for et in eval_times:
+            shape_key0 = next((kb for kb in reversed(key_blocks) if kb.frame <= et), None)
+            shape_key1 = next((kb for kb in key_blocks if kb.frame >= et), shape_key0)
+            interval = [shape_key0.frame, shape_key1.frame]
+            factor = [et/sum(interval), 1.0-et/sum(interval)]
+            values = [(factor[0] * d0.co) + (factor[1] * d1.co) for d0, d1 in zip(shape_key0.data, shape_key1.data)]
+            anim_verts.append(values)
+
+        # Misc data for export
+        num_samples = len(eval_times)
+        num_verts = len(anim_verts[0])
+        if required_samples > 0:
+            # Not necessary to add meta data
+            # BUT: Sanity check
+            if required_samples != num_samples:
+                print("Neverblender: " +
+                        "WARNING - anim verts/tverts mismatch: " +
+                        obj.name)
+                return -1
+        else:
+            # Add meta data
+            ascii_lines.append('    clipu 0.0')
+            ascii_lines.append('    clipv 0.0')
+            ascii_lines.append('    clipw 1.0')
+            ascii_lines.append('    cliph 1.0')
+
+            anim_length = (anim_end - anim_start) / fps
+            sample_period = anim_length / (num_samples - 1)
+            ascii_lines.append('    sampleperiod ' +
+                               str(round(sample_period, 5)))
+        # Create ascii representation and add it to the output
+        ascii_lines.append('    animverts ' + str(num_samples * num_verts))
+        fstr = '     ' + 3 * ' {: 8.5f}'
+        for av in anim_verts:
+            ascii_lines.extend([fstr.format(*v) for v in av])
+        ascii_lines.append('    endlist')
+
+        return num_samples
 
     @staticmethod
     def generate_ascii_animesh_uv(obj, anim, asciiLines, options,
                                   numAnimVerts=0):
         """Add data for animated texture coordinates."""
+        return -1
+        """
         if not obj.active_material:
             return
         if not obj.active_material.active_texture:
@@ -799,6 +778,7 @@ class Animnode():
                 asciiLines.append('    endlist')
                 return numSamples
         return -1
+        """
 
     @staticmethod
     def generate_ascii_animesh(obj, anim, asciiLines, options):
@@ -831,6 +811,6 @@ class Animnode():
         parent_name = nvb_utils.generate_node_name(obj.parent,
                                                    options.strip_trailing)
         asciiLines.append('    parent ' + parent_name)
-        # Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
+        Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
         Animnode.generate_ascii_keys(obj, anim, asciiLines, options)
         asciiLines.append('  endnode')

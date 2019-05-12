@@ -314,26 +314,23 @@ class Trimesh(Node):
                 self.material.parse_ascii_line(line)
         return line
 
-    def fix_degenerated_uvs(self):
+    def fix_degenerated_tverts(self):
         """Fixes degenerated UVs by adding dummy coordinates."""
-        def distance(p0, p1):
-            """Euclidean Distance."""
-            return math.sqrt(sum([(a - b)**2 for a, b in list(zip(p0, p1))]))
+        def is_degenerated(p1, p2, p3):
+            """Return true if the area of the uv triangle is 0."""
+            # d = Matrix([[*p1,1],[*p2,1],[*p3,1]]).determinant()
+            # return (abs(d) > 0.0001)
+            return  (abs((p2-p1).cross(p3-p1)) > 0.00001)
 
+        tverts = self.texture_coordinates[0]
         tvert_cnt = len(self.texture_coordinates[0])
-        if tvert_cnt > 0:
+        tvert_dummys = list(range(tvert_cnt, tvert_cnt+3))
+        if tverts and tvert_cnt > 0:
             add_dummy_uvs = False
             for f in self.facedef:
-                uvs = self.texture_coordinates[0][f[4]], \
-                      self.texture_coordinates[0][f[5]], \
-                      self.texture_coordinates[0][f[6]]
-                min_distance = distance(uvs[0], uvs[1])
-                for p0, p1 in itertools.combinations(uvs, 2):
-                    min_distance = min(min_distance, distance(p0, p1))
-                # tverts are too close == degenerated
-                if min_distance <= 0.001:
+                if is_degenerated(tverts[f[4]], tverts[f[5]], tverts[f[6]]):
                     add_dummy_uvs = True
-                    f[4], f[5], f[6] = tvert_cnt, tvert_cnt + 1, tvert_cnt + 2
+                    f[4], f[5], f[6] = tvert_dummys
             if add_dummy_uvs:
                 self.texture_coordinates[0].extend([(0, 0), (0, 1), (1, 1)])
 

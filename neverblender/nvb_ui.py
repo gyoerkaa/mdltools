@@ -463,36 +463,6 @@ class NVB_PT_lamp_lensflares(bpy.types.Panel):
             row.prop(item, 'position')
 
 
-class NVB_PT_lamp_object(bpy.types.Panel):
-    """Property panel for additional light or lamp properties.
-
-    This holds all properties not supported by blender,
-    but used by the aurora engine. This is only available for LIGHT objects.
-    It is located under the object panel in the properties window.
-    """
-
-    bl_label = 'Aurora Lamp Properties'
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = 'object'
-
-    @classmethod
-    def poll(cls, context):
-        """Draw only ia a lamp object is selected."""
-        return False
-        return (context.object and context.object.type == 'LIGHT')
-
-    def draw(self, context):
-        """Draw the panel."""
-        obj = context.object
-        layout = self.layout
-
-        box = layout.box()
-        row = box.row(align=True)
-        row.prop(obj.nvb, 'lighttype', text='Type')
-        row.operator('nvb.light_generatename', icon='SORTALPHA', text='')
-
-
 class NVB_PT_mesh_object(bpy.types.Panel):
     """Property panel for additional mesh properties.
 
@@ -580,17 +550,10 @@ class NVB_PT_mesh_object(bpy.types.Panel):
 
             # Additional props for Animmeshes
             elif (obj.nvb.meshtype == nvb_def.Meshtype.ANIMMESH):
-                layout.separator()
-                box = layout.box()
-                box.label(text='Animmesh Properties')
-
-                # obj.data.shape_keys is not always present
-                if obj.data and obj.data.shape_keys:
-                    box.prop_search(obj, 'nvb.aurorashapekey',
-                                    obj.data.shape_keys, 'key_blocks',
-                                    text='Shapekey')
-                else:
-                    box.prop(obj, 'nvb.aurorashapekey', text='Shapekey')
+                pass
+                # layout.separator()
+                # box = layout.box()
+                # box.label(text='Animmesh Properties')
 
 
 class NVB_MT_animlist_specials(bpy.types.Menu):
