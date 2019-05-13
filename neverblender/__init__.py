@@ -71,7 +71,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 8, 3),
+    'version': (2, 8, 4),
     "blender": (2, 80, 2),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -151,7 +151,6 @@ classes = (
     nvb_ui.NVB_PT_set,
     nvb_ui.NVB_PT_mtr,
     nvb_ui.NVB_PT_lamp_data,
-    nvb_ui.NVB_PT_lamp_object,
     nvb_ui.NVB_PT_lamp_lensflares,
     nvb_ui.NVB_PT_mesh_object,
     nvb_ui.NVB_MT_animlist_specials,

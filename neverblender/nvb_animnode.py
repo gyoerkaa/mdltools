@@ -1,9 +1,6 @@
 """TODO: DOC."""
 
-import math
-
 import mathutils
-import bpy
 from bpy_extras.io_utils import unpack_list
 
 from . import nvb_def
@@ -159,31 +156,30 @@ class Animnode():
         def data_conversion(label, material_out, vals):
             """TODO: Doc."""
             if label == 'alpha':
-                socket0 = Materialnode.find_alpha_socket(material_out)
-                dp = socket0.path_from_id("default_value")
+                socket_a = Materialnode.find_alpha_socket(material_out)
+                dp = socket_a.path_from_id("default_value")
                 dp_dim = 1
             elif label in ['selfillumcolor', 'setfillumcolor']:
-                socket1 = Materialnode.find_emissive_socket(material_out)
-                socket0 = Materialnode.get_color_socket(socket1)
-                dp = socket0.path_from_id("default_value")
+                socket_e = Materialnode.find_emissive_socket(material_out)
+                socket_c = Materialnode.get_color_socket(socket_e)
+                dp = socket_c.path_from_id("default_value")
                 dp_dim = 3
             return vals, dp, dp_dim
 
-        blender_mat = obj.active_material
-        blendet_mat_out = Materialnode.get_output_node(blender_mat)
-        if not blendet_mat_out:
+        # There needs to be a valid output node
+        blen_mat = obj.active_material
+        blen_mat_out = Materialnode.get_output_node(blen_mat)
+        if not blen_mat_out:
             return
-        node_tree = blender_mat.node_tree
-        if not node_tree:
-            return
+        # TODO: Check if there are already animations present this frame range
         fps = options.scene.render.fps
         frame_start = anim.frameStart
-        action = nvb_utils.get_action(node_tree, blender_mat.name)
+        action = nvb_utils.get_action(blen_mat.node_tree, blen_mat.name)
         for label, (data, data_path, data_dim) in self.material_data.items():
             frames = [round(fps * d[0], 3) + frame_start for d in data]
             if not data_path:  # Needs conversion
                 values, dp, dp_dim = data_conversion(
-                    label, blendet_mat_out, [d[1:data_dim+1] for d in data])
+                    label, blen_mat_out, [d[1:data_dim+1] for d in data])
             else:
                 values = [d[1:data_dim+1] for d in data]
                 dp = data_path
@@ -651,11 +647,15 @@ class Animnode():
         # rel_kb = [(kb.frame, kb.data) for kb in key_blocks if not kb.mute]
         anim_verts = []
         for et in eval_times:
-            shape_key0 = next((kb for kb in reversed(key_blocks) if kb.frame <= et), None)
-            shape_key1 = next((kb for kb in key_blocks if kb.frame >= et), shape_key0)
+            # Each eval time is influenced by two shape keys max
+            shape_key0 = next((kb for kb in reversed(key_blocks)
+                               if kb.frame <= et), None)
+            shape_key1 = next((kb for kb in key_blocks
+                               if kb.frame >= et), shape_key0)
             interval = [shape_key0.frame, shape_key1.frame]
             factor = [et/sum(interval), 1.0-et/sum(interval)]
-            values = [(factor[0] * d0.co) + (factor[1] * d1.co) for d0, d1 in zip(shape_key0.data, shape_key1.data)]
+            values = [(factor[0] * d0.co) + (factor[1] * d1.co) for d0, d1 in
+                      zip(shape_key0.data, shape_key1.data)]
             anim_verts.append(values)
 
         # Misc data for export
@@ -666,8 +666,7 @@ class Animnode():
             # BUT: Sanity check
             if required_samples != num_samples:
                 print("Neverblender: " +
-                        "WARNING - anim verts/tverts mismatch: " +
-                        obj.name)
+                      "WARNING - anim verts/tverts mismatch: " + obj.name)
                 return -1
         else:
             # Add meta data
@@ -696,7 +695,7 @@ class Animnode():
         blen_mesh = obj.data
         if not blen_mesh:
             return -1
-        anim_uv_prefix = "animtverts."+ anim.name
+        anim_uv_prefix = "animtverts." + anim.name
         anim_uv_layers = [l for l in blen_mesh.uv_layers
                           if l.name.startswith(anim_uv_prefix)]
         # No anim tverts
@@ -714,8 +713,7 @@ class Animnode():
             # BUT: Sanity check
             if required_samples != num_samples:
                 print("Neverblender: " +
-                        "WARNING - anim verts/tverts mismatch: " +
-                        obj.name)
+                      "WARNING - anim verts/tverts mismatch: " + obj.name)
                 return -1
         else:
             # Add meta data
@@ -740,7 +738,7 @@ class Animnode():
         return num_samples
 
     @staticmethod
-    def generate_ascii_animesh(obj, anim, asciiLines, options):
+    def generate_ascii_animesh(obj, anim, ascii_lines, options):
         """TODO:Doc."""
         if not obj.data:
             return
@@ -748,28 +746,28 @@ class Animnode():
         if (obj.type != 'MESH') or \
            (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH):
             return
-        tmpLines = []
-        nvb_node.Animmesh.generateAsciiMesh(obj, tmpLines, options)
-        asciiLines.extend(['  ' + l for l in tmpLines])
-        maxsamples = -1  # Samples > 0 also means not to write metadata (again)
-        maxsamples = Animnode.generate_ascii_animesh_uv(obj, anim, asciiLines,
-                                                        options, maxsamples)
-        Animnode.generate_ascii_animesh_shapes(obj, anim, asciiLines,
-                                               options, maxsamples)
+        tmp_lines = []
+        nvb_node.Animmesh.generateAsciiMesh(obj, tmp_lines, options)
+        ascii_lines.extend(['  ' + l for l in tmp_lines])
+        samples = -1  # Samples > 0 also means not to write metadata (again)
+        samples = Animnode.generate_ascii_animesh_uv(obj, anim, ascii_lines,
+                                                     options, samples)
+        Animnode.generate_ascii_animesh_shapes(obj, anim, ascii_lines,
+                                               options, samples)
 
     @staticmethod
-    def generate_ascii(obj, anim, asciiLines, options):
+    def generate_ascii(obj, anim, ascii_lines, options):
         """TODO:Doc."""
         if not obj:
             return
         # Type + Name
         node_type = nvb_utils.getNodeType(obj)
         node_name = nvb_utils.generate_node_name(obj, options.strip_trailing)
-        asciiLines.append('  node ' + node_type + ' ' + node_name)
+        ascii_lines.append('  node ' + node_type + ' ' + node_name)
         # Parent
         parent_name = nvb_utils.generate_node_name(obj.parent,
                                                    options.strip_trailing)
-        asciiLines.append('    parent ' + parent_name)
-        Animnode.generate_ascii_animesh(obj, anim, asciiLines, options)
-        Animnode.generate_ascii_keys(obj, anim, asciiLines, options)
-        asciiLines.append('  endnode')
+        ascii_lines.append('    parent ' + parent_name)
+        Animnode.generate_ascii_animesh(obj, anim, ascii_lines, options)
+        Animnode.generate_ascii_keys(obj, anim, ascii_lines, options)
+        ascii_lines.append('  endnode')

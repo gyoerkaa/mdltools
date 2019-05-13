@@ -32,7 +32,6 @@ class Material(object):
 
     def generate_material_name(self):
         """Generates a material name for use in blender."""
-
         # 'materialname' over 'texture0'/'bitmap' over Default
         if self.mtr_name:
             mat_name = self.mtr_name
@@ -65,10 +64,9 @@ class Material(object):
     def isdefault(self):
         """Return True if the material contains only default values"""
         d = True
-        # d = d and Material.colorisclose(self.diffuse, (1.0, 1.0, 1.0))
-        # d = d and Material.colorisclose(self.specular, (0.0, 0.0, 0.0))
         d = d and math.isclose(self.alpha, 1.0, abs_tol=0.03)
-        d = d and self.texture_list.count(nvb_def.null) == len(self.texture_list)
+        d = d and (self.texture_list.count(nvb_def.null) ==
+                   len(self.texture_list))
         d = d and self.mtr_name == ''
         return d
 
@@ -82,7 +80,7 @@ class Material(object):
         elif label == 'specular':
             self.color_list[2] = nvb_parse.ascii_color(line[1:])
         elif label in ['selfillumcolor', 'setfillumcolor']:
-            self.color_list[4] = nvb_parse.ascii_color(line[1:])
+            self.color_list[5] = nvb_parse.ascii_color(line[1:])
         elif label == 'alpha':
             self.alpha = nvb_parse.ascii_float(line[1])
         elif label == 'materialname':
@@ -133,7 +131,7 @@ class Material(object):
         """Merges the contents of the mtr file into this material."""
         # Merge values from mtr into this material
         if self.mtr_data:
-            self.renderhints = self.renderhints.union(self.mtr_data.renderhints)
+            self.renderhints.update(self.mtr_data.renderhints)
             # Load all existing textures from the mtr into the material
             self.texture_list = \
                 [t2 if t2 else t1 for t1, t2 in
@@ -166,7 +164,7 @@ class Material(object):
             blender_mat.use_nodes = True
             blender_mat.node_tree.nodes.clear()
             Materialnode.add_node_data(
-                blender_mat, options.mat_shader,
+                blender_mat, options.mat_shader, new_name,
                 self.texture_list, self.color_list, self.alpha,
                 options.filepath, options.tex_search)
         return blender_mat

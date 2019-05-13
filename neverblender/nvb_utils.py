@@ -6,6 +6,7 @@ import os
 import math
 import re
 import collections
+import unicodedata
 
 import bpy_extras.image_utils
 
@@ -250,8 +251,10 @@ def generate_node_name(obj, strip_trailing=False):
         new_name = obj.name
         if strip_trailing:
             new_name = strip_trailing_numbers(obj.name)
-        new_name.replace(' ', '_')
-        new_name = re.sub(r'[^a-zA-Z0-9_\-\.]', r'=', new_name)
+        new_name = new_name.replace(' ', '_')
+        new_name = unicodedata.normalize('NFKD', new_name) \
+            .encode('ascii', 'ignore').decode()
+        # new_name = re.sub(r'[^a-zA-Z0-9_\-\.]', r'=', new_name)
     return new_name
 
 

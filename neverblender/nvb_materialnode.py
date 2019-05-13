@@ -3,7 +3,6 @@
 import os
 
 from . import nvb_utils
-from . import nvb_def
 
 
 class Materialnode(object):
@@ -13,6 +12,15 @@ class Materialnode(object):
     def is_texture_node(node):
         """Return true if this socket is a textrue socket."""
         return node.type.startswith('TEX_')
+
+    @staticmethod
+    def get_node_identifier(node, fallback_to_name=False):
+        """Return node label if secified or the (unique) node name."""
+        if node.label:
+            return node.label
+        elif fallback_to_name:
+            return node.name
+        return "ERROR"
 
     @staticmethod
     def find_alpha_socket(node):
@@ -57,7 +65,7 @@ class Materialnode(object):
         elif node.type == 'EEVEE_SPECULAR':  # Return this sockett
             return node.inputs[0]  # 0 = Base Color
         elif node.type == 'BSDF_PRINCIPLED':  # Return this socket
-            return node.inputs[0]  #  0 = Base Color
+            return node.inputs[0]  # 0 = Base Color
         elif node.type == 'MIX_SHADER':  # Go down the node tree
             # Shader A
             socketA = node.inputs[1]
@@ -158,7 +166,7 @@ class Materialnode(object):
         elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
             socket = node.inputs[9]  # Ambient Occlusion
             if socket.is_linked:
-                 # Return this socket if linked directly to a texture
+                # Return this socket if linked directly to a texture
                 linked_node = socket.links[0].from_node
                 if Materialnode.is_texture_node(linked_node):
                     return socket
@@ -367,7 +375,7 @@ class Materialnode(object):
     def get_output_node(material):
         """Search for the output node in this node list."""
         # Material has to use nodes
-        if not material.use_nodes:
+        if not (material.use_nodes and material.node_tree):
             return None
 
         nodes = material.node_tree.nodes
@@ -465,11 +473,6 @@ class Materialnode(object):
     @staticmethod
     def get_texture_name(texture_node, fail_value="ERROR"):
         """Get a texture from a texture node."""
-        def name_from_label(node):
-            if node.label:
-                return node.label
-            else:
-                return node.name
         img = None
         # No texture node: None=Null
         if texture_node:
@@ -483,7 +486,7 @@ class Materialnode(object):
                 return os.path.splitext(os.path.basename(img.filepath))[0]
             elif img.name:
                 return os.path.splitext(os.path.basename(img.name))[0]
-        return name_from_label(texture_node)
+        return Materialnode.get_node_identifier(texture_node, True)
 
     @staticmethod
     def get_node_data(material):
@@ -543,9 +546,9 @@ class Materialnode(object):
         return texture_list, color_list, alpha
 
     @staticmethod
-    def add_node_data_bsdf(material,
+    def add_node_data_bsdf(material, output_label,
                            texture_list, color_list, alpha,
-                           img_filepath, img_search = False):
+                           img_filepath, img_search=False):
         """Setup up material nodes for Principled BSDF Shader."""
         # Cache because lazy
         nodes = material.node_tree.nodes
@@ -553,6 +556,7 @@ class Materialnode(object):
 
         # Create an output and shaders
         node_out = nodes.new('ShaderNodeOutputMaterial')
+        node_out.label = output_label
         node_out.location = (797.0, 623.0)
 
         node_shd_bsdf = nodes.new('ShaderNodeBsdfPrincipled')
@@ -621,7 +625,7 @@ class Materialnode(object):
             links.new(node_shd_bsdf.inputs[0], node_tex_diff.outputs[0])
             links.new(node_math_trans.inputs[0], node_tex_diff.outputs[1])
 
-         # 1 = Normal
+        # 1 = Normal
         if texture_list[1]:
             # Setup: Image Texture => Normal Map => Principled BSDF
             node_tex_norm = nodes.new('ShaderNodeTexImage')
@@ -639,7 +643,7 @@ class Materialnode(object):
             links.new(node_norm.inputs[1], node_tex_norm.outputs[0])
             links.new(node_shd_bsdf.inputs[17], node_norm.outputs[0])
 
-         # 2 = Specular
+        # 2 = Specular
         if texture_list[2]:
             # Setup: Image Texture => Principled BSDF
             node_tex_spec = nodes.new('ShaderNodeTexImage')
@@ -705,9 +709,9 @@ class Materialnode(object):
             links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])
 
     @staticmethod
-    def add_node_data_spec(material,
+    def add_node_data_spec(material, output_label,
                            texture_list, color_list, alpha,
-                           img_filepath, img_search = False):
+                           img_filepath, img_search=False):
         """Setup up material nodes for Eevee Specular Shader."""
         # Cache because lazy
         nodes = material.node_tree.nodes
@@ -715,6 +719,7 @@ class Materialnode(object):
 
         # Create an output and shaders
         node_out = nodes.new('ShaderNodeOutputMaterial')
+        node_out.label = output_label
         node_out.location = (790.0, 384.0)
 
         node_shader_spec = nodes.new('ShaderNodeEeveeSpecular')
@@ -840,15 +845,15 @@ class Materialnode(object):
             links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0])
 
     @staticmethod
-    def add_node_data(material, shader_type,
+    def add_node_data(material, shader_type, output_name,
                       texture_list, color_list, alpha,
-                      img_filepath, img_search = False):
+                      img_filepath, img_search=False):
         """Select shader nodes based on options."""
         if (shader_type == 'ShaderNodeEeveeSpecular'):
-            Materialnode.add_node_data_spec(material,
-                                     texture_list, color_list, alpha,
-                                     img_filepath, img_search)
+            Materialnode.add_node_data_spec(material, output_name,
+                                            texture_list, color_list, alpha,
+                                            img_filepath, img_search)
         else:
-            Materialnode.add_node_data_bsdf(material,
-                                     texture_list, color_list, alpha,
-                                     img_filepath, img_search)
+            Materialnode.add_node_data_bsdf(material, output_name,
+                                            texture_list, color_list, alpha,
+                                            img_filepath, img_search)

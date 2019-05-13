@@ -1,8 +1,6 @@
 """TODO: DOC."""
 
 import array
-import math
-import itertools
 
 import mathutils
 import bpy
@@ -320,7 +318,7 @@ class Trimesh(Node):
             """Return true if the area of the uv triangle is 0."""
             # d = Matrix([[*p1,1],[*p2,1],[*p3,1]]).determinant()
             # return (abs(d) > 0.0001)
-            return  (abs((p2-p1).cross(p3-p1)) > 0.00001)
+            return (abs((p2-p1).cross(p3-p1)) > 0.00001)
 
         tverts = self.texture_coordinates[0]
         tvert_cnt = len(self.texture_coordinates[0])
@@ -575,7 +573,7 @@ class Trimesh(Node):
                     uv_active_name = mesh.uv_layers.active.name
                     uv_layer_list = [l for l in mesh.uv_layers
                                      if not l.name != uv_active_name and
-                                        not l.name.startswith("animtverts.")]
+                                     not l.name.startswith("animtverts.")]
                     uv_layer_list.sort(key=lambda l: l.name)
                     uv_layer_list = [mesh.uv_layers.active] + uv_layer_list
             return uv_layer_list[:3]
