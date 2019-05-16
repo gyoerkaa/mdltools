@@ -156,6 +156,7 @@ classes = (
     nvb_ui.NVB_MT_animlist_specials,
     nvb_ui.NVB_PT_animlist,
     nvb_ui.NVB_PT_utils,
+    nvb_ui.NVB_PT_emitter,
 )
 
 

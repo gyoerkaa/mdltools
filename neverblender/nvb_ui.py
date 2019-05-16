@@ -801,23 +801,17 @@ class NVB_PT_emitter(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = 'particle'
-    COMPAT_ENGINES = {'BLENDER_RENDER'}
+    COMPAT_ENGINES = {'BLENDER_RENDER', 'BLENDER_EEVEE', 'BLENDER_WORKBENCH'}
 
     @classmethod
     def particle_panel_poll(cls, context):
         """Get particle settings status."""
-        psys = context.particle_system
-        engine = context.scene.render.engine
-        settings = 0
+        engine = context.engine
+        psys_settings = cls.particle_get_settings(context)
 
-        if psys:
-            settings = psys.settings
-        elif isinstance(context.space_data.pin_id, bpy.types.ParticleSettings):
-            settings = context.space_data.pin_id
-
-        if not settings:
-            return False
-        return settings.is_fluid is False and (engine in cls.COMPAT_ENGINES)
+        if psys_settings:
+            return psys_settings.is_fluid is False and (engine in cls.COMPAT_ENGINES)
+        return False
 
     @classmethod
     def particle_get_settings(cls, context):
@@ -862,14 +856,14 @@ class NVB_PT_emitter(bpy.types.Panel):
             part_settings.type == 'EMITTER'
 
         box = layout.box()
-        box.label("Particle Style")
+        box.label(text="Particle Style")
         split = box.split(factor=0.25)
         col = split.column()
-        col.label("Update:")
-        col.label("")
-        col.label("Render:")
-        col.label("Blend:")
-        col.label("Spawn:")
+        col.label(text="Update:")
+        col.label(text="")
+        col.label(text="Render:")
+        col.label(text="Blend:")
+        col.label(text="Spawn:")
         col = split.column()
         col.prop(part_settings.nvb, "update", text="")
         sub = col.row()
@@ -882,7 +876,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         layout.separator()
 
         box = layout.box()
-        box.label("Particle Settings")
+        box.label(text="Particle Settings")
         split = box.split()
         col = split.column()
         col.prop(part_settings.nvb, "birthrate")
@@ -892,7 +886,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         col = split.column()
         col.prop(part_settings, "normal_factor", text="Velocity")
         col.prop(part_settings, "factor_random", text="Rand. Velocity")
-        col.label("")
+        col.label(text="")
         col.prop(part_settings, "angular_velocity_factor", text="Rotation")
 
         row = box.row()
@@ -901,12 +895,12 @@ class NVB_PT_emitter(bpy.types.Panel):
 
         split = box.split(factor=0.25)
         col = split.column()
-        col.label("Color:")
-        col.label("Alpha:")
-        col.label("Size X:")
-        col.label("Size Y:")
+        col.label(text="Color:")
+        col.label(text="Alpha:")
+        col.label(text="Size X:")
+        col.label(text="Size Y:")
         col.separator()
-        col.label("Bounce:")
+        col.label(text="Bounce:")
         col = split.column()
         row = col.row(align=True)
         row.prop(part_settings.nvb, "colorstart", text="")
@@ -931,23 +925,23 @@ class NVB_PT_emitter(bpy.types.Panel):
         layout.separator()
 
         box = layout.box()
-        box.label("Texture")
+        box.label(text="Texture")
         box.row().prop(part_settings.nvb, "particletype", expand=True)
         if part_settings.nvb.particletype == 'chunk':
             split = box.split(factor=0.25)
             col = split.column()
-            col.label("Chunk:")
+            col.label(text="Chunk:")
             col = split.column()
             col.prop(part_settings.nvb, "chunk", text="")
         else:
             split = box.split(factor=0.25)
             col = split.column()
-            col.label("Texture:")
+            col.label(text="Texture:")
             col.label()
             col.label()
             col.separator()
-            col.label("Grid:")
-            col.label("Frame:")
+            col.label(text="Grid:")
+            col.label(text="Frame:")
 
             col = split.column()
             col.prop(part_settings.nvb, "texture", text="")
@@ -981,7 +975,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         layout.separator()
 
         box = layout.box()
-        box.label("Blast Properties")
+        box.label(text="Blast Properties")
         box.enabled = part_settings.nvb.update == 'explosion'
         row = box.row()
         row.prop(part_settings.nvb, "blastradius")
@@ -989,7 +983,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         layout.separator()
 
         box = layout.box()
-        box.label("Lightning Properties")
+        box.label(text="Lightning Properties")
         box.enabled = part_settings.nvb.update == 'lightning'
         box.prop(part_settings.nvb, "lightningdelay")
         box.prop(part_settings.nvb, "lightningradius")
@@ -997,7 +991,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         layout.separator()
 
         box = layout.box()
-        box.label("Inheritance")
+        box.label(text="Inheritance")
         split = box.split()
         col = split.column()
         col.prop(part_settings.nvb, "inherit")
