@@ -15,7 +15,7 @@ class Materialnode(object):
 
     @staticmethod
     def get_node_identifier(node, fallback_to_name=False):
-        """Return node label if secified or the (unique) node name."""
+        """Return node label if specified or the (unique) node name."""
         if node.label:
             return node.label
         elif fallback_to_name:
@@ -28,29 +28,31 @@ class Materialnode(object):
         if not node:
             return None
         if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
-            socket = node.inputs[0]  # 0 = Surface
-            if socket.is_linked:
-                return Materialnode.find_alpha_socket(socket.links[0].from_node)
+            sock = node.inputs[0]  # 0 = Surface
+            if sock.is_linked:
+                return Materialnode.find_alpha_socket(sock.links[0].from_node)
         elif node.type == 'MATH':  # Return one of these
             # Use the value from the first unconnected socket
-            if not node.inputs[0].links:
+            if not node.inputs[0].is_linked:
                 return node.inputs[0]
-            if not node.inputs[1].links:
+            if not node.inputs[1].is_linked:
                 return node.inputs[1]
             else:
                 return None  # No unconnected sockets
         elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
-            socket = node.inputs[4]  # 4 = Transparency
-            if socket.is_linked:
-                return Materialnode.find_alpha_socket(socket.links[0].from_node)
+            sock = node.inputs[4]  # 4 = Transparency (needs inverting)
+            if sock.is_linked:
+                return Materialnode.find_alpha_socket(sock.links[0].from_node)
+        elif node.type == 'BSDF_PRINCIPLED':  # Go down the node tree
+            sock = node.inputs[18]  # 18 = Alpha
+            if sock.is_linked:
+                return Materialnode.find_alpha_socket(sock.links[0].from_node)
+            else:
+                return sock
         elif node.type == 'INVERT':  # Go down the node tree
-            socket = node.inputs[1]  # 1 = Color
-            if socket.is_linked:
-                return Materialnode.find_alpha_socket(socket.links[0].from_node)
-        elif node.type == 'MIX_SHADER':  # Go down the node tree
-            socket = node.inputs[0]  # 0 = Factor
-            if socket.is_linked:
-                return Materialnode.find_alpha_socket(socket.links[0].from_node)
+            sock = node.inputs[1]  # 1 = Color
+            if sock.is_linked:
+                return Materialnode.find_alpha_socket(sock.links[0].from_node)
         return None
 
     @staticmethod
@@ -105,44 +107,45 @@ class Materialnode(object):
         if not node:
             return None
         if node.type == 'OUTPUT_MATERIAL':  # Go down the node tree
-            socket = node.inputs[0]  # Surface
-            if socket.is_linked:
-                return Materialnode.find_emissive_socket(socket.links[0].from_node)
+            sock = node.inputs[0]  # Surface
+            if sock.is_linked:
+                return Materialnode.find_emissive_socket(sock.links[0].from_node)
         elif node.type == 'EMISSION':  # # Return this socket
             return node.inputs[0]  # Color
         elif node.type == 'EEVEE_SPECULAR':  # # Return this socket
             return node.inputs[3]  # Emissive Color
+        elif node.type == 'BSDF_PRINCIPLED':  # Return this socket
+            return node.inputs[17]  # 17 = Emissive Color
         elif node.type == 'MIX_SHADER':  # Go down the node tree
             # Shader A
-            socketA = node.inputs[1]
+            sockA = node.inputs[1]
             nodeA = None
-            if socketA.is_linked:
-                nodeA = Materialnode.find_emissive_socket(socketA.links[0].from_node)
+            if sockA.is_linked:
+                nodeA = Materialnode.find_emissive_socket(sockA.links[0].from_node)
             # Shader B
-            socketB = node.inputs[2]
+            sockB = node.inputs[2]
             nodeB = None
-            if socketB.is_linked:
-                nodeB = Materialnode.find_emissive_socket(socketB.links[0].from_node)
+            if sockB.is_linked:
+                nodeB = Materialnode.find_emissive_socket(sockB.links[0].from_node)
             # Prefer A over B
             if nodeA:
                 return nodeA
             return nodeB
         elif node.type == 'ADD_SHADER':  # Go down the node tree
             # Shader A
-            socketA = node.inputs[0]
+            sockA = node.inputs[0]
             nodeA = None
-            if socketA.is_linked:
-                nodeA = Materialnode.find_emissive_socket(socketA.links[0].from_node)
+            if sockA.is_linked:
+                nodeA = Materialnode.find_emissive_socket(sockA.links[0].from_node)
             # Shader B
-            socketB = node.inputs[1]
+            sockB = node.inputs[1]
             nodeB = None
-            if socketB.is_linked:
-                nodeB = Materialnode.find_emissive_socket(socketB.links[0].from_node)
+            if sockB.is_linked:
+                nodeB = Materialnode.find_emissive_socket(sockB.links[0].from_node)
             # Prefer A over B
             if nodeA:
                 return nodeA
             return nodeB
-
         return None
 
     @staticmethod
@@ -164,12 +167,12 @@ class Materialnode(object):
                 return nodeA
             return nodeB
         elif node.type == 'EEVEE_SPECULAR':  # Go down the node tree
-            socket = node.inputs[9]  # Ambient Occlusion
-            if socket.is_linked:
+            sock = node.inputs[9]  # Ambient Occlusion
+            if sock.is_linked:
                 # Return this socket if linked directly to a texture
-                linked_node = socket.links[0].from_node
+                linked_node = sock.links[0].from_node
                 if Materialnode.is_texture_node(linked_node):
-                    return socket
+                    return sock
                 else:
                     return Materialnode.find_height_socket(linked_node)
         elif node.type == 'DISPLACEMENT':  # Return this socket
@@ -234,7 +237,7 @@ class Materialnode(object):
             if socket.is_linked:
                 return Materialnode.find_normal_socket(socket.links[0].from_node)
         elif node.type == 'BSDF_PRINCIPLED':  # Go down the node tree
-            socket = node.inputs[17]  # 17 = Normal
+            socket = node.inputs[19]  # 19 = Normal
             if socket.is_linked:
                 return Materialnode.find_normal_socket(socket.links[0].from_node)
         elif node.type == 'DISPLACEMENT':  # Go down the node tree
@@ -501,7 +504,8 @@ class Materialnode(object):
             color_socket = Materialnode.get_color_socket(input_socket)
             color = default_color
             if color_socket:
-                color = Materialnode.get_color_value(color_socket, default_color)
+                color = Materialnode.get_color_value(color_socket,
+                                                     default_color)
             return texture, color
 
         texture_list = [None] * 15
@@ -557,55 +561,23 @@ class Materialnode(object):
         # Create an output and shaders
         node_out = nodes.new('ShaderNodeOutputMaterial')
         node_out.label = output_label
-        node_out.location = (797.0, 623.0)
+        node_out.location = (801.8, 610.1)
 
         node_shd_bsdf = nodes.new('ShaderNodeBsdfPrincipled')
-        node_shd_bsdf.location = (-123.0, 280.0)
+        node_shd_bsdf.location = (-16.2, 583.6)
 
-        node_shd_trans = nodes.new('ShaderNodeBsdfTransparent')
-        node_shd_trans.label = "Shader: Transparent"
-        node_shd_trans.name = "shd_transparent"
-        node_shd_trans.location = (-119.0, 541.0)
+        links.new(node_out.inputs[0], node_shd_bsdf.outputs[0])
 
-        node_shd_mix_trans = nodes.new('ShaderNodeMixShader')
-        node_shd_mix_trans.label = "Mix: Transparency"
-        node_shd_mix_trans.name = "shd_transparency_mix"
-        node_shd_mix_trans.location = (492.0, 646.0)
-        node_shd_mix_trans.inputs[0].default_value = alpha
+        # Add a math node to incorporate aurora alpha
+        node_math_alpha = nodes.new('ShaderNodeMath')
+        node_math_alpha.label = "Aurora Alpha"
+        node_math_alpha.name = "math_aurora_alpha"
+        node_math_alpha.location = (-1130.7, 112.4)
+        node_math_alpha.operation = 'MULTIPLY'
+        node_math_alpha.use_clamp = True
+        node_math_alpha.inputs[1].default_value = alpha
 
-        node_math_trans = nodes.new('ShaderNodeMath')
-        node_math_trans.label = "Aurora Alpha"
-        node_math_trans.name = "math_aurora_alpha"
-        node_math_trans.location = (-511.0, 621.0)
-        node_math_trans.operation = 'MULTIPLY'
-        node_math_trans.use_clamp = True
-        node_math_trans.inputs[1].default_value = alpha
-
-        node_shd_emit = nodes.new('ShaderNodeEmission')
-        node_shd_emit.label = "Shader: Emission"
-        node_shd_emit.name = "shd_emission"
-        node_shd_emit.location = (-125.0, 442.0)
-
-        node_shd_add_emit = nodes.new('ShaderNodeAddShader')
-        node_shd_add_emit.label = "Add: Emission"
-        node_shd_add_emit.name = "shd_emission_add"
-        node_shd_add_emit.location = (251, 400.0)
-
-        # Setup:
-        #                     Math Multiply    =>
-        #                     Transparent BSDF =>
-        #                                         Mix Transp => Output
-        # Emission         =>
-        #                     Mix Emit         =>
-        # Principled BSDF  =>
-        links.new(node_out.inputs[0], node_shd_mix_trans.outputs[0])
-
-        links.new(node_shd_mix_trans.inputs[0], node_math_trans.outputs[0])
-        links.new(node_shd_mix_trans.inputs[1], node_shd_trans.outputs[0])
-        links.new(node_shd_mix_trans.inputs[2], node_shd_add_emit.outputs[0])
-
-        links.new(node_shd_add_emit.inputs[0], node_shd_emit.outputs[0])
-        links.new(node_shd_add_emit.inputs[1], node_shd_bsdf.outputs[0])
+        links.new(node_shd_bsdf.inputs[18], node_math_alpha.outputs[0])
 
         # Add texture maps
         # 0 = Diffuse
@@ -616,14 +588,15 @@ class Materialnode(object):
             node_tex_diff = nodes.new('ShaderNodeTexImage')
             node_tex_diff.label = "Texture: Diffuse"
             node_tex_diff.name = "tex_diffuse"
-            node_tex_diff.location = (-1195.0, 205.0)
+            node_tex_diff.location = (-1563.0, 792.6)
 
             node_tex_diff.image = nvb_utils.create_image(
                 texture_list[0], img_filepath, img_search)
-            node_tex_diff.color_space = 'COLOR'
+            node_tex_diff.image.colorspace_settings.name = 'sRGB'
+            # node_tex_diff.color_space = 'COLOR'
 
             links.new(node_shd_bsdf.inputs[0], node_tex_diff.outputs[0])
-            links.new(node_math_trans.inputs[0], node_tex_diff.outputs[1])
+            links.new(node_math_alpha.inputs[0], node_tex_diff.outputs[1])
 
         # 1 = Normal
         if texture_list[1]:
@@ -631,17 +604,18 @@ class Materialnode(object):
             node_tex_norm = nodes.new('ShaderNodeTexImage')
             node_tex_norm.label = "Texture: Normal"
             node_tex_norm.name = "tex_normal"
-            node_tex_norm.location = (-668.0, -267.0)
+            node_tex_norm.location = (-791.4, -97.7)
 
             node_tex_norm.image = nvb_utils.create_image(
                 texture_list[1], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
+            node_tex_norm.image.colorspace_settings.name = 'Non-Color'
+            # node_tex_norm.color_space = 'NONE'
 
             node_norm = nodes.new('ShaderNodeNormalMap')
-            node_norm.location = (-328.0, -166.0)
+            node_norm.location = (-468.8, 5.3)
 
             links.new(node_norm.inputs[1], node_tex_norm.outputs[0])
-            links.new(node_shd_bsdf.inputs[17], node_norm.outputs[0])
+            links.new(node_shd_bsdf.inputs[19], node_norm.outputs[0])
 
         # 2 = Specular
         if texture_list[2]:
@@ -649,11 +623,11 @@ class Materialnode(object):
             node_tex_spec = nodes.new('ShaderNodeTexImage')
             node_tex_spec.label = "Texture: Specular"
             node_tex_spec.name = "tex_specular"
-            node_tex_spec.location = (-894.0, 93.0)
+            node_tex_spec.location = (-1132.8, 591.3)
 
             node_tex_spec.image = nvb_utils.create_image(
                 texture_list[2], img_filepath, img_search)
-            node_tex_spec.color_space = 'NONE'  # Not rgb data
+            node_tex_spec.image.colorspace_settings.name = 'Non-Color'
 
             links.new(node_shd_bsdf.inputs[5], node_tex_spec.outputs[0])
 
@@ -664,11 +638,11 @@ class Materialnode(object):
             node_tex_rough = nodes.new('ShaderNodeTexImage')
             node_tex_rough.label = "Texture: Roughness"
             node_tex_rough.name = "tex_roughness"
-            node_tex_rough.location = (-612.0, 46.0)
+            node_tex_rough.location = (-842.3, 459.3)
 
             node_tex_rough.image = nvb_utils.create_image(
                 texture_list[3], img_filepath, img_search)
-            node_tex_rough.color_space = 'NONE'  # Not rgb data
+            node_tex_rough.image.colorspace_settings.name = 'Non-Color'
 
             links.new(node_shd_bsdf.inputs[7], node_tex_rough.outputs[0])
 
@@ -678,35 +652,40 @@ class Materialnode(object):
             node_tex_height = nodes.new('ShaderNodeTexImage')
             node_tex_height.label = "Texture: Height"
             node_tex_height.name = "tex_height"
-            node_tex_height.location = (243.0, 154.0)
+            node_tex_height.location = (284.0, 356.0)
 
             node_tex_height.image = nvb_utils.create_image(
                 texture_list[4], img_filepath, img_search)
-            node_tex_height.color_space = 'NONE'  # Not rgb data
+            node_tex_height.image.colorspace_settings.name = 'Non-Color'
 
             node_displ = nodes.new('ShaderNodeDisplacement')
-            node_displ.location = (546.0, 210.0)
+            node_displ.location = (587.0, 412.0)
 
             links.new(node_displ.inputs[0], node_tex_height.outputs[0])
             links.new(node_out.inputs[2], node_displ.outputs[0])
 
-        # 5 = Illumination/ Emission/ Glow
-        node_shd_emit.inputs[0].default_value = color_list[5]
+        # 5 = Illumination, Emission, Glow
+        node_shd_bsdf.inputs[17].default_value = color_list[5]
         if texture_list[5]:
-            # Setup:
-            # Image Texture => Emission Shader =>
-            #                                     Mix Shader => Material Output
-            #                  Principled BSDF =>
+            # Setup: Image Texture => Principled BSDF (Emission socket)
             node_tex_emit = nodes.new('ShaderNodeTexImage')
             node_tex_emit.label = "Texture: Emissive"
             node_tex_emit.name = "tex_emissive"
-            node_tex_emit.location = (-510.0, 420.0)
+            node_tex_emit.location = (-551.1, 344.9)
 
             node_tex_emit.image = nvb_utils.create_image(
                 texture_list[5], img_filepath, img_search)
-            node_tex_emit.color_space = 'COLOR'
+            node_tex_emit.image.colorspace_settings.name = 'sRGB'
 
-            links.new(node_shd_emit.inputs[0], node_tex_emit.outputs[0])
+            node_mixrgb_emit = nodes.new('ShaderNodeMixRGB')
+            node_mixrgb_emit.label = "MixRGB: Emissive"
+            node_mixrgb_emit.name = "mixrgb_emissive"
+            node_mixrgb_emit.location = (-201.5, 282.0)
+            node_mixrgb_emit.inputs[2].default_value = color_list[5]
+
+            links.new(node_shd_bsdf.inputs[17], node_mixrgb_emit.outputs[0])
+            links.new(node_mixrgb_emit.inputs[1], node_tex_emit.outputs[0])
+            #links.new(node_shd_bsdf.inputs[17], node_tex_emit.outputs[0])
 
     @staticmethod
     def add_node_data_spec(material, output_label,
@@ -759,7 +738,7 @@ class Materialnode(object):
 
             node_tex_diff.image = nvb_utils.create_image(
                 texture_list[0], img_filepath, img_search)
-            node_tex_diff.color_space = 'COLOR'
+            node_tex_diff.image.colorspace_settings.name = 'sRGB'
 
             links.new(node_shader_spec.inputs[0], node_tex_diff.outputs[0])
             links.new(node_math.inputs[0], node_tex_diff.outputs[1])
@@ -774,7 +753,7 @@ class Materialnode(object):
 
             node_tex_norm.image = nvb_utils.create_image(
                 texture_list[1], img_filepath, img_search)
-            node_tex_norm.color_space = 'NONE'  # Not rgb data
+            node_tex_norm.image.colorspace_settings.name = 'Non-Color'
 
             node_normal = nodes.new('ShaderNodeNormalMap')
             node_normal.location = (191.0, -71.0)
@@ -793,7 +772,7 @@ class Materialnode(object):
 
             node_tex_spec.image = nvb_utils.create_image(
                 texture_list[2], img_filepath, img_search)
-            node_tex_spec.color_space = 'COLOR'
+            node_tex_spec.image.colorspace_settings.name = 'sRGB'
 
             links.new(node_shader_spec.inputs[1], node_tex_spec.outputs[0])
 
@@ -807,7 +786,7 @@ class Materialnode(object):
 
             node_tex_rough.image = nvb_utils.create_image(
                 texture_list[3], img_filepath, img_search)
-            node_tex_rough.color_space = 'NONE'  # Single channel
+            node_tex_rough.image.colorspace_settings.name = 'Non-Color'
 
             links.new(node_shader_spec.inputs[2], node_tex_rough.outputs[0])
 
@@ -821,7 +800,7 @@ class Materialnode(object):
 
             node_tex_height.image = nvb_utils.create_image(
                 texture_list[4], img_filepath, img_search)
-            node_tex_height.color_space = 'NONE'  # Single channel
+            node_tex_height.image.colorspace_settings.name = 'Non-Color'
 
             node_ao = nodes.new('ShaderNodeAmbientOcclusion')
             node_ao.location = (372.0, -119.0)
@@ -840,7 +819,7 @@ class Materialnode(object):
 
             node_tex_emit.image = nvb_utils.create_image(
                 texture_list[5], img_filepath, img_search)
-            node_tex_emit.color_space = 'NONE'  # Single channel
+            node_tex_emit.image.colorspace_settings.name = 'Non-Color'
 
             links.new(node_shader_spec.inputs[3], node_tex_emit.outputs[0])
 

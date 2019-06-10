@@ -618,9 +618,13 @@ class Trimesh(Node):
                              for l, vc in zip(mesh.loops, vcolor_data)}
             return per_loop_data.values()
 
-        me = obj.to_mesh(options.depsgraph,
-                         options.apply_modifiers,
-                         calc_undeformed=False)
+        obj_to_export = None
+        if options.apply_modifiers:
+            obj_to_export = obj.evaluated_get(options.depsgraph)
+        else:
+            obj_to_export = obj.original
+        me = obj_to_export.to_mesh(preserve_all_data_layers=True,
+                                   depsgraph=options.depsgraph)
         # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
 
         # Triangulate
@@ -637,10 +641,7 @@ class Trimesh(Node):
         dig_u = 1  # digits for formatting
         if (options.uv_level == 'ALL') or \
            (options.uv_level == 'REN' and obj.nvb.render):
-            # Adds scaling factor from the texture slot to uv coordinates
-            # uvScale = (1.0, 1.0)
-            # if obj.active_material:
-            #     if obj.active_material.active_texture:
+            # TODO: Adds scaling factor from the texture slot to uv coordinates
 
             # Find out which UV layers to export:
             uv_layer_list = mesh_get_uvs_to_export(me, options.uv_order)
@@ -688,7 +689,7 @@ class Trimesh(Node):
                     del me_tangents
 
         # Generate Smoothgroups
-        me_face_grp = mesh_get_smoothgroups(me, obj, options)
+        me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
         dig_g = max(1, len(str(max(me_face_grp))))  # digits for formatting
 
         # Face vertex indices
@@ -714,7 +715,9 @@ class Trimesh(Node):
                3 * (' {:' + str(dig_u) + 'd}') + ' {:' + str(dig_m) + 'd}'
         ascii_lines.extend([fstr.format(*fd[0], fd[1], *fd[2], fd[3])
                             for fd in face_data])
-        bpy.data.meshes.remove(me)
+        # Cleanup
+        # bpy.data.meshes.remove(me)
+        obj_to_export.to_mesh_clear()
 
     @classmethod
     def generateAsciiData(cls, obj, asciiLines, options, iswalkmesh=False):
@@ -1469,9 +1472,13 @@ class Aabb(Trimesh):
             bm.free()
             del bm
 
-        me = obj.to_mesh(options.depsgraph,
-                         options.apply_modifiers,
-                         calc_undeformed=False)
+        obj_to_export = None
+        if options.apply_modifiers:
+            obj_to_export = obj.evaluated_get(options.depsgraph)
+        else:
+            obj_to_export = obj.original
+        me = obj_to_export.to_mesh(preserve_all_data_layers=True,
+                                   depsgraph=options.depsgraph)
         mesh_triangulate(me)
 
         poly_list = []

@@ -44,6 +44,7 @@ class Material(object):
 
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
+        # print(" ")
         # print("looking for: ")
         # print(self.texture_list)
         # print(self.color_list[5])

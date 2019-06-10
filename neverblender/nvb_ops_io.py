@@ -203,7 +203,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Hidden seeting for internal use
         options.filepath = self.filepath
         options.scene = context.scene
-        options.depsgraph = context.depsgraph
+        options.depsgraph = context.evaluated_depsgraph_get()
         options.mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         options.export_metadata = addon_prefs.export_metadata
