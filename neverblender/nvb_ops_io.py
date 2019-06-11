@@ -326,6 +326,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     mdl_location: bpy.props.FloatVectorProperty(
         name='Location',
         description='Location of newly imported model',
+        subtype='TRANSLATION',
         default=(0.0, 0.0, 0.0), size=3, options={'HIDDEN'})
     import_geometry: bpy.props.BoolProperty(
         name='Import Geometry',
@@ -380,12 +381,16 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
 
         # Build list of files
         pathlist = [os.path.join(self.directory, f.name) for f in self.files]
-        if not pathlist:
-            pathlist.append(self.filepath)
-        # Import models
-        for i, filepath in enumerate(pathlist):
-            options.mdl_location = generate_location(i)
-            load_file(context, filepath, options)
+        if pathlist:
+            # Potentially multiple files
+            for i, filepath in enumerate(pathlist):
+                options.mdl_location = generate_location(i)
+                load_file(context, filepath, options)
+        else:
+            # Single file
+            if self.filepath:
+                load_file(context, self.filepath, options)
+
         return {'FINISHED'}
 
     def draw(self, context):
@@ -440,6 +445,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.dummy_size = addon_prefs.import_dummy_size
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
+        print(self.mdl_location)
         options.mdl_location = self.mdl_location
         # Misc Import Settings
         options.import_geometry = self.import_geometry
