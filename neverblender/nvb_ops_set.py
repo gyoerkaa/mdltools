@@ -243,20 +243,20 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                 # mdl_loc = get_group_location(i, row_cnt, col_cnt)
                 filepath = os.path.join(mdl_dir, filename)
                 if os.path.isfile(os.fsencode(filepath)):
-                    bpy.ops.nvb.mdlimport(filepath=filepath,
-                                          import_walkmesh=True,
-                                          import_smoothgroups=True,
-                                          import_normals=True,
-                                          mat_import=True,
-                                          mat_automerge=True,
-                                          mtr_import=True,
-                                          tex_search=False,
-                                          anim_import=True,
-                                          anim_fps_use=False,
-                                          anim_fps=30,
-                                          anim_restpose=True,
-                                          rotmode='XYZ',
-                                          mdl_location=mdl_loc)
+                    bpy.ops.scene.nvb_mdlimport(filepath=filepath,
+                                                import_walkmesh=True,
+                                                import_smoothgroups=True,
+                                                import_normals=True,
+                                                mat_import=True,
+                                                mat_automerge=True,
+                                                mtr_import=True,
+                                                tex_search=False,
+                                                anim_import=True,
+                                                anim_fps_use=False,
+                                                anim_fps=30,
+                                                anim_restpose=True,
+                                                rotmode='XYZ',
+                                                mdl_location=mdl_loc)
                 else:
                     self.report({'INFO'}, filename + ' not found')
 
