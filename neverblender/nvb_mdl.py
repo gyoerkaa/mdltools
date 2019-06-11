@@ -257,6 +257,7 @@ class Mdl():
     @staticmethod
     def generateAsciiWalkmesh(mdl_base, ascii_lines, wkmtype, options):
         """TODO: DOC."""
+        mdlname = mdl_base.name
         wkmObjects = []
         if wkmtype == nvb_def.Walkmeshtype.WOK:
             # Walkmesh for tiles: Append only AABB mesh
@@ -268,9 +269,12 @@ class Mdl():
             wkmRoot = nvb_utils.get_wkm_base(mdl_base, wkmtype)
             if wkmRoot:
                 wkmObjects = [c for c in wkmRoot.children]
-        if not wkmObjects:  # Abort if there is nothing to write
+        # Abort if there is nothing to write
+        if not wkmObjects:
             return
-        Mdl.generateAsciiMeta(mdl_base, ascii_lines, options)
+        # Extra data for wok files
+        if wkmtype == nvb_def.Walkmeshtype.WOK:
+            ascii_lines.append("beginwalkmeshgeom " + mdlname)
         # Write Data
         for obj in wkmObjects:
             nodeType = nvb_utils.getNodeType(obj)
@@ -280,6 +284,10 @@ class Mdl():
                 print("Neverblender: WARNING - Unable to get node type.")
             else:
                 node.generateAscii(obj, ascii_lines, options, True)
+        # Extra data for wok files
+        if wkmtype == nvb_def.Walkmeshtype.WOK:
+            ascii_lines.append("endwalkmeshgeom " + mdlname)
+
 
     def link_objects(self, nodelist, noderesolver, options):
         """Handles parenting and linking of objects to a scene."""

@@ -1857,10 +1857,6 @@ class Aabb(Trimesh):
         """TODO: Doc."""
         Node.generateAsciiData(obj, asciiLines, options, True)
 
-        asciiLines.append('  ambient 1.0 1.0 1.0')
-        asciiLines.append('  diffuse 1.0 1.0 1.0')
-        asciiLines.append('  specular 0.0 0.0 0.0')
-        asciiLines.append('  bitmap ' + nvb_def.null)
         Trimesh.generateAsciiMesh(obj, asciiLines, options, True)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
