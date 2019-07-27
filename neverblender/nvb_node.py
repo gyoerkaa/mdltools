@@ -397,9 +397,7 @@ class Trimesh(Node):
         blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
         blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
 
-        blen_mesh.validate(clean_customdata=False)
         num_blen_polygons = len(blen_mesh.polygons)
-
         if not blen_mesh.polygons:
             return
 
@@ -426,7 +424,6 @@ class Trimesh(Node):
             #    [(f[5], f[6], f[4]) if f[6] == 0 else (f[4], f[5], f[6])
             #     for f in self.facedef]
             face_uv_indices = unpack_list(face_uv_indices)
-
             for layer_idx, uv_coords in enumerate(self.texture_coordinates):
                 if uv_coords:
                     face_uv_coords = [uv_coords[uvi]
@@ -443,7 +440,20 @@ class Trimesh(Node):
         # Import smooth groups as sharp edges
         if options.importSmoothGroups:
             blen_mesh.update()
-            self.create_sharp_edges(blen_mesh, [f[3] for f in self.facedef])
+            # Count number of unique smooth groups
+            sgr_list = set([fd[3] for fd in self.facedef])
+            # Single smooth group with id=0   =>   Non-smooth
+            if len(sgr_list) == 1 and sgr_list.pop() == 0:
+                blen_mesh.polygons.foreach_set(
+                    'use_smooth', [False] * num_blen_polygons)
+                blen_mesh.use_auto_smooth = False
+                blen_mesh.auto_smooth_angle = 0.523599
+            else:
+                blen_mesh.polygons.foreach_set(
+                    'use_smooth', [True] * num_blen_polygons)
+                blen_mesh.use_auto_smooth = True
+                blen_mesh.auto_smooth_angle = 1.570796
+                self.create_sharp_edges(blen_mesh, [fd[3] for fd in self.facedef])
 
         if self.normals and blen_mesh.loops and options.import_normals:
             # Create normals and use them for shading
@@ -460,18 +470,6 @@ class Trimesh(Node):
             blen_mesh.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
             blen_mesh.use_auto_smooth = True
 
-        elif options.importSmoothGroups:
-            # Use shading groups for shading
-            # (single smoothgroup with value 0 means non-smooth)
-            sgr_list = set([fd[3] for fd in self.facedef])
-            if len(sgr_list) == 1 and sgr_list.pop() == 0:  # non-smooth
-                blen_mesh.polygons.foreach_set(
-                    'use_smooth', [False] * num_blen_polygons)
-                blen_mesh.use_auto_smooth = False
-                blen_mesh.auto_smooth_angle = 0.523599
-            else:  # fully smooth
-                blen_mesh.use_auto_smooth = True
-                blen_mesh.auto_smooth_angle = 1.570796
         blen_mesh.validate(clean_customdata=False)
 
         return blen_mesh

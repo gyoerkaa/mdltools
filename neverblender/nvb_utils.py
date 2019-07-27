@@ -6,7 +6,7 @@ import os
 import math
 import re
 import collections
-import unicodedata
+# import unicodedata
 
 import bpy_extras.image_utils
 
@@ -252,9 +252,9 @@ def generate_node_name(obj, strip_trailing=False):
         if strip_trailing:
             new_name = strip_trailing_numbers(obj.name)
         new_name = new_name.replace(' ', '_')
-        new_name = unicodedata.normalize('NFKD', new_name) \
-            .encode('ascii', 'ignore').decode()
-        # new_name = re.sub(r'[^a-zA-Z0-9_\-\.]', r'=', new_name)
+        # new_name = unicodedata.normalize('NFKD', new_name) \
+        #     .encode('ascii', 'ignore').decode()
+        new_name = re.sub(r'[^a-zA-Z0-9_\-\.]', r'=', new_name)
     return new_name
 
 
@@ -492,22 +492,20 @@ def get_textures(material):
 def create_image(img_name, img_path, tex_search):
     """TODO: Doc."""
     img_dir = os.path.dirname(img_path)
-    # Prefer tga over dds
-    img = bpy_extras.image_utils.load_image(
-        img_name + '.tga',
-        img_dir,
-        recursive=tex_search,
-        place_holder=False,
-        ncase_cmp=True,
-        check_existing=True)
-    if not img:
+    # List of extension we try will try to import
+    img_ext_list = ['.tga', '.png', '.dds']
+    img_ext_idx = 0
+    img = None
+    while (not img and img_ext_idx<len(img_ext_list)):
         img = bpy_extras.image_utils.load_image(
-            img_name + '.dds',
+            img_name + img_ext_list[img_ext_idx],
             img_dir,
             recursive=tex_search,
             place_holder=False,
             ncase_cmp=True,
             check_existing=True)
+        img_ext_idx += 1
+    # No image found => create a dummy image instead
     if not img:
         img = bpy.data.images.new(img_name, 512, 512)
     img.name = img_name

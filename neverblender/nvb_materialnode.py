@@ -288,7 +288,7 @@ class Materialnode(object):
             socket = node.inputs[0]  # 0 = Surface
             if socket.is_linked:
                 return Materialnode.find_roughness_socket(socket.links[0].from_node)
-        elif node.type == 'EEVEE_SPECULAR':  # Return this sockett
+        elif node.type == 'EEVEE_SPECULAR':  # Return this socket
             return node.inputs[2]  # 2 = Roughness
         elif node.type == 'BSDF_PRINCIPLED':  # Return this socket
             return node.inputs[7]  # 7 = Roughness
@@ -536,7 +536,8 @@ class Materialnode(object):
 
         # Roughness (3)
         input_socket = Materialnode.find_roughness_socket(node_out)
-        texture_list[3], _ = get_data_tuple(input_socket)
+        texture_list[3], color_list[3] = get_data_tuple(input_socket,
+                                                        (1.0, ))
 
         # Height/Ambient Occlusion (4)
         input_socket = Materialnode.find_height_socket(node_out)
@@ -618,6 +619,7 @@ class Materialnode(object):
             links.new(node_shd_bsdf.inputs[19], node_norm.outputs[0])
 
         # 2 = Specular
+        node_shd_bsdf.inputs[5].default_value = color_list[2][0]
         if texture_list[2]:
             # Setup: Image Texture => Principled BSDF
             node_tex_spec = nodes.new('ShaderNodeTexImage')
@@ -713,7 +715,7 @@ class Materialnode(object):
         node_shader_spec.inputs[0].default_value = color_list[0]
 
         # Setup: Image Texture (Alpha) => Math (Multiply mdl alpha)
-        #        => Invert => Eevee Specular (Tranparency)
+        #        => Invert => Eevee Specular (Transparency)
         node_invert = nodes.new('ShaderNodeInvert')
         node_invert.label = "Alpha to Transparency"
         node_invert.name = "invert_alpha2trans"
@@ -777,6 +779,7 @@ class Materialnode(object):
             links.new(node_shader_spec.inputs[1], node_tex_spec.outputs[0])
 
         # 3 = Roughness
+        node_shader_spec.inputs[2].default_value = color_list[3][0]
         if texture_list[3]:
             # Setup: Image Texture => Eevee Specular (Roughness)
             node_tex_rough = nodes.new('ShaderNodeTexImage')

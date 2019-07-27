@@ -20,7 +20,7 @@ class Material(object):
         self.texture_list = [None] * 15
         self.color_list = [(1.0, 1.0, 1.0, 1.0)] * 15
         self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Specular
-        self.color_list[3] = (0.2, )  # Roughness
+        self.color_list[3] = (1.0, )  # Roughness
         self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Illumination/Emission
         self.renderhints = set()
         self.mtr_name = None
@@ -156,7 +156,7 @@ class Material(object):
         if not blender_mat:
             new_name = self.generate_material_name()
             blender_mat = bpy.data.materials.new(new_name)
-            blender_mat.blend_method = 'BLEND'
+            blender_mat.blend_method = 'HASHED'  # 'BLEND' doesn't play nice
             blender_mat.show_transparent_back = False
 
             blender_mat.nvb.use_mtr = bool(self.mtr_name) or \

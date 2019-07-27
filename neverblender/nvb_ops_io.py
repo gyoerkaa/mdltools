@@ -445,7 +445,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.dummy_size = addon_prefs.import_dummy_size
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
-        print(self.mdl_location)
         options.mdl_location = self.mdl_location
         # Misc Import Settings
         options.import_geometry = self.import_geometry

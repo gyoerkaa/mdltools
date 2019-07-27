@@ -92,12 +92,6 @@ class Mtr(object):
             return  # Probably empty line or comment
         if label == 'renderhint':
             self.renderhints.add(nvb_utils.str2identifier(line[1]))
-        elif label == 'diffuse':
-            self.color_list[0] = nvb_parse.ascii_color(line[1:])
-        elif label == 'specular':
-            self.color_list[2] = nvb_parse.ascii_color(line[1:])
-        elif label == 'roughness':
-            self.color_list[3] = nvb_parse.ascii_color(line[1:])
         elif label in ['selfillumcolor', 'setfillumcolor']:
             self.color_list[4] = nvb_parse.ascii_color(line[1:])
         elif label == 'parameter':
@@ -107,8 +101,14 @@ class Mtr(object):
                 pvalues = line[3:7]
             except IndexError:
                 return
-            pvalues = Mtr.readParamValues(pvalues)
-            self.parameters[pname] = (ptype, pvalues)
+            else:
+                pvalues = Mtr.readParamValues(pvalues)
+                if (pname=="specular"):
+                    self.color_list[2] = nvb_parse.ascii_color(line[3:])
+                elif (pname=="roughness"):
+                    self.color_list[3] = nvb_parse.ascii_float(pvalues[3])
+                else:
+                    self.parameters[pname] = (ptype, pvalues)
         elif label == 'customshadervs':
             self.customshaderVS = line[1]
         elif label == 'customshaderfs':
