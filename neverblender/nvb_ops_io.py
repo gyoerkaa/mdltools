@@ -383,11 +383,13 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         pathlist = [os.path.join(self.directory, f.name) for f in self.files]
         if pathlist:
             # Potentially multiple files
+            # Always auto generate location
             for i, filepath in enumerate(pathlist):
                 options.mdl_location = generate_location(i)
                 load_file(context, filepath, options)
         else:
-            # Single file
+            # Single file, operator may be called from script
+            # Do NOT overwrite location
             if self.filepath:
                 load_file(context, self.filepath, options)
 
