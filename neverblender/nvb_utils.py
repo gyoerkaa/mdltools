@@ -492,22 +492,22 @@ def get_textures(material):
 def create_image(img_name, img_path, tex_search):
     """TODO: Doc."""
     img_dir = os.path.dirname(img_path)
-    # List of extension we try will try to import
-    img_ext_list = ['.tga', '.png', '.dds']
-    img_ext_idx = 0
+    # List of extensions we try will try to import
+    img_ext_list = ['.tga', '.png', '.psd', '.dds']
     img = None
-    while (not img and img_ext_idx<len(img_ext_list)):
+    for img_ext in img_ext_list:
         img = bpy_extras.image_utils.load_image(
-            img_name + img_ext_list[img_ext_idx],
+            img_name + img_ext,
             img_dir,
             recursive=tex_search,
             place_holder=False,
             ncase_cmp=True,
             check_existing=True)
-        img_ext_idx += 1
-    # No image found => create a dummy image instead
+        if img:
+            break
+    # No image found => create a placeholder image instead
     if not img:
-        img = bpy.data.images.new(img_name, 512, 512)
+        img = bpy.data.images.new(name=img_name, width=512, height=512)
     img.name = img_name
     return img
 

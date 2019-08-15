@@ -522,19 +522,49 @@ class Trimesh(Node):
 
         def mesh_get_smoothgroups(mesh, obj, options):
             """Get the smoothing group for each face."""
-            groups = []
+            def find_free_connected(bm_face, face_list):
+                """Find all untagged faces connected to bm_face."""
+                if bm_face.tag:
+                    return
+                bm_face.tag = True
+                face_list.append(bm_face.index)
+                for e in bm_face.edges:
+                    if e.smooth:
+                        for lf in e.link_faces:
+                            find_free_connected(lf, face_list)
+
+            all_groups = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.export_smoothgroups):
                 # 0 = Do not use smoothgroups
-                groups = [0] * len(mesh.polygons)
+                all_groups = [0] * len(mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
                  (options.export_normals):
                 # All faces belong to smooth group 1
-                groups = [1] * len(mesh.polygons)
+                all_groups = [1] * len(mesh.polygons)
             else:
-                groups, _ = mesh.calc_smooth_groups()
-            return groups
+                # all_groups, _ = mesh.calc_smooth_groups()
+                bm = bmesh.new()
+                bm.from_mesh(mesh)
+
+                for f in bm.faces:
+                    f.tag = False
+                    
+                group_idx = 1        
+                for f in bm.faces:
+                    if not f.tag:
+                        group_idx = group_idx+1
+                        connected_faces = []
+                        find_free_connected(f, connected_faces)
+                        group = [(cf, group_idx) for cf in connected_faces]
+                        all_groups.extend(group)
+                # Keep only group indices, but sort by face index
+                all_groups = [g[1] for g in sorted(all_groups, key=lambda f: f[0])]
+
+                bm.free()
+                del bm
+            return all_groups
 
         def mesh_get_normals(mesh, uvl_name):
             """Get normals and tangets for this mesh."""
