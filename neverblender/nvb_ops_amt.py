@@ -130,7 +130,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             psd_bone_root.parent = mdl_base
             psd_bone_root.location = armature.location
             self.collection.objects.link(psd_bone_root)
-        context.scene.update()
+        context.evaluated_depsgraph_get().update()
         return mdl_base, psd_bone_root
 
     def create_mesh(self, mvector, meshname):
@@ -428,7 +428,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             for amt_bone in armature.data.bones:
                 if not amt_bone.parent:
                     self.create_psd_bones(amt_bone, psd_bone_root)
-            context.scene.update()
+            context.evaluated_depsgraph_get().update()
         bpy.ops.object.mode_set(mode='OBJECT')
 
         # Transfer animations
@@ -466,7 +466,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                                      transtime])
             self.copy_animations(mdl_base, armature, anim_list, True)
 
-        context.scene.update()
+        context.evaluated_depsgraph_get().update()
         return {'FINISHED'}
 
 
@@ -570,7 +570,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         for child in psd_bone_root.children:
             if self.is_psd_bone(child):
                 self.create_bones_rec(amt, child, auto_connect, strip_name)
-        context.scene.update()
+        context.evaluated_depsgraph_get().update()
         bpy.ops.object.mode_set(mode='OBJECT')
 
     def create_bone_properties(self, context, amt):

@@ -113,7 +113,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Set frame to zero, if specified in options
         if self.frame_set_zero:
             options.scene.frame_current = 0
-            bpy.context.scene.update()
+            bpy.context.evaluated_depsgraph_get().update()
         # Gather MDLs to export
         mdl_list = []
         if options.batch_mode == 'OFF':  # Get active object only

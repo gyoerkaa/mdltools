@@ -917,7 +917,7 @@ class NVB_OT_amt_event_delete(bpy.types.Operator):
                           if id >= event_list_idx]
         self.adjust_event_fcurves(amt, event_idx_list)
         # We potentially removed keyframes => update scene
-        context.scene.update()
+        context.evaluated_depsgraph_get().update()
         # Remove current event from List
         event_list.remove(event_list_idx)
         if event_list_idx > 0:

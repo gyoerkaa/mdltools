@@ -458,6 +458,6 @@ class NVB_OT_util_transform(bpy.types.Operator):
             mdl_base.matrix_basis = matR.to_matrix().to_4x4()  # keep rot
             # Apply translation to immediate children and scale to all
             self.adjust_objects2(mdl_base, vecS, vecT)
-            context.scene.update()
             context.scene.collection.objects.update()
+            context.evaluated_depsgraph_get().update()
             return {'FINISHED'}
