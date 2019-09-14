@@ -467,6 +467,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             self.copy_animations(mdl_base, armature, anim_list, True)
 
         context.evaluated_depsgraph_get().update()
+        context.view_layer.update()
         return {'FINISHED'}
 
 
@@ -838,4 +839,6 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                 amt.animation_data.action = action
         bpy.ops.object.mode_set(mode='OBJECT')
         del self.generated_bones
+        context.view_layer.update()
+        
         return {'FINISHED'}

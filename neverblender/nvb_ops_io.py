@@ -374,22 +374,25 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
                                   nvb_def.Walkmeshtype.DWK, options)
             mdl.create(options)
 
-        def generate_location(idx):
-            k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
-            return (10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
-                    10.0 * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
+        def generate_import_loc(i, placement='SPIRAL', spacing=10.0):
+            """Generate a location for the imported model"""
+            if placement == 'LINE':
+                return (spacing * i, 0.0, 0.0)     
+            else:  # 'SPIRAL' is default
+                k = math.floor(math.floor(math.sqrt(i)-1)/2)+1
+                return (spacing * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
+                        spacing * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)                  
 
         # Build list of files
-        pathlist = [os.path.join(self.directory, f.name) for f in self.files]
-        if pathlist:
-            # Potentially multiple files
-            # Always auto generate location
-            for i, filepath in enumerate(pathlist):
-                options.mdl_location = generate_location(i)
-                load_file(context, filepath, options)
+        path_list = [os.path.join(self.directory, f.name) for f in self.files]
+        if path_list:
+            # Potentially multiple files => Always generate+overwrite locations 
+            loc_list = [generate_import_loc(i, options.placement) for i in range(len(path_list))]
+            for loc, path in zip(loc_list, path_list):
+                options.mdl_location = loc
+                load_file(context, path, options)
         else:
-            # Single file, operator may be called from script
-            # Do NOT overwrite location
+            # Single file => NEVER overwrite locations 
             if self.filepath:
                 load_file(context, self.filepath, options)
 
@@ -445,6 +448,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.collection = context.collection
         options.dummy_type = addon_prefs.import_dummy_type
         options.dummy_size = addon_prefs.import_dummy_size
+        options.placement = addon_prefs.import_placement
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
         options.mdl_location = self.mdl_location

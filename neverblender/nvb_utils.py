@@ -105,12 +105,11 @@ def get_mdl_base(obj=None, collection=None, scene=None):
 
 def get_active_collection(context):
     """Get active collection or create a new one"""
-    scene = context.scene
     view_layer = context.view_layer
     if view_layer.collections.active:
         collection = view_layer.collections.active.collection
     else:
-        collection = scene.master_collection.new()
+        collection = context.scene.master_collection.new()
         view_layer.collections.link(collection)
     return collection
 
@@ -254,7 +253,7 @@ def generate_node_name(obj, strip_trailing=False):
         new_name = new_name.replace(' ', '_')
         # new_name = unicodedata.normalize('NFKD', new_name) \
         #     .encode('ascii', 'ignore').decode()
-        new_name = re.sub(r'[^a-zA-Z0-9_\-\.]', r'=', new_name)
+        new_name = re.sub(r'[^a-zA-Z0-9_!\-\.]', r'!', new_name)
     return new_name
 
 
@@ -549,3 +548,22 @@ def create_texture(texname, imgname, filepath, tex_search):
             img.name = imgname
             tex.image = img
     return tex
+
+
+def correct_emitter_parameters(param):
+    """Correct emitter parameters, which are case sensitive."""
+    correct = {'normal': 'Normal', 
+               'lighten': 'Lighten',
+               'linked': 'Linked',
+               'billboard_to_local_z': 'Billboard_to_Local_Z',
+               'billboard_to_world_z': 'Billboard_to_World_Z',
+               'aligned_to_world_z': 'Aligned_to_World_Z',
+               'aligned_to_particle_dir': 'Aligned_to_Particle_Dir',
+               'motion_blur': 'Motion_Blur',
+               'fountain': 'Fountain',
+               'single': 'Single',
+               'explosion': 'Explosion',
+               'lightning': 'Lightning'}
+    if param in correct:
+        return correct[param]
+    return param

@@ -228,6 +228,7 @@ class ImportOptions():
         self.hide_fading = False
         self.dummy_type = 'PLAIN_AXES'
         self.dummy_size = 1.0
+        self.placement = 'SPIRAL'
         self.mdl_location = (0.0, 0.0, 0.0)
         # Misc options
         self.import_geometry = True

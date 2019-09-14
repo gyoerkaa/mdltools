@@ -416,7 +416,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return [vertex_list, vertex_height]
 
     @staticmethod
-    def create_pwk_mesh(mdl_base, pwk_base, mesh_name, scene,
+    def create_pwk_mesh(mdl_base, pwk_base, mesh_name, layer,
                         pwk_mode, detect_islands=True):
         """Create the placeable walkmesh for this mdl."""
         pwk_obj = None
@@ -435,7 +435,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             pwk_obj.parent = pwk_base
             for collection in pwk_base.users_collection:
                 collection.objects.link(pwk_obj)
-            scene.update()
+            layer.update()
             # Use modifier to dissolve faces/verts along straight lines
             modifier = pwk_obj.modifiers.new(name='Decimate', type='DECIMATE')
             modifier.decimate_type = 'DISSOLVE'
@@ -450,7 +450,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return pwk_obj
 
     @staticmethod
-    def create_empties(empty_data, prefix, parent, scene, obj_list=[]):
+    def create_empties(empty_data, prefix, parent, layer, obj_list=[]):
         """Create empty objects if not already existing."""
         if not obj_list:
             return
@@ -469,10 +469,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 obj.parent = parent
                 for collection in parent.users_collection:
                     collection.objects.link(obj)
-        scene.update()
+        layer.update()
 
     @staticmethod
-    def create_mdl_dummys(mdl_base, name_prefix, scene):
+    def create_mdl_dummys(mdl_base, name_prefix, layer):
         """Create necessary empties/dummies for the mdl."""
         mdl_objects = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, mdl_objects)
@@ -501,10 +501,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                       ['_impact', mdl_center],
                       ['_ground', (*mdl_center[:2], 0.0)]]
         NVB_OT_util_nodes_pwk.create_empties(
-            dummy_data, name_prefix, mdl_base, scene, mdl_objects)
+            dummy_data, name_prefix, mdl_base, layer, mdl_objects)
 
     @staticmethod
-    def create_pwk_dummys(mdl_base, name_prefix, scene, pwk_base, pwk_mesh):
+    def create_pwk_dummys(mdl_base, name_prefix, layer, pwk_base, pwk_mesh):
         """Create necessary empties/dummies for the pwk."""
         objects_to_check = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
@@ -525,9 +525,9 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         dummy_data = [['_PWK_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
                       ['_PWK_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
         NVB_OT_util_nodes_pwk.create_empties(
-            dummy_data, name_prefix, pwk_base, scene, objects_to_check)
+            dummy_data, name_prefix, pwk_base, layer, objects_to_check)
 
-    def setup_placeable(self, mdl_base, scene, pwk_mode, detect_islands):
+    def setup_placeable(self, mdl_base, layer, pwk_mode, detect_islands):
         """Adds necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdl_base):
             mdl_name = mdl_base.name
@@ -573,14 +573,14 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         else:  # create new
             pwk_mesh_name = name_prefix + '_wg'
             pwk_mesh = NVB_OT_util_nodes_pwk.create_pwk_mesh(
-                mdl_base, pwk_base, pwk_mesh_name, scene,
+                mdl_base, pwk_base, pwk_mesh_name, layer,
                 pwk_mode, detect_islands)
 
         # Create dummys or check existing - all parented to pwk base
-        NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, scene,
+        NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, layer,
                                                 pwk_base, pwk_mesh)
         # Create dummys or check existing - all parented to mdl base
-        NVB_OT_util_nodes_pwk.create_mdl_dummys(mdl_base, name_prefix, scene)
+        NVB_OT_util_nodes_pwk.create_mdl_dummys(mdl_base, name_prefix, layer)
 
     @classmethod
     def poll(self, context):
@@ -591,13 +591,13 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         addon = context.preferences.addons[__package__]
-        scene = bpy.context.scene
+        layer = context.view_layer
         if not mdl_base:
             self.report({'ERROR'}, 'No Aurora Base')
             return {'CANCELLED'}
         pwk_mode = addon.preferences.util_nodes_pwk_mode
         detect_islands = addon.preferences.util_nodes_pwk_detect_islands
-        self.setup_placeable(mdl_base, scene, pwk_mode, detect_islands)
+        self.setup_placeable(mdl_base, layer, pwk_mode, detect_islands)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
@@ -610,7 +610,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     @staticmethod
-    def create_dwk_mesh(mdl_base, dwk_base, name_prefix, scene, dwk_mode):
+    def create_dwk_mesh(mdl_base, dwk_base, name_prefix, layer, dwk_mode):
         """Create the door walkmesh for this mdl."""
         def get_default_mesh(meshname, dim=mathutils.Vector((0.1, 2.0, 3.0))):
             """Generate the default (walk)mesh for a generic door."""
@@ -665,7 +665,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                     collection.objects.link(dwk_obj)
 
     @staticmethod
-    def create_empties(empty_data, prefix, parent, scene, obj_list=[]):
+    def create_empties(empty_data, prefix, parent, layer, obj_list=[]):
         """Create empty objects if not already existing."""
         for suffix, loc in empty_data:
             dummy_name = prefix + suffix
@@ -682,10 +682,10 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                 obj.parent = parent
                 for collection in parent.users_collection:
                     collection.objects.link(obj)
-        scene.update()
+        layer.update()
 
     @staticmethod
-    def create_mdl_dummys(mdl_base, name_prefix, scene):
+    def create_mdl_dummys(mdl_base, name_prefix, layer):
         """Create necessary empties/dummies for the mdl."""
         objects_to_check = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
@@ -695,10 +695,10 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                       ['_impc', (0.0, 0.0, 1.5)],
                       ['_grnd', (0.0, 0.0, 0.0)]]
         NVB_OT_util_nodes_dwk.create_empties(
-            dummy_data, name_prefix, mdl_base, scene, objects_to_check)
+            dummy_data, name_prefix, mdl_base, layer, objects_to_check)
 
     @staticmethod
-    def create_dwk_dummys(mdl_base, dwk_base, name_prefix, scene, dwk_mode):
+    def create_dwk_dummys(mdl_base, dwk_base, name_prefix, layer, dwk_mode):
         """Create necessary empties/dummies for the dwk."""
         objects_to_check = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
@@ -716,10 +716,10 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                           ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
                           ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)]]
         NVB_OT_util_nodes_dwk.create_empties(
-            dummy_data, name_prefix, dwk_base, scene, objects_to_check)
+            dummy_data, name_prefix, dwk_base, layer, objects_to_check)
 
     @staticmethod
-    def create_sam_mesh(mdl_base, dwk_base, scene, dwk_mode):
+    def create_sam_mesh(mdl_base, dwk_base, layer, dwk_mode):
         """Generate a SAM mesh for a generic door."""
         objects_to_check = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
@@ -730,7 +730,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         # Create Mesh
         vertices = [(-1.0, 0.0, 0.0),
                     (+1.0, 0.0, 0.0),
-                    (1.0, 0.0, 3.0),
+                    (-1.0, 0.0, 3.0),
                     (+1.0, 0.0, 3.0)]
         faces = [(0, 2, 3),
                  (3, 1, 0)]
@@ -744,7 +744,7 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         sam_obj.nvb.shadow = False
         return sam_obj
 
-    def setup_door(self, mdl_base, scene, dwk_mode):
+    def setup_door(self, mdl_base, layer, dwk_mode):
         """Add necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdl_base):
             mdl_name = mdl_base.name
@@ -772,15 +772,15 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
                 collection.objects.link(dwk_base)
         # Create recessary dummy nodes (emtpies) for dwk
         NVB_OT_util_nodes_dwk.create_dwk_dummys(mdl_base, dwk_base, prefix,
-                                                scene, dwk_mode)
+                                                layer, dwk_mode)
         # Create recessary (walk)meshes for dwk
         NVB_OT_util_nodes_dwk.create_dwk_mesh(mdl_base, dwk_base, prefix,
-                                              scene, dwk_mode)
+                                              layer, dwk_mode)
         # Create SAM object for mdl
         NVB_OT_util_nodes_dwk.create_sam_mesh(mdl_base, prefix,
-                                              scene, dwk_mode)
+                                              layer, dwk_mode)
         # Create recessary dummy nodes (emtpies) for mdl
-        NVB_OT_util_nodes_dwk.create_mdl_dummys(mdl_base, prefix, scene)
+        NVB_OT_util_nodes_dwk.create_mdl_dummys(mdl_base, prefix, layer)
 
     @classmethod
     def poll(self, context):
@@ -791,12 +791,12 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
         addon = context.preferences.addons[__package__]
-        scene = bpy.context.scene
+        layer = context.view_layer
         if not mdl_base:
             self.report({'ERROR'}, 'No Aurora Base')
             return {'CANCELLED'}
         dwk_mode = addon.preferences.util_nodes_dwk_mode
-        self.setup_door(mdl_base, scene, dwk_mode)
+        self.setup_door(mdl_base, layer, dwk_mode)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
 
@@ -809,7 +809,7 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
     bl_options = {'UNDO'}
 
     @staticmethod
-    def create_wok_mesh(mdl_base, scene, existing_objects, name_prefix,
+    def create_wok_mesh(mdl_base, layer, existing_objects, name_prefix,
                         wok_mode=None):
         """Adds necessary (walkmesh) objects to mdlRoot."""
         def get_default_mesh(mesh_name, dim=mathutils.Vector((5.0, 5.0, 0.0))):
@@ -841,7 +841,7 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
                 collection.objects.link(wok_obj)
 
     @staticmethod
-    def create_main_lights(mdl_base, scene, existing_objects, name_prefix,
+    def create_main_lights(mdl_base, layer, existing_objects, name_prefix,
                            cnt=2):
         """Add lights (source and main) to the tile mdl."""
         # Check main lights
@@ -870,7 +870,7 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
                     collection.objects.link(obj)
 
     @staticmethod
-    def create_source_lights(mdl_base, scene, existing_objects, name_prefix,
+    def create_source_lights(mdl_base, layer, existing_objects, name_prefix,
                              cnt=2):
         """Add lights (source and main) to the tile mdl."""
         # Check main lights
@@ -895,7 +895,7 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
                 for collection in mdl_base.users_collection:
                     collection.objects.link(obj)
 
-    def setup_tile(self, mdl_base, scene):
+    def setup_tile(self, mdl_base, layer):
         """Add necessary (walkmesh) objects to mdlRoot."""
         def get_prefix(mdl_base):
             mdl_name = mdl_base.name
@@ -908,11 +908,11 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
         existing_objects = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, existing_objects)
         NVB_OT_util_nodes_tile.create_wok_mesh(
-            mdl_base, scene, existing_objects, name_prefix)
+            mdl_base, layer, existing_objects, name_prefix)
         NVB_OT_util_nodes_tile.create_main_lights(
-            mdl_base, scene, existing_objects, mdl_base.name)
+            mdl_base, layer, existing_objects, mdl_base.name)
         NVB_OT_util_nodes_tile.create_source_lights(
-            mdl_base, scene, existing_objects, mdl_base.name)
+            mdl_base, layer, existing_objects, mdl_base.name)
 
     @classmethod
     def poll(self, context):
@@ -922,10 +922,10 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
     def execute(self, context):
         """Create Walkmesh root and objects."""
         mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        scene = context.scene
+        layer = context.view_layer
         if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
             return {'CANCELLED'}
-        self.setup_tile(mdl_base, scene)
+        self.setup_tile(mdl_base, layer)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}

@@ -1112,25 +1112,15 @@ class Emitter(Node):
 
     def create_blender_mesh(self, objName, options):
         """TODO: Doc."""
-        # Create the mesh itself
-        blen_mesh = bpy.data.meshes.new(objName)
-        # Create vertices
-        blen_mesh.vertices.add(len(self.vertex_coords))
-        blen_mesh.vertices.foreach_set('co', unpack_list(self.vertex_coords))
-        # Create faces
-        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
-        face_cnt = len(face_vids)
-        blen_mesh.polygons.add(face_cnt)
-        blen_mesh.loops.add(face_cnt * 3)
-        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
-        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
-        blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        blen_mesh.update()
-
-        em_size = (max(self.xsize/100, 0), max(self.ysize/100, 0))
-        scale_mat = mathutils.Matrix.Scale(em_size[0], 4, [1, 0, 0]) @ \
-            mathutils.Matrix.Scale(em_size[1], 4, [0, 1, 0])
-        blen_mesh.transform(scale_mat)
+        em_x = max(self.xsize/100, 0)/2
+        em_y = max(self.ysize/100, 0)/2
+        vertices = [ (+em_x, +em_y, 0.0),
+                     (+em_x, -em_y, 0.0),
+                     (-em_x, +em_y, 0.0),
+                     (-em_x, -em_y, 0.0) ]
+        faces = [(0, 2, 3),
+                 (3, 1, 0)]
+        blen_mesh = nvb_utils.build_mesh(vertices, faces, objName)
 
         blen_mesh.validate()
         blen_mesh.update()
@@ -1172,13 +1162,13 @@ class Emitter(Node):
         part_set = part_sys.settings
         if not part_set:
             return
-
-        ascii_lines.append('xsize ' + str(obj.dimensions.x*100))
-        ascii_lines.append('ysize ' + str(obj.dimensions.y*100))
+            
+        ascii_lines.append('  xsize {:3.2f}'.format(obj.dimensions.x*100))
+        ascii_lines.append('  ysize {:3.2f}'.format(obj.dimensions.y*100))
         # Emitter Properties
-        ascii_lines.append(form_prop('update', part_set.nvb.update))
-        ascii_lines.append(form_prop('render', part_set.nvb.render))
-        ascii_lines.append(form_prop('blend', part_set.nvb.blend))
+        ascii_lines.append(form_prop('update', nvb_utils.correct_emitter_parameters(part_set.nvb.update)))
+        ascii_lines.append(form_prop('render', nvb_utils.correct_emitter_parameters(part_set.nvb.render)))
+        ascii_lines.append(form_prop('blend',  nvb_utils.correct_emitter_parameters(part_set.nvb.blend)))
         ascii_lines.append(form_prop('spawntype', part_set.nvb.spawntype))
         ascii_lines.append(form_prop('renderorder', part_set.nvb.renderorder))
         if part_set.nvb.update == 'single':

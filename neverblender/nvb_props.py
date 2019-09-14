@@ -64,6 +64,13 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         name='Dummy Size',
         description='Size of the Empty to use for Dummies',
         default=0.5, min=0.1, max=1.0)
+    import_placement: bpy.props.EnumProperty(
+        name="Placement",
+        description="Placement when importing multiple models",
+        items=[('SPIRAL', "Spiral", "Spiral on a 10x10 Grid", 0),
+               ('LINE', "Line", "Line with 10 units distance", 1) ],
+        default='SPIRAL')
+
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
         name='Type',
@@ -176,6 +183,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'import_dummy_type')
         box.prop(self, 'import_dummy_size')
 
+        box.prop(self, 'import_placement')
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
