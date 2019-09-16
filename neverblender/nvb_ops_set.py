@@ -222,21 +222,19 @@ class NVB_OT_set_massimport(bpy.types.Operator):
 
     def mass_load_mdl(self, mdl_dir, mdl_list, set_mode, row_cnt, col_cnt):
         """Import all mdl in list."""
-        def get_group_location(idx, row_cnt, col_cnt):
-            """Generate a location for the tile from its row and column."""
-            return (10.0 * (idx % col_cnt), 10.0 * (idx % row_cnt), 0.0)
-
-        def get_spiral_location(idx):
+        def get_spiral_location(idx, spacing=10.0):
             k = math.floor(math.floor(math.sqrt(idx)-1)/2)+1
-            return (10.0 * min(k, max(-k, -2*k + abs(idx-(4*k*k)-k))),
-                    10.0 * min(k, max(-k, -2*k + abs(idx-(4*k*k)+k))), 0.0)
+            return (spacing * min(k, max(-k, -2*k + abs(idx-(4*k*k)-k))),
+                    spacing * min(k, max(-k, -2*k + abs(idx-(4*k*k)+k))), 
+                    0.0)
 
         # Build a list of locations for the models
-        if set_mode == 'TR':
-            loc_list = [get_spiral_location(i) for i in range(len(mdl_list))]
+        if set_mode == 'GP':
+            loc_list = [(10.0 * c, 10.0 * r, 0.0) for r in range(row_cnt) 
+                        for c in range(col_cnt)]
         else:
-            loc_list = [get_group_location(i, row_cnt, col_cnt)
-                        for i in range(len(mdl_list))]
+            loc_list = [get_spiral_location(i) for i in range(len(mdl_list))]
+
         for mdl_loc, mdl_name in zip(loc_list, mdl_list):
             if mdl_name:  # '' == don't import
                 filename = mdl_name + '.mdl'
