@@ -485,7 +485,7 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                                       description='Texture name',
                                       subtype='FILE_NAME', maxlen=64,
                                       default=nvb_def.null, options=set())
-    chunk: bpy.props.StringProperty(name='Chunk',
+    chunkname: bpy.props.StringProperty(name='Chunk Name',
                                     description='Model name for a chunk',
                                     subtype='FILE_NAME', maxlen=16,
                                     default=nvb_def.null, options=set())
@@ -614,7 +614,8 @@ class NVB_PG_lamp(bpy.types.PropertyGroup):
                                          options=set())
     fadinglight: bpy.props.BoolProperty(name='Fading light',
                                         default=True, options=set())
-    isdynamic: bpy.props.BoolProperty(name='Is Dynamic',
+    isdynamic: bpy.props.BoolProperty(name='Dynamic',
+                                      description='Set this to 1 for animated lights and 0 for (tile) manin lights',
                                       default=True, options=set())
     affectdynamic: bpy.props.BoolProperty(
                 name='Affect Dynamic',

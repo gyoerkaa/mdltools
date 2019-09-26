@@ -1027,7 +1027,7 @@ class Emitter(Node):
          'deadspace': ('nvb.deadspace', 1, float, ' {:>4.2f}'),
          # Texture
          'texture': ('nvb.texture', 1, nvb_utils.str2texture, ' {:s}'),
-         'chunk': ('nvb.chunk', 1, nvb_utils.str2texture, ' {:s}'),
+         'chunkname': ('nvb.chunkname', 1, nvb_utils.str2texture, ' {:s}'),
          'twosidedtex': ('nvb.twosidedtex', 1, nvb_utils.str2bool, ' {:1d}'),
          'm_istinted': ('nvb.m_istinted', 1, nvb_utils.str2bool, ' {:1d}'),
          # Texture animations
@@ -1145,10 +1145,10 @@ class Emitter(Node):
 
     @classmethod
     def generate_ascii_emitter(cls, obj, ascii_lines, options):
-        """Adds emitter paramters to ascii lines."""
+        """Adds emitter parameters to ascii lines."""
         def form_prop(prop_name, value):
             """Format an emitter property for export."""
-            _, dp_dim, _, val_fstr = Emitter.property_dict[prop_name]
+            _, dp_dim, _, val_fstr = Emitter.property_dict[prop_name.lower()]
             if dp_dim > 1:
                 fstr = '  ' + prop_name + dp_dim * val_fstr
                 return fstr.format(*value)
@@ -1203,7 +1203,7 @@ class Emitter(Node):
 
         # Texture/ Chunk Properties
         if part_set.nvb.particletype == 'chunk':
-            ascii_lines.append(form_prop('chunk', part_set.nvb.chunk))
+            ascii_lines.append(form_prop('chunkName', part_set.nvb.chunk))
         else:  # 'texture'
             ascii_lines.append(form_prop('texture', part_set.nvb.texture))
             ascii_lines.append(form_prop('twosidedtex',
@@ -1274,7 +1274,7 @@ class Light(Node):
         self.lightpriority = 5
         self.color = (0.0, 0.0, 0.0)
         self.ambientonly = 1
-        self.ndynamictype = 1
+        self.ndynamictype = -1  # -1 = not present, use isdynamic instead
         self.isdynamic = 1
         self.affectdynamic = 1
         self.negativelight = 0
@@ -1306,6 +1306,8 @@ class Light(Node):
             self.color = tuple([float(v) for v in line[1:4]])
         elif (label == 'ambientonly'):
             self.ambientonly = nvb_parse.ascii_int(line[1])
+        elif (label == 'ndynamictype'):
+            self.ndynamictype = nvb_parse.ascii_int(line[1])            
         elif (label == 'isdynamic'):
             self.isdynamic = nvb_parse.ascii_int(line[1])
         elif (label == 'affectdynamic'):
@@ -1400,7 +1402,11 @@ class Light(Node):
             data.nvb.shadow = self.shadow
             data.nvb.lightpriority = self.lightpriority
             data.nvb.fadinglight = (self.fadinglight >= 1)
-            data.nvb.isdynamic = (self.isdynamic >= 1)
+            # Dynamic setting: ndynamictype takes precendence over isdynamic 
+            if (self.ndynamictype >= 0):  # -1 = not present
+                data.nvb.isdynamic = (self.ndynamictype >= 1)
+            else:
+                data.nvb.isdynamic = (self.isdynamic >= 1)
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
             # Disable rendering in blender if tile light (color may be black)
             obj.hide_render = options.hide_lights or \
@@ -1427,23 +1433,23 @@ class Light(Node):
 
     @staticmethod
     def generateAsciiFlares(obj, asciiLines):
-        """TODO: Doc."""
+        """Create an ascii representation of flares from a light."""
         lamp = obj.data
         if lamp.nvb.uselensflares:
             asciiLines.append('  flareradius ' +
                               str(round(lamp.nvb.flareradius, 1)))
-            if len(lamp.nvb.flareList) > 0:
-                # TODO: Clean this up
-                asciiLines.append('  texturenames zd')
+            num_flares = len(lamp.nvb.flareList)
+            if num_flares > 0:
+                asciiLines.append('  texturenames ' + str(num_flares))
                 for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + flare.texture)
-                asciiLines.append('  flarepositions zd')
+                asciiLines.append('  flarepositions ' + str(num_flares))
                 for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + str(round(flare.position, 5)))
-                asciiLines.append('  flaresizes zd')
+                asciiLines.append('  flaresizes ' + str(num_flares))
                 for flare in lamp.nvb.flareList:
                     asciiLines.append('    ' + str(flare.size))
-                asciiLines.append('  flarecolorshifts zd')
+                asciiLines.append('  flarecolorshifts ' + str(num_flares))
                 fstr = '    {:3.2f} {:3.2f} {:3.2f}'
                 for flare in lamp.nvb.flareList:
                     asciiLines.append(fstr.format(*(flare.colorshift)))
@@ -1455,7 +1461,7 @@ class Light(Node):
 
         lamp = obj.data
         asciiLines.append('  ambientonly ' + str(int(lamp.nvb.ambientonly)))
-        asciiLines.append('  isdynamic ' + str(int(lamp.nvb.isdynamic)))
+        asciiLines.append('  ndynamictype ' + str(int(lamp.nvb.isdynamic)))
         asciiLines.append('  affectdynamic ' +
                           str(int(lamp.nvb.affectdynamic)))
         asciiLines.append('  shadow ' + str(int(lamp.nvb.shadow)))
@@ -1482,7 +1488,7 @@ class Aabb(Trimesh):
     def generateAsciiAABB(obj, ascii_lines, options):
         """TODO: Doc."""
         def mesh_triangulate(mesh):
-            """Triangulate a msesh using bmesh to retain sharp edges."""
+            """Triangulate a mesh using bmesh to retain sharp edges."""
             bm = bmesh.new()
             bm.from_mesh(mesh)
             bmesh.ops.triangulate(bm, faces=bm.faces)
