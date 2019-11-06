@@ -1104,7 +1104,7 @@ class Emitter(Node):
             else:
                 part_sys_settings.__setattr__(data_path, value)
         # Set particle type to chunk if chunk is defined and not null
-        if nvb_utils.str2identifier(part_sys_settings.nvb.chunk):
+        if nvb_utils.str2identifier(part_sys_settings.nvb.chunkname):
             part_sys_settings.nvb.particletype == 'chunk'
         else:
             part_sys_settings.nvb.particletype == 'texture'
@@ -1203,7 +1203,7 @@ class Emitter(Node):
 
         # Texture/ Chunk Properties
         if part_set.nvb.particletype == 'chunk':
-            ascii_lines.append(form_prop('chunkName', part_set.nvb.chunk))
+            ascii_lines.append(form_prop('chunkName', part_set.nvb.chunkname))
         else:  # 'texture'
             ascii_lines.append(form_prop('texture', part_set.nvb.texture))
             ascii_lines.append(form_prop('twosidedtex',

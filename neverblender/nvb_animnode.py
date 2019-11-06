@@ -610,7 +610,7 @@ class Animnode():
         for key_name, keys, val_fstr in key_data:
             num_keys = len(keys)
             if num_keys > 0:  # Create a key list
-                asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
+                asciiLines.append('    ' + key_name + 'key')
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
                 asciiLines.append('    endlist')

@@ -15,13 +15,14 @@ class Material(object):
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
         self.name = name
-        self.ambient = (1.0, 1.0, 1.0, 1.0)
+        self.ambient = (0.2, 0.2, 0.2, 1.0)
         self.alpha = 1.0
         self.texture_list = [None] * 15
         self.color_list = [(1.0, 1.0, 1.0, 1.0)] * 15
-        self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Specular
-        self.color_list[3] = (1.0, )  # Roughness
-        self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Illumination/Emission
+        self.color_list[0] = (0.8, 0.8, 0.8, 1.0)  # Default: Diffuse
+        self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Default: Specular
+        self.color_list[3] = (1.0, )  # Default: Roughness
+        self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Default: Illumination/Emission
         self.renderhints = set()
         self.mtr_name = None
         self.mtr_data = None
