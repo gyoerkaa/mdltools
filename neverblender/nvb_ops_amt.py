@@ -565,10 +565,11 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
     def create_bone_properties(self, context, amt):
         """Sets bone properties for re-conversion to pseudo-bones"""
         for amt_bone_name, psd_bone, _ in self.generated_bones:
-            if psd_bone.type == 'EMPTY':
-                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'EMT'
-            else:
-                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'ME1'
+            if amt_bone_name in amt.data.bones:
+                if psd_bone.type == 'EMPTY':
+                    amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'EMT'
+                else:
+                    amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'ME1'
 
     def copy_keyframes(self, amt, amt_action, amt_bone_name, psb,
                        cmat, frame_range=None):
