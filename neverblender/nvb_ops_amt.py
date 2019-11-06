@@ -528,6 +528,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             if psb.type == 'MESH':
                 btail = 2 * (sum((mathutils.Vector(p) for p in psb.bound_box),
                              mathutils.Vector()) / 8) + bhead
+        if (bhead == btail):
+            btail = bhead + mathutils.Vector((0.1,0.1,0.1))
         # Create armature bone
         amb_name = psb.name
         if strip_name:
@@ -542,6 +544,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                self.is_connected(psb, (amb_parent.tail - amb.head).length):
                 amb.head = amb_parent.tail
                 amb.use_connect = True
+        else:
+            amb.parent = None
         amb.tail = btail
         # Save values for animation transfer
         dc_ml = psb.matrix_local.decompose()
@@ -560,16 +564,17 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             if self.is_psd_bone(child):
                 self.create_bones_rec(amt, child, auto_connect, strip_name)
         context.scene.update()
+        print([o.name for o in amt.data.edit_bones])
         bpy.ops.object.mode_set(mode='OBJECT')
+        print([o.name for o in amt.data.bones])
 
     def create_bone_properties(self, context, amt):
         """Sets bone properties for re-conversion to pseudo-bones"""
         for amt_bone_name, psd_bone, _ in self.generated_bones:
-            if amt_bone_name in amt.data.bones:
-                if psd_bone.type == 'EMPTY':
-                    amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'EMT'
-                else:
-                    amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'ME1'
+            if psd_bone.type == 'EMPTY':
+                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'EMT'
+            else:
+                amt.data.bones[amt_bone_name].nvb.psd_bone_shape = 'ME1'
 
     def copy_keyframes(self, amt, amt_action, amt_bone_name, psb,
                        cmat, frame_range=None):

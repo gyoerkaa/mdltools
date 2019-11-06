@@ -352,7 +352,7 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                 'TODO: Unknown', 5),
                ('aligned_to_particle_dir', 'Aligned to Particle',
                 'Particles align to their angle at birth', 6),
-               ('motionblur', 'Motion Blur',
+               ('motion_blur', 'Motion Blur',
                 'Stretch and overlap particles', 7),
                ],
         default='normal', options=set())

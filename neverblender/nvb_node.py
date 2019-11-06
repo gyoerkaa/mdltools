@@ -1352,7 +1352,7 @@ class Emitter(Node):
                        'billboard_to_world_z': 'Billboard_to_World_Z',
                        'aligned_to_world_z': 'Aligned_to_World_Z',
                        'aligned_to_particle_dir': 'Aligned_to_Particle_Dir',
-                       'motionblur': 'Motion_Blur'}
+                       'motion_blur': 'Motion_Blur'}
     prop_val_blend = {'normal': 'Normal',
                       'punch_through': 'Punch_Through',
                       'lighten': 'Lighten'}

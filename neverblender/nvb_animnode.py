@@ -619,7 +619,7 @@ class Animnode():
         for key_name, keys, val_fstr in kdata:
             num_keys = len(keys)
             if num_keys > 0:  # Create a key list
-                asciiLines.append('    ' + key_name + 'key')
+                asciiLines.append('    ' + key_name + 'key ' + str(num_keys))
                 fstr = '      ' + time_fstr + val_fstr
                 asciiLines.extend([fstr.format(k[0], *k[1]) for k in keys])
 
