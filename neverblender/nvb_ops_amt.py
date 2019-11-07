@@ -540,6 +540,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             if psb.type == 'MESH':
                 btail = 2 * (sum((mathutils.Vector(p) for p in psb.bound_box),
                              mathutils.Vector()) / 8) + bhead
+        if (bhead == btail):
+            btail = bhead + mathutils.Vector((0.1, 0.1, 0.1))
         # Create armature bone
         amb_name = psb.name
         if strip_name:

@@ -1402,7 +1402,7 @@ class Light(Node):
             data.nvb.shadow = self.shadow
             data.nvb.lightpriority = self.lightpriority
             data.nvb.fadinglight = (self.fadinglight >= 1)
-            # Dynamic setting: ndynamictype takes precendence over isdynamic 
+            # Dynamic setting: ndynamictype takes precedence over isdynamic 
             if (self.ndynamictype >= 0):  # -1 = not present
                 data.nvb.isdynamic = (self.ndynamictype >= 1)
             else:
