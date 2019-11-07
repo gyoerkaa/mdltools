@@ -1308,7 +1308,7 @@ class Emitter(Node):
          'deadspace': ('nvb.deadspace', 1, float, ' {:>4.2f}'),
          # Texture
          'texture': ('nvb.texture', 1, nvb_utils.str2texture, ' {:s}'),
-         'chunk': ('nvb.chunk', 1, nvb_utils.str2texture, ' {:s}'),
+         'chunkname': ('nvb.chunkname', 1, nvb_utils.str2texture, ' {:s}'),
          'twosidedtex': ('nvb.twosidedtex', 1, nvb_utils.str2bool, ' {:1d}'),
          'm_istinted': ('nvb.m_istinted', 1, nvb_utils.str2bool, ' {:1d}'),
          # Texture animations
@@ -1394,8 +1394,8 @@ class Emitter(Node):
                 part_sys_settings.nvb.__setattr__(data_path[4:], value)
             else:
                 part_sys_settings.__setattr__(data_path, value)
-        # Set particle type to chunk if chunk is defined and not null
-        if nvb_utils.str2identifier(part_sys_settings.nvb.chunk):
+        # Set particle type to chunk if chunkname is defined and not null
+        if nvb_utils.str2identifier(part_sys_settings.nvb.chunkname):
             part_sys_settings.nvb.particletype == 'chunk'
         else:
             part_sys_settings.nvb.particletype == 'texture'
@@ -1505,7 +1505,7 @@ class Emitter(Node):
 
         # Texture/ Chunk Properties
         if part_set.nvb.particletype == 'chunk':
-            ascii_lines.append(form_prop('chunk', part_set.nvb.chunk))
+            ascii_lines.append(form_prop('chunkname', part_set.nvb.chunkname))
         else:  # 'texture'
             ascii_lines.append(form_prop('texture', part_set.nvb.texture))
             ascii_lines.append(form_prop('twosidedtex',
@@ -1576,7 +1576,7 @@ class Light(Node):
         self.lightpriority = 5
         self.color = (0.0, 0.0, 0.0)
         self.ambientonly = 1
-        self.ndynamictype = 1
+        self.ndynamictype = -1  # -1 = not present, use isdynamic instead
         self.isdynamic = 1
         self.affectdynamic = 1
         self.negativelight = 0
@@ -1610,6 +1610,8 @@ class Light(Node):
             self.ambientonly = int(aline[1])
         elif (label == 'isdynamic'):
             self.isdynamic = int(aline[1])
+        elif (label == 'ndynamictype'):
+            self.ndynamictype = int(aline[1]) 
         elif (label == 'affectdynamic'):
             self.affectdynamic = int(aline[1])
         elif (label == 'negativelight'):
@@ -1703,7 +1705,11 @@ class Light(Node):
             data.nvb.shadow = self.shadow
             data.nvb.lightpriority = self.lightpriority
             data.nvb.fadinglight = (self.fadinglight >= 1)
-            data.nvb.isdynamic = (self.isdynamic >= 1)
+            # Dynamic setting: ndynamictype takes precedence over isdynamic 
+            if (self.ndynamictype >= 0):  # -1 = not present
+                data.nvb.isdynamic = (self.ndynamictype >= 1)
+            else:
+                data.nvb.isdynamic = (self.isdynamic >= 1)
             data.nvb.affectdynamic = (self.affectdynamic >= 1)
             # Disable rendering in blender if tile light (color may be black)
             if obj.name.endswith('ml1') or obj.name.endswith('ml2') or \
@@ -1759,7 +1765,7 @@ class Light(Node):
 
         lamp = obj.data
         asciiLines.append('  ambientonly ' + str(int(lamp.nvb.ambientonly)))
-        asciiLines.append('  isdynamic ' + str(int(lamp.nvb.isdynamic)))
+        asciiLines.append('  ndynamictype ' + str(int(lamp.nvb.isdynamic)))
         asciiLines.append('  affectdynamic ' +
                           str(int(lamp.nvb.affectdynamic)))
         asciiLines.append('  shadow ' + str(int(lamp.nvb.shadow)))
