@@ -683,7 +683,11 @@ class Trimesh(Node):
             if uv_layer_list:
                 me_face_uv, me_uv_coord_list = mesh_get_uvs(
                     me, uv_layer_list, merge_uvs)
-                dig_u = len(str(len(me_uv_coord_list[0])))
+                if me_uv_coord_list:
+                    dig_u = len(str(len(me_uv_coord_list[0])))
+                else:
+                    print('Neverblender: ERROR - Could not find UVs for ' + obj.name)
+
 
             # Write tverts to file (if any)
             if me_uv_coord_list:
@@ -718,8 +722,11 @@ class Trimesh(Node):
 
         # Generate Smoothgroups
         me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
-        dig_g = max(1, len(str(max(me_face_grp))))  # digits for formatting
-
+        if me_face_grp:
+            dig_g = max(1, len(str(max(me_face_grp))))  # digits for formatting
+        else:
+            print('Neverblender: ERROR - Could not create smoothgroups for ' + obj.name)
+       
         # Face vertex indices
         me_face_vert = [tuple(p.vertices) for p in me.polygons]
         dig_v = max(1, len(str(len(me_vertices))))  # digits for formatting

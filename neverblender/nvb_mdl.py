@@ -162,8 +162,9 @@ class Mdl():
     def parse_mdl(self, filepath, options):
         """Parse a single mdl file."""
         with open(os.fsencode(filepath), 'rb') as f:
-            if bytes(f.read(1)) == b'\x00':
+            if bytes(f.read(2)) == b'\x00\x00':
                 self.read_binary_mdl(options)
+                print("Neverblender: ERROR - This is a binary model file. Please decompile before importing.")
                 return
         with open(os.fsencode(filepath), 'r') as f:
             self.read_ascii_mdl(f.read(), options)
@@ -171,7 +172,7 @@ class Mdl():
     def parse_wkm(self, filepath, wkm_type, options):
         """Parse a single walkmesh file."""
         with open(os.fsencode(filepath), 'rb') as f:
-            if bytes(f.read(1)) == b'\x00':
+            if bytes(f.read(2)) == b'\x00\x00':
                 self.read_binary_wkm(options)
                 return
         with open(os.fsencode(filepath), 'r') as f:
@@ -383,11 +384,20 @@ class Mdl():
             return wkm_collection
 
         # Create mdl objects
-        mdl_resolver = nvb_utils.NodeResolver()
-        Mdl.create_objects(self.mdlnodes, mdl_resolver, options)
-        mdl_base = self.link_objects(self.mdlnodes,
-                                     mdl_resolver,
-                                     options.collection)
+        mdl_base = None
+        if self.mdlnodes:
+            mdl_resolver = nvb_utils.NodeResolver()
+            Mdl.create_objects(self.mdlnodes, mdl_resolver, options)
+            mdl_base = self.link_objects(self.mdlnodes,
+                                        mdl_resolver,
+                                        options.collection)
+            # Create animations
+            if options.anim_import:
+                if options.anim_fps_use:
+                    options.scene.render.fps = options.anim_fps
+                self.create_animations(self.animations,
+                                    mdl_base, mdl_resolver, options)
+
         # Create pwk objects
         if self.pwknodes:
             wkm_resolver = nvb_utils.NodeResolver()
@@ -402,6 +412,7 @@ class Mdl():
                                          wkm_collection)
             wkm_base.parent = mdl_base
             del wkm_resolver
+
         # Create dwk objects
         if self.dwknodes:
             wkm_resolver = nvb_utils.NodeResolver()
@@ -416,14 +427,10 @@ class Mdl():
                                          wkm_collection)
             wkm_base.parent = mdl_base
             del wkm_resolver
-        # Create animations
-        if options.anim_import:
-            if options.anim_fps_use:
-                options.scene.render.fps = options.anim_fps
-            self.create_animations(self.animations,
-                                   mdl_base, mdl_resolver, options)
+
         # Set mdl base position
-        mdl_base.location = options.mdl_location
+        if mdl_base:
+            mdl_base.location = options.mdl_location
 
     def create_super(self, mdl_base, options):
         """Import animation onto existing MDL."""
