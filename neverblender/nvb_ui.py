@@ -777,12 +777,8 @@ class NVB_PT_utils(bpy.types.Panel):
             split = box.split(factor=0.33)
             col = split.column()
             col.label(text='Size:')
-            col.label(text='Display:')
             col = split.column()
             col.prop(render, 'resolution_y', text='')
-            row = col.row(align=True)
-            row.prop(render, 'display_mode', text='')
-            row.prop(render, 'use_lock_interface', icon_only=True)
 
             row = box.row(align=True)
             row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,

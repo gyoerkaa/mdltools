@@ -134,7 +134,8 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             light_data.color = self.light_color
 
             mm_light = bpy.data.objects.new(light_name, light_data)
-        if mm_light not in collection:
+
+        if mm_light.name not in collection.objects:
             collection.objects.link(mm_light)
 
         mm_light.location = mdl_base.location
@@ -150,7 +151,8 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             cam_data.ortho_scale = 10.0
 
             mm_cam = bpy.data.objects.new(cam_name, cam_data)
-        if mm_cam not in collection:
+
+        if mm_cam.name not in collection.objects:
             collection.objects.link(mm_cam)
 
         mm_cam.location = mdl_base.location
@@ -160,9 +162,6 @@ class NVB_OT_util_minimap(bpy.types.Operator):
 
     def setup_scene(self, scene):
         """Setup scene settings."""
-        scene.render.alpha_mode = 'TRANSPARENT'
-        scene.render.use_antialiasing = True
-        scene.render.antialiasing_samples = '16'
         scene.render.resolution_x = self.img_size
         scene.render.resolution_y = self.img_size
         scene.render.resolution_percentage = 100
