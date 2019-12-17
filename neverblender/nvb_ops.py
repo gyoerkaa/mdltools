@@ -180,8 +180,9 @@ class NVB_OT_util_minimap(bpy.types.Operator):
                 mbase = nvb_utils.get_obj_mdl_base(obj)
                 if mbase and (mbase not in mdl_base_list):
                     mdl_base_list.append(mbase)
-            # Render each mdl
+            # Set render settings
             self.setup_scene(scene)
+            # Render a minimap for each tile
             for mbase in mdl_base_list:
                 img_name = 'mi_' + mbase.name
                 img_path = os.fsencode(os.path.join(self.render_dir, img_name))
@@ -189,7 +190,8 @@ class NVB_OT_util_minimap(bpy.types.Operator):
                 mm_cam, _ = self.setup_objects(mbase, collection)
                 scene.camera = mm_cam
                 bpy.ops.render.render(animation=False, write_still=True)
-        else:
+        else: 
+            # Btw. who or where do i pester with this for maximum effect? I feel posting in the forum gets buried easily and I'm very refuse to post on redmine/service desk for things like this https://forums.beamdog.com/discussion/comment/1097627/#Comment_1097627
             # Get root from active mdl
             if not context.object:
                 return {'CANCELLED'}

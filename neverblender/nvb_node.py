@@ -544,7 +544,8 @@ class Trimesh(Node):
                 # All faces belong to smooth group 1
                 all_groups = [1] * len(mesh.polygons)
             else:
-                # all_groups, _ = mesh.calc_smooth_groups()
+                all_groups, _ = mesh.calc_smooth_groups()
+                """
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
 
@@ -564,6 +565,7 @@ class Trimesh(Node):
 
                 bm.free()
                 del bm
+                """
             return all_groups
 
         def mesh_get_normals(mesh, uvl_name):
