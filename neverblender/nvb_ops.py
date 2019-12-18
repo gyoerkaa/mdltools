@@ -341,7 +341,8 @@ class NVB_OT_util_transform(bpy.types.Operator):
         """TODO: DOC."""
         def adjust_loc(obj, kfvalues, matS, vecT):
             vec_list = [mathutils.Vector(vec) @ matS for vec in kfvalues]
-            vec_list = [vec + vecT for vec in vec_list]
+            if vecT:
+                vec_list = [vec + vecT for vec in vec_list]
             return vec_list
 
         def adjust_axan(obj, kfvalues, matS, vecT):

@@ -988,6 +988,10 @@ class Skinmesh(Trimesh):
             weights = [[skingroups[g.group], g.weight] for g in v.groups
                        if g.group in skingroups]
             weights = clean_weights(weights)
+            # Remove trailing numbers
+            if options.strip_trailing:
+                weights = [[nvb_utils.strip_trailing_numbers(n), w] 
+                           for n, w in weights]
             ascii_lines.append('    ' + ' '.join([fstr.format(*w)
                                                   for w in weights]))
 
