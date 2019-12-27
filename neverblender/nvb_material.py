@@ -29,7 +29,8 @@ class Material(object):
 
     @staticmethod
     def colorisclose(a, b, tol=0.05):
-        return (sum([math.isclose(v[0], v[1]) for v in zip(a, b)]) == len(a))
+        return ((a is None) and (b is None)) or \
+               (a and b and (sum([math.isclose(v[0], v[1]) for v in zip(a, b)]) == len(a)))
 
     def generate_material_name(self):
         """Generates a material name for use in blender."""
@@ -51,8 +52,8 @@ class Material(object):
         # print(self.color_list[5])
         # print(self.alpha)
         for blen_mat in bpy.data.materials:
+            # print("test: " + blen_mat.name)
             tex_list, col_list, alpha = Materialnode.get_node_data(blen_mat)
-            # print("test: ")
             # print(tex_list)
             # print(col_list[5])
             # print(alpha)

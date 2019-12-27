@@ -512,7 +512,7 @@ class Trimesh(Node):
         """TODO: Doc."""
 
         def mesh_triangulate(mesh):
-            """Triangulate a msesh using bmesh to retain sharp edges."""
+            """Triangulate using bmesh to retain sharp edges."""
             bm = bmesh.new()
             bm.from_mesh(mesh)
             bmesh.ops.triangulate(bm, faces=bm.faces)
@@ -570,20 +570,23 @@ class Trimesh(Node):
 
         def mesh_get_normals(mesh, uvl_name):
             """Get normals and tangets for this mesh."""
-            mesh.calc_tangents(uvmap=uvl_name)  # calls calc_normals_split()
+            # calc_tangents() calls calc_normals_split() implicitly
+            mesh.calc_tangents(uvmap=uvl_name)
 
-            # per_loop_data = [(l.vertex_index,
-            #                   l.normal, l.tangent, l.bitangent_sign)
-            #                  for l in mesh.loops]
-            # per_vertex_data = [[(n, t, b) for n, t, b in per_loop_data
-            #                     if i == vidx]
-            #                    for vidx in range(len(mesh.vertices))]
-            per_vertex_data = {l.vertex_index: (l.normal,
-                                                l.tangent,
-                                                l.bitangent_sign)
-                               for l in mesh.loops}
-            normals = [d[0] for d in per_vertex_data.values()]
-            tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
+            per_loop_data = [(l.vertex_index,
+                              l.normal, l.tangent, l.bitangent_sign)
+                             for l in mesh.loops]
+            per_vertex_data = [[(n, t, b) for i, n, t, b in per_loop_data
+                                if i == vidx]
+                               for vidx in range(len(mesh.vertices))]
+            normals = [d[0][0] for d in per_vertex_data]
+            tangents = [[*d[0][1]] + [d[0][2]] for d in per_vertex_data]                   
+            #per_vertex_data = {l.vertex_index: (l.normal,
+            #                                    l.tangent,
+            #                                    l.bitangent_sign)
+            #                   for l in mesh.loops}
+            #normals = [d[0] for d in per_vertex_data.values()]
+            #tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
             return normals, tangents
 
         def mesh_get_uvs_to_export(mesh, uv_order='ACT'):

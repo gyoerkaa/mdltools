@@ -504,8 +504,8 @@ class Materialnode(object):
             color_socket = Materialnode.get_color_socket(input_socket)
             color = default_color
             if color_socket:
-                color = Materialnode.get_color_value(color_socket,
-                                                     default_color)
+                color = list(Materialnode.get_color_value(color_socket,
+                                                          default_color))
             return texture, color
 
         texture_list = [None] * 15
@@ -547,7 +547,6 @@ class Materialnode(object):
         input_socket = Materialnode.find_emissive_socket(node_out)
         texture_list[5], color_list[5] = get_data_tuple(input_socket,
                                                         (0.0, 0.0, 0.0, 1.0))
-
         return texture_list, color_list, alpha
 
     @staticmethod
@@ -576,6 +575,7 @@ class Materialnode(object):
         node_math_alpha.location = (-1130.7, 112.4)
         node_math_alpha.operation = 'MULTIPLY'
         node_math_alpha.use_clamp = True
+        node_math_alpha.inputs[0].default_value = 1.0
         node_math_alpha.inputs[1].default_value = alpha
 
         links.new(node_shd_bsdf.inputs[18], node_math_alpha.outputs[0])
