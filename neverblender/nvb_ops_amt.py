@@ -540,7 +540,8 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
             if psb.type == 'MESH':
                 btail = 2 * (sum((mathutils.Vector(p) for p in psb.bound_box),
                              mathutils.Vector()) / 8) + bhead
-        if (bhead == btail):
+        # Zero length bones are not allowed
+        if (bhead - btail).length <= 0.05:
             btail = bhead + mathutils.Vector((0.1, 0.1, 0.1))
         # Create armature bone
         amb_name = psb.name
@@ -549,6 +550,7 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         amb = am.data.edit_bones.new(amb_name)
         amb.roll = 0
         amb.head = bhead
+        amb.tail = btail
         if amb_parent:
             amb.parent = amb_parent
             # Try to connect head with parent tail
@@ -556,11 +558,11 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
                self.is_connected(psb, (amb_parent.tail - amb.head).length):
                 amb.head = amb_parent.tail
                 amb.use_connect = True
-        amb.tail = btail
         # Save values for animation transfer
         dc_ml = psb.matrix_local.decompose()
         cmat = psb.matrix_parent_inverse
         cmat = mathutils.Matrix.Translation(dc_ml[0]).inverted() @ cmat
+
         self.generated_bones.append([amb.name, psb, cmat.copy()])
         # Create children
         for c in valid_children:
@@ -572,8 +574,10 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         for child in psb_root.children:
             if self.is_psd_bone(child):
                 self.create_bones_rec(am, child, auto_connect, strip_name)
+        am.data.edit_bones.update()
         context.evaluated_depsgraph_get().update()
         bpy.ops.object.mode_set(mode='OBJECT')
+        am.update_from_editmode()
 
     def create_bone_properties(self, context, am):
         """Sets bone properties for re-conversion to pseudo-bones"""
@@ -819,8 +823,10 @@ class NVB_OT_amt_psb2amt(bpy.types.Operator):
         # Create the bones
         self.create_bones(context, amt, psd_bone_root,
                           addon_prefs.util_amt_connect,
-                          addon_prefs.util_amt_strip_name)
+                          addon_prefs.util_amt_strip_name)                
+        context.evaluated_depsgraph_get().update()
         self.create_bone_properties(context, amt)  # Second pass necessary
+        
 
         # Copy animations
         bpy.ops.object.mode_set(mode='POSE')
