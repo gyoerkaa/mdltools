@@ -1585,6 +1585,9 @@ class Aabb(Trimesh):
 
     def createObject(self, options):
         """TODO: Doc."""
+        if not options.import_walkmesh:
+            return None
+            
         mesh = self.create_blender_mesh(self.name, options)
         obj = bpy.data.objects.new(self.name, mesh)
         obj.hide_render = True

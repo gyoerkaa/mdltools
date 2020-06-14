@@ -293,9 +293,9 @@ class NVB_PT_set(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(scene.nvb, 'set_filepath', text='')
         row.operator(nvb_ops_set.NVB_OT_set_open.bl_idname,
-                     icon='FILEBROWSER', text='')
+                     icon='FILE_FOLDER', text='')
         row.operator(nvb_ops_set.NVB_OT_set_reload.bl_idname,
-                     icon='NDOF_TURN', text='')
+                     icon='FILE_REFRESH', text='')
 
         layout.separator()
         row = layout.row()
