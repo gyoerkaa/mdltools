@@ -1443,8 +1443,9 @@ class Light(Node):
         """TODO: Doc."""
         lamp = self.createLamp(self.name)
         obj = bpy.data.objects.new(self.name, lamp)
-        obj.nvb.imporder = self.nodeidx
         self.createObjectData(obj, options)
+        obj.hide_render = options.hide_lights
+        obj.nvb.imporder = self.nodeidx
         return obj
 
     @staticmethod
@@ -1584,13 +1585,10 @@ class Aabb(Trimesh):
         return me
 
     def createObject(self, options):
-        """TODO: Doc."""
-        if not options.import_walkmesh:
-            return None
-            
+        """TODO: Doc."""        
         mesh = self.create_blender_mesh(self.name, options)
-        obj = bpy.data.objects.new(self.name, mesh)
-        obj.hide_render = True
+        obj = bpy.data.objects.new(self.name, mesh)       
         self.createObjectData(obj, options)
         obj.nvb.imporder = self.nodeidx
+        obj.hide_render = True
         return obj
