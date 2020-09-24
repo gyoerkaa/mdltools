@@ -150,6 +150,14 @@ class Material(object):
         if options.mtr_import:
             self.mtr_read(options)
             self.mtr_merge()
+        # Sometimes, we don't want self illumination (e.g. interfering with rendering minimaps)
+        if options.ignore_selfillum:
+            self.texture_list[5] = None
+            self.color_list[5] = (0.0, 0.0, 0.0, 0.0)  
+        # Ignore specular color (compatibility option, was ignored in 1.69)    
+        if options.compatibility_mode:
+            self.texture_list[2] = None
+            self.color_list[2] = (0.0, 0.0, 0.0, 0.0)                    
         # Look for similar materials to avoid duplicates
         blender_mat = None
         if reuse_existing:
@@ -163,7 +171,7 @@ class Material(object):
 
             blender_mat.nvb.use_mtr = bool(self.mtr_name) or \
                 self.mtr_data is not None
-
+           
             blender_mat.use_nodes = True
             blender_mat.node_tree.nodes.clear()
             Materialnode.add_node_data(

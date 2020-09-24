@@ -128,6 +128,7 @@ class Node(object):
     @classmethod
     def generateAscii(cls, obj, asciiLines, options, iswalkmesh=False):
         """TODO: Doc."""
+        # print(obj.name + " " + cls.nodetype)
         node_name = nvb_utils.generate_node_name(obj, options.strip_trailing)
         asciiLines.append('node ' + cls.nodetype + ' ' + node_name)
         # Parent
@@ -484,7 +485,10 @@ class Trimesh(Node):
         obj.hide_render = not self.render
         obj.nvb.tilefade = nvb_def.Tilefade.NONE
         if (self.tilefade >= 1):
-            obj.hide_render = True
+            # Hide fading options in render
+            if options.hide_fading:
+                obj.hide_render = True
+            # Set fading options for mesh
             if self.tilefade == 1:
                 obj.nvb.tilefade = nvb_def.Tilefade.FADE
             elif self.tilefade == 2:

@@ -98,6 +98,10 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         name='Render Directory',
         description='Directory to render images to',
         default='')
+    force_lowercase: bpy.props.BoolProperty(
+        name='Force Lowercase',
+        description='All output images filenames will be converted to lowercase',
+        default=False)     
     img_size: bpy.props.IntProperty(
         name='Image Size',
         description='Image Size',
@@ -185,13 +189,14 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             # Render a minimap for each tile
             for mbase in mdl_base_list:
                 img_name = 'mi_' + mbase.name
+                if self.force_lowercase:
+                    img_name = img_name.lower()
                 img_path = os.fsencode(os.path.join(self.render_dir, img_name))
                 scene.render.filepath = img_path
                 mm_cam, _ = self.setup_objects(mbase, collection)
                 scene.camera = mm_cam
                 bpy.ops.render.render(animation=False, write_still=True)
-        else: 
-            # Btw. who or where do i pester with this for maximum effect? I feel posting in the forum gets buried easily and I'm very refuse to post on redmine/service desk for things like this https://forums.beamdog.com/discussion/comment/1097627/#Comment_1097627
+        else:
             # Get root from active mdl
             if not context.object:
                 return {'CANCELLED'}
@@ -199,7 +204,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             if not mdl_base:
                 return {'CANCELLED'}
             # Setup Render
-            self.img_size = scene.render.resolution_y
+            self.img_size = scene.render.resolution_y  # make image square
             self.setup_scene(scene)
             mm_cam, _ = self.setup_objects(mdl_base, collection)
             scene.camera = mm_cam

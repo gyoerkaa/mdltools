@@ -71,8 +71,8 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 8, 18),
-    "blender": (2, 81, 0),
+    'version': (2, 8, 20),
+    "blender": (2, 83, 0),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
     "warning": "",

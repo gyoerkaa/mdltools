@@ -289,8 +289,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         default=True)
     tex_search: bpy.props.BoolProperty(
         name='Image Search',
-        description='Search for images in subdirectories \
-                     (Warning: May be slow)',
+        description='Search for images in subdirectories \n (Warning: May be slow)',
         default=False)
     # Animation Options
     anim_import: bpy.props.BoolProperty(name='Import Animations',
@@ -319,10 +318,15 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         name='Use Collections',
         description='Create a collection for each imported mdl',
         default=False)
+    compatibility_mode: bpy.props.BoolProperty(
+        name='Compatibility Mode',
+        description='Ignores certain values in old 1.69 models',
+        default=False)        
     fix_uvs: bpy.props.BoolProperty(
         name='Fix degenerated UVs',
         description='Fix degenerated UV coordinates (tverts)',
         default=False)
+    # Hidden options for automated scripts and mass import
     mdl_location: bpy.props.FloatVectorProperty(
         name='Location',
         description='Location of newly imported model',
@@ -339,7 +343,11 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     hide_fading: bpy.props.BoolProperty(
         name='Hide Fading Objects',
         description='Do not render Fading Objects',
-        default=False, options={'HIDDEN'})
+        default=True, options={'HIDDEN'})
+    ignore_selfillum: bpy.props.BoolProperty(
+        name='Ignore Self-Illumination',
+        description='Ignore Self-Illumnination',
+        default=False, options={'HIDDEN'})  
 
     def mdl_import(self, context, options):
         def load_file(context, mdl_filepath, options):
@@ -451,6 +459,8 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.placement = addon_prefs.import_placement
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
+        options.ignore_selfillum = self.ignore_selfillum
+        options.compatibility_mode = self.compatibility_mode
         options.mdl_location = self.mdl_location
         # Misc Import Settings
         options.import_geometry = self.import_geometry

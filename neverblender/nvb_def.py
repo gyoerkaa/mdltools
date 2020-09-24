@@ -11,29 +11,29 @@ shapekeyname = 'aurora_animesh'
 # Null value for parents, textures, etc.
 null = 'null'
 # Predefined walkmesh materials: (material name, diffuse color) tuples
-wok_materials = [('wok_NotDefined',    (0.400, 0.400, 0.400, 1.000)),
-                 ('wok_Dirt',          (0.610, 0.235, 0.050, 1.000)),
-                 ('wok_Obscuring',     (0.100, 0.100, 0.100, 1.000)),
-                 ('wok_Grass',         (0.000, 0.600, 0.000, 1.000)),
-                 ('wok_Stone',         (0.162, 0.216, 0.279, 1.000)),
+wok_materials = [('wok_NotDefined',    (1.000, 1.000, 1.000, 1.000)),
+                 ('wok_Dirt',          (0.580, 0.486, 0.314, 1.000)),
+                 ('wok_Obscuring',     (1.000, 1.000, 0.000, 1.000)),
+                 ('wok_Grass',         (0.243, 0.588, 0.125, 1.000)),
+                 ('wok_Stone',         (0.400, 0.400, 0.400, 1.000)),
                  ('wok_Wood',          (0.258, 0.059, 0.007, 1.000)),
-                 ('wok_Water',         (0.000, 0.000, 1.000, 1.000)),
+                 ('wok_Water',         (0.000, 0.745, 0.695, 1.000)),
                  ('wok_Nonwalk',       (1.000, 0.000, 0.000, 1.000)),
                  ('wok_Transparent',   (1.000, 1.000, 1.000, 1.000)),
-                 ('wok_Carpet',        (1.000, 0.000, 1.000, 1.000)),
-                 ('wok_Metal',         (0.434, 0.552, 0.730, 1.000)),
-                 ('wok_Puddles',       (0.509, 0.474, 0.147, 1.000)),
-                 ('wok_Swamp',         (0.216, 0.216, 0.000, 1.000)),
-                 ('wok_Mud',           (0.091, 0.147, 0.028, 1.000)),
-                 ('wok_Leaves',        (1.000, 0.262, 0.000, 1.000)),
-                 ('wok_Lava',          (0.300, 0.000, 0.000, 1.000)),
+                 ('wok_Carpet',        (0.510, 0.000, 0.502, 1.000)),
+                 ('wok_Metal',         (0.624, 0.725, 0.725, 1.000)),
+                 ('wok_Puddles',       (0.502, 1.000, 1.000, 1.000)),
+                 ('wok_Swamp',         (0.537, 0.616, 0.000, 1.000)),
+                 ('wok_Mud',           (0.286, 0.114, 0.000, 1.000)),
+                 ('wok_Leaves',        (0.278, 0.357, 0.137, 1.000)),
+                 ('wok_Lava',          (1.000, 0.388, 0.000, 1.000)),
                  ('wok_BottomlessPit', (0.000, 0.000, 0.000, 1.000)),
-                 ('wok_DeepWater',     (0.000, 0.000, 0.216, 1.000)),
-                 ('wok_Door',          (0.000, 0.000, 0.000, 1.000)),
+                 ('wok_DeepWater',     (0.000, 0.094, 1.000, 1.000)),
+                 ('wok_Door',          (0.200, 0.200, 0.200, 1.000)),
                  ('wok_Snow',          (0.800, 0.800, 0.800, 1.000)),
-                 ('wok_Sand',          (1.000, 1.000, 0.000, 1.000)),
-                 ('wok_BareBones',     (0.500, 0.500, 0.100, 1.000)),
-                 ('wok_StoneBridge',   (0.081, 0.108, 0.139, 1.000))]
+                 ('wok_Sand',          (0.600, 0.600, 0.100, 1.000)),
+                 ('wok_BareBones',     (0.400, 0.400, 0.200, 1.000)),
+                 ('wok_StoneBridge',   (0.300, 0.300, 0.300, 1.000))]
 # Animation event names (always created in list)
 animation_event_names = ['cast', 'blur_end', 'blur_start', 'detonate',
                          'draw_arrow', 'draw_weapon', 'hit', 'parry',
@@ -225,7 +225,9 @@ class ImportOptions():
         self.scene = None
         self.collection = None
         self.hide_lights = True
-        self.hide_fading = False
+        self.hide_fading = True
+        self.ignore_selfillum = False
+        self.compatibility_mode = False
         self.dummy_type = 'PLAIN_AXES'
         self.dummy_size = 1.0
         self.placement = 'SPIRAL'

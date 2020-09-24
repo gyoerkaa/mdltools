@@ -165,19 +165,32 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         if not pwk_data:
             return None
         bm = bmesh.new()
+        # Loop over islands = (vertex list, height) pairs
         for plane_vertices, height in pwk_data:
             plane_vertices_3d = [mathutils.Vector((pv.x, pv.y, 0.0))
                                  for pv in plane_vertices]
             bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
-            bottom = bm.faces.new(bm_plane_vertices)
+            bottom_face = bm.faces.new(bm_plane_vertices)
+            # Remove duplicate (or close) vertices
+            bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.1)
             # Extrude and translate
-            top = bmesh.ops.extrude_face_region(bm, geom=[bottom])
+            top_face = bmesh.ops.extrude_face_region(bm, geom=[bottom_face])
             bmesh.ops.translate(
                 bm,
                 vec=mathutils.Vector((0, 0, max(0.1, height))),
-                verts=[v for v in top['geom']
+                verts=[v for v in top_face['geom']
                        if isinstance(v, bmesh.types.BMVert)])
+            # scale top mesh dow a little to prevent overlap
+            bmesh.ops.scale(
+                bm,
+                vec=mathutils.Vector((0.9, 0.9, 1.0)),
+                space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
+                verts=[v for v in top_face['geom']
+                       if isinstance(v, bmesh.types.BMVert)])            
             bm.normal_update()
+            # Remove the bottom plane (face only, we don't actually need it)
+            bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
+
         # Create mesh from bmesh
         me = bpy.data.meshes.new(mesh_name)
         bm.to_mesh(me)
@@ -379,10 +392,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             obj_mw = obj.matrix_world
             obj_mwi = obj_mw.inverted()
             # Bisecting planes in local coordinates
-            plane_bot_co = obj_mwi * mathutils.Vector((0.0, 0.0, min_height))
+            plane_bot_co = obj_mwi @ mathutils.Vector((0.0, 0.0, min_height))
             plane_bot_no = mathutils.Vector((0.0, 0.0, -1.0))
             plane_bot_no.rotate(obj_mwi)
-            plane_top_co = obj_mwi * mathutils.Vector((0.0, 0.0, max_height))
+            plane_top_co = obj_mwi @ mathutils.Vector((0.0, 0.0, max_height))
             plane_top_no = mathutils.Vector((0.0, 0.0, 1.0))
             plane_top_no.rotate(obj_mwi)
             # Bisect mesh
@@ -410,7 +423,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 clear_outer=True, dist=0.001)
             del res
             # Detect islands
-            obj_verts = [obj_mw * v.co for v in bm.verts]
+            obj_verts = [obj_mw @ v.co for v in bm.verts]
             vertex_list.extend(obj_verts)
             vertex_height = max(vertex_height, max([v.z for v in obj_verts]))
         return [vertex_list, vertex_height]
