@@ -395,7 +395,7 @@ def getNodeType(obj):
         return obj.nvb.emptytype
     elif objType == 'MESH':
         return obj.nvb.meshtype
-    elif objType == 'LAMP':
+    elif objType in ('LIGHT', 'LAMP'):  # LIGHT since 2.8, LAMP, before
         return nvb_def.Nodetype.LIGHT
     return nvb_def.Nodetype.DUMMY
 
