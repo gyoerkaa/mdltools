@@ -169,7 +169,7 @@ class Material(object):
             blender_mat.blend_method = 'HASHED'  # 'BLEND' doesn't play nice
             blender_mat.show_transparent_back = False
 
-            blender_mat.nvb.use_mtr = bool(self.mtr_name) or \
+            blender_mat.nvb.mtr.use = bool(self.mtr_name) or \
                 self.mtr_data is not None
            
             blender_mat.use_nodes = True
@@ -208,7 +208,7 @@ class Material(object):
                 fstr = '  alpha {: 3.2f}'
                 ascii_lines.append(fstr.format(alpha))
             # Write textures
-            if options.export_mtr and blen_material.nvb.use_mtr:
+            if options.export_mtr and blen_material.nvb.mtr.use:
                 # MTRs are exported in a second pass
                 mtr_name = nvb_mtr.Mtr.get_mtr_name(blen_material)
                 ascii_lines.append('  ' + options.mtr_ref + ' ' + mtr_name)

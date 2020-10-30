@@ -52,7 +52,7 @@ class Mtr(object):
     def get_mtr_params(blen_material):
         """Parses parameter values from list of strings."""
         param_list = []
-        for pa in blen_material.nvb.mtrparam_list:
+        for pa in blen_material.nvb.mtr.param_list:
             if pa.pname.lower() not in param_list:  # Keep unique
                 param_name = pa.pname.lower()
                 param_type = pa.ptype
@@ -130,16 +130,16 @@ class Mtr(object):
         while tex_list and tex_list[-1] == nvb_def.null:
             _ = tex_list.pop()
         # Add shader specification
-        if material.nvb.shadervs or material.nvb.shaderfs:
+        if material.nvb.mtr.shader_vs or material.nvb.mtr.shader_fs:
+            # Custom Shaders
             ascii_lines.append('// Shaders')
             if material.nvb.shadervs:
-                ascii_lines.append('customshaderVS ' + material.nvb.shadervs)
+                ascii_lines.append('customshaderVS ' + material.nvb.mtr.shader_vs)
             if material.nvb.shaderfs:
-                ascii_lines.append('customshaderFS ' + material.nvb.shaderfs)
+                ascii_lines.append('customshaderFS ' + material.nvb.mtr.shader_fs)
             ascii_lines.append('')
-        # Add Renderhint
-        if (tex_list and (tex_list[:3].count(nvb_def.null) <= 1)) and \
-           not (material.nvb.shadervs or material.nvb.shaderfs):
+        elif tex_list and (tex_list[:3].count(nvb_def.null) <= 1):
+            # Add Renderhint
             ascii_lines.append('// Renderhint')
             ascii_lines.append('renderhint NormalAndSpecMapped')
             ascii_lines.append('')
@@ -151,10 +151,10 @@ class Mtr(object):
                                 for i, t in enumerate(tex_list)])
             ascii_lines.append('')
         # Add parameters
-        if len(material.nvb.mtrparam_list) > 0:
+        if len(material.nvb.mtr.param_list) > 0:
             ascii_lines.append('// Parameters')
             existing_params = []
-            for pa in material.nvb.mtrparam_list:
+            for pa in material.nvb.mtr.param_list:
                 if pa.pname.lower() not in existing_params:  # Keep unique
                     existing_params.append(pa.pname.lower())
                     vals = Mtr.readParamValues(pa.pvalue.strip().split())

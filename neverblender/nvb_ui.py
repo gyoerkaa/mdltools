@@ -339,37 +339,37 @@ class NVB_PT_mtr(bpy.types.Panel):
     def draw_header(self, context):
         mat = context.material
 
-        self.layout.prop(mat.nvb, 'use_mtr', text='')
+        self.layout.prop(mat.nvb.mtr, 'use', text="")
 
     def draw(self, context):
         """TODO: DOC."""
         layout = self.layout
         mat = context.material
 
-        layout.enabled = mat.nvb.use_mtr
+        layout.enabled = mat.nvb.mtr.use
 
         layout.separator()
         box = layout.box()
-        box.prop(mat.nvb, 'shadervs')
-        box.prop(mat.nvb, 'shaderfs')
+        box.prop(mat.nvb.mtr, 'shader_vs')
+        box.prop(mat.nvb.mtr, 'shader_fs')
 
         layout.separator()
         box = layout.box()
-        box.label(text='Parameters')
+        box.label(text="Parameters")
         row = box.row()
         row.template_list('NVB_UL_mtr_params', 'TheParamList',
-                          mat.nvb, 'mtrparam_list',
-                          mat.nvb, 'mtrparam_list_idx')
+                          mat.nvb.mtr, 'param_list',
+                          mat.nvb.mtr, 'param_list_idx')
         col = row.column(align=True)
-        col.operator('nvb.mtrparam_new', icon='ADD', text='')
-        col.operator('nvb.mtrparam_delete', icon='REMOVE', text='')
+        col.operator('nvb.mtrparam_new', icon='ADD', text="")
+        col.operator('nvb.mtrparam_delete', icon='REMOVE', text="")
         col.separator()
-        if mat.nvb.mtrparam_list_idx >= 0 and \
-           len(mat.nvb.mtrparam_list) > 0:
-            plist = mat.nvb.mtrparam_list[mat.nvb.mtrparam_list_idx]
+        if mat.nvb.mtr.param_list_idx >= 0 and \
+           len(mat.nvb.mtr.param_list) > 0:
+            plist = mat.nvb.mtr.param_list[mat.nvb.mtr.param_list_idx]
             row = box.row(align=True)
-            row.prop(plist, 'pname', text='')
-            row.prop(plist, 'ptype', text='')
+            row.prop(plist, 'pname', text="")
+            row.prop(plist, 'ptype', text="")
             row = box.row()
             row.prop(plist, 'pvalue')
 
@@ -708,17 +708,17 @@ class NVB_PT_utils(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """Draw only if part of a valid mdl is selected."""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-        return mdl_base is not None
+        aurora_base = nvb_utils.get_obj_mdl_base(context.object)
+        return aurora_base is not None
 
     def draw(self, context):
         """Draw the panel."""
         layout = self.layout
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+        aurora_base = nvb_utils.get_obj_mdl_base(context.object)
         addon = context.preferences.addons[__package__]
         addon_prefs = addon.preferences
         render = context.scene.render
-        if mdl_base:
+        if aurora_base:
             # Armature Helper
             box = layout.box()
             box.label(text='Armature Helper')
@@ -742,8 +742,8 @@ class NVB_PT_utils(bpy.types.Panel):
             box.label(text='Transform Helper')
 
             row = box.row()
-            row.column().prop(mdl_base, 'location')
-            row.column().prop(mdl_base, 'scale')
+            row.column().prop(aurora_base, 'location')
+            row.column().prop(aurora_base, 'scale')
             box.operator('nvb.util_transform', icon='SORTSIZE')
             layout.separator()
 
@@ -786,6 +786,12 @@ class NVB_PT_utils(bpy.types.Panel):
                          icon='SCENE_DATA').batch_mode = False
             row.operator('render.render', text='Render', icon='RENDER_STILL')
             layout.separator()
+
+            # NFO Helper
+            box = layout.box()
+            box.label(text='Setfile Helper')
+
+            layout.separator()            
 
 
 class NVB_PT_emitter(bpy.types.Panel):

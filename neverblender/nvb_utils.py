@@ -176,18 +176,28 @@ def get_wkm_base(mdl_base, wkmtype):
     return None
 
 
-def create_wok_materials(mesh):
+def create_wok_materials(mesh, update_existing = False):
     """Adds walkmesh materials to the object."""
     # Add walkmesh materials
     for matname, matcolor in nvb_def.wok_materials:
         # Walkmesh materials are always shared between walkmeshes
         if matname in bpy.data.materials.keys():
             mat = bpy.data.materials[matname]
+            mat_exists = True
         else:
             mat = bpy.data.materials.new(matname)
+            mat_exists = False
+
+        if not mat_exists or update_existing:
             mat.diffuse_color = matcolor
             mat.specular_intensity = 0.0
+            mat.roughness = 1.0
+            mat.use_backface_culling = True
+
         mesh.materials.append(mat)
+        
+    mesh.materials.update()
+    return len(mesh.materials) == len(nvb_def.wok_materials)
 
 
 def get_children_recursive(obj, obj_list):

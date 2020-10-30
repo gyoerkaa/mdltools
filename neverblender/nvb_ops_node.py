@@ -22,17 +22,49 @@ class NVB_OT_util_genwok(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        """Enable only if a Lamp is selected."""
+        """Enable only if a Mesh is selected."""
         return (context.object and context.object.type == 'MESH')
 
     def execute(self, context):
         """Delete all current materials and add walkmesh materials."""
+        # We can't move around material indices directly. Instead we have to remove all 
+        # materials an re-create them.
+        # That will delete face material indices as well however.
         obj = context.object
-        # Remove all material slots
+
+        # Save old material indices
+        # This will only work, if the Operator is called with ALL wok materials already present
+        # (User re-adds materials)
+        face_mats = [0]*len(obj.data.polygons)
+        obj.data.polygons.foreach_get('material_index', face_mats)
+
+        # Fix material indices so they match the ones in the wok definition
+        # This will only work if wok materials are at least partially present
+        wok_indices = {wm[0]:wm_idx for wm_idx, wm in enumerate(nvb_def.wok_materials)}
+        for ms_idx, ms in enumerate(obj.material_slots):
+            wok_idx = wok_indices[ms.material.name]
+            if wok_idx != ms_idx: 
+                face_mats = [-1*wok_idx if f_idx==ms_idx else f_idx for f_idx in face_mats]
+        face_mats = [abs(f_idx) for f_idx in face_mats]    
+
+        # Remove all material (slots)
         for _ in range(len(obj.material_slots)):
             bpy.ops.object.material_slot_remove()
-        # Add wok materials
-        nvb_utils.create_wok_materials(obj.data)
+        obj.material_slots.update()
+
+        # Add wok materials (and update existing ones)
+        nvb_utils.create_wok_materials(obj.data, True)
+        obj.material_slots.update()
+
+        # Restore face material indices
+        obj.data.polygons.foreach_set('material_index', face_mats)
+        obj.data.update()
+
+        test = [0]*len(obj.data.polygons)
+        obj.data.polygons.foreach_get('material_index', test)
+
+        context.view_layer.update()
+
         return {'FINISHED'}
 
 

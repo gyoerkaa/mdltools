@@ -19,14 +19,13 @@ class NVB_OT_mtrparam_new(bpy.types.Operator):
     def poll(self, context):
         """Enable only if there is a material."""
         mat = context.material
-        return mat is not None and mat.nvb.use_mtr
+        return mat is not None and mat.nvb.mtr.use
 
     def execute(self, context):
         """TODO: DOC."""
-        material = context.material
-        plist = material.nvb.mtrparam_list
+        mat = context.material
 
-        param = plist.add()
+        param = mat.nvb.mtr.param_list.add()
         if param.ptype == 'int':
             param.pvalue = '1'
         elif param.ptype == 'float':
@@ -45,17 +44,16 @@ class NVB_OT_mtrparam_delete(bpy.types.Operator):
     def poll(self, context):
         """Enable only if the list isn't empty."""
         mat = context.material
-        if mat is not None and mat.nvb.use_mtr:
-            return len(mat.nvb.mtrparam_list) > 0
+        if mat and mat.nvb.mtr.use:
+            return len(mat.nvb.mtr.param_list) > 0
         return False
 
     def execute(self, context):
         """TODO: DOC."""
         mat = context.material
-        plist = mat.nvb.mtrparam_list
-        plist_idx = mat.nvb.mtrparam_list_idx
+        list_idx = mat.nvb.mtr.param_list_idx
 
-        plist.remove(plist_idx)
-        if plist_idx > 0:
-            plist_idx = plist_idx - 1
+        mat.nvb.mtr.param_list.remove(list_idx)
+        if list_idx > 0:
+            list_idx -= 1
         return {'FINISHED'}

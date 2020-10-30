@@ -27,6 +27,8 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
     compiler_path: bpy.props.StringProperty(name="Path to compiler",
                                             subtype='FILE_PATH')
+    
+    # Export preferences
     export_mat_mtr_ref: bpy.props.EnumProperty(
             name="MTR Reference",
             description="Specify the way MTR files are referenced",
@@ -49,7 +51,11 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     export_metadata: bpy.props.BoolProperty(
         name="Export Metadata", default=True,
         description="Include export time and filedependancy in the mdl")
+    export_tileset_info: bpy.props.BoolProperty(
+        name="Export Tileset Info", default=False,
+        description="Export tileset info for other tools")        
 
+    # Import preferences
     import_dummy_type: bpy.props.EnumProperty(
         name="Dummy Type",
         description="Type of the Empty to use for Dummies",
@@ -176,6 +182,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'export_mat_mtr_ref')
         box.prop(self, 'export_wirecolor')
         box.prop(self, 'export_metadata')
+        box.prop(self, 'export_tileset_info')
 
         col = split.column()
         box = col.box()
@@ -184,6 +191,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'import_dummy_size')
 
         box.prop(self, 'import_placement')
+
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
@@ -290,26 +298,35 @@ class NVB_PG_scene(bpy.types.PropertyGroup):
                                                 default=0, options=set())
 
 
-class NVB_PG_material(bpy.types.PropertyGroup):
-    """Holds additional properties needed for the mdl file format.
+class NVB_PG_material_mtr(bpy.types.PropertyGroup):
+    """Holds additional properties needed for mtr files format.
 
     This class defines all additional properties needed by the mdl file
     format. It hold the properties for meshes, lamps and empties.
     """
     # MTR Panel
-    use_mtr: bpy.props.BoolProperty(name='Use MTR',
-                                    description='Write date to MTR file',
-                                    default=False, options=set())
+    use: bpy.props.BoolProperty(name='Use MTR',
+                                description='Write date to MTR file',
+                                default=False, options=set())
     # For gui editing
-    shadervs: bpy.props.StringProperty(name='Vertex Shader',
-                                       description='Specify Vertex shader',
-                                       default='', options=set())
-    shaderfs: bpy.props.StringProperty(name='Fragment Shader',
-                                       description='Specify Fragment shader',
-                                       default='', options=set())
-    mtrparam_list: bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
-    mtrparam_list_idx: bpy.props.IntProperty(name='MTR parameter list index',
-                                             default=0, options=set())
+    shader_vs: bpy.props.StringProperty(name='Vertex Shader',
+                                        description='Specify Vertex shader',
+                                        default='', options=set())
+    shader_fs: bpy.props.StringProperty(name='Fragment Shader',
+                                        description='Specify Fragment shader',
+                                        default='', options=set())
+    param_list: bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
+    param_list_idx: bpy.props.IntProperty(name='MTR parameter list index',
+                                          default=0, options=set())
+
+                                      
+class NVB_PG_material(bpy.types.PropertyGroup):
+    """Holds additional properties needed for the mdl file format.
+
+    Main class for material properties, actual properties should be in
+    parent modules to reduce clutter
+    """
+    mtr: bpy.props.PointerProperty(type=NVB_PG_material_mtr)
 
 
 class NVB_PG_flare(bpy.types.PropertyGroup):
@@ -401,6 +418,8 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                 'Emit particles based on birthrate', 0),
                ('1', 'Trail',
                 'Emit particles based on amount per meter', 1),
+               ('-1', 'Invalid',
+                'Invalid Spawntype', -1),                
                ],
         default='0', options=set())
     renderorder: bpy.props.IntProperty(
@@ -633,6 +652,171 @@ class NVB_PG_lamp(bpy.types.PropertyGroup):
                                         default=0, options=set())
 
 
+class NVB_PG_object_nfo(bpy.types.PropertyGroup):
+    """Holds additional per object data needed for NFO files.
+
+    NFO files are used ba external tools and NeverBlender to store additional
+    data for mdl files.
+    """    
+
+    # Setfile: Nodes
+    set_tile_pathnode: bpy.props.EnumProperty(name='Pathnode',
+                                              items=nvb_def.pathnodes,
+                                              default=nvb_def.pathnodes[0][0], options=set())    
+    set_tile_pathnode_orientation: bpy.props.IntProperty(name="Orientation",
+                                                    description="Pathnode Orientation",
+                                                    default=0, min=0, max=270, step=90, 
+                                                    options=set())
+    set_tile_visnode_differs: bpy.props.BoolProperty(name="Differing Visibility Node",
+                                                description="Use a visibility node different from pathnode",
+                                                default=False, options=set())
+    set_tile_visnode_orientation: bpy.props.IntProperty(name="Orientation",
+                                                   description="Visibility Node Orientation",
+                                                   default=0, min=0, max=270, step=90, 
+                                                   options=set())
+    set_tile_doornode_differs: bpy.props.BoolProperty(name="Differing Door Node",
+                                                      description="Use a door node different from pathnode",
+                                                      default=False, options=set())
+    set_tile_doornode_orientation: bpy.props.IntProperty(name="Orientation",
+                                                         description="Visibility Node Orientation",
+                                                         default=0, min=0, max=270, step=90, 
+                                                         options=set())  
+    # Setfile: Height data                                                 
+    set_tile_height_offset: bpy.props.IntProperty(name="Height Offset",
+                                                  description="Z-offset to base tile floor",
+                                                  default=0, soft_min=-10, soft_max=20, step=1, 
+                                                  options=set())
+    set_tile_height_auto: bpy.props.BoolProperty(name="Auto tile height",
+                                                 description="Corner Height from Walkmesh and offset",
+                                                 default=True, options=set())    
+    set_tile_height: bpy.props.IntVectorProperty(name="Height",
+                                                 description="Z-offset to base tile floor",
+                                                 default = (0,0,0,0), soft_min=-10, soft_max=20, step=1, 
+                                                 size=4, options=set())
+    # Setfile: Tile Crossers
+    set_tile_crosser_top: bpy.props.StringProperty(name="Top", 
+                                                   description="Crosser: Top",
+                                                   default="",
+                                                   options=set())  
+    set_tile_crosser_right: bpy.props.StringProperty(name="Right", 
+                                                     description="Crosser: Right",
+                                                     default="",
+                                                     options=set())                                                                                                  
+    set_tile_crosser_bottom: bpy.props.StringProperty(name="Bottom", 
+                                                      description="Crosser: Bottom",
+                                                      default="",
+                                                      options=set())                                                   
+    set_tile_crosser_bottom: bpy.props.StringProperty(name="Bottom", 
+                                                      description="Crosser: Bottom",
+                                                      default="",
+                                                      options=set())
+    # Setfile: Tile Neighbouring Terrains
+    set_tile_terrain_topleft: bpy.props.StringProperty(name="Top Left", 
+                                                       description="Terrain: Top Left",
+                                                       default="",
+                                                       options=set())  
+    set_tile_terrain_bottomleft: bpy.props.StringProperty(name="Bottom Left", 
+                                                          description="Terrain: Bottom Left",
+                                                          default="",
+                                                          options=set())
+    set_tile_terrain_bottomright: bpy.props.StringProperty(name="Bottom Right", 
+                                                           description="Terrain: Bottom Right",
+                                                           default="",
+                                                           options=set())
+    set_tile_terrain_topright: bpy.props.StringProperty(name="Top Right", 
+                                                        description="Terrain: Top Right",
+                                                        default="",
+                                                        options=set())
+
+
+class NVB_PG_object_danglymesh(bpy.types.PropertyGroup):
+    """Holds additional properties needed for danglymeshes.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """    
+    period: bpy.props.FloatProperty(name='Period',
+                                    default=1.0, min=0.0, max=32.0)
+    tightness: bpy.props.FloatProperty(name='Tightness',
+                                       default=1.0, min=0.0, max=32.0)
+    displacement: bpy.props.FloatProperty(name='Displacement',
+                                          default=0.5, min=0.0, max=32.0)
+    constraints: bpy.props.StringProperty(
+                name='Danglegroup',
+                description='Name of the vertex group to use for the weights',
+                default='', options=set())
+
+
+class NVB_PG_object_animation(bpy.types.PropertyGroup):
+    """TODO: Move animation stuff here and use PointerProperty.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """    
+    pass
+
+
+class NVB_PG_object_dummy(bpy.types.PropertyGroup):
+    """TODO: Move dummy stuff here and use PointerProperty.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """    
+    emptytype: bpy.props.EnumProperty(
+                name='Type',
+                items=[(nvb_def.Emptytype.DUMMY,
+                        'Dummy',
+                        'Simple dummy object', 0),
+                       (nvb_def.Emptytype.REFERENCE,
+                        'Reference node',
+                        'Used in spells. Default value "fx_ref"', 1),
+                       (nvb_def.Emptytype.PATCH,
+                        'Patch node',
+                        'Unknown purpose', 2),
+                       (nvb_def.Emptytype.DWK,
+                        'DWK Base (Door  Walkmesh)',
+                        'All children are part of the walkmesh', 3),
+                       (nvb_def.Emptytype.PWK,
+                        'PWK Base (Placeable Walkmesh)',
+                        'All children are part of the walkmesh', 4)],
+                default=nvb_def.Emptytype.DUMMY, options=set())
+
+
+class NVB_PG_object_auroraroot(bpy.types.PropertyGroup):
+    """TODO: Move aurora root stuff here and use PointerProperty.
+
+    This class defines all additional properties needed by the mdl file
+    format. It hold the properties for meshes, lamps and empties.
+    """        
+    classification: bpy.props.EnumProperty(
+                name='Classification',
+                items=[(nvb_def.Classification.UNKNOWN,
+                        'Unknown', 'Unknown classification', 0),
+                       (nvb_def.Classification.TILE,
+                        'Tile', 'Tiles for tilesets', 1),
+                       (nvb_def.Classification.CHARACTER,
+                        'Character', 'Creatures, characters or placeables', 2),
+                       (nvb_def.Classification.DOOR,
+                        'Door', 'Doors', 3),
+                       (nvb_def.Classification.EFFECT,
+                        'Effect', 'Effects', 4),
+                       (nvb_def.Classification.GUI,
+                        'Gui', 'Gui', 5),
+                       (nvb_def.Classification.ITEM,
+                        'Item', 'Items or placeables', 6)
+                       ],
+                default=nvb_def.Classification.UNKNOWN, options=set())
+    supermodel: bpy.props.StringProperty(
+        name='Supermodel',
+        description='Name of the model to inherit animations from',
+        default=nvb_def.null, subtype='FILE_NAME', options=set())
+    animscale: bpy.props.FloatProperty(
+                name='Animationscale',
+                description='Animation scale for supermodel animations',
+                default=1.00, min=0.0, soft_max=10.0,
+                subtype='FACTOR', options=set())
+
+
 class NVB_PG_object(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
@@ -640,6 +824,8 @@ class NVB_PG_object(bpy.types.PropertyGroup):
     format. It hold the properties for meshes, lamps and empties.
     """
 
+    nfo: bpy.props.PointerProperty(type=NVB_PG_object_nfo)
+    
     # Helper properties to store additional values. Cannot be edited.
     restrot: bpy.props.FloatVectorProperty(name='Rest Pose Rotation',
                                            size=4,
@@ -754,7 +940,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                 default='AUTO', options=set())
     shadow: bpy.props.BoolProperty(name='Shadow',
                                    description='Whether to cast shadows',
-                                   default=True, options=set())
+                                   default=False, options=set())
     render: bpy.props.BoolProperty(name='Render',
                                    description='Render object',
                                    default=True, options=set())
@@ -798,6 +984,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
         name='Shapekey',
         description='Shape key to use for animated vertices',
         default='', options=set())
+
     # For danglymeshes
     period: bpy.props.FloatProperty(name='Period',
                                     default=1.0, min=0.0, max=32.0)
@@ -809,6 +996,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                 name='Danglegroup',
                 description='Name of the vertex group to use for the weights',
                 default='', options=set())
+
     # For lamps
     lighttype: bpy.props.EnumProperty(
                 name='Type',
