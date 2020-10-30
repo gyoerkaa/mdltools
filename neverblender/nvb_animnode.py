@@ -223,7 +223,8 @@ class Animnode():
             elif label == 'scale':
                 dp = 'scale'
                 dp_dim = 3
-                new_values = [[v] * dp_dim for v in vals]
+                new_values = [v*dp_dim for v in vals]
+
             return new_values, dp, dp_dim
 
         fps = options.scene.render.fps
