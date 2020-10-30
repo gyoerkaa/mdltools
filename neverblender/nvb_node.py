@@ -387,12 +387,11 @@ class Trimesh(Node):
         blen_mesh.vertices.foreach_set('co', unpack_list(self.vertex_coords))
 
         # Create faces
-        face_vertex_indices = [v[0:3] for v in self.facedef]
-        face_cnt = len(face_vertex_indices)
+        face_vert_ids = [v[0:3] for v in self.facedef]
+        face_cnt = len(face_vert_ids)
         # Loops
         blen_mesh.loops.add(face_cnt * 3)
-        blen_mesh.loops.foreach_set('vertex_index',
-                                    unpack_list(face_vertex_indices))
+        blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vert_ids))
         # Polygons
         blen_mesh.polygons.add(face_cnt)
         blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
@@ -461,7 +460,7 @@ class Trimesh(Node):
             blen_mesh.vertices.foreach_set('normal', unpack_list(self.normals))
 
             blen_mesh.create_normals_split()
-            per_loop_normals = [no for vidx_list in face_vertex_indices
+            per_loop_normals = [no for vidx_list in face_vert_ids
                                 for vidx in vidx_list
                                 for no in self.normals[vidx]]
             blen_mesh.loops.foreach_set("normal", per_loop_normals)
@@ -706,7 +705,7 @@ class Trimesh(Node):
                 coords0 = me_uv_coord_list[0]
                 ascii_lines.append(fstr_tv.format(len(coords0)))
                 ascii_lines.extend([fstr.format(c[0], c[1]) for c in coords0])
-                # Other list entries as "tvertsN"
+                # Other list entries as "tvertsN", with N>0
                 fstr_tv = '  tverts{:d} {:d}'
                 for idx, coords in enumerate(me_uv_coord_list[1:], 1):
                     ascii_lines.append(fstr_tv.format(idx, len(coords)))
@@ -732,17 +731,17 @@ class Trimesh(Node):
         # Generate Smoothgroups
         me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
         if me_face_grp:
-            dig_g = max(1, len(str(max(me_face_grp))))  # digits for formatting
+            dig_g = max(1, len(str(max(me_face_grp))))  # req digits for formatting
         else:
             print('Neverblender: ERROR - Could not create smoothgroups for ' + obj.name)
        
         # Face vertex indices
         me_face_vert = [tuple(p.vertices) for p in me.polygons]
-        dig_v = max(1, len(str(len(me_vertices))))  # digits for formatting
+        dig_v = max(1, len(str(len(me_vertices))))  # req digits for formatting
 
         # Face material indices
         me_face_mat = [p.material_index for p in me.polygons]
-        dig_m = max(1, len(str(max(me_face_mat))))  # digits for formatting
+        dig_m = max(1, len(str(max(me_face_mat))))  # req digits for formatting
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
@@ -777,7 +776,7 @@ class Trimesh(Node):
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Render and Shadow
-            if not obj.nvb.shadow or not obj.nvb.render:  # Skip default value
+            if not obj.nvb.shadow or not obj.nvb.render:  # Skip default value (both are 1)
                 asciiLines.append('  render ' + str(int(obj.nvb.render)))
                 asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             # Beaming
@@ -1130,7 +1129,7 @@ class Emitter(Node):
             part_sys_settings.nvb.particletype == 'texture'
         part_sys_settings.count = 0  # for now
 
-    def create_blender_mesh(self, objName, options):
+    def create_blender_mesh(self, blen_name, options):
         """TODO: Doc."""
         em_x = max(self.xsize/100, 0)/2
         em_y = max(self.ysize/100, 0)/2
@@ -1140,7 +1139,7 @@ class Emitter(Node):
                      (-em_x, -em_y, 0.0) ]
         faces = [(0, 2, 3),
                  (3, 1, 0)]
-        blen_mesh = nvb_utils.build_mesh(vertices, faces, objName)
+        blen_mesh = nvb_utils.build_mesh(vertices, faces, blen_name)
 
         blen_mesh.validate()
         blen_mesh.update()
@@ -1566,28 +1565,39 @@ class Aabb(Trimesh):
         Trimesh.generateAsciiMesh(obj, asciiLines, options)
         Aabb.generateAsciiAABB(obj, asciiLines, options)
 
-    def create_blender_mesh(self, name, options):
+    def create_blender_mesh(self, blen_name, options):
         """TODO: Doc."""
-        # Create the mesh itself
-        me = bpy.data.meshes.new(name)
+        # Create a Blender mesh
+        blen_mesh = bpy.data.meshes.new(name=blen_name)
         # Create vertices
-        me.vertices.add(len(self.vertex_coords))
-        me.vertices.foreach_set('co', unpack_list(self.vertex_coords))
+        blen_mesh.vertices.add(len(self.vertex_coords))
+        blen_mesh.vertices.foreach_set('co', unpack_list(self.vertex_coords))
         # Create faces
-        face_vids = [v[0:3] for v in self.facedef]  # face vertex indices
-        face_cnt = len(face_vids)
-        me.polygons.add(face_cnt)
-        me.loops.add(face_cnt * 3)
-        me.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
-        me.polygons.foreach_set('loop_total', (3,) * face_cnt)
-        me.loops.foreach_set('vertex_index', unpack_list(face_vids))
-        nvb_utils.create_wok_materials(me)
-        me.update()
-        # Apply the walkmesh materials to each face
-        me.polygons.foreach_set('material_index',
-                                [f[7] for f in self.facedef])
-        return me
+        face_vert_ids = [v[0:3] for v in self.facedef]
+        face_cnt = len(face_vert_ids)
+        # Loops
+        blen_mesh.loops.add(face_cnt * 3)
+        blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vert_ids))
+        # Polygons
+        blen_mesh.polygons.add(face_cnt)
+        blen_mesh.polygons.foreach_set('loop_start', range(0, face_cnt * 3, 3))
+        blen_mesh.polygons.foreach_set('loop_total', (3,) * face_cnt)
 
+        if not blen_mesh.polygons:
+            return None
+
+        if nvb_utils.create_wok_materials(blen_mesh):
+            blen_mesh.update()
+            if len(blen_mesh.materials) > max([f[7] for f in self.facedef]):      
+                # Apply the walkmesh materials to each face
+                blen_mesh.polygons.foreach_set('material_index',
+                                               [f[7] for f in self.facedef])
+                blen_mesh.update() 
+
+        blen_mesh.validate(clean_customdata=False)
+
+        return blen_mesh
+        
     def createObject(self, options):
         """TODO: Doc."""        
         mesh = self.create_blender_mesh(self.name, options)
