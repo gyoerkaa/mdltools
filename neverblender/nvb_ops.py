@@ -117,6 +117,11 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         default=(1.0, 1.0, 1.0),
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
+    minimap_filename: bpy.props.StringProperty(
+        name='Filename',
+        description='Filename of Minimap',
+        subtype='FILE_NAME',
+        default="")
 
     @classmethod
     def poll(self, context):
@@ -164,38 +169,29 @@ class NVB_OT_util_minimap(bpy.types.Operator):
 
         return mm_cam, mm_light
 
-    def setup_scene(self, scene):
-        """Setup scene settings."""
-        scene.render.resolution_x = self.img_size
-        scene.render.resolution_y = self.img_size
-        scene.render.resolution_percentage = 100
-        scene.render.image_settings.color_mode = 'RGB'
-        scene.render.image_settings.file_format = 'TARGA_RAW'
-
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
         scene = bpy.context.scene
         collection = scene.collection
         if self.batch_mode:
-            # Get mdl roots
-            mdl_base_list = []
-            obj_list = collection.objects
-            for obj in obj_list:
-                mbase = nvb_utils.get_obj_mdl_base(obj)
-                if mbase and (mbase not in mdl_base_list):
-                    mdl_base_list.append(mbase)
-            # Set render settings
-            self.setup_scene(scene)
-            # Render a minimap for each tile
-            for mbase in mdl_base_list:
-                img_name = 'mi_' + mbase.name
-                if self.force_lowercase:
-                    img_name = img_name.lower()
-                img_path = os.fsencode(os.path.join(self.render_dir, img_name))
-                scene.render.filepath = img_path
-                mm_cam, _ = self.setup_objects(mbase, collection)
-                scene.camera = mm_cam
-                bpy.ops.render.render(animation=False, write_still=True)
+            if not context.object:
+                return {'CANCELLED'}
+
+            aurora_base = nvb_utils.get_obj_mdl_base(context.object)
+            if self.minimap_filename:
+                img_name = self.minimap_filename
+            else:
+                img_name = 'mi_' + aurora_base.name
+
+            if self.force_lowercase:
+                img_name = img_name.lower()
+
+            img_path = os.fsencode(os.path.join(self.render_dir, img_name))
+            scene.render.filepath = img_path
+            
+            mm_cam, _ = self.setup_objects(aurora_base, collection)
+            scene.camera = mm_cam
+            bpy.ops.render.render(animation=False, write_still=True)
         else:
             # Get root from active mdl
             if not context.object:
@@ -204,8 +200,11 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             if not mdl_base:
                 return {'CANCELLED'}
             # Setup Render
-            self.img_size = scene.render.resolution_y  # make image square
-            self.setup_scene(scene)
+            scene.render.resolution_x = self.img_size
+            scene.render.resolution_y = scene.render.resolution_x 
+            scene.render.resolution_percentage = 100
+            scene.render.image_settings.color_mode = 'RGB'
+            scene.render.image_settings.file_format = 'TARGA_RAW'
             mm_cam, _ = self.setup_objects(mdl_base, collection)
             scene.camera = mm_cam
 

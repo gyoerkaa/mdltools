@@ -43,9 +43,14 @@ from . import nvb_ops_node
 
 from . import nvb_ui
 
+
+# Enables the use of reloading the entire addon without restarting blender
 if 'bpy' in locals():
+    # Doing this in here: Importing this twice will result in an error
     import importlib
+    # Checking for nvb_def is enough, if present: Already loaded, explicity reload
     if 'nvb_def' in locals():
+        # reload main modules
         importlib.reload(nvb_def)
         importlib.reload(nvb_utils)
         importlib.reload(nvb_mdl)
@@ -55,7 +60,7 @@ if 'bpy' in locals():
         importlib.reload(nvb_mtr)
         importlib.reload(nvb_props)
         importlib.reload(nvb_material)
-
+        # reload operators
         importlib.reload(nvb_ops)
         importlib.reload(nvb_ops_io)
         importlib.reload(nvb_ops_mtr)
@@ -63,15 +68,17 @@ if 'bpy' in locals():
         importlib.reload(nvb_ops_set)
         importlib.reload(nvb_ops_amt)
         importlib.reload(nvb_ops_node)
-
+        # reload UI
         importlib.reload(nvb_ui)
+        # stdout message because I'm paranoid
         print('Neverblender: Ready')
 
 
+# Addon info
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 8, 20),
+    'version': (2, 8, 21),
     "blender": (2, 83, 0),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -81,7 +88,8 @@ bl_info = {
     "category": "Import-Export"}
 
 
-classes = (
+# Helper: List of all classes. Can easily loop over to (un)register the addon 
+neverblender_classes = (
     nvb_props.NVB_addon_properties,
 
     nvb_props.NVB_PG_set_element,
@@ -89,11 +97,17 @@ classes = (
     nvb_props.NVB_PG_amt_event,
     nvb_props.NVB_PG_mtrparameter,
     nvb_props.NVB_PG_anim,
+
+    nvb_props.NVB_PG_material_mtr,
     nvb_props.NVB_PG_material,
+    
     nvb_props.NVB_PG_scene,
     nvb_props.NVB_PG_flare,
     nvb_props.NVB_PG_lamp,
+
+    nvb_props.NVB_PG_object_nfo,
     nvb_props.NVB_PG_object,
+
     nvb_props.NVB_PG_bone,
     nvb_props.NVB_PG_emitter,
 
@@ -161,26 +175,28 @@ classes = (
 
 
 def menu_func_export(self, context):
-    """TODO:Doc."""
+    """Helper to register a Menu element."""
     self.layout.operator(nvb_ops_io.NVB_OT_mdlexport.bl_idname,
                          text="Aurora (.mdl)")
 
 
 def menu_func_import(self, context):
-    """TODO:Doc."""
+    """Helper to register a Menu element."""
     self.layout.operator(nvb_ops_io.NVB_OT_mdlimport.bl_idname,
                          text="Aurora (.mdl)")
 
 
 def register():
-    """TODO:Doc."""
-    # bpy.utils.register_module(__name__)
+    """Registers and properties and UI entries."""
 
-    for cl in classes:
+    for cl in neverblender_classes:
         bpy.utils.register_class(cl)
 
     bpy.types.Object.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_object)
+    # bpy.types.Object.nvb.nfo = \
+        # bpy.props.PointerProperty(type=nvb_props.NVB_PG_object_nfo)
+
     bpy.types.Material.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_material)
     bpy.types.Light.nvb = \
@@ -197,21 +213,20 @@ def register():
 
 
 def unregister():
-    """TODO:Doc."""
+    """Removes properties and UI entries. Called explicitly by Blender."""
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
 
-    for cl in reversed(classes):
+    for cl in reversed(neverblender_classes):
         bpy.utils.unregister_class(cl)
 
+    del bpy.types.Object.nvb.nfo
     del bpy.types.Object.nvb
     del bpy.types.Material.nvb
     del bpy.types.Light.nvb
     del bpy.types.Scene.nvb
     del bpy.types.ParticleSettings.nvb
     del bpy.types.Bone.nvb
-
-    # bpy.utils.unregister_module(__name__)
 
 
 if __name__ == "__main__":

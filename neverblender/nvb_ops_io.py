@@ -146,7 +146,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             # Export MDL
             ascii_lines = []
             nvb_mdl.Mdl.generate_ascii(mdl_base, ascii_lines, options)
-            with open(os.fsencode(options.filepath), 'w') as f:
+            with open(os.fsencode(options.filepath), 'w', newline='\r\n') as f:
                 f.write('\n'.join(ascii_lines))
             # Export walkmesh for MDL
             if options.export_walkmesh:
@@ -157,14 +157,14 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                                                wkm_type, options)
                 if ascii_lines:
                     wkm_path = get_filepath(mdl_path, wkm_name, wkm_ext)
-                    with open(os.fsencode(wkm_path), 'w') as f:
+                    with open(os.fsencode(wkm_path), 'w', newline='\r\n') as f:
                         f.write('\n'.join(ascii_lines))
         # Export MTRs
         for mtr_name, blen_mat_name in options.mtr_list:
             blen_mat = bpy.data.materials[blen_mat_name]
             ascii_lines = nvb_mtr.Mtr.generate_ascii(blen_mat, options)
             mtr_path = get_filepath(options.filepath, mtr_name, '.mtr')
-            with open(os.fsencode(mtr_path), 'w') as f:
+            with open(os.fsencode(mtr_path), 'w', newline='\r\n') as f:
                 f.write('\n'.join(ascii_lines))
         return {'FINISHED'}
 

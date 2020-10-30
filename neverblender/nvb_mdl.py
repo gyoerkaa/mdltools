@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 import bpy
+import addon_utils
 
 from . import nvb_node
 from . import nvb_anim
@@ -232,12 +233,20 @@ class Mdl():
         if options.export_metadata:
             # Add current date
             ct = datetime.now()
-            time_str = ct.strftime(" on %A, %Y-%m-%d")
+            time_str = ct.strftime(" - %A, %Y-%m-%d")
             # filedependancy (blend file name)
             blend_file = os.path.basename(bpy.data.filepath)
             if not blend_file:
                 blend_file = "unknown"
-        ascii_lines.append("# Exported from Blender" + time_str)
+
+        # Get Addon Version
+        try:
+            nvbVersion = [addon.bl_info.get('version', (-1,-1,-1)) for addon in addon_utils.modules() if addon.bl_info['name'] == 'Neverblender'][0]
+            nvbVersion = '.'.join([str(s) for s in nvbVersion])
+        except (KeyError, ValueError):
+            nvbVersion = "-1"
+
+        ascii_lines.append("# Exported from NeverBlender " + nvbVersion + time_str)
         ascii_lines.append("filedependancy " + blend_file)
 
     @staticmethod
@@ -391,12 +400,16 @@ class Mdl():
             mdl_base = self.link_objects(self.mdlnodes,
                                         mdl_resolver,
                                         options.collection)
+            bpy.context.evaluated_depsgraph_get().update()
+            bpy.context.view_layer.update()
             # Create animations
             if options.anim_import:
                 if options.anim_fps_use:
                     options.scene.render.fps = options.anim_fps
                 self.create_animations(self.animations,
                                     mdl_base, mdl_resolver, options)
+            bpy.context.evaluated_depsgraph_get().update()
+            bpy.context.view_layer.update()
 
         # Create pwk objects
         if self.pwknodes:
@@ -431,6 +444,8 @@ class Mdl():
         # Set mdl base position
         if mdl_base:
             mdl_base.location = options.mdl_location
+            # Set mdl base as active
+            bpy.context.view_layer.objects.active = mdl_base
 
     def create_super(self, mdl_base, options):
         """Import animation onto existing MDL."""
