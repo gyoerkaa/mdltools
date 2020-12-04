@@ -6,6 +6,7 @@ import bpy
 from . import nvb_mtr
 from . import nvb_def
 from . import nvb_parse
+from . import nvb_utils
 from .nvb_materialnode import Materialnode
 
 
@@ -185,7 +186,10 @@ class Material(object):
         """Write Ascii lines from the objects material for a MDL file."""
         blen_material = obj.active_material
 
+        # Format string for colors
         fstr_col = '  {:s}' + 3 * ' {:3.2f}'
+        # Format string for first texture, depending on user preferences it 
+        # is either 'bitmap' or 'texture0'
         fstr_tex0 = '  ' + options.mat_diffuse_ref + ' {:s}'
         if obj.nvb.render and blen_material:
             tex_list, col_list, alpha = \
@@ -215,7 +219,8 @@ class Material(object):
                 options.mtr_list.add((mtr_name, blen_material.name))
             else:
                 # Write to MDL: Can only export the first three textures
-                tex_list = tex_list[:3]
+                # Also fix texture name to ascii     
+                tex_list = [nvb_utils.generate_mdl_identifier(t) for t in tex_list[:3]]
                 # Add Renderhint if normal or specular texture is present
                 if (tex_list[1:].count(nvb_def.null) < len(tex_list[1:])):
                     ascii_lines.append('  renderhint NormalAndSpecMapped')

@@ -266,23 +266,16 @@ class Animnode():
 
     def create_data_shape(self, obj, anim, animlength, options):
         """Import animated vertices as shapekeys."""
-        fps = options.scene.render.fps
-        frame_start = anim.frameStart
-        if not obj.data:
-            return
-        # Sanity check: Sample period can't be 0
-        if self.sampleperiod < 0.001:
-            return
-        # Sanity check: animation length == multiple of sampleperiod
-        if animlength % self.sampleperiod > 0.0:
-            return
         sample_cnt = int(animlength / self.sampleperiod) + 1
-        # Sanity check: Number of animtverts = number verts * numSamples
         vert_cnt = len(obj.data.vertices)
-        if (len(self.animverts) != vert_cnt * sample_cnt):
+        # Sanity Check
+        if len(self.animtverts) % sample_cnt > 0.0:
             print("Neverblender: WARNING - animvert sample size mismatch: " +
                   obj.name)
             return
+
+        fps = options.scene.render.fps
+        frame_start = anim.frameStart
         # Add Basis key holding original mesh data
         shape_keys = obj.data.shape_keys
         if not shape_keys or 'Basis' not in shape_keys.key_blocks:
@@ -312,19 +305,6 @@ class Animnode():
 
     def create_data_uv(self, obj, anim, animlength, options):
         """Import animated texture coordinates."""
-        blen_mesh = obj.data
-        if not blen_mesh:
-            return
-        # Sanity Check: Sample period can't be 0
-        if self.sampleperiod <= 0.00001:
-            print("Neverblender: WARNING - animtvert period is 0: " +
-                  obj.name)
-            return
-        # Sanity Check: animation length == multiple of sampleperiod
-        if animlength % self.sampleperiod > 0.0:
-            print("Neverblender: WARNING - sampleperiod mismatch: " +
-                  obj.name)
-            return
         num_samples = int(animlength / self.sampleperiod) + 1
         # Sanity Check
         if len(self.animtverts) % num_samples > 0.0:
@@ -340,7 +320,7 @@ class Animnode():
         for sample_idx, sample in sampler:
             face_uv_coords = [sample[i] for i in face_uv_indices]
             face_uv_coords = unpack_list(face_uv_coords)
-            uv_layer = blen_mesh.uv_layers.new(do_init=False)
+            uv_layer = obj.data.uv_layers.new(do_init=False)
             uv_layer.name = sample_fstr.format(sample_idx)
             uv_layer.data.foreach_set(
                 'uv', face_uv_coords[:2*len(uv_layer.data)])
@@ -397,10 +377,28 @@ class Animnode():
             self.create_data_material(obj, anim, options)
         if self.emitter_data:
             self.create_data_emitter(obj, anim, options)
-        if self.uvdata:
-            self.create_data_uv(obj, anim, animlength, options)
-        if self.shapedata:
-            self.create_data_shape(obj, anim, animlength, options)
+        # Animmesh data, do some sanity checks or things can go horribly wrong
+        if self.uvdata or self.shapedata:
+            # Sanity Check: No mesh
+            if not obj.data:
+                print("Neverblender: WARNING - No mesh data for " +
+                    obj.name)            
+                return
+            # Sanity Check: Sample period can't be 0
+            if self.sampleperiod <= 0.00001:
+                print("Neverblender: WARNING - sampleperiod period is 0 for " +
+                    obj.name)
+                return
+            # Sanity Check: animation length == multiple of sampleperiod
+            if animlength % self.sampleperiod > 0.0:
+                print("Neverblender: WARNING - sampleperiod mismatch for " +
+                    obj.name)
+                return
+            # Import animesh as extra uv maps and shapekeys
+            if self.uvdata:
+                self.create_data_uv(obj, anim, animlength, options)
+            if self.shapedata:
+                self.create_data_shape(obj, anim, animlength, options)
 
     @staticmethod
     def get_keys_emitter(psy, anim, key_data, options):
@@ -679,7 +677,7 @@ class Animnode():
             anim_length = (anim_end - anim_start) / fps
             sample_period = anim_length / (num_samples - 1)
             ascii_lines.append('    sampleperiod ' +
-                               str(round(sample_period, 5)))
+                               str(round(sample_period, 3)))
         # Create ascii representation and add it to the output
         ascii_lines.append('    animverts ' + str(num_samples * num_verts))
         fstr = '     ' + 3 * ' {: 8.5f}'
@@ -726,7 +724,7 @@ class Animnode():
             anim_length = (anim_end - anim_start) / fps
             sample_period = anim_length / (num_samples - 1)
             ascii_lines.append('    sampleperiod ' +
-                               str(round(sample_period, 5)))
+                               str(round(sample_period, 3)))
         # Create ascii representation and add it to the output
         ascii_lines.append('    animtverts ' + str(num_samples * num_tverts))
         fstr = '      {: 7.4f} {: 7.4f}  0'

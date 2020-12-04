@@ -6,7 +6,7 @@ import os
 import math
 import re
 import collections
-# import unicodedata
+import unicodedata
 
 import bpy_extras.image_utils
 
@@ -253,18 +253,23 @@ def strip_trailing_numbers(s):
     return re.fullmatch(r'(.+?)(\.\d+)?$', s).group(1)
 
 
+def generate_mdl_identifier(s):
+    identifier = s.replace(' ', '_')
+    identifier = unicodedata.normalize('NFKD', identifier).encode('ascii', 'ignore').decode()
+    # identifier = re.sub(r'[^a-zA-Z0-9_!\-\.]', r'!', identifier)
+    return identifier
+
+
 def generate_node_name(obj, strip_trailing=False):
     """Return a name for node/objects for use in the mdl."""
-    new_name = nvb_def.null
     if obj:
         new_name = obj.name
         if strip_trailing:
-            new_name = strip_trailing_numbers(obj.name)
-        new_name = new_name.replace(' ', '_')
-        # new_name = unicodedata.normalize('NFKD', new_name) \
-        #     .encode('ascii', 'ignore').decode()
-        new_name = re.sub(r'[^a-zA-Z0-9_!\-\.]', r'!', new_name)
-    return new_name
+            new_name = strip_trailing_numbers(new_name)
+        new_name = generate_mdl_identifier(new_name)
+        return new_name
+    
+    return nvb_def.null
 
 
 def isNumber(s):
