@@ -246,7 +246,6 @@ class NVB_OT_set_massimport(bpy.types.Operator):
                         import_normals=True,
                         mat_import=True,
                         mat_merge=True,
-                        mtr_import=True,
                         tex_search=False,
                         anim_import=True,
                         anim_fps_use=False,

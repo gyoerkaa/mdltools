@@ -1,5 +1,6 @@
 """TODO: DOC."""
 
+import glob
 import mathutils
 import bpy
 import os
@@ -154,6 +155,37 @@ def get_aabb(mdl_base):
     return None
 
 
+def find_file_nocase(file_dir, file_name):
+    """Return the case sensitive path to the file."""
+    if file_dir == "" or file_name == "":
+        return ""
+
+    # If it actually exists, return it directly
+    file_path = os.path.join(file_dir, file_name)
+    if os.path.exists(file_path):
+        return file_path
+
+    try:  # we are expecting dirname to be a directory, but it could be a file
+        file_list = os.listdir(file_dir)
+    except OSError:
+        return
+    
+    # Try to match filename in the directory
+    search_name = file_name.lower()
+    try:
+        valid_name = next(fl for fl in file_list if fl.lower() == search_name)
+    except StopIteration:
+        return ""
+
+    if valid_name:
+        return os.path.join(file_dir, valid_name)
+    
+    return ""
+
+
+    
+
+
 def is_wkm_base(obj):
     """Return true if object obj is a root object for walkmeshes."""
     if not obj:
@@ -176,7 +208,7 @@ def get_wkm_base(mdl_base, wkmtype):
     return None
 
 
-def create_wok_materials(mesh, update_existing = False):
+def create_wok_materials(mesh, update_existing=False):
     """Adds walkmesh materials to the object."""
     # Add walkmesh materials
     for matname, matcolor in nvb_def.wok_materials:
@@ -195,7 +227,7 @@ def create_wok_materials(mesh, update_existing = False):
             mat.use_backface_culling = True
 
         mesh.materials.append(mat)
-        
+
     mesh.materials.update()
     return len(mesh.materials) == len(nvb_def.wok_materials)
 
@@ -268,7 +300,7 @@ def generate_node_name(obj, strip_trailing=False):
             new_name = strip_trailing_numbers(new_name)
         new_name = generate_mdl_identifier(new_name)
         return new_name
-    
+
     return nvb_def.null
 
 
@@ -567,7 +599,7 @@ def create_texture(texname, imgname, filepath, tex_search):
 
 def correct_emitter_parameters(param):
     """Correct emitter parameters, which are case sensitive."""
-    correct = {'normal': 'Normal', 
+    correct = {'normal': 'Normal',
                'lighten': 'Lighten',
                'linked': 'Linked',
                'billboard_to_local_z': 'Billboard_to_Local_Z',

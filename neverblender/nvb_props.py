@@ -27,33 +27,38 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
     compiler_path: bpy.props.StringProperty(name="Path to compiler",
                                             subtype='FILE_PATH')
-    
     # Export preferences
+    export_mat_mtr_use: bpy.props.BoolProperty(
+        name="Use MTR files", default=True,
+        description="Generate MTR files to hold materials data")  
     export_mat_mtr_ref: bpy.props.EnumProperty(
             name="MTR Reference",
-            description="Specify the way MTR files are referenced",
+            description="Specify the way MTR files are referenced from MDL files",
             items=[('bitmap',
                     "bitmap", "Use 'bitmap'", 0),
                    ('materialname',
                     "materialname", "Use 'materialname'", 1)],
             default='bitmap')
     export_mat_diffuse_ref: bpy.props.EnumProperty(
-        name="Diffuse Texture Reference",
-        description="Specify the way the diffuse textures are referenced",
+        name="Diffuse Reference",
+        description="Specify the way the diffuse textures are referenced in the MDL",
         items=[('bitmap',
                 "bitmap", "Diffuse as 'bitmap'", 0),
                ('texture0',
                 "texture0", "Diffuse as 'texture0'", 1)],
-        default='bitmap')
+        default='bitmap')      
+    export_binary_smoothgroups: bpy.props.BoolProperty(
+        name="Binary Smoothing groups", default=True,
+        description="Smoothing group IDs will be powers of two")         
     export_wirecolor: bpy.props.BoolProperty(
-        name="Export Wirecolor", default=True,
+        name="Object Color as Wirecolor", default=True,
         description="Use Blender's Object Color property to hold Wirecolor")
     export_metadata: bpy.props.BoolProperty(
         name="Export Metadata", default=True,
-        description="Include export time and filedependancy in the mdl")
+        description="Include export time and filedependancy in the mdl")      
     export_tileset_info: bpy.props.BoolProperty(
-        name="Export Tileset Info", default=False,
-        description="Export tileset info for other tools")        
+        name="Generate Tileset Info", default=False,
+        description="Create a tileset NFO file which holds data for set files")        
 
     # Import preferences
     import_dummy_type: bpy.props.EnumProperty(
@@ -170,6 +175,28 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                 'Animations will not be copied', 3)],
         default='ACTION', update=NVB_psb_anim_mode_update)
 
+    # Tile Slicer
+    util_tsl_destructive: bpy.props.BoolProperty(
+        name="Destructive", default=False,
+        description="Create new objects instead of modifying existing ones")    
+    util_tsl_target: bpy.props.EnumProperty(
+        name="Target",
+        description="Select the objects to slice",
+        items=[('SCENE', "Scene", 
+                "All Objects in current scene", 0),
+               ('COLLECTION', "Active Collection",
+                "All Objects in active collection", 1),
+               ('SELECTED', "Selected", 
+                "All selected objects", 2),
+               ],
+        default='SCENE')
+    util_tsl_origin: bpy.props.EnumProperty(
+        name="Origin",
+        description="Objects affected by the tile slicer",
+        items=[('AUTO', "Automatic", "Slice All Objects", 0),
+               ('CURSOR', "3D cursor", "Only Slice Walkmeshes", 1)],
+        default='AUTO')
+
     def draw(self, context):
         layout = self.layout
         #  layout.prop(self, 'compiler_path')
@@ -178,10 +205,15 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         col = split.column()
         box = col.box()
         box.label(text='Export Settings')
+        box.prop(self, 'export_mat_mtr_use')
+        sub = box.column()
+        sub.prop(self, "export_mat_mtr_ref")
+        sub.active = self.export_mat_mtr_use
         box.prop(self, 'export_mat_diffuse_ref')
-        box.prop(self, 'export_mat_mtr_ref')
+        
         box.prop(self, 'export_wirecolor')
         box.prop(self, 'export_metadata')
+        box.prop(self, 'export_binary_smoothgroups')
         box.prop(self, 'export_tileset_info')
 
         col = split.column()
@@ -543,11 +575,13 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
         description='Point to Point emitter',
         default=False, options=set())
     p2p_sel: bpy.props.EnumProperty(
-        name='Spawn Type',
-        items=[('1', 'Bezier',
-                'Emit particles based on birthrate', 1),
+        name='P2P Type',
+        items=[('0', 'Undefined (?)',
+                'Gravity? Undefined? Unused? nobody knows', 0),
+               ('1', 'Bezier',
+                '', 1),
                ('2', 'Gravity',
-                'Emit particles based on amount per meter', 2),
+                '', 2),
                ],
         default='1', options=set())
     p2p_bezier2: bpy.props.FloatProperty(

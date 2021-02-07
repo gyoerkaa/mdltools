@@ -48,7 +48,8 @@ from . import nvb_ui
 if 'bpy' in locals():
     # Doing this in here: Importing this twice will result in an error
     import importlib
-    # Checking for nvb_def is enough, if present: Already loaded, explicity reload
+    # Checking for nvb_def is enough, if present: Already loaded,
+    # explicity reload
     if 'nvb_def' in locals():
         # reload main modules
         importlib.reload(nvb_def)
@@ -78,7 +79,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 8, 22),
+    'version': (2, 8, 24),
     "blender": (2, 83, 0),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -88,7 +89,7 @@ bl_info = {
     "category": "Import-Export"}
 
 
-# Helper: List of all classes. Can easily loop over to (un)register the addon 
+# Helper: List of all classes. Can easily loop over to (un)register the addon
 neverblender_classes = (
     nvb_props.NVB_addon_properties,
 
@@ -100,7 +101,7 @@ neverblender_classes = (
 
     nvb_props.NVB_PG_material_mtr,
     nvb_props.NVB_PG_material,
-    
+
     nvb_props.NVB_PG_scene,
     nvb_props.NVB_PG_flare,
     nvb_props.NVB_PG_lamp,
@@ -130,6 +131,7 @@ neverblender_classes = (
     nvb_ops_node.NVB_OT_util_nodes_pwk,
     nvb_ops_node.NVB_OT_util_nodes_dwk,
     nvb_ops_node.NVB_OT_util_nodes_tile,
+    nvb_ops_node.NVB_OT_util_tileslicer,
 
     nvb_ops_amt.NVB_OT_amt_apply_pose,
     nvb_ops_amt.NVB_OT_amt_amt2psb,
@@ -195,7 +197,7 @@ def register():
     bpy.types.Object.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_object)
     # bpy.types.Object.nvb.nfo = \
-        # bpy.props.PointerProperty(type=nvb_props.NVB_PG_object_nfo)
+    #     bpy.props.PointerProperty(type=nvb_props.NVB_PG_object_nfo)
 
     bpy.types.Material.nvb = \
         bpy.props.PointerProperty(type=nvb_props.NVB_PG_material)
@@ -220,7 +222,7 @@ def unregister():
     for cl in reversed(neverblender_classes):
         bpy.utils.unregister_class(cl)
 
-    del bpy.types.Object.nvb.nfo
+    # del bpy.types.Object.nvb.nfo
     del bpy.types.Object.nvb
     del bpy.types.Material.nvb
     del bpy.types.Light.nvb

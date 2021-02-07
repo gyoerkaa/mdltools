@@ -44,7 +44,7 @@ pathnodes = [('A',  'A',  '',  0),
              ('B',  'B',  '',  2),
              ('b', 'bb', '',  3),
              ('C',  'C',  '',  4),
-             ('c', 'cc', '',  5),                       
+             ('c', 'cc', '',  5),
              ('D',  'D',  '',  6),
              ('d', 'dd', '',  7),
              ('E',  'E',  '',  8),
@@ -54,7 +54,7 @@ pathnodes = [('A',  'A',  '',  0),
              ('G',  'G',  '', 12),
              ('g', 'gg', '', 13),
              ('H',  'H',  '', 14),
-             ('h', 'hh', '', 15),                       
+             ('h', 'hh', '', 15),
              ('I',  'I',  '', 16),
              ('i', 'ii', '', 17),
              ('J',  'J',  '', 18),
@@ -64,7 +64,7 @@ pathnodes = [('A',  'A',  '',  0),
              ('L',  'L',  '', 22),
              ('l', 'll', '', 23),
              ('M',  'M',  '', 24),
-             ('m', 'mm', '', 25),                       
+             ('m', 'mm', '', 25),
              ('N',  'N',  '', 26),
              ('n', 'nn', '', 27),
              ('O',  'O',  '', 29),
@@ -73,14 +73,15 @@ pathnodes = [('A',  'A',  '',  0),
              ('p', 'pp', '', 32),
              ('Q',  'Q',  '', 33),
              ('R',  'R',  '', 34),
-             ('S',  'S',  '', 35), 
+             ('S',  'S',  '', 35),
              ('T',  'T',  '', 36),
              ('U',  'U',  '', 37),
              ('V',  'V',  '', 38),
-             ('W',  'W',  '', 39), 
+             ('W',  'W',  '', 39),
              ('X',  'X',  '', 40),
              ('Y',  'Y',  '', 41),
              ('Z',  'Z',  '', 42)]
+
 
 class MalformedMdlFile(Exception):
     """TODO: DOC."""
@@ -274,16 +275,16 @@ class ImportOptions():
         self.dummy_size = 1.0
         self.placement = 'SPIRAL'
         self.mdl_location = (0.0, 0.0, 0.0)
-        # Misc options
-        self.import_geometry = True
-        self.import_walkmesh = True
-        self.importSmoothGroups = True
-        self.import_normals = True
-        # Additional options for textures and materials
-        self.importMaterials = True
-        self.mtr_import = True
-        self.mat_shader = ""
+        # Geometry
+        self.geom_import = True
+        self.geom_smoothgroups = True
+        self.geom_normals = True
+        self.geom_walkmesh = True
+        # Materials and textures
+        self.mat_import = True
         self.mat_automerge = True
+        self.mat_shader = ""
+        self.mat_mtr_import = True
         self.tex_search = False
         # Animation Settings
         self.anim_import = True
@@ -291,7 +292,7 @@ class ImportOptions():
         self.anim_fps = 30
         self.anim_restpose = True
         self.anim_ignore_existing = False
-        self.anim_scale = None  # use None, instead of 1.0 - for perfomance
+        self.anim_scale = None  # use None, instead of 1.0
         # Blender Settings
         self.rotmode = 'XYZ'
         self.fix_uvs = False
@@ -309,19 +310,20 @@ class ExportOptions():
         self.collection = None
         self.depsgraph = None
 
-        # Hidden settings and properties for internal use
-        self.mtr_ref = 'bitmap'
+        self.mat_mtr_use = True
+        self.mat_mtr_ref = 'bitmap'
         self.mat_diffuse_ref = 'bitmap'
         self.export_metadata = True
         self.mtr_list = set()
         self.classification = Classification.UNKNOWN
+        # Geometry settings
+        self.geom_walkmesh = True
+        self.geom_smoothgroups = True
+        self.geom_smoothgroups_binary = True
+        self.geom_normals = False
         # Misc options
-        self.export_animations = True
-        self.export_walkmesh = True
-        self.export_smoothgroups = True
-        self.export_normals = False
-        self.export_mtr = True
-        # UV Map Settings
+        self.anim_export = True        
+        # UV Map  settings
         self.uv_merge = True
         self.uv_level = 'REN'
         self.uv_order = 'AL0'

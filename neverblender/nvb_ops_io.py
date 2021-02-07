@@ -40,10 +40,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export Normals and Tangents',
             description='Add normals and tangents to MDL',
             default=False)
-    export_mtr: bpy.props.BoolProperty(
-            name='Export MTR',
-            description='Export material data to MTR files',
-            default=True)
     # UV Map Export settings
     uv_merge: bpy.props.BoolProperty(
             name='Merge UVs',
@@ -149,7 +145,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             with open(os.fsencode(options.filepath), 'w', newline='\r\n') as f:
                 f.write('\n'.join(ascii_lines))
             # Export walkmesh for MDL
-            if options.export_walkmesh:
+            if options.geom_walkmesh:
                 wkm_type = get_walkmeshtype(mdl_base)
                 wkm_ext = '.' + wkm_type
                 ascii_lines = []
@@ -177,7 +173,6 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.prop(self, 'export_walkmesh')
         box.prop(self, 'export_smoothgroups')
         box.prop(self, 'export_normals')
-        box.prop(self, 'export_mtr')
         # UV Map settings
         box = layout.box()
         box.label(text='UV Map Settings')
@@ -204,16 +199,20 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.filepath = self.filepath
         options.scene = context.scene
         options.depsgraph = context.evaluated_depsgraph_get()
-        options.mtr_ref = addon_prefs.export_mat_mtr_ref
+        # Material settings
+        options.mat_mtr_use = addon_prefs.export_mat_mtr_use
+        options.mat_mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
+        # Geometry options
+        options.geom_import = True
+        options.geom_smoothgroups = self.export_smoothgroups
+        options.geom_smoothgroups_binary = addon_prefs.export_binary_smoothgroups
+        options.geom_normals = self.export_normals
+        options.geom_walkmesh = self.export_walkmesh
+        # Misc Export Settings
+        options.anim_export = self.export_animations
         options.export_metadata = addon_prefs.export_metadata
         options.export_wirecolor = addon_prefs.export_wirecolor
-        # Misc Export Settings
-        options.export_animations = self.export_animations
-        options.export_walkmesh = self.export_walkmesh
-        options.export_smoothgroups = self.export_smoothgroups
-        options.export_normals = self.export_normals
-        options.export_mtr = self.export_mtr
         # UV Map settings
         options.uv_merge = self.uv_merge
         options.uv_level = self.uv_mode
@@ -282,11 +281,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         items=(('ShaderNodeEeveeSpecular', 'Eevee Specular', ''),
                ('ShaderNodeBsdfPrincipled', 'Principled BSDF', '')),
         default='ShaderNodeBsdfPrincipled')
-    mtr_import: bpy.props.BoolProperty(
-        name='Import MTR files',
-        description='Load external material files ' +
-                    '(will overwride material in MDL)',
-        default=True)
     tex_search: bpy.props.BoolProperty(
         name='Image Search',
         description='Search for images in subdirectories \n (Warning: May be slow)',
@@ -367,7 +361,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
             mdl = nvb_mdl.Mdl()
             mdl.parse_mdl(mdl_filepath, options)
 
-            if options.import_walkmesh:
+            if options.geom_walkmesh:
                 # Try loading the placeable walkmesh (pwk)
                 pwk_filename = mdl_name + '.' + nvb_def.Walkmeshtype.PWK
                 pwk_filepath = os.path.join(mdl_filedir, pwk_filename)
@@ -422,7 +416,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         sub.enabled = self.mat_import
         sub.prop(self, 'mat_shader', text='')
         sub.prop(self, 'mat_merge')
-        sub.prop(self, 'mtr_import')
         sub.prop(self, 'tex_search')
 
         # Animation Import Settings
@@ -462,16 +455,16 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.ignore_selfillum = self.ignore_selfillum
         options.compatibility_mode = self.compatibility_mode
         options.mdl_location = self.mdl_location
-        # Misc Import Settings
-        options.import_geometry = self.import_geometry
-        options.import_walkmesh = self.import_walkmesh
-        options.importSmoothGroups = self.import_smoothgroups
-        options.import_normals = self.import_normals
+        # Geometry options
+        options.geom_import = self.import_geometry
+        options.geom_walkmesh = self.import_walkmesh
+        options.geom_normals = self.import_normals
+        options.geom_smoothgroups = self.import_smoothgroups
         # Material Options
-        options.importMaterials = self.mat_import
+        options.mat_import = self.mat_import
         options.mat_automerge = self.mat_merge
         options.mat_shader = self.mat_shader
-        options.mtr_import = self.mtr_import
+        options.mat_mtr_import = True
         options.tex_search = self.tex_search
         # Animation Options
         options.anim_import = self.anim_import

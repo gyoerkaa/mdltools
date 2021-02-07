@@ -81,7 +81,7 @@ class Mdl():
 
     def read_ascii_wkm(self, ascii_block, wkmtype, options):
         """TODO: DOC."""
-        if options.import_walkmesh:
+        if options.geom_wakmesh:
             geom_start = ascii_block.find('node ')
             if (geom_start < 0):  # Most likely empty walkmesh file
                 print("Neverblender: WARNING: Unable to read walkmesh data")
@@ -262,7 +262,7 @@ class Mdl():
         Mdl.generate_ascii_geometry(mdl_base, ascii_lines, options)
         ascii_lines.append('endmodelgeom ' + mdl_name)
         # Animations
-        if options.export_animations:
+        if options.anim_export:
             Mdl.generate_ascii_animations(mdl_base, ascii_lines, options)
         # The End
         ascii_lines.append('donemodel ' + mdl_name)

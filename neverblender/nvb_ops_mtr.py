@@ -1,7 +1,5 @@
 """Contains Blender Operators for manipulating MTR files and properties."""
 
-import os
-
 import bpy
 
 from . import nvb_def
@@ -18,8 +16,10 @@ class NVB_OT_mtrparam_new(bpy.types.Operator):
     @classmethod
     def poll(self, context):
         """Enable only if there is a material."""
-        mat = context.material
-        return mat is not None and mat.nvb.mtr.use
+        if context.object:
+            mat = context.object.active_material
+            return mat is not None and mat.nvb.mtr.use
+        return False
 
     def execute(self, context):
         """TODO: DOC."""
@@ -37,15 +37,16 @@ class NVB_OT_mtrparam_delete(bpy.types.Operator):
     """Delete the selected parameter from the parameter list"""
 
     bl_idname = 'nvb.mtrparam_delete'
-    bl_context = "material"
+    bl_context = 'MATERIAL'
     bl_label = 'Delete a parameter'
 
     @classmethod
     def poll(self, context):
         """Enable only if the list isn't empty."""
-        mat = context.material
-        if mat and mat.nvb.mtr.use:
-            return len(mat.nvb.mtr.param_list) > 0
+        if context.object:
+            mat = context.object.active_material
+            if mat and mat.nvb.mtr.use:
+                return len(mat.nvb.mtr.param_list) > 0
         return False
 
     def execute(self, context):

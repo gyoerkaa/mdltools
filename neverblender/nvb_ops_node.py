@@ -27,25 +27,26 @@ class NVB_OT_util_genwok(bpy.types.Operator):
 
     def execute(self, context):
         """Delete all current materials and add walkmesh materials."""
-        # We can't move around material indices directly. Instead we have to remove all 
-        # materials an re-create them.
+        # We can't move around material indices directly. Instead we have
+        # to remove all materials an re-create them.
         # That will delete face material indices as well however.
         obj = context.object
 
         # Save old material indices
-        # This will only work, if the Operator is called with ALL wok materials already present
-        # (User re-adds materials)
+        # This will only work, if the Operator is called with ALL wok materials
+        # already present (User re-adds materials)
         face_mats = [0]*len(obj.data.polygons)
         obj.data.polygons.foreach_get('material_index', face_mats)
 
         # Fix material indices so they match the ones in the wok definition
         # This will only work if wok materials are at least partially present
-        wok_indices = {wm[0]:wm_idx for wm_idx, wm in enumerate(nvb_def.wok_materials)}
+        wok_indices = {wm[0]: wm_idx for wm_idx, wm in
+                       enumerate(nvb_def.wok_materials)}
         for ms_idx, ms in enumerate(obj.material_slots):
             wok_idx = wok_indices[ms.material.name]
-            if wok_idx != ms_idx: 
-                face_mats = [-1*wok_idx if f_idx==ms_idx else f_idx for f_idx in face_mats]
-        face_mats = [abs(f_idx) for f_idx in face_mats]    
+            if wok_idx != ms_idx:
+                face_mats = [-1*wok_idx if f_idx == ms_idx else f_idx for f_idx in face_mats]
+        face_mats = [abs(f_idx) for f_idx in face_mats]
 
         # Remove all material (slots)
         for _ in range(len(obj.material_slots)):
@@ -82,13 +83,6 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         def get_edges(point_list):
             """Returns tuples representing edges between the polygon verts."""
             return zip(*[point_list[i:]+point_list[:i] for i in range(2)])
-            # it = iter(point_list + [point_list[0]])
-            # result = tuple(itertools.islice(it, 2))
-            # if len(result) == 2:
-            #     yield result
-            # for elem in it:
-            #     result = result[1:] + (elem,)
-            #     yield result
 
         def is_separating_axis(axis, vlist1, vlist2):
             """Checks if axis separates the vertices from the lists."""
@@ -129,12 +123,6 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         # 90° orthogonal to convex hull edges
         orthogonals = [mathutils.Vector([-1*vec[1], vec[0]]) for vec in edges]
         # Check distances of all separating axes
-        """
-        distances = [separating_axis_distance(o, chull1, chull2)
-                     for o in orthogonals]
-        return min(distances) < 0.5
-        Check if any orthogonals are separating axes
-        """
         for ortho in orthogonals:
             if is_separating_axis(ortho, chull1, chull2):
                 return False
@@ -218,7 +206,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 vec=mathutils.Vector((0.9, 0.9, 1.0)),
                 space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
                 verts=[v for v in top_face['geom']
-                       if isinstance(v, bmesh.types.BMVert)])            
+                       if isinstance(v, bmesh.types.BMVert)])
             bm.normal_update()
             # Remove the bottom plane (face only, we don't actually need it)
             bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
@@ -454,7 +442,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 plane_no=plane_top_no,
                 clear_outer=True, dist=0.001)
             del res
-            # Detect islands
+            # For Detecting islands
             obj_verts = [obj_mw @ v.co for v in bm.verts]
             vertex_list.extend(obj_verts)
             vertex_height = max(vertex_height, max([v.z for v in obj_verts]))
@@ -490,8 +478,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             ctx = bpy.context.copy()
             ctx['object'] = pwk_obj
             ctx['modifier'] = modifier
-            bpy.ops.object.modifier_apply(ctx, apply_as='DATA',
-                                          modifier=ctx['modifier'].name)
+            bpy.ops.object.modifier_apply(ctx, modifier=ctx['modifier'].name)
         return pwk_obj
 
     @staticmethod
@@ -907,6 +894,15 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
             for i in range(1, max_cnt+1):
                 obj_name = name_prefix + 'ml' + str(i)
                 lamp_data = bpy.data.lights.new(obj_name, 'POINT')
+                # Tile light should always be black
+                lamp_data.color = (0.0, 0.0, 0.0)
+                # nwn multiplier property
+                lamp_data.energy = 1.0
+                # nwn radius property
+                lamp_data.use_custom_distance = True
+                lamp_data.cutoff_distance = 14.0
+                lamp_data.shadow_soft_size = 14.0  # legacy
+                # Create new object with the lamp data
                 obj = bpy.data.objects.new(obj_name, lamp_data)
                 obj.hide_render = True  # Mainlights should not be rendered
                 obj.parent = mdl_base
@@ -974,3 +970,281 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
         self.setup_tile(mdl_base, layer)
         self.report({'INFO'}, 'Created objects')
         return {'FINISHED'}
+
+
+class NVB_OT_util_tileslicer(bpy.types.Operator):
+    """Helper to slice objects into 10x10 tile"""
+
+    bl_idname = 'nvb.util_tileslicer'
+    bl_label = "Tileslicer"
+    bl_options = {'UNDO'}
+
+    target_mode: bpy.props.EnumProperty(
+        name="Target Mode",
+        description="Select the objects to slice",
+        items=[('SCENE', "Scene", 
+                "All Objects in current scene", 0),
+               ('COLLECTION', "Active Collection",
+                "All Objects in active collection", 1),
+               ('SELECTED', "Selected", 
+                "All selected objects", 2),
+               ],
+        default='SCENE')
+    destructive: bpy.props.BoolProperty(
+        name="Destructive", default=False,
+        description="Modify target object directly instead of creating new ones")
+    walkmesh_only: bpy.props.BoolProperty(
+        name="Walkmesh Only", default=False,
+        description="Operate on walkmeshes only")     
+    optimize_splits: bpy.props.BoolProperty(
+        name="Optimize Splits", default=False,
+        description="Try to add whole objects to a tile if the overlap is small")
+    adjust_origins: bpy.props.BoolProperty(
+        name="Adjust Origins", default=True,
+        description="Moves object x-y location to mdl base")
+    add_tile_features: bpy.props.BoolProperty(
+        name="Add Tile Features", default=False,
+        description="Add walkmesh and tile lights if missing")           
+               
+    group_origin: bpy.props.FloatVectorProperty(name="Origin",
+                                                description="Origin to start slicing at",
+                                                size=3,
+                                                subtype='COORDINATES',
+                                                default=(0.0, 0.0, 0.0),
+                                                step=100)                                               
+    tile_count: bpy.props.IntVectorProperty(name="Tiles",
+                                             description="Number of Tiles in X and Y direction",
+                                             default = (2,2), min=1, soft_max=16, step=1, 
+                                             size=2, options=set())
+    tile_prefix: bpy.props.StringProperty(name="Prefix", 
+                                          description="Prefix for the generated tiles.",
+                                          default="test",
+                                          options=set())
+
+    ignore_objects = []  # don't proccess these objects
+
+    def create_mdl_base(self, context, location, tile_idx):
+        obj = bpy.data.objects.new(self.tile_prefix+str(tile_idx), None)
+        obj.location = location
+        context.collection.objects.link(obj)
+        return obj
+
+    def find_targets(self, context, aabb_min, aabb_max, tile_count):
+        """Returns a list of target objects to operate on, parents before children."""
+        def get_tile_affinity(obj, aabb_min, aabb_max, depsgraph, optimize_ratio = 0.0):
+            """Determines how tje object belongt to tile, 0 = outside, 1 partial, 2 = inside."""
+            print("  " + obj.name)
+            if obj.type == 'MESH':
+                 # For meshes we need to check vertices
+                mesh = obj.evaluated_get(depsgraph).to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+                obj_mw = obj.matrix_world
+                verts_to_test = [obj_mw @ v.co for v in mesh.vertices]
+                # Only check the lower parts of a mesh
+                if optimize_ratio > 0.0: 
+                    vert_max_z = min(v.z for v in verts_to_test) + 2.0
+                    verts_to_test = [v for v in verts_to_test if v.z <= vert_max_z]
+                    # Check how many verts are inside and outside
+                    vert_count_within = sum(1 for v in verts_to_test if (aabb_min.x <= v.x <= aabb_max.x and aabb_min.y <= v.y <= aabb_max.y) )
+                    vert_ratio_within = vert_count_within/len(verts_to_test)
+                    if (vert_ratio_within >= optimize_ratio):
+                        # Take the whole object
+                        return 2
+                    else:
+                        # Always partially in
+                        return 1
+                else:
+                    return 1
+            else:
+                # For all the rest we only check coordinates (can't slice them anyways)
+                loc_global = obj.matrix_world.to_translation()
+                if (aabb_min.x <= loc_global.x <= aabb_max.x and aabb_min.y <= loc_global.y <= aabb_max.y):
+                    return 1
+                else:
+                    return 0
+        
+        def add_children(obj, obj_list):
+            if obj not in self.ignore_objects:
+                obj_list.append(obj)
+            for child in obj.children:
+                add_children(child, obj_list)
+        
+        # Valid object depend on target mode
+        if self.target_mode == 'COLLECTION':
+            potential_targets = nvb_utils.get_active_collection(context)
+        elif self.target_mode == 'SELECTION':
+            potential_targets = context.selected_objects
+        else:  # Current Scene
+            potential_targets = context.scene.collection.all_objects
+            
+        if self.walkmesh_only:
+            # In this case we don't care about parenting
+            potential_targets = [obj for obj in potential_targets if obj.nvb.meshtype == nvb_def.Meshtype.AABB]
+        else:
+            # Ensure parents come before children
+            tmp_list = []
+            for obj in potential_targets:
+                if not obj.parent:
+                    add_children(obj, tmp_list)
+            potential_targets = tmp_list
+            del tmp_list
+                    
+        # Check wether we need to split at all
+        depsgraph = context.evaluated_depsgraph_get()
+        # Only keep object that are at least partially within the tile
+        if self.optimize_splits:
+            optimize_ratio = 0.1
+        else:
+            optimize_ratio = 0.0
+            
+        tile_affinities = [get_tile_affinity(obj, aabb_min, aabb_max, depsgraph, optimize_ratio) for obj in potential_targets]
+        return [[obj, aff] for obj, aff in zip(potential_targets, tile_affinities) if aff > 0]
+    
+    def box_bisect(self, context, obj, aabb_min, aabb_max):
+        # We can only slice meshes
+        if (obj.type != "MESH"):
+            new_obj = obj.copy() 
+            context.collection.objects.link(new_obj)
+            return new_obj
+        
+        # Get a mesh with all applied modifiers
+        depsgraph = context.evaluated_depsgraph_get()
+        old_mesh = obj.evaluated_get(depsgraph).to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+
+        # Use bmesh for bisecting
+        bm = bmesh.new()
+        bm.from_mesh(old_mesh)
+        bm.verts.ensure_lookup_table()
+
+        # Need this to transform to onject local space
+        obj_mwi = obj.matrix_world.inverted()
+        obj_mwi_rot = obj_mwi.to_quaternion().to_matrix().to_4x4()  # slice plane normals only
+            
+        # Normals and coordinates for slicing planes
+        slice_planes = [[aabb_max, mathutils.Vector(( 0,  1, 0))],
+                        [aabb_max, mathutils.Vector(( 1,  0, 0))],  
+                        [aabb_min, mathutils.Vector(( 0, -1, 0))], 
+                        [aabb_min, mathutils.Vector((-1,  0, 0))] ]
+        
+        # Transform planes to object local coordinates
+        slice_planes = [[obj_mwi @ co, obj_mwi_rot @ no] for co, no in slice_planes]
+        
+        # Perform the slice
+        for coord, norm in slice_planes:
+            _ = bmesh.ops.bisect_plane(bm,
+                                       geom=bm.verts[:] + bm.edges[:] + bm.faces[:],
+                                       plane_co=coord,
+                                       plane_no=norm,
+                                       clear_outer=True, dist=0.01)
+        
+        # Check if any geometry remains
+        if bm.verts and bm.faces:
+            # Use the bmesh to create a new mesh
+            new_mesh = bpy.data.meshes.new(name=obj.name)
+            bm.to_mesh(new_mesh)
+            bm.free()
+            new_mesh.update()
+                    
+            # Create the newly sliced object at old location
+            new_obj = bpy.data.objects.new(obj.name, new_mesh)
+            new_obj.matrix_world = obj.matrix_world
+            for mat_slot in obj.material_slots:
+                if mat_slot.material:
+                    new_obj.data.materials.append(mat_slot.material)
+                else:
+                    new_obj.data.materials.append(None)
+
+            return new_obj
+
+        # Empty slice, nothing remains of the old mesh
+        return None
+    
+    @classmethod
+    def poll(self, context):
+        """Can always be executed."""
+        return True
+
+    def execute(self, context):
+        self.ignore_objects = []
+        origin = mathutils.Vector(self.group_origin)
+        tile_count = self.tile_count[0] * self.tile_count[1]
+        
+        # Get List of valid targets for each tile
+        tile_idx = 0
+        valid_targets = [[] for _ in range(tile_count)]
+        for y in range(0, self.tile_count[1]):
+            for x in range(0, self.tile_count[0]):
+                aabb_min = origin + mathutils.Vector((x*10, y*10, 0))
+                aabb_max = origin + mathutils.Vector(((x+1)*10, (y+1)*10, 0))        
+                valid_targets[tile_idx] = self.find_targets(context, aabb_min, aabb_max, tile_count)
+                # object fully belonging to a tile should not be processed again
+                self.ignore_objects.extend(obj for obj, aff in valid_targets[tile_idx] if aff == 2)
+                tile_idx += 1
+
+        # Loop over all tiles and bisect all of its valid targets
+        tile_idx = 0
+        mdl_base_list = []
+        for y in range(0, self.tile_count[1]):
+            for x in range(0, self.tile_count[0]):
+                # Define box bounds to slice to
+                # We'll need a new mdl base, but don't create it yet, there may be nothing to add to it
+                mdl_base = None
+                copied_targets = dict()  # necessary for re-parenting
+                for obj, tile_affinity in valid_targets[tile_idx]:
+                    # Only split the object, if necessary
+                    if (obj.type == "MESH"):
+                        if tile_affinity == 2:
+                            # Bisect with  group bounds (all tiles)
+                            tile_part = self.box_bisect(context, obj, origin, mathutils.Vector((self.tile_count[0]*10, self.tile_count[1]*10, 0)))
+                        else:
+                            # Bisect with tile bounds
+                            aabb_min = origin + mathutils.Vector((x*10, y*10, 0))
+                            aabb_max = origin + mathutils.Vector(((x+1)*10, (y+1)*10, 0))
+                            tile_part = self.box_bisect(context, obj, aabb_min, aabb_max)
+                    else:
+                         tile_part = obj.copy()
+                        
+                    if tile_part:
+                        context.collection.objects.link(tile_part)
+                        context.view_layer.update()
+                        # Save for re-parenting
+                        copied_targets[obj.name] = tile_part
+                    
+                        # Create mdl base on demand
+                        if not mdl_base:
+                            mdl_base = self.create_mdl_base(context, origin + mathutils.Vector((5+x*10, 5+y*10, 0)), tile_idx)
+                            context.view_layer.update()
+                            mdl_base_list.append(mdl_base)
+                            mdl_base.nvb.classification = nvb_def.Classification.TILE
+                            tile_idx += 1
+                        
+                        if self.adjust_origins:
+                            # Adjust location to be within the tile bounds
+                            new_origin = mdl_base.location
+                            local_origin = tile_part.matrix_world.inverted() @ new_origin
+                            if tile_part.data:
+                                tile_part.data.transform(mathutils.Matrix.Translation(-local_origin))
+                                tile_part.matrix_world.translation += (new_origin - tile_part.matrix_world.translation)
+                            context.view_layer.update()
+                                                    
+                        # Restore parent-child relation if the parent was also copied
+                        if obj.parent and obj.parent.name in copied_targets:
+                            tile_part.parent = copied_targets[obj.parent.name]
+                            tile_part.matrix_parent_inverse = tile_part.parent.matrix_world.inverted()
+                        else:
+                            tile_part.parent = mdl_base
+                            tile_part.matrix_parent_inverse = tile_part.parent.matrix_world.inverted()
+                        context.view_layer.update()
+
+        if self.add_tile_features:
+            for mb in mdl_base_list:
+                context.view_layer.objects.active = mb
+                mb.select_set(True)
+                bpy.ops.nvb.util_nodes_tile()
+                mb.select_set(False)
+        
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        res = wm.invoke_props_dialog(self)
+        return res

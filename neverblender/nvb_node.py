@@ -341,11 +341,11 @@ class Trimesh(Node):
             cmap = mesh.vertex_colors.new(name=vcname)
             # Get all loops for each vertex
             vert_loop_map = {}
-            for l in mesh.loops:
-                if l.vertex_index in vert_loop_map:
-                    vert_loop_map[l.vertex_index].append(l.index)
+            for lp in mesh.loops:
+                if lp.vertex_index in vert_loop_map:
+                    vert_loop_map[lp.vertex_index].append(lp.index)
                 else:
-                    vert_loop_map[l.vertex_index] = [l.index]
+                    vert_loop_map[lp.vertex_index] = [lp.index]
             # Set color for each vertex (in every loop)
             # BUGFIX: colors have dim 4 on some systems
             #         (should be 3 as per documentation)
@@ -406,7 +406,7 @@ class Trimesh(Node):
                                        [True] * num_blen_polygons)
 
         # Create material
-        if self.render and options.importMaterials:
+        if self.render and options.mat_import:
             reuse_existing = (self.nodetype != nvb_def.Nodetype.ANIMMESH)
             material = self.material.create_blender_material(
                 options, reuse_existing)
@@ -438,7 +438,7 @@ class Trimesh(Node):
         Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
 
         # Import smooth groups as sharp edges
-        if options.importSmoothGroups:
+        if options.geom_smoothgroups:
             blen_mesh.update()
             # Count number of unique smooth groups
             sgr_list = set([fd[3] for fd in self.facedef])
@@ -455,7 +455,7 @@ class Trimesh(Node):
                 blen_mesh.auto_smooth_angle = 1.570796
                 self.create_sharp_edges(blen_mesh, [fd[3] for fd in self.facedef])
 
-        if self.normals and blen_mesh.loops and options.import_normals:
+        if self.normals and blen_mesh.loops and options.geom_normals:
             # Create normals and use them for shading
             blen_mesh.vertices.foreach_set('normal', unpack_list(self.normals))
 
@@ -539,23 +539,26 @@ class Trimesh(Node):
             all_groups = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
-               (not options.export_smoothgroups):
-                # 0 = Do not use smoothgroups
+               (not options.geom_smoothgroups):
+                # All faces beling to group 0 (every edge is sharp)
                 all_groups = [0] * len(mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
-                 (options.export_normals):
-                # All faces belong to smooth group 1
+                 (options.geom_normals):
+                # All faces belong to group 1 (every edge is smooth)
                 all_groups = [1] * len(mesh.polygons)
             else:
-                all_groups, _ = mesh.calc_smooth_groups()
+                # Calculate smoothing groups from sharp edges or auto angle setting
+                # NWN seems to use bitflag groups
+                # (smoothing groups of standard model all have powers of 2)
+                all_groups, _ = mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
                 """
                 bm = bmesh.new()
                 bm.from_mesh(mesh)
 
                 for f in bm.faces:
                     f.tag = False
-                    
-                group_idx = 1        
+
+                group_idx = 1
                 for f in bm.faces:
                     if not f.tag:
                         group_idx = group_idx+1
@@ -576,20 +579,20 @@ class Trimesh(Node):
             # calc_tangents() calls calc_normals_split() implicitly
             mesh.calc_tangents(uvmap=uvl_name)
 
-            per_loop_data = [(l.vertex_index,
-                              l.normal, l.tangent, l.bitangent_sign)
-                             for l in mesh.loops]
+            per_loop_data = [(lp.vertex_index,
+                              lp.normal, lp.tangent, lp.bitangent_sign)
+                             for lp in mesh.loops]
             per_vertex_data = [[(n, t, b) for i, n, t, b in per_loop_data
                                 if i == vidx]
                                for vidx in range(len(mesh.vertices))]
             normals = [d[0][0] for d in per_vertex_data]
-            tangents = [[*d[0][1]] + [d[0][2]] for d in per_vertex_data]                   
-            #per_vertex_data = {l.vertex_index: (l.normal,
-            #                                    l.tangent,
-            #                                    l.bitangent_sign)
-            #                   for l in mesh.loops}
-            #normals = [d[0] for d in per_vertex_data.values()]
-            #tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
+            tangents = [[*d[0][1]] + [d[0][2]] for d in per_vertex_data]
+            # per_vertex_data = {l.vertex_index: (l.normal,
+            #                                     l.tangent,
+            #                                     l.bitangent_sign)
+            #                    for l in mesh.loops}
+            # normals = [d[0] for d in per_vertex_data.values()]
+            # tangents = [[*d[1]] + [d[2]] for d in per_vertex_data.values()]
             return normals, tangents
 
         def mesh_get_uvs_to_export(mesh, uv_order='ACT'):
@@ -601,15 +604,15 @@ class Trimesh(Node):
                     uv_layer_list = [mesh.uv_layers.active]
                 elif uv_order == 'AL0':
                     # Export all, sort alphabetically
-                    uv_layer_list = [l for l in mesh.uv_layers
-                                     if not l.name.startswith("animtverts.")]
+                    uv_layer_list = [lay for lay in mesh.uv_layers
+                                     if not lay.name.startswith("animtverts.")]
                     uv_layer_list.sort(key=lambda l: l.name)
                 elif uv_order == 'AL1':
                     # Export all, sort alphabetically, put active first
                     uv_active_name = mesh.uv_layers.active.name
-                    uv_layer_list = [l for l in mesh.uv_layers
-                                     if not l.name != uv_active_name and
-                                     not l.name.startswith("animtverts.")]
+                    uv_layer_list = [lay for lay in mesh.uv_layers
+                                     if not lay.name != uv_active_name and
+                                     not lay.name.startswith("animtverts.")]
                     uv_layer_list.sort(key=lambda l: l.name)
                     uv_layer_list = [mesh.uv_layers.active] + uv_layer_list
             return uv_layer_list[:3]
@@ -650,8 +653,8 @@ class Trimesh(Node):
             if not vcolors:
                 return []
             vcolor_data = vcolors.data
-            per_loop_data = {l.vertex_index: vc.color[:3]
-                             for l, vc in zip(mesh.loops, vcolor_data)}
+            per_loop_data = {lp.vertex_index: vc.color[:3]
+                             for lp, vc in zip(mesh.loops, vcolor_data)}
             return per_loop_data.values()
 
         obj_to_export = None
@@ -696,7 +699,6 @@ class Trimesh(Node):
                 else:
                     print('Neverblender: ERROR - Could not find UVs for ' + obj.name)
 
-
             # Write tverts to file (if any)
             if me_uv_coord_list:
                 fstr = '    {: 7.4f} {: 7.4f}  0'
@@ -714,7 +716,7 @@ class Trimesh(Node):
                 del me_uv_coord_list
 
                 # Write normals and tangents
-                if options.export_normals and obj.nvb.render:
+                if options.geom_normals and obj.nvb.render:
                     normal_uv = uv_layer_list[0].name
                     me_normals, me_tangents = mesh_get_normals(me, normal_uv)
 
@@ -731,17 +733,17 @@ class Trimesh(Node):
         # Generate Smoothgroups
         me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
         if me_face_grp:
-            dig_g = max(1, len(str(max(me_face_grp))))  # req digits for formatting
+            dig_g = max(1, len(str(max(me_face_grp))))  # req digits for format
         else:
             print('Neverblender: ERROR - Could not create smoothgroups for ' + obj.name)
-       
+
         # Face vertex indices
         me_face_vert = [tuple(p.vertices) for p in me.polygons]
-        dig_v = max(1, len(str(len(me_vertices))))  # req digits for formatting
+        dig_v = max(1, len(str(len(me_vertices))))  # req digits for format
 
         # Face material indices
         me_face_mat = [p.material_index for p in me.polygons]
-        dig_m = max(1, len(str(max(me_face_mat))))  # req digits for formatting
+        dig_m = max(1, len(str(max(me_face_mat))))  # req digits for format
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
@@ -797,7 +799,8 @@ class Trimesh(Node):
                                   str(int(obj.nvb.rotatetexture)))
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
 
-        Trimesh.generateAsciiMesh(obj, asciiLines, options)
+        if len(obj.data.vertices) > 0:
+            Trimesh.generateAsciiMesh(obj, asciiLines, options)
 
 
 class Animmesh(Trimesh):
@@ -996,7 +999,7 @@ class Skinmesh(Trimesh):
             weights = clean_weights(weights)
             # Remove trailing numbers
             if options.strip_trailing:
-                weights = [[nvb_utils.strip_trailing_numbers(n), w] 
+                weights = [[nvb_utils.strip_trailing_numbers(n), w]
                            for n, w in weights]
             ascii_lines.append('    ' + ' '.join([fstr.format(*w)
                                                   for w in weights]))
@@ -1119,6 +1122,7 @@ class Emitter(Node):
         part_sys_settings = part_mod.particle_system.settings
         for data_path, value in self.blender_data:
             if data_path.startswith("nvb."):
+                print(data_path)
                 part_sys_settings.nvb.__setattr__(data_path[4:], value)
             else:
                 part_sys_settings.__setattr__(data_path, value)
@@ -1133,10 +1137,10 @@ class Emitter(Node):
         """TODO: Doc."""
         em_x = max(self.xsize/100, 0)/2
         em_y = max(self.ysize/100, 0)/2
-        vertices = [ (+em_x, +em_y, 0.0),
-                     (+em_x, -em_y, 0.0),
-                     (-em_x, +em_y, 0.0),
-                     (-em_x, -em_y, 0.0) ]
+        vertices = [(+em_x, +em_y, 0.0),
+                    (+em_x, -em_y, 0.0),
+                    (-em_x, +em_y, 0.0),
+                    (-em_x, -em_y, 0.0)]
         faces = [(0, 2, 3),
                  (3, 1, 0)]
         blen_mesh = nvb_utils.build_mesh(vertices, faces, blen_name)
@@ -1181,7 +1185,7 @@ class Emitter(Node):
         part_set = part_sys.settings
         if not part_set:
             return
-            
+
         ascii_lines.append('  xsize {:3.2f}'.format(obj.dimensions.x*100))
         ascii_lines.append('  ysize {:3.2f}'.format(obj.dimensions.y*100))
         # Emitter Properties
@@ -1191,7 +1195,7 @@ class Emitter(Node):
         ascii_lines.append(form_prop('spawntype', part_set.nvb.spawntype))
         ascii_lines.append(form_prop('renderorder', part_set.nvb.renderorder))
         if part_set.nvb.update == 'single':
-                    ascii_lines.append(form_prop('loop', part_set.nvb.loop))
+            ascii_lines.append(form_prop('loop', part_set.nvb.loop))
 
         # Particle properties
         ascii_lines.append(form_prop('birthrate', part_set.nvb.birthrate))
@@ -1326,7 +1330,7 @@ class Light(Node):
         elif (label == 'ambientonly'):
             self.ambientonly = nvb_parse.ascii_int(line[1])
         elif (label == 'ndynamictype'):
-            self.ndynamictype = nvb_parse.ascii_int(line[1])            
+            self.ndynamictype = nvb_parse.ascii_int(line[1])
         elif (label == 'isdynamic'):
             self.isdynamic = nvb_parse.ascii_int(line[1])
         elif (label == 'affectdynamic'):
@@ -1421,7 +1425,7 @@ class Light(Node):
             data.nvb.shadow = self.shadow
             data.nvb.lightpriority = self.lightpriority
             data.nvb.fadinglight = (self.fadinglight >= 1)
-            # Dynamic setting: ndynamictype takes precedence over isdynamic 
+            # Dynamic setting: ndynamictype takes precedence over isdynamic
             if (self.ndynamictype >= 0):  # -1 = not present
                 data.nvb.isdynamic = (self.ndynamictype >= 1)
             else:
@@ -1588,20 +1592,20 @@ class Aabb(Trimesh):
 
         if nvb_utils.create_wok_materials(blen_mesh):
             blen_mesh.update()
-            if len(blen_mesh.materials) > max([f[7] for f in self.facedef]):      
+            if len(blen_mesh.materials) > max([f[7] for f in self.facedef]):
                 # Apply the walkmesh materials to each face
                 blen_mesh.polygons.foreach_set('material_index',
                                                [f[7] for f in self.facedef])
-                blen_mesh.update() 
+                blen_mesh.update()
 
         blen_mesh.validate(clean_customdata=False)
 
         return blen_mesh
-        
+
     def createObject(self, options):
-        """TODO: Doc."""        
+        """TODO: Doc."""
         mesh = self.create_blender_mesh(self.name, options)
-        obj = bpy.data.objects.new(self.name, mesh)       
+        obj = bpy.data.objects.new(self.name, mesh)
         self.createObjectData(obj, options)
         obj.nvb.imporder = self.nodeidx
         obj.hide_render = True

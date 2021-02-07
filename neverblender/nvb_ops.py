@@ -33,7 +33,8 @@ class NVB_OT_lensflare_delete(bpy.types.Operator):
     def poll(self, context):
         """Enable only if the list isn't empty."""
         obj = context.object
-        return len(obj.data.nvb.flareList) > 0
+
+        return obj and obj.type == 'LAMP' and len(obj.data.nvb.flareList) > 0
 
     def execute(self, context):
         """TODO: DOC."""
@@ -61,7 +62,7 @@ class NVB_OT_lensflare_move(bpy.types.Operator):
     def poll(self, context):
         """TODO: DOC."""
         obj = context.object
-        return len(obj.data.nvb.flareList) > 0
+        return obj and obj.type == 'LAMP' and len(obj.data.nvb.flareList) > 0
 
     def execute(self, context):
         """TODO: DOC."""

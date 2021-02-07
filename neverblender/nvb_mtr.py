@@ -65,6 +65,7 @@ class Mtr(object):
         """Load contents of a mtr file."""
         if not filepath:
             return False
+
         self.filepath = filepath
         # Generate a name, strip file extension
         self.name = os.path.splitext(os.path.basename(filepath))[0]

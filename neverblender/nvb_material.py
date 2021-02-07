@@ -47,13 +47,14 @@ class Material(object):
 
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
-        # print(" ")
+        # print("####################")
         # print("looking for: ")
         # print(self.texture_list)
         # print(self.color_list[5])
         # print(self.alpha)
         for blen_mat in bpy.data.materials:
-            # print("test: " + blen_mat.name)
+            # print("#")
+            # print("Checking: " + blen_mat.name)
             tex_list, col_list, alpha = Materialnode.get_node_data(blen_mat)
             # print(tex_list)
             # print(col_list[5])
@@ -62,6 +63,7 @@ class Material(object):
             if (tex_list == self.texture_list) and \
                Material.colorisclose(col_list[5], self.color_list[5]) and \
                math.isclose(alpha, self.alpha):
+                # print("MATCH!")
                 return blen_mat
         return None
 
@@ -105,7 +107,7 @@ class Material(object):
         def get_mtr_path(mtr_name, mtr_dir):
             mtr_filename = mtr_name + '.mtr'
             mtr_dir, _ = os.path.split(mtr_dir)
-            return os.path.join(mtr_dir, mtr_filename)
+            return nvb_utils.find_file_nocase(mtr_dir, mtr_filename)
 
         # if an mtr_name has been specified try opening it
         # but nothing else!
@@ -148,17 +150,17 @@ class Material(object):
     def create_blender_material(self, options, reuse_existing=True):
         """Returns a blender material with the stored values."""
         # Load mtr values into this material
-        if options.mtr_import:
+        if options.mat_mtr_import:
             self.mtr_read(options)
             self.mtr_merge()
         # Sometimes, we don't want self illumination (e.g. interfering with rendering minimaps)
         if options.ignore_selfillum:
             self.texture_list[5] = None
-            self.color_list[5] = (0.0, 0.0, 0.0, 0.0)  
+            self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  
         # Ignore specular color (compatibility option, was ignored in 1.69)    
         if options.compatibility_mode:
             self.texture_list[2] = None
-            self.color_list[2] = (0.0, 0.0, 0.0, 0.0)                    
+            self.color_list[2] = (0.0, 0.0, 0.0, 1.0)                    
         # Look for similar materials to avoid duplicates
         blender_mat = None
         if reuse_existing:
@@ -194,6 +196,7 @@ class Material(object):
         if obj.nvb.render and blen_material:
             tex_list, col_list, alpha = \
                 Materialnode.get_node_data(blen_material)
+            
             # Clean up texture list, delete trailing "null"
             tex_list = [t if t else nvb_def.null for t in tex_list]
             while tex_list and tex_list[-1] == nvb_def.null:
@@ -212,10 +215,10 @@ class Material(object):
                 fstr = '  alpha {: 3.2f}'
                 ascii_lines.append(fstr.format(alpha))
             # Write textures
-            if options.export_mtr and blen_material.nvb.mtr.use:
+            if options.mat_mtr_use and blen_material.nvb.mtr.use:
                 # MTRs are exported in a second pass
                 mtr_name = nvb_mtr.Mtr.get_mtr_name(blen_material)
-                ascii_lines.append('  ' + options.mtr_ref + ' ' + mtr_name)
+                ascii_lines.append('  ' + options.mat_mtr_ref + ' ' + mtr_name)
                 options.mtr_list.add((mtr_name, blen_material.name))
             else:
                 # Write to MDL: Can only export the first three textures
