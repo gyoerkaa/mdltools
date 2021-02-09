@@ -416,7 +416,9 @@ class Animnode():
                 Animnode.emitter_properties.items():
             exports.append([aur_name, dp_dim, aur_fstr, dp, dp_dim])
         # Get keyframe data
-        all_fcurves = action.fcurves
+        all_fcurves = getattr(action, 'fcurves', None)
+        if all_fcurves is None:
+            return
         for aur_name, aur_dim, aur_fstr, dp, dp_dim in exports:
             fcu = [all_fcurves.find(data_path=dp, index=i)
                    for i in range(dp_dim)]
@@ -473,7 +475,9 @@ class Animnode():
         # List of exportable data paths with formats and conversion functions
         exports = get_exports(action, blend_mat_out)
         # Get keyframe data
-        all_fcurves = action.fcurves
+        all_fcurves = getattr(action, 'fcurves', None)
+        if all_fcurves is None:
+            return
         for aur_name, aur_dim, aur_fstr, dp, dp_dim, _, \
                 default_val in exports:
             fcu = [all_fcurves.find(data_path=dp, index=i)
@@ -563,7 +567,9 @@ class Animnode():
         # List of exportable data paths with formats and conversion functions
         exports = get_exports(obj.rotation_mode)
         # Get keyframe data
-        all_fcurves = action.fcurves
+        all_fcurves = getattr(action, 'fcurves', None)
+        if all_fcurves is None:
+            return
         for aur_name, aur_dim, aur_fstr, dp, dp_dim, dp_conversion, \
                 default_val in exports:
             fcu = [all_fcurves.find(data_path=dp, index=i)
