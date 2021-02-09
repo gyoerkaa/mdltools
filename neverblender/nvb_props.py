@@ -465,13 +465,17 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                                      default=1, min=0)
     lifeexp: bpy.props.FloatProperty(name='Life Exp.', subtype='TIME',
                                      default=0.0, min=-1.0)
-    # mass => from blender ".mass"
+    mass: bpy.props.FloatProperty(
+        name='Mass',
+        description='Weight of the particles, \
+		             Negative numbers make the particles float up',
+        default=0.0)
     # velocity => from blender ".normal_factor"
     # randvel => from blender ".factor_random"
     # particleRot => from blender ".angular_velocity_factor"
     spread: bpy.props.FloatProperty(
         name='Spread',
-        description='Prticle spread angle for Fountain type emitters',
+        description='Particle spread angle for Fountain type emitters',
         subtype='ANGLE', unit='ROTATION',
         default=0.0, min=0.0, soft_max=6.29)
     splat: bpy.props.BoolProperty(

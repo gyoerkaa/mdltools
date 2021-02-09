@@ -1027,7 +1027,7 @@ class Emitter(Node):
          'renderorder': ('nvb.renderorder', 1, nvb_utils.str2int, ' {:1.0f}'),
          'birthrate': ('nvb.birthrate', 1, nvb_utils.str2int, ' {:1.0f}'),
          'lifeexp': ('nvb.lifeexp', 1, float, ' {: >3.2f}'),
-         'mass': ('mass', 1, float, ' {: >3.2f}'),
+         'mass': ('nvb.mass', 1, float, ' {: >3.2f}'),
          'velocity': ('normal_factor', 1, float, ' {:>4.2f}'),
          'randvel': ('factor_random', 1, float, ' {:>4.2f}'),
          'particlerot': ('angular_velocity_factor', 1, float, ' {:>4.2f}'),
@@ -1200,7 +1200,7 @@ class Emitter(Node):
         # Particle properties
         ascii_lines.append(form_prop('birthrate', part_set.nvb.birthrate))
         ascii_lines.append(form_prop('lifeexp', part_set.nvb.lifeexp))
-        ascii_lines.append(form_prop('mass', part_set.mass))
+        ascii_lines.append(form_prop('mass', part_set.nvb.mass))
         ascii_lines.append(form_prop('velocity', part_set.normal_factor))
         ascii_lines.append(form_prop('randvel', part_set.factor_random))
         ascii_lines.append(form_prop('particlerot',

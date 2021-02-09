@@ -884,7 +884,7 @@ class NVB_PT_emitter(bpy.types.Panel):
         col.prop(part_settings.nvb, "birthrate")
         col.prop(part_settings.nvb, "lifeexp")
         col.prop(part_settings.nvb, "spread")
-        col.prop(part_settings, "mass")
+        col.prop(part_settings.nvb, "mass")
         col = split.column()
         col.prop(part_settings, "normal_factor", text="Velocity")
         col.prop(part_settings, "factor_random", text="Rand. Velocity")
