@@ -1122,7 +1122,7 @@ class Emitter(Node):
         part_sys_settings = part_mod.particle_system.settings
         for data_path, value in self.blender_data:
             if data_path.startswith("nvb."):
-                print(data_path)
+                # print(data_path)
                 part_sys_settings.nvb.__setattr__(data_path[4:], value)
             else:
                 part_sys_settings.__setattr__(data_path, value)
