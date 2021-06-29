@@ -206,8 +206,9 @@ class Classification():
     EFFECT = 'effect'
     GUI = 'gui'
     ITEM = 'item'
-
-    ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM}
+    OTHER = 'other'
+    
+    ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM, OTHER}
 
 
 class Lighttype():
@@ -270,7 +271,6 @@ class ImportOptions():
         self.hide_lights = True
         self.hide_fading = True
         self.ignore_selfillum = False
-        self.compatibility_mode = False
         self.dummy_type = 'PLAIN_AXES'
         self.dummy_size = 1.0
         self.placement = 'SPIRAL'
@@ -280,12 +280,18 @@ class ImportOptions():
         self.geom_smoothgroups = True
         self.geom_normals = True
         self.geom_walkmesh = True
+        self.geom_mesh_validation = False
         # Materials and textures
         self.mat_import = True
         self.mat_automerge = True
         self.mat_shader = ""
-        self.mat_mtr_import = True
+        self.mat_use_mtr = True
         self.tex_search = False
+        self.mat_extra_color_nodes = True
+        self.mat_displacement_mode = 'BUMP'  # 'DISPLACEMENT' or 'BUMP'
+        self.mat_ignore_diffuse_param = False
+        self.mat_ignore_specular_param = True
+        self.mat_ignore_ambient_param = False        
         # Animation Settings
         self.anim_import = True
         self.anim_fps_use = True

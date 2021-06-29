@@ -311,11 +311,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     collections_use: bpy.props.BoolProperty(
         name='Use Collections',
         description='Create a collection for each imported mdl',
-        default=False)
-    compatibility_mode: bpy.props.BoolProperty(
-        name='Compatibility Mode',
-        description='Ignores certain values in old 1.69 models',
-        default=False)        
+        default=False)      
     fix_uvs: bpy.props.BoolProperty(
         name='Fix degenerated UVs',
         description='Fix degenerated UV coordinates (tverts)',
@@ -453,18 +449,22 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
         options.ignore_selfillum = self.ignore_selfillum
-        options.compatibility_mode = self.compatibility_mode
         options.mdl_location = self.mdl_location
         # Geometry options
         options.geom_import = self.import_geometry
         options.geom_walkmesh = self.import_walkmesh
         options.geom_normals = self.import_normals
         options.geom_smoothgroups = self.import_smoothgroups
+        options.geom_mesh_validation = addon_prefs.import_mesh_validation
         # Material Options
         options.mat_import = self.mat_import
         options.mat_automerge = self.mat_merge
         options.mat_shader = self.mat_shader
-        options.mat_mtr_import = True
+        options.mat_use_mtr = True
+        options.mat_ignore_diffuse_param = addon_prefs.import_ignore_diffuse_param
+        options.mat_ignore_specular_param = addon_prefs.import_ignore_specular_param
+        options.mat_ignore_ambient_param = addon_prefs.import_ignore_ambient_param
+        options.mat_displacement_mode = addon_prefs.mat_displacement_mode
         options.tex_search = self.tex_search
         # Animation Options
         options.anim_import = self.anim_import

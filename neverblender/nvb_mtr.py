@@ -21,12 +21,13 @@ class Mtr(object):
         self.renderhints = set()
         self.parameters = dict()
         self.alpha = None
+        self.metallicness = None
         self.customVS = ''  # Vertex shader
         self.customGS = ''  # Geometry shader
         self.customFS = ''  # Fragment shader
 
     @staticmethod
-    def readParamValues(str_values):
+    def parse_ascii_param_value(str_values):
         """Parses parameter values from list of strings."""
         values = []
         for sv in str_values:
@@ -93,23 +94,26 @@ class Mtr(object):
             return  # Probably empty line or comment
         if label == 'renderhint':
             self.renderhints.add(nvb_utils.str2identifier(line[1]))
-        elif label in ['selfillumcolor', 'setfillumcolor']:
-            self.color_list[4] = nvb_parse.ascii_color(line[1:])
         elif label == 'parameter':
             try:
-                ptype = line[1].lower()
-                pname = line[2]
-                pvalues = line[3:7]
+                param_type = line[1].lower()
+                param_name = line[2]
+                param_value = line[3:7]
             except IndexError:
                 return
             else:
-                pvalues = Mtr.readParamValues(pvalues)
-                if (pname=="specular"):
-                    self.color_list[2] = nvb_parse.ascii_color(line[3:])
-                elif (pname=="roughness"):
-                    self.color_list[3] = nvb_parse.ascii_float(pvalues[3])
-                else:
-                    self.parameters[pname] = (ptype, pvalues)
+                param_value = Mtr.parse_ascii_param_value(param_value)
+                # Try to extract some know parameters for the standard shader
+                if param_name.lower() == "specularity":
+                    self.color_list[2] = [nvb_parse.ascii_float(param_value[0])]*3
+                elif param_name.lower() == "roughness":
+                    self.color_list[3] = nvb_parse.ascii_float(param_value[0])
+                elif param_name.lower() == "displacementoffset":
+                    self.color_list[4] = nvb_parse.ascii_float(param_value[0])
+                elif param_name.lower() == "metallicness":
+                    self.metallicness = nvb_parse.ascii_float(param_value[0])                    
+                else:  # Unknown parameter
+                    self.parameters[param_name] = (param_type, param_value)
         elif label == 'customshadervs':
             self.customshaderVS = line[1]
         elif label == 'customshaderfs':
@@ -158,7 +162,7 @@ class Mtr(object):
             for pa in material.nvb.mtr.param_list:
                 if pa.pname.lower() not in existing_params:  # Keep unique
                     existing_params.append(pa.pname.lower())
-                    vals = Mtr.readParamValues(pa.pvalue.strip().split())
+                    vals = Mtr.parse_ascii_param_value(pa.pvalue.strip().split())
                     line = ''
                     if len(vals) > 0:
                         if pa.ptype == 'int':  # a single int

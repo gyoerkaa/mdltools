@@ -52,7 +52,7 @@ class Node(object):
         """TODO: DOC."""
         return self.name
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: DOC."""
         line = None
         try:
@@ -88,7 +88,7 @@ class Node(object):
         iterable = iter(ascii_lines)
         line = True
         while line is not None:
-            line = self.loadAsciiLine(iterable)
+            line = self.parse_ascii_line(iterable)
 
     def createObjectData(self, obj, options):
         """TODO: DOC."""
@@ -192,9 +192,9 @@ class Reference(Node):
         self.refmodel = nvb_def.null
         self.reattachable = 0
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Node.loadAsciiLine(self, itlines)
+        line = Node.parse_ascii_line(self, itlines)
         if line:
             label = line[0].lower()
             if label == 'refmodel':
@@ -247,9 +247,9 @@ class Trimesh(Node):
         self.normals = []
         self.colors = []
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Node.loadAsciiLine(self, itlines)
+        line = Node.parse_ascii_line(self, itlines)
         if line:
             label = line[0].lower()
             if label == 'tilefade':
@@ -388,7 +388,7 @@ class Trimesh(Node):
 
         # Create faces
         face_vert_ids = [v[0:3] for v in self.facedef]
-        face_cnt = len(face_vert_ids)
+        face_cnt = len(face_vert_ids)    
         # Loops
         blen_mesh.loops.add(face_cnt * 3)
         blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vert_ids))
@@ -399,7 +399,7 @@ class Trimesh(Node):
 
         num_blen_polygons = len(blen_mesh.polygons)
         if not blen_mesh.polygons:
-            return
+            return  
 
         # Set everything to smooth
         blen_mesh.polygons.foreach_set('use_smooth',
@@ -469,8 +469,10 @@ class Trimesh(Node):
             blen_mesh.loops.foreach_get("normal", clnors)
             blen_mesh.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
             blen_mesh.use_auto_smooth = True
-
-        blen_mesh.validate(clean_customdata=False)
+        
+        #TODO: Add option to re-activate validation
+        if options.geom_mesh_validation:
+            blen_mesh.validate(verbose=True, clean_customdata=False)
 
         return blen_mesh
 
@@ -505,8 +507,8 @@ class Trimesh(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        mesh = self.create_blender_mesh(self.name, options)
-        obj = bpy.data.objects.new(self.name, mesh)
+        mesh = self.create_blender_mesh(self.name, options)       
+        obj = bpy.data.objects.new(self.name, mesh)                
         self.createObjectData(obj, options)
         return obj
 
@@ -523,8 +525,7 @@ class Trimesh(Node):
             bm.free()
             del bm
 
-        def mesh_get_smoothgroups(mesh, obj, options):
-            """Get the smoothing group for each face."""
+        def calc_smooth_groups_nwn(mesh):
             def find_free_connected(bm_face, face_list):
                 """Find all untagged faces connected to bm_face."""
                 if bm_face.tag:
@@ -534,45 +535,55 @@ class Trimesh(Node):
                 for e in bm_face.edges:
                     if e.smooth:
                         for lf in e.link_faces:
-                            find_free_connected(lf, face_list)
+                            find_free_connected(lf, face_list)            
+            
+            group_id_list = []
+            group_cnt = 0
+            
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
 
-            all_groups = []
+            for f in bm.faces:
+                f.tag = False
+
+            group_idx = 1
+            for f in bm.faces:
+                if not f.tag:
+                    group_cnt+=1
+                    group_idx = group_idx*group_idx
+                    connected_faces = []
+                    find_free_connected(f, connected_faces)
+                    group = [(cf, group_idx) for cf in connected_faces]
+                    group_id_list.extend(group)
+
+            # Keep only group indices, but sort by face index
+            group_id_list = [gid[1] for gid in sorted(group_id_list, key=lambda f: f[0])]
+
+            bm.free()
+            del bm 
+
+            return group_id_list, group_cnt          
+        
+        def mesh_get_smoothgroups(mesh, obj, options):
+            """Get the smoothing group for each face."""
+
+            group_ids = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.geom_smoothgroups):
                 # All faces beling to group 0 (every edge is sharp)
-                all_groups = [0] * len(mesh.polygons)
+                group_ids = [0] * len(mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
                  (options.geom_normals):
                 # All faces belong to group 1 (every edge is smooth)
-                all_groups = [1] * len(mesh.polygons)
+                group_ids = [1] * len(mesh.polygons)
             else:
                 # Calculate smoothing groups from sharp edges or auto angle setting
                 # NWN seems to use bitflag groups
                 # (smoothing groups of standard model all have powers of 2)
-                all_groups, _ = mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
-                """
-                bm = bmesh.new()
-                bm.from_mesh(mesh)
-
-                for f in bm.faces:
-                    f.tag = False
-
-                group_idx = 1
-                for f in bm.faces:
-                    if not f.tag:
-                        group_idx = group_idx+1
-                        connected_faces = []
-                        find_free_connected(f, connected_faces)
-                        group = [(cf, group_idx) for cf in connected_faces]
-                        all_groups.extend(group)
-                # Keep only group indices, but sort by face index
-                all_groups = [g[1] for g in sorted(all_groups, key=lambda f: f[0])]
-
-                bm.free()
-                del bm
-                """
-            return all_groups
+                group_ids, _ = mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
+                #all_groups, _ = calc_smooth_groups_nwn(mesh)
+            return group_ids
 
         def mesh_get_normals(mesh, uvl_name):
             """Get normals and tangets for this mesh."""
@@ -829,9 +840,9 @@ class Danglymesh(Trimesh):
         self.displacement = 1.0
         self.constraints = []
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Trimesh.loadAsciiLine(self, itlines)
+        line = Trimesh.parse_ascii_line(self, itlines)
         if line:
             label = line[0].lower()
             if label == 'period':
@@ -941,9 +952,9 @@ class Skinmesh(Trimesh):
                     name_weight_pairs.append([n, w])
             self.weights.append(name_weight_pairs)
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Trimesh.loadAsciiLine(self, itlines)
+        line = Trimesh.parse_ascii_line(self, itlines)
         if line:
             label = line[0].lower()
             if label == 'weights':
@@ -1098,9 +1109,9 @@ class Emitter(Node):
                               (-1.0,  1.0, 0.0)]
         self.facedef = [(0, 1, 0)]
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Node.loadAsciiLine(self, itlines)
+        line = Node.parse_ascii_line(self, itlines)
         if line:
             label = line[0].lower()
             if label == 'xsize':  # emitter mesh size (in cm)
@@ -1310,9 +1321,9 @@ class Light(Node):
         self.flarePositions = []
         self.flareCShifts = []  # Flare color shifts
 
-    def loadAsciiLine(self, itlines):
+    def parse_ascii_line(self, itlines):
         """TODO: Doc."""
-        line = Node.loadAsciiLine(self, itlines)
+        line = Node.parse_ascii_line(self, itlines)
         if not line:
             return line
         try:
@@ -1402,7 +1413,7 @@ class Light(Node):
         iterable = iter(asciiLines)
         aline = True
         while aline is not None:
-            aline = self.loadAsciiLine(iterable)
+            aline = self.parse_ascii_line(iterable)
 
     def createLamp(self, name):
         """TODO: Doc."""

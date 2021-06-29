@@ -81,6 +81,26 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         items=[('SPIRAL', "Spiral", "Spiral on a 10x10 Grid", 0),
                ('LINE', "Line", "Line with 10 units distance", 1) ],
         default='SPIRAL')
+    import_mesh_validation: bpy.props.BoolProperty(
+        name="Mesh Validation", default=False,
+        description="Turn on Blenders mesh validation for imported geometry. This will remove two sided faces")
+    import_ignore_diffuse_param: bpy.props.BoolProperty(
+        name="Import diffuse color", default=False,
+        description="Import diffuse color parameters from MDLs and add them as extra mix node")
+    import_ignore_specular_param: bpy.props.BoolProperty(
+        name="Import specular color", default=True,
+        description="Import specular color parameters when importing and add them as extra mix node")
+    import_ignore_ambient_param: bpy.props.BoolProperty(
+        name="Import ambient color", default=True,
+        description="Import ambient color parameters when importing and add them as unconnected node")
+
+    # General Preferences
+    mat_displacement_mode: bpy.props.EnumProperty(
+        name="Displacement Mode",
+        description="Usage og height/displacement map",
+        items=[('BUMP', "Bump", "Bump node connected to the shaders normal Socket", 0),
+                ('DISPLACEMENT', "Displacement", "Displacement node connected to material output", 1), ],
+        default='BUMP')
 
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
@@ -221,8 +241,12 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.label(text='Import Settings')
         box.prop(self, 'import_dummy_type')
         box.prop(self, 'import_dummy_size')
-
+        
         box.prop(self, 'import_placement')
+        box.prop(self, 'import_mesh_validation')
+        box.prop(self, 'import_ignore_diffuse_param')
+        box.prop(self, 'import_ignore_specular_param')
+        box.prop(self, 'import_ignore_ambient_param')      
 
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
@@ -841,9 +865,11 @@ class NVB_PG_object_auroraroot(bpy.types.PropertyGroup):
                        (nvb_def.Classification.GUI,
                         'Gui', 'Gui', 5),
                        (nvb_def.Classification.ITEM,
-                        'Item', 'Items or placeables', 6)
+                        'Item', 'Items or placeables', 6),
+                       (nvb_def.Classification.OTHER,
+                        'Other', '', 7)                        
                        ],
-                default=nvb_def.Classification.UNKNOWN, options=set())
+                default=nvb_def.Classification.CHARACTER, options=set())
     supermodel: bpy.props.StringProperty(
         name='Supermodel',
         description='Name of the model to inherit animations from',
