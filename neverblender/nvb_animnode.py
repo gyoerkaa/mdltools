@@ -154,15 +154,15 @@ class Animnode():
         """Creates animations in material actions."""
 
         def data_conversion(label, material_out, vals):
-            """TODO: Doc."""
+            """Gets the node tree data path for some values."""
             if label == 'alpha':
-                socket_a = Materialnode.find_alpha_socket(material_out)
-                dp = socket_a.path_from_id("default_value")
+                socket_alpha = Materialnode.find_alpha_socket(material_out)
+                dp = socket_alpha.path_from_id("default_value")
                 dp_dim = 1
             elif label in ['selfillumcolor', 'setfillumcolor']:
-                socket_e = Materialnode.find_emissive_socket(material_out)
-                socket_c = Materialnode.get_color_socket(socket_e)
-                dp = socket_c.path_from_id("default_value")
+                socket_emissive = Materialnode.find_emissive_socket(material_out)
+                socket_color = Materialnode.get_color_socket_nearest(socket_emissive)
+                dp = socket_color.path_from_id("default_value")
                 dp_dim = 3
             return vals, dp, dp_dim
 
@@ -449,9 +449,9 @@ class Animnode():
             exports.append(['alpha', 1, ' {:>4.2f}',
                             dp, 1, None, [1.0]])
             # Self Illumination color
-            socket1 = Materialnode.find_emissive_socket(material_out)
-            socket0 = Materialnode.get_color_socket(socket1)
-            dp = socket0.path_from_id("default_value")
+            socket_emissive = Materialnode.find_emissive_socket(material_out)
+            socket_color = Materialnode.get_color_socket_nearest(socket_emissive)
+            dp = socket_color.path_from_id("default_value")
             exports.append(['selfillumcolor', 3, ' {:>4.2f}',
                             dp, 3, None, [0.0, 0.0, 0.0]])
             return exports

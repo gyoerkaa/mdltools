@@ -16,14 +16,15 @@ class Material(object):
     def __init__(self, name='unnamed'):
         """TODO: DOC."""
         self.name = name
-        self.ambient = (0.2, 0.2, 0.2, 1.0)
+        self.ambient = (1.0, 1.0, 1.0, 1.0)
         self.alpha = 1.0
         self.texture_list = [None] * 15
         self.color_list = [(1.0, 1.0, 1.0, 1.0)] * 15
-        self.color_list[0] = (0.8, 0.8, 0.8, 1.0)  # Default value
-        self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Default value
-        self.color_list[3] = 1.0  # Default Roughness value
-        self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Default Illumination/Emission value
+        self.color_list[0] = (0.8, 0.8, 0.8, 1.0)  # Default diffuse color
+        self.color_list[2] = (0.0, 0.0, 0.0, 1.0)  # Default specular color/value
+        self.color_list[3] = (1.0, )  # Default roughness value (overridden by texture)
+        self.color_list[4] = (0.0, )  # Default displacement offset
+        self.color_list[5] = (0.0, 0.0, 0.0, 1.0)  # Default Illumination/Emission color
         self.renderhints = set()
         self.mtr_name = None
         self.mtr_data = None
@@ -47,6 +48,15 @@ class Material(object):
 
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
+        def check_colors(color_list1, color_list2):
+            return Material.colorisclose(color_list1[5], color_list2[5])
+
+        def check_textures(texture_list1, texture_list2):
+            return (texture_list1 == texture_list2)
+
+        def check_shaders(shader1_vs, shader1_fs, shader2_vs, shader2_fs):
+            return (shader1_vs == shader2_vs) and (shader1_fs == shader2_fs)
+
         #print("####################")
         #print("looking for: ")
         #print(self.texture_list)
@@ -55,14 +65,15 @@ class Material(object):
         for blen_mat in bpy.data.materials:
             #print("#")
             #print("Checking: " + blen_mat.name)
-            tex_list, col_list, alpha = Materialnode.get_node_data(blen_mat)
+            tex_list, col_list, alpha, ambient = Materialnode.get_node_data(blen_mat)
             #print(tex_list)
             #print(col_list[5])
             #print(alpha)
             # Compare textures, emissive color(5) and alpha
-            if (tex_list == self.texture_list) and \
-               Material.colorisclose(col_list[5], self.color_list[5]) and \
-               math.isclose(alpha, self.alpha):
+            if (check_textures(tex_list, self.texture_list) and 
+                check_colors(col_list, self.color_list) and 
+                check_shaders(blen_mat.nvb.mtr.shader_vs, blen_mat.nvb.mtr.shader_fs, self.mtr_data.customVS, self.mtr_data.customFS) and 
+                math.isclose(alpha, self.alpha)):
                 #print("MATCH!")
                 return blen_mat
         return None
@@ -150,23 +161,25 @@ class Material(object):
     def create_blender_material(self, options, reuse_existing=True):
         """Returns a blender material with the stored values."""
         # Ignore ambient color parameter (ignored with the new PBR shaders in the EE)
-        if options.mat_ignore_ambient_param:
+        if options.mat_ignore_mdl_ambient_color:
             self.ambient = None           
         # Ignore diffuse color parameter
-        if options.mat_ignore_diffuse_param:
-            self.color_list[0] = None
+        #  (will be multiplied with diffuse texture, use full white)
+        if options.mat_ignore_mdl_diffuse_color:
+            self.color_list[0] = (1.0, 1.0, 1.0, 1.0)
         # Ignore specular color parameter (This is always ignored by the engine)
-        if options.mat_ignore_specular_param:
-            self.color_list[2] = None         
+        if options.mat_ignore_mdl_specular_color:
+            self.color_list[2] = None
         # Load mtr values into this material 
         # This will override values from mdl, even the ones previously ignored (from the mdl)
         if options.mat_use_mtr:
             self.mtr_read(options)
             self.mtr_merge()
         # Sometimes, we don't want self illumination at all (e.g. interfering with rendering minimaps)
-        if options.ignore_selfillum:
-            self.texture_list[5] = None
+        if options.mat_ignore_selfillum_color:
             self.color_list[5] = (0.0, 0.0, 0.0, 1.0)
+        if options.mat_ignore_selfillum_texture:  
+             self.texture_list[5] = None 
         # Look for similar materials to avoid duplicates
         blender_mat = None
         if reuse_existing:
@@ -179,13 +192,12 @@ class Material(object):
             blender_mat.show_transparent_back = False
             blender_mat.use_backface_culling = True
 
-            blender_mat.nvb.mtr.use = bool(self.mtr_name) or \
-                self.mtr_data is not None
+            blender_mat.nvb.mtr.use = bool(self.mtr_name) or self.mtr_data is not None
            
             blender_mat.use_nodes = True
             blender_mat.node_tree.nodes.clear()
             Materialnode.add_node_data(blender_mat, new_name,
-                                       self.texture_list, self.color_list, self.alpha,
+                                       self.texture_list, self.color_list, self.alpha, self.ambient,
                                        options)
         return blender_mat
 
@@ -200,8 +212,7 @@ class Material(object):
         # is either 'bitmap' or 'texture0'
         fstr_tex0 = '  ' + options.mat_diffuse_ref + ' {:s}'
         if obj.nvb.render and blen_material:
-            tex_list, col_list, alpha = \
-                Materialnode.get_node_data(blen_material)
+            tex_list, col_list, alpha, ambient = Materialnode.get_node_data(blen_material)
             
             # Clean up texture list, delete trailing "null"
             tex_list = [t if t else nvb_def.null for t in tex_list]
@@ -212,12 +223,22 @@ class Material(object):
             col_list = [c1[:3] if c1 else c2[:3] for c1, c2 in
                         zip(col_list, default_colors)]
             # Write colors
-            ascii_lines.append(fstr_col.format('ambient', *[1.0] * 3))
-            ascii_lines.append(fstr_col.format('diffuse', *col_list[0]))
-            ascii_lines.append(fstr_col.format('specular', *col_list[2]))
-            ascii_lines.append(fstr_col.format('selfillumcolor', *col_list[5]))
+            if ambient:
+                ascii_lines.append(fstr_col.format('ambient', *ambient[:3]))
+            else:
+                ascii_lines.append(fstr_col.format('ambient', *[1.0] * 3))
+            if col_list[0]:
+                ascii_lines.append(fstr_col.format('diffuse', *col_list[0][:3]))
+            else:
+                ascii_lines.append(fstr_col.format('diffuse', *[1.0] * 3))
+            if col_list[2]:
+                ascii_lines.append(fstr_col.format('specular', *col_list[2][:3]))
+            else:
+                ascii_lines.append(fstr_col.format('specular', *[0.0] * 3))
+            if col_list[5]:
+                ascii_lines.append(fstr_col.format('selfillumcolor', *col_list[5][:3]))
             # Write Alpha
-            if not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
+            if alpha and not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
                 fstr = '  alpha {: 3.2f}'
                 ascii_lines.append(fstr.format(alpha))
             # Write textures

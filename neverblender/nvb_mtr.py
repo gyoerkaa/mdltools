@@ -109,9 +109,7 @@ class Mtr(object):
                 elif param_name.lower() == "roughness":
                     self.color_list[3] = nvb_parse.ascii_float(param_value[0])
                 elif param_name.lower() == "displacementoffset":
-                    self.color_list[4] = nvb_parse.ascii_float(param_value[0])
-                elif param_name.lower() == "metallicness":
-                    self.metallicness = nvb_parse.ascii_float(param_value[0])                    
+                    self.color_list[4] = nvb_parse.ascii_float(param_value[0])                   
                 else:  # Unknown parameter
                     self.parameters[param_name] = (param_type, param_value)
         elif label == 'customshadervs':
@@ -126,50 +124,62 @@ class Mtr(object):
                 self.texture_list[idx] = nvb_parse.ascii_texture(line[1])
 
     @staticmethod
-    def generate_ascii(material, options):
+    def generate_ascii(blen_material, options):
         """Generate a mtr file as asciilines."""
         ascii_lines = []
-        tex_list, col_list, _ = Materialnode.get_node_data(material)
+        tex_list, col_list, _, _ = Materialnode.get_node_data(blen_material)
         # Clean up texture list, delete trailing "null"
         tex_list = [t if t else nvb_def.null for t in tex_list]
         while tex_list and tex_list[-1] == nvb_def.null:
             _ = tex_list.pop()
         # Add shader specification
-        if material.nvb.mtr.shader_vs or material.nvb.mtr.shader_fs:
+        if blen_material.nvb.mtr.shader_vs or blen_material.nvb.mtr.shader_fs:
             # Custom Shaders
-            ascii_lines.append('// Shaders')
-            if material.nvb.shadervs:
-                ascii_lines.append('customshaderVS ' + material.nvb.mtr.shader_vs)
-            if material.nvb.shaderfs:
-                ascii_lines.append('customshaderFS ' + material.nvb.mtr.shader_fs)
-            ascii_lines.append('')
+            ascii_lines.append("// Shaders")
+            if blen_material.nvb.shadervs:
+                ascii_lines.append("customshaderVS " + blen_material.nvb.mtr.shader_vs)
+            if blen_material.nvb.shaderfs:
+                ascii_lines.append("customshaderFS " + blen_material.nvb.mtr.shader_fs)
+            if blen_material.nvb.shadergs:
+                ascii_lines.append("customshaderGS " + blen_material.nvb.mtr.shader_gs)                
+            ascii_lines.append("")
         elif tex_list and (tex_list[:3].count(nvb_def.null) <= 1):
             # Add Renderhint
-            ascii_lines.append('// Renderhint')
-            ascii_lines.append('renderhint NormalAndSpecMapped')
-            ascii_lines.append('')
+            ascii_lines.append("// Renderhint")
+            ascii_lines.append("renderhint NormalAndSpecMapped")
+            ascii_lines.append("")
         # Add list of textures
         if len(tex_list) > 0:
-            ascii_lines.append('// Textures')
+            ascii_lines.append("// Textures")
             fstr = 'texture{:d} {:s}'
             ascii_lines.extend([fstr.format(i, t)
                                 for i, t in enumerate(tex_list)])
-            ascii_lines.append('')
+            ascii_lines.append("")
         # Add parameters
-        if len(material.nvb.mtr.param_list) > 0:
-            ascii_lines.append('// Parameters')
-            existing_params = []
-            for pa in material.nvb.mtr.param_list:
-                if pa.pname.lower() not in existing_params:  # Keep unique
-                    existing_params.append(pa.pname.lower())
-                    vals = Mtr.parse_ascii_param_value(pa.pvalue.strip().split())
-                    line = ''
-                    if len(vals) > 0:
-                        if pa.ptype == 'int':  # a single int
-                            sv = str(int(vals[0]))
-                            line = 'parameter int ' + pa.pname + ' ' + sv
-                        elif pa.ptype == 'float':  # up to 4 floats
-                            sv = ' '.join([str(v) for v in vals[:4]])
-                            line = 'parameter float ' + pa.pname + ' ' + sv
-                    ascii_lines.append(line)
+        # Convert blender param list to dict
+        param_dict = dict()
+        for param in blen_material.nvb.mtr.param_list:
+            param_name = param.pname
+            param_type = param.ptype
+            param_values = Mtr.parse_ascii_param_value(param.pvalue.strip().split())
+            param_id = param_name.lower()
+            param_dict[param_id] = [param_name, param_type, param_values]
+        # Manually add known paramters from Blenders shader node tree (overwrite manually added ones)
+        if col_list[2] and (col_list[2][0] > 0.00001):
+            param_dict['specularity'] = ['Specularity', 'float', [str(col_list[2][0])]]        
+        if col_list[3] and (col_list[3][0] > 0.00001):
+            param_dict['roughness'] = ['Roughness', 'float', [str(col_list[3][0])]]
+        if col_list[4] and (col_list[4][0] > 0.00001):
+            param_dict['displacementoffset'] = ['DisplacementOffset', 'float', [str(col_list[4][0])]]
+        # Write the parameters to MTR
+        if len(param_dict) > 0:
+            ascii_lines.append("// Parameters")
+            for _, [param_name, param_type, param_values] in param_dict.items():
+                if len(param_values) > 0:
+                    if param_type == "int":  # a single int
+                        sv = str(int(param_values[0]))
+                        ascii_lines.append("parameter int " + param_name + " " + sv)
+                    elif param_type == "float":  # up to 4 floats
+                        sv = ' '.join([str(v) for v in param_values[:4]])
+                        ascii_lines.append("parameter float " + param_name + " " + sv)
         return ascii_lines

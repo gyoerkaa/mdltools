@@ -200,7 +200,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.scene = context.scene
         options.depsgraph = context.evaluated_depsgraph_get()
         # Material settings
-        options.mat_mtr_use = addon_prefs.export_mat_mtr_use
+        options.mat_mtr_use = addon_prefs.export_mat_mtr
         options.mat_mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Geometry options
@@ -443,12 +443,11 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.filepath = self.filepath
         options.scene = context.scene
         options.collection = context.collection
-        options.dummy_type = addon_prefs.import_dummy_type
-        options.dummy_size = addon_prefs.import_dummy_size
+        options.dummy_type = addon_prefs.dummy_type
+        options.dummy_size = addon_prefs.dummy_size
         options.placement = addon_prefs.import_placement
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
-        options.ignore_selfillum = self.ignore_selfillum
         options.mdl_location = self.mdl_location
         # Geometry options
         options.geom_import = self.import_geometry
@@ -460,11 +459,13 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.mat_import = self.mat_import
         options.mat_automerge = self.mat_merge
         options.mat_shader = self.mat_shader
-        options.mat_use_mtr = True
-        options.mat_ignore_diffuse_param = addon_prefs.import_ignore_diffuse_param
-        options.mat_ignore_specular_param = addon_prefs.import_ignore_specular_param
-        options.mat_ignore_ambient_param = addon_prefs.import_ignore_ambient_param
+        options.mat_use_mtr = addon_prefs.import_mat_mtr
         options.mat_displacement_mode = addon_prefs.mat_displacement_mode
+        options.mat_ignore_mdl_diffuse_color = addon_prefs.import_ignore_mdl_diffuse_color
+        options.mat_ignore_mdl_specular_color = addon_prefs.import_ignore_mdl_specular_color
+        options.mat_ignore_mdl_ambient_color = addon_prefs.import_ignore_mdl_ambient_color
+        options.mat_ignore_selfillum_color = self.ignore_selfillum
+        options.mat_ignore_selfillum_texture = self.ignore_selfillum
         options.tex_search = self.tex_search
         # Animation Options
         options.anim_import = self.anim_import

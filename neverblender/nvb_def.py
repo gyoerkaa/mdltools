@@ -270,7 +270,6 @@ class ImportOptions():
         self.collection = None
         self.hide_lights = True
         self.hide_fading = True
-        self.ignore_selfillum = False
         self.dummy_type = 'PLAIN_AXES'
         self.dummy_size = 1.0
         self.placement = 'SPIRAL'
@@ -287,11 +286,12 @@ class ImportOptions():
         self.mat_shader = ""
         self.mat_use_mtr = True
         self.tex_search = False
-        self.mat_extra_color_nodes = True
         self.mat_displacement_mode = 'BUMP'  # 'DISPLACEMENT' or 'BUMP'
-        self.mat_ignore_diffuse_param = False
-        self.mat_ignore_specular_param = True
-        self.mat_ignore_ambient_param = False        
+        self.mat_ignore_mdl_diffuse_color = False
+        self.mat_ignore_mdl_specular_color = True
+        self.mat_ignore_mdl_ambient_color = True
+        self.mat_ignore_selfillum_color = False
+        self.mat_ignore_selfillum_texture = False
         # Animation Settings
         self.anim_import = True
         self.anim_fps_use = True
@@ -315,18 +315,18 @@ class ExportOptions():
         self.scene = None
         self.collection = None
         self.depsgraph = None
-
-        self.mat_mtr_use = True
-        self.mat_mtr_ref = 'bitmap'
-        self.mat_diffuse_ref = 'bitmap'
         self.export_metadata = True
         self.mtr_list = set()
         self.classification = Classification.UNKNOWN
-        # Geometry settings
+        # Geometry
         self.geom_walkmesh = True
         self.geom_smoothgroups = True
         self.geom_smoothgroups_binary = True
         self.geom_normals = False
+        # Materials and textures
+        self.mat_mtr_use = True
+        self.mat_mtr_ref = 'bitmap'
+        self.mat_diffuse_ref = 'bitmap'
         # Misc options
         self.anim_export = True        
         # UV Map  settings

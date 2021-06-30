@@ -28,7 +28,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     compiler_path: bpy.props.StringProperty(name="Path to compiler",
                                             subtype='FILE_PATH')
     # Export preferences
-    export_mat_mtr_use: bpy.props.BoolProperty(
+    export_mat_mtr: bpy.props.BoolProperty(
         name="Use MTR files", default=True,
         description="Generate MTR files to hold materials data")  
     export_mat_mtr_ref: bpy.props.EnumProperty(
@@ -57,24 +57,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         name="Export Metadata", default=True,
         description="Include export time and filedependancy in the mdl")      
     export_tileset_info: bpy.props.BoolProperty(
-        name="Generate Tileset Info", default=False,
+        name="Export Tileset Info", default=False,
         description="Create a tileset NFO file which holds data for set files")        
 
     # Import preferences
-    import_dummy_type: bpy.props.EnumProperty(
-        name="Dummy Type",
-        description="Type of the Empty to use for Dummies",
-        items=[('PLAIN_AXES', "Plain Axes", "", 0),
-               ('ARROWS', "Arrows", "", 1),
-               ('SINGLE_ARROW', "Single Arrow", "", 2),
-               ('CIRCLE', "Circle", "", 3),
-               ('CUBE', "Cube", "", 4),
-               ('SPHERE', "Sphere", "", 5), ],
-        default='PLAIN_AXES')
-    import_dummy_size: bpy.props.FloatProperty(
-        name='Dummy Size',
-        description='Size of the Empty to use for Dummies',
-        default=0.5, min=0.1, max=1.0)
     import_placement: bpy.props.EnumProperty(
         name="Placement",
         description="Placement when importing multiple models",
@@ -84,20 +70,37 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     import_mesh_validation: bpy.props.BoolProperty(
         name="Mesh Validation", default=False,
         description="Turn on Blenders mesh validation for imported geometry. This will remove two sided faces")
-    import_ignore_diffuse_param: bpy.props.BoolProperty(
-        name="Import diffuse color", default=False,
-        description="Import diffuse color parameters from MDLs and add them as extra mix node")
-    import_ignore_specular_param: bpy.props.BoolProperty(
-        name="Import specular color", default=True,
-        description="Import specular color parameters when importing and add them as extra mix node")
-    import_ignore_ambient_param: bpy.props.BoolProperty(
-        name="Import ambient color", default=True,
-        description="Import ambient color parameters when importing and add them as unconnected node")
+    import_mat_mtr: bpy.props.BoolProperty(
+        name="Import mtr files", default=True,
+        description="Ignore diffuse color MDL parameter when importing.")        
+    import_ignore_mdl_diffuse_color: bpy.props.BoolProperty(
+        name="Ignore diffuse color", default=False,
+        description="Ignore diffuse color MDL parameter when importing.")
+    import_ignore_mdl_specular_color: bpy.props.BoolProperty(
+        name="Ignore specular color", default=True,
+        description="Ignore specular color MDL parameter when importing.")
+    import_ignore_mdl_ambient_color: bpy.props.BoolProperty(
+        name="Ignore ambient color", default=True,
+        description="Ignore ambient color MDL parameter when importing.")
 
     # General Preferences
+    dummy_type: bpy.props.EnumProperty(
+        name="Dummy Type",
+        description="Type of the Empty to use for Dummies",
+        items=[('PLAIN_AXES', "Plain Axes", "", 0),
+               ('ARROWS', "Arrows", "", 1),
+               ('SINGLE_ARROW', "Single Arrow", "", 2),
+               ('CIRCLE', "Circle", "", 3),
+               ('CUBE', "Cube", "", 4),
+               ('SPHERE', "Sphere", "", 5), ],
+        default='PLAIN_AXES')
+    dummy_size: bpy.props.FloatProperty(
+        name='Dummy Size',
+        description='Size of the Empty to use for Dummies',
+        default=0.5, min=0.1, max=1.0)    
     mat_displacement_mode: bpy.props.EnumProperty(
         name="Displacement Mode",
-        description="Usage og height/displacement map",
+        description="Usage of height/displacement maps",
         items=[('BUMP', "Bump", "Bump node connected to the shaders normal Socket", 0),
                 ('DISPLACEMENT', "Displacement", "Displacement node connected to material output", 1), ],
         default='BUMP')
@@ -220,33 +223,40 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         #  layout.prop(self, 'compiler_path')
-        split = layout.split(factor=0.5)
+        split = layout.split(factor=0.33)
 
         col = split.column()
         box = col.box()
-        box.label(text='Export Settings')
-        box.prop(self, 'export_mat_mtr_use')
-        sub = box.column()
-        sub.prop(self, "export_mat_mtr_ref")
-        sub.active = self.export_mat_mtr_use
-        box.prop(self, 'export_mat_diffuse_ref')
-        
-        box.prop(self, 'export_wirecolor')
-        box.prop(self, 'export_metadata')
-        box.prop(self, 'export_binary_smoothgroups')
-        box.prop(self, 'export_tileset_info')
+        box.label(text='General')
+        box.prop(self, 'dummy_type')
+        box.prop(self, 'dummy_size')
+        box.prop(self, 'mat_displacement_mode')
 
         col = split.column()
         box = col.box()
-        box.label(text='Import Settings')
-        box.prop(self, 'import_dummy_type')
-        box.prop(self, 'import_dummy_size')
+        box.label(text='Import')
         
         box.prop(self, 'import_placement')
         box.prop(self, 'import_mesh_validation')
-        box.prop(self, 'import_ignore_diffuse_param')
-        box.prop(self, 'import_ignore_specular_param')
-        box.prop(self, 'import_ignore_ambient_param')      
+        box.prop(self, 'import_ignore_mdl_diffuse_color')
+        box.prop(self, 'import_ignore_mdl_specular_color')
+        box.prop(self, 'import_ignore_mdl_ambient_color') 
+
+        col = split.column()
+        box = col.box()
+        box.label(text='Export')
+        box.prop(self, 'export_mat_mtr')
+        sub = box.column()
+        sub.prop(self, "export_mat_mtr_ref")
+        sub.active = self.export_mat_mtr
+        box.prop(self, 'export_mat_diffuse_ref')
+        
+        box.prop(self, 'export_wirecolor')
+        box.prop(self, 'export_binary_smoothgroups')
+        box.prop(self, 'export_metadata')
+        box.prop(self, 'export_tileset_info')
+
+     
 
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
@@ -371,6 +381,9 @@ class NVB_PG_material_mtr(bpy.types.PropertyGroup):
     shader_fs: bpy.props.StringProperty(name='Fragment Shader',
                                         description='Specify Fragment shader',
                                         default='', options=set())
+    shader_gs: bpy.props.StringProperty(name='Geometry Shader',
+                                        description='Specify Geometry shader',
+                                        default='', options=set())                                        
     param_list: bpy.props.CollectionProperty(type=NVB_PG_mtrparameter)
     param_list_idx: bpy.props.IntProperty(name='MTR parameter list index',
                                           default=0, options=set())
