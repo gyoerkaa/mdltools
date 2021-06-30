@@ -517,8 +517,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 vertices.extend([mat @ v.co for v in obj.data.vertices])
         # Calculate needed values
         if vertices:
-            vec = sum(vertices, mathutils.Vector([0.0, 0.0, 0.0])) \
-                      / len(vertices)
+            vec = sum(vertices, mathutils.Vector([0.0, 0.0, 0.0])) / len(vertices)
             mdl_center = [round(co, 2) for co in vec]
             mdl_height = round(max(max([v.z for v in vertices]), 0.1), 2)
             mdl_max_y = round(max([v.y for v in vertices]), 2)
@@ -528,12 +527,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             mdl_max_y = 0.5
         # Create dummys or check existing - all parented to mdl base
         dummy_data = [['_hand', (mdl_center[0], mdl_max_y, mdl_center[2])],
-                      ['_head', (*mdl_center[:2], mdl_height)],
-                      ['_head_hit', (*mdl_center[:2], mdl_height + 0.2)],
+                      ['_head_hit', (*mdl_center[:2], mdl_height)],
                       ['_impact', mdl_center],
                       ['_ground', (*mdl_center[:2], 0.0)]]
-        NVB_OT_util_nodes_pwk.create_empties(
-            dummy_data, name_prefix, mdl_base, layer, mdl_objects)
+        NVB_OT_util_nodes_pwk.create_empties(dummy_data, name_prefix, mdl_base, layer, mdl_objects)
 
     @staticmethod
     def create_pwk_dummys(mdl_base, name_prefix, layer, pwk_base, pwk_mesh):
@@ -554,20 +551,12 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             pwk_y_min = -1.0
             pwk_y_max = 1.0
         # Create dummys or check existing - all parented to mdl base
-        dummy_data = [['_PWK_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
-                      ['_PWK_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
-        NVB_OT_util_nodes_pwk.create_empties(
-            dummy_data, name_prefix, pwk_base, layer, objects_to_check)
+        dummy_data = [['pwk_use01', (pwk_x_center, pwk_y_min - 0.5, 0.0)],
+                      ['pwk_use02', (pwk_x_center, pwk_y_max + 0.5, 0.0)]]
+        NVB_OT_util_nodes_pwk.create_empties(dummy_data, name_prefix, pwk_base, layer, objects_to_check)
 
     def setup_placeable(self, mdl_base, layer, pwk_mode, detect_islands):
         """Adds necessary (walkmesh) objects to mdlRoot."""
-        def get_prefix(mdl_base):
-            mdl_name = mdl_base.name
-            dpos = mdl_name[::-1].find('_')
-            if dpos >= 0:
-                return mdl_name[-1*dpos:]
-            return mdl_name[-3:]
-
         def get_pwk_base(mdl_base, pwk_base_name):
             """Find or create pwk base."""
             pwk_base = nvb_utils.get_wkm_base(mdl_base,
@@ -586,7 +575,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             return pwk_base
 
         # Get a name prefix from the mdl base name
-        name_prefix = get_prefix(mdl_base)
+        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-3:]
 
         # Find or create walkmesh base
         pwk_base_name = mdl_base.name + '_pwk'
@@ -608,9 +597,17 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 mdl_base, pwk_base, pwk_mesh_name, layer,
                 pwk_mode, detect_islands)
 
+        # Object for PWK file
+        # The prefix for placeable PWK dummies are four abritratrily chose characters, but
+        # We'll use the last three character of the model name + an underscore
+        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-3:]+"_"
+        if name_prefix[0] in [" ", "_", "-", "."]:  # only for pretty
+            name_prefix[0] = "p"
         # Create dummys or check existing - all parented to pwk base
-        NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, layer,
-                                                pwk_base, pwk_mesh)
+        NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, layer, pwk_base, pwk_mesh)
+        # Objects for mDL file
+        # The prefix for placeable MODEL dummies the mdl base name with the first four characters cropped
+        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[4:]
         # Create dummys or check existing - all parented to mdl base
         NVB_OT_util_nodes_pwk.create_mdl_dummys(mdl_base, name_prefix, layer)
 
@@ -736,22 +733,22 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
         dummy_data = []
         if dwk_mode == 'gen_swing1':
-            dummy_data = [['_DWK_dp_open1_01', (+0.2, -2.0, 0.0)],
-                          ['_DWK_dp_open1_02', (-0.7, -2.2, 0.0)],  # optional
-                          ['_DWK_dp_open2_01', (+0.2, +2.0, 0.0)],
-                          ['_DWK_dp_open2_02', (-0.7, +2.2, 0.0)],  # optional
-                          ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
-                          ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)]]
+            dummy_data = [['DWK_dp_open1_01', (+0.2, -2.0, 0.0)],
+                          ['DWK_dp_open1_02', (-0.7, -2.2, 0.0)],  # optional
+                          ['DWK_dp_open2_01', (+0.2, +2.0, 0.0)],
+                          ['DWK_dp_open2_02', (-0.7, +2.2, 0.0)],  # optional
+                          ['DWK_dp_closed_01', (0.3, -0.7, 0.0)],
+                          ['DWK_dp_closed_02', (0.3, +0.7, 0.0)]]
         elif dwk_mode == 'gen_slide1':
-            dummy_data = [['_DWK_dp_open1_01', (0.2, -0.7, 0.0)],
-                          ['_DWK_dp_open2_01', (0.2, +0.7, 0.0)],
-                          ['_DWK_dp_closed_01', (0.3, -0.7, 0.0)],
-                          ['_DWK_dp_closed_02', (0.3, +0.7, 0.0)]]
+            dummy_data = [['DWK_dp_open1_01', (0.2, -0.7, 0.0)],
+                          ['DWK_dp_open2_01', (0.2, +0.7, 0.0)],
+                          ['DWK_dp_closed_01', (0.3, -0.7, 0.0)],
+                          ['DWK_dp_closed_02', (0.3, +0.7, 0.0)]]
         NVB_OT_util_nodes_dwk.create_empties(
             dummy_data, name_prefix, dwk_base, layer, objects_to_check)
 
     @staticmethod
-    def create_sam_mesh(mdl_base, dwk_base, layer, dwk_mode):
+    def create_sam_mesh(mdl_base):
         """Generate a SAM mesh for a generic door."""
         objects_to_check = [mdl_base]
         nvb_utils.get_children_recursive(mdl_base, objects_to_check)
@@ -778,41 +775,35 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
 
     def setup_door(self, mdl_base, layer, dwk_mode):
         """Add necessary (walkmesh) objects to mdlRoot."""
-        def get_prefix(mdl_base):
-            mdl_name = mdl_base.name
-            dpos = mdl_name[::-1].find('_')
-            if dpos >= 0:
-                return mdl_name[-1*dpos:]
-            return mdl_name[-3:]
-
-        prefix = get_prefix(mdl_base)
         # Find or create dwk base (walkmesh base)
         dwk_base = nvb_utils.get_wkm_base(mdl_base, nvb_def.Walkmeshtype.DWK)
-        newname = mdl_base.name + '_dwk'
+        dwk_base_name = mdl_base.name + '_dwk'
         if dwk_base:
             # Adjust existing
-            if dwk_base.name != newname:
+            if dwk_base.name != dwk_base_name:
                 # Avoid renaming to same name (results in '.001' suffix)
-                dwk_base.name = newname
+                dwk_base.name = dwk_base_name
             dwk_base.parent = mdl_base
         else:
             # Make a new one
-            dwk_base = bpy.data.objects.new(newname, None)
+            dwk_base = bpy.data.objects.new(dwk_base_name, None)
             dwk_base.nvb.emptytype = nvb_def.Emptytype.DWK
             dwk_base.parent = mdl_base
             for collection in mdl_base.users_collection:
                 collection.objects.link(dwk_base)
         # Create recessary dummy nodes (emtpies) for dwk
-        NVB_OT_util_nodes_dwk.create_dwk_dummys(mdl_base, dwk_base, prefix,
-                                                layer, dwk_mode)
+        # The prefix for dwk dummies are two abritratry alphanumeric characters followed by an underscore
+        # We'll use the last two characters from the model name
+        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-2:]+"_"
+        NVB_OT_util_nodes_dwk.create_dwk_dummys(mdl_base, dwk_base, name_prefix, layer, dwk_mode)
         # Create recessary (walk)meshes for dwk
-        NVB_OT_util_nodes_dwk.create_dwk_mesh(mdl_base, dwk_base, prefix,
-                                              layer, dwk_mode)
-        # Create SAM object for mdl
-        NVB_OT_util_nodes_dwk.create_sam_mesh(mdl_base, prefix,
-                                              layer, dwk_mode)
+        NVB_OT_util_nodes_dwk.create_dwk_mesh(mdl_base, dwk_base, name_prefix, layer, dwk_mode)
         # Create recessary dummy nodes (emtpies) for mdl
-        NVB_OT_util_nodes_dwk.create_mdl_dummys(mdl_base, prefix, layer)
+        # The prefix for model dummies is the model name
+        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)
+        NVB_OT_util_nodes_dwk.create_mdl_dummys(mdl_base, name_prefix, layer)
+        # Create SAM object for mdl
+        NVB_OT_util_nodes_dwk.create_sam_mesh(mdl_base)
 
     @classmethod
     def poll(self, context):
