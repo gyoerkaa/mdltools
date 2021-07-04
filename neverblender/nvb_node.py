@@ -438,22 +438,25 @@ class Trimesh(Node):
         Trimesh.create_vertex_colors(blen_mesh, self.colors, 'colors')
 
         # Import smooth groups as sharp edges
+        self.tmp_recommend_smoothgroup_setting = ''
         if options.geom_smoothgroups:
             blen_mesh.update()
             # Count number of unique smooth groups
-            sgr_list = set([fd[3] for fd in self.facedef])
+            sgr_list_unique = set([fd[3] for fd in self.facedef])
             # Single smooth group with id=0   =>   Non-smooth
-            if len(sgr_list) == 1 and sgr_list.pop() == 0:
-                blen_mesh.polygons.foreach_set(
-                    'use_smooth', [False] * num_blen_polygons)
+            if len(sgr_list_unique) == 1 and sgr_list_unique.pop() == 0:
+                blen_mesh.polygons.foreach_set('use_smooth', [False] * num_blen_polygons)
                 blen_mesh.use_auto_smooth = False
-                blen_mesh.auto_smooth_angle = 0.523599
+                blen_mesh.auto_smooth_angle = 4.71
+                self.tmp_recommend_smoothgroup_setting = 'SEPR'
+                #blen_mesh.nvb.smoothgroup = 'SEPR'
             else:
-                blen_mesh.polygons.foreach_set(
-                    'use_smooth', [True] * num_blen_polygons)
+                blen_mesh.polygons.foreach_set('use_smooth', [True] * num_blen_polygons)
                 blen_mesh.use_auto_smooth = True
-                blen_mesh.auto_smooth_angle = 1.570796
+                blen_mesh.auto_smooth_angle = 1.57
                 self.create_sharp_edges(blen_mesh, [fd[3] for fd in self.facedef])
+                self.tmp_recommend_smoothgroup_setting = 'AUTO'
+                #blen_mesh.nvb.smoothgroup = 'AUTO'
 
         if self.normals and blen_mesh.loops and options.geom_normals:
             # Create normals and use them for shading
@@ -479,7 +482,12 @@ class Trimesh(Node):
     def createObjectData(self, obj, options):
         """TODO: Doc."""
         Node.createObjectData(self, obj, options)
-
+        # TODO: Move smoothgroup setting to mesh properties instead of object properties to avoid this ugly mess
+        try:
+            if self.tmp_recommend_smoothgroup_setting:
+                obj.nvb.smoothgroup = self.tmp_recommend_smoothgroup_setting
+        except (NameError, AttributeError):
+            pass
         obj.nvb.meshtype = self.meshtype
 
         obj.nvb.render = self.render
@@ -524,65 +532,29 @@ class Trimesh(Node):
             bm.to_mesh(mesh)
             bm.free()
             del bm
-
-        def calc_smooth_groups_nwn(mesh):
-            def find_free_connected(bm_face, face_list):
-                """Find all untagged faces connected to bm_face."""
-                if bm_face.tag:
-                    return
-                bm_face.tag = True
-                face_list.append(bm_face.index)
-                for e in bm_face.edges:
-                    if e.smooth:
-                        for lf in e.link_faces:
-                            find_free_connected(lf, face_list)            
-            
-            group_id_list = []
-            group_cnt = 0
-            
-            bm = bmesh.new()
-            bm.from_mesh(mesh)
-
-            for f in bm.faces:
-                f.tag = False
-
-            group_idx = 1
-            for f in bm.faces:
-                if not f.tag:
-                    group_cnt+=1
-                    group_idx = group_idx*group_idx
-                    connected_faces = []
-                    find_free_connected(f, connected_faces)
-                    group = [(cf, group_idx) for cf in connected_faces]
-                    group_id_list.extend(group)
-
-            # Keep only group indices, but sort by face index
-            group_id_list = [gid[1] for gid in sorted(group_id_list, key=lambda f: f[0])]
-
-            bm.free()
-            del bm 
-
-            return group_id_list, group_cnt          
         
-        def mesh_get_smoothgroups(mesh, obj, options):
+        def mesh_get_smoothgroups(blen_mesh, obj, options):
             """Get the smoothing group for each face."""
 
             group_ids = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
                (not options.geom_smoothgroups):
-                # All faces beling to group 0 (every edge is sharp)
-                group_ids = [0] * len(mesh.polygons)
+                # All faces belong to group 0 (every edge is sharp)
+                group_ids = [0] * len(blen_mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
                  (options.geom_normals):
                 # All faces belong to group 1 (every edge is smooth)
-                group_ids = [1] * len(mesh.polygons)
+                group_ids = [1] * len(blen_mesh.polygons)
             else:
                 # Calculate smoothing groups from sharp edges or auto angle setting
-                # NWN seems to use bitflag groups
-                # (smoothing groups of standard model all have powers of 2)
-                group_ids, _ = mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
-                #all_groups, _ = calc_smooth_groups_nwn(mesh)
+                # NWN seems to use bitflag groups (smoothing groups of standard model all have powers of 2)
+                use_distinct_verts = True
+                if use_distinct_verts:
+                    g = nvb_utils.AuroraSmoothgroupGraph()
+                    group_ids = g.calc_smooth_groups(blen_mesh)
+                else:
+                    group_ids, _ = blen_mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
             return group_ids
 
         def mesh_get_normals(mesh, uvl_name):

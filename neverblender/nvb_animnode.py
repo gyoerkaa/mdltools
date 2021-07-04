@@ -161,7 +161,7 @@ class Animnode():
                 dp_dim = 1
             elif label in ['selfillumcolor', 'setfillumcolor']:
                 socket_emissive = Materialnode.find_emissive_socket(material_out)
-                socket_color = Materialnode.get_color_socket_nearest(socket_emissive)
+                socket_color = Materialnode.get_color_socket_nearest(socket_emissive, None, 2)
                 dp = socket_color.path_from_id("default_value")
                 dp_dim = 3
             return vals, dp, dp_dim

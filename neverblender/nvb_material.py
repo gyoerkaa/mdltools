@@ -51,10 +51,26 @@ class Material(object):
         def check_colors(color_list1, color_list2):
             return Material.colorisclose(color_list1[5], color_list2[5])
 
-        def check_textures(texture_list1, texture_list2):
-            return (texture_list1 == texture_list2)
+        def check_textures(texture_list1, texture_list2, ignore_case=True):
+            """Check if the texture lists match."""
+            if ignore_case:
+                return ([t.lower() if t else None for t in texture_list1] == [t.lower() if t else None for t in texture_list2])
+            else:
+                return (texture_list1 == texture_list2)
 
-        def check_shaders(shader1_vs, shader1_fs, shader2_vs, shader2_fs):
+        def check_shaders(blen_material, mtr_data):
+            """Check if the shader from an MTR file match the ones in the blender material."""
+            shader1_vs = ""
+            shader1_fs = ""
+            if blen_material:
+                shader1_vs = blen_mat.nvb.mtr.shader_vs
+                shader1_fs = blen_mat.nvb.mtr.shader_fs
+            # MTR file may be undefined
+            shader2_vs = ""
+            shader2_fs = ""    
+            if mtr_data:
+                shader2_vs = mtr_data.customVS
+                shader2_fs = mtr_data.customFS               
             return (shader1_vs == shader2_vs) and (shader1_fs == shader2_fs)
 
         #print("####################")
@@ -70,9 +86,9 @@ class Material(object):
             #print(col_list[5])
             #print(alpha)
             # Compare textures, emissive color(5) and alpha
-            if (check_textures(tex_list, self.texture_list) and 
-                check_colors(col_list, self.color_list) and 
-                check_shaders(blen_mat.nvb.mtr.shader_vs, blen_mat.nvb.mtr.shader_fs, self.mtr_data.customVS, self.mtr_data.customFS) and 
+            if (check_textures(tex_list, self.texture_list, True) and 
+                check_colors(col_list, self.color_list) and  
+                check_shaders(blen_mat, self.mtr_data) and
                 math.isclose(alpha, self.alpha)):
                 #print("MATCH!")
                 return blen_mat
@@ -163,10 +179,9 @@ class Material(object):
         # Ignore ambient color parameter (ignored with the new PBR shaders in the EE)
         if options.mat_ignore_mdl_ambient_color:
             self.ambient = None           
-        # Ignore diffuse color parameter
-        #  (will be multiplied with diffuse texture, use full white)
+        # Ignore diffuse color parameter (will be multiplied with diffuse texture)
         if options.mat_ignore_mdl_diffuse_color:
-            self.color_list[0] = (1.0, 1.0, 1.0, 1.0)
+            self.color_list[0] = None
         # Ignore specular color parameter (This is always ignored by the engine)
         if options.mat_ignore_mdl_specular_color:
             self.color_list[2] = None

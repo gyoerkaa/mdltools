@@ -103,11 +103,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         name='Force Lowercase',
         description='All output images filenames will be converted to lowercase',
         default=False)     
-    img_size: bpy.props.IntProperty(
-        name='Image Size',
-        description='Image Size',
-        default=32, min=8)
-    z_offset: bpy.props.FloatProperty(
+    camera_height: bpy.props.FloatProperty(
         name='Camera Distance',
         description='Camera distance to ground',
         default=20.0, min=10.0)
@@ -149,7 +145,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             collection.objects.link(mm_light)
 
         mm_light.location = mdl_base.location
-        mm_light.location.z += self.z_offset
+        mm_light.location.z += self.camera_height
 
         # Setup Camera
         cam_name = 'mm_cam'
@@ -166,7 +162,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             collection.objects.link(mm_cam)
 
         mm_cam.location = mdl_base.location
-        mm_cam.location.z += self.z_offset
+        mm_cam.location.z += self.camera_height
 
         return mm_cam, mm_light
 
@@ -201,15 +197,16 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             if not mdl_base:
                 return {'CANCELLED'}
             # Setup Render
-            scene.render.resolution_x = self.img_size
-            scene.render.resolution_y = scene.render.resolution_x 
+            scene.render.resolution_x = scene.render.resolution_y 
             scene.render.resolution_percentage = 100
             scene.render.image_settings.color_mode = 'RGB'
             scene.render.image_settings.file_format = 'TARGA_RAW'
             mm_cam, _ = self.setup_objects(mdl_base, collection)
             scene.camera = mm_cam
 
-            self.report({'INFO'}, 'Ready to render')
+            bpy.ops.render.render(animation=False)
+            bpy.ops.render.view_show('INVOKE_DEFAULT')
+            #self.report({'INFO'}, 'Ready to render')
         return {'FINISHED'}
 
 

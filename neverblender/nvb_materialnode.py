@@ -382,21 +382,24 @@ class Materialnode(object):
         return output_nodes[0]
 
     @staticmethod
-    def get_texture_node_nearest(socket):
+    def get_texture_node_nearest(socket, max_depth=32):
         """Get the nearest texture node using BFS. May be none."""
         if not socket or not socket.is_linked:
             return None
 
         # The socket is valid and linked to anther node, we need to follow it
         # Since its an input socket only one node is connected
+        depth = 0
         root_node = socket.links[0].from_node
-        visited, queue = set(), collections.deque([root_node])
+        visited, queue = set(), collections.deque([(root_node, depth)])
 
         # BFS over connected nodes
         while queue:
-            node = queue.popleft()
-            if node and node not in visited:
+            # Get a vertex from queue
+            node, depth = queue.popleft()
+            if node and (node not in visited) and (depth <= max_depth):
                 visited.add(node)
+                depth += 1
                 # Return texture node
                 if Materialnode.is_texture_node(node):  
                     return node
@@ -405,41 +408,41 @@ class Materialnode(object):
                 elif node.type == 'MIX_RGB':
                     if node.inputs['Color1'].is_linked:
                         neighbour_node = node.inputs['Color1'].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
                     if node.inputs['Color2'].is_linked:
                         neighbour_node = node.inputs['Color2'].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
                 # Separate RGB nodew
                 # Single image socket (0), always add to queue
                 elif node.type == 'SEPRGB':
                     if node.inputs[0].is_linked:
                         neighbour_node = node.inputs[0].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
                 # Clamp node
                 # Single value socket (0), always add to queue
                 elif node.type == 'CLAMP':
                     if node.inputs['Value'].is_linked:
                         neighbour_node = node.inputs['Value'].links[0].from_node
-                        queue.append(neighbour_node)                        
+                        queue.append((neighbour_node, depth))                      
                 # Math node
                 #  2 value inputs (0 and 1, not refrenceable by name), may be grayscale
                 elif node.type == 'MATH':
                     if node.inputs[0].is_linked:
                         neighbour_node = node.inputs[0].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
                     if node.inputs[1].is_linked:
                         neighbour_node = node.inputs[1].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
                 # Invert, Bightness/Contrast, RGB curves, Gamma, Hue/saturation or RGB to BW node
                 # All have a single color socket, always add to queue
                 elif node.type in ['INVERT', 'BRIGHTCONTRAST', 'CURVE_RGB', 'GAMMA', 'HUE_SAT', 'RGBTOBW']:
                     if node.inputs['Color'].is_linked:
                         neighbour_node = node.inputs['Color'].links[0].from_node
-                        queue.append(neighbour_node)
+                        queue.append((neighbour_node, depth))
         return None
     
     @staticmethod
-    def get_color_socket_nearest(socket):
+    def get_color_socket_nearest(socket, max_depth=32):
         """Get the nearest color socket connected to this socket using BFS. May be none or the socket itself."""
         if not socket:
             return None
@@ -454,16 +457,18 @@ class Materialnode(object):
         
         # The socket is valid and linked to anther node, we need to follow it
         # Since its an input socket only one node is connected
+        depth = 0
         root_node = socket.links[0].from_node
-        visited, queue = set(), collections.deque([root_node])
+        visited, queue = set(), collections.deque([(root_node, depth)])
+        
 
         # BFS over connected nodes
         while queue:
-            # Dequeue a vertex from queue
-            node = queue.popleft()
-            if node and node not in visited:
+            # Get a vertex from queue
+            node, depth = queue.popleft()
+            if node and (node not in visited) and (depth <= max_depth):
                 visited.add(node)
-
+                depth += 1
                 # MixRGB node
                 if node.type == 'MIX_RGB':
                     # Color1: Check for unlinked socket or directly linked color socket
@@ -473,7 +478,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                     # Color2: Check for unlinked socket or directly linked color socket
                     if not node.inputs['Color2'].is_linked:
                         return node.inputs['Color2']
@@ -481,7 +486,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                 # Separate RGB node
                 elif node.type == 'SEPRGB':
                     # Image socket (socket 0): Check for unlinked socket or directly linked color socket
@@ -491,7 +496,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                 # Clamp node
                 elif node.type == 'CLAMP':
                     # Value socket: Check for unlinked socket or directly linked color socket
@@ -501,7 +506,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                 # Math node
                 # 2 value inputs (0 and 1, not refrenceable by name), may be grayscale
                 elif node.type == 'MATH':
@@ -512,7 +517,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                     # Value 1: Check for unlinked socket or directly linked color socket
                     if not node.inputs[1].is_linked:
                         return node.inputs[1]
@@ -520,7 +525,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node)
+                    queue.append((neighbour_node, depth))
                 # Invert, Bightness/Contrast, RGB curves, Gamma, Hue/saturation or RGB to BW node
                 # All have a single color socket
                 elif node.type in ['INVERT', 'BRIGHTCONTRAST', 'CURVE_RGB', 'GAMMA', 'HUE_SAT', 'RGBTOBW']:
@@ -531,7 +536,7 @@ class Materialnode(object):
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
-                    queue.append(neighbour_node) 
+                    queue.append((neighbour_node, depth))
                 # Input RGB node, should not be able to reach this, but return the output socket
                 elif node.type == 'RGB':  
                     return node.outputs[0]
@@ -587,14 +592,15 @@ class Materialnode(object):
     @staticmethod
     def get_node_data(material):
         """Get the list of texture names for this material."""
-        def get_data_tuple(input_node, default_color=(1.0, 1.0, 1.0, 1.0)):
+        def get_data_tuple(input_node, default_color=(1.0, 1.0, 1.0, 1.0), max_depth=32, exclusive_link=False):
             """Get texture and color from an input name."""
-            texture_node = Materialnode.get_texture_node_nearest(input_socket)
+            texture_node = Materialnode.get_texture_node_nearest(input_socket, max_depth)
             texture = None
             if texture_node:
-                texture = Materialnode.get_texture_name(texture_node)
+                if not exclusive_link or (len(texture_node.outputs['Color'].links) <= 1):
+                    texture = Materialnode.get_texture_name(texture_node)
 
-            color_socket = Materialnode.get_color_socket_nearest(input_socket)
+            color_socket = Materialnode.get_color_socket_nearest(input_socket, max_depth)
             color = default_color
             if color_socket:
                 # We don't actually know if we get a color (bpy array) or a scalar (float)
@@ -623,7 +629,7 @@ class Materialnode(object):
 
             # Normal (1)
             input_socket = Materialnode.find_normal_socket(node_out)
-            texture_list[1], _ = get_data_tuple(input_socket)
+            texture_list[1], _ = get_data_tuple(input_socket, None)
 
             # Specular (2)
             input_socket = Materialnode.find_specular_socket(node_out)
@@ -639,7 +645,7 @@ class Materialnode(object):
 
             # Emissive/Illumination (5)
             input_socket = Materialnode.find_emissive_socket(node_out)
-            texture_list[5], color_list[5] = get_data_tuple(input_socket, (0.0, 0.0, 0.0, 1.0))
+            texture_list[5], color_list[5] = get_data_tuple(input_socket, (0.0, 0.0, 0.0, 1.0), 2, True)
 
             # Ambient color for legacy reason (pre EE)
             ambient = Materialnode.get_ambient_color(material)
@@ -678,9 +684,10 @@ class Materialnode(object):
 
         # Add texture maps
         # 0 = Diffuse
-        node_shader.inputs['Base Color'].default_value = color_list[0]
         node_tex_diff = None
         node_mix_diff = None
+        if color_list[0]:
+            node_shader.inputs['Base Color'].default_value = color_list[0]
         if texture_list[0]:
             # Setup: Image Texture (Color) => Principled BSDF
             # Setup: Image Texture (Alpha) => Mix Transparent (Factor)
@@ -690,23 +697,26 @@ class Materialnode(object):
             node_tex_diff.location = (-1956, 763)
             node_tex_diff.image = nvb_utils.create_image(texture_list[0], options.filepath, options.tex_search)
             node_tex_diff.image.colorspace_settings.name = 'sRGB'
-
             # node_tex_diff.color_space = 'COLOR'
+
             links.new(node_math_alpha.inputs['Value'], node_tex_diff.outputs['Alpha'])
-            links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])
 
             # Add an extra mix rgb node and link it
-            node_mix_diff = nodes.new('ShaderNodeMixRGB')
-            node_mix_diff.label = "Color: Diffuse"
-            node_mix_diff.name = "mix_diffuse"
-            node_mix_diff.blend_type = 'MULTIPLY'
-            node_mix_diff.location = (-1634, 881)
-            node_mix_diff.use_clamp = True
-            node_mix_diff.inputs['Fac'].default_value = 1.0
-            node_mix_diff.inputs['Color1'].default_value = color_list[0]
+            if color_list[0]:
+                node_mix_diff = nodes.new('ShaderNodeMixRGB')
+                node_mix_diff.label = "Color: Diffuse"
+                node_mix_diff.name = "mix_diffuse"
+                node_mix_diff.blend_type = 'MULTIPLY'
+                node_mix_diff.location = (-1634, 881)
+                node_mix_diff.use_clamp = True
+                node_mix_diff.inputs['Fac'].default_value = 1.0
+                node_mix_diff.inputs['Color1'].default_value = color_list[0]
 
-            links.new(node_mix_diff.inputs['Color2'], node_tex_diff.outputs['Color'])
-            links.new(node_shader.inputs['Base Color'], node_mix_diff.outputs['Color'])
+                links.new(node_mix_diff.inputs['Color2'], node_tex_diff.outputs['Color'])
+                links.new(node_shader.inputs['Base Color'], node_mix_diff.outputs['Color'])
+            else:  # no diffuse color
+                # link texture directly to shader
+                links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])
 
         # 1 = Normal
         node_tex_norm = None
@@ -874,17 +884,6 @@ class Materialnode(object):
             node_mix_emit1.inputs['Color1'].default_value = color_list[0]  
         else:
             node_mix_emit1.inputs['Color1'].default_value = (0.0, 0.0, 0.0, 1.0)
-            
-        # 2nd mix node: Adds emissive texture to MDL selfillum color
-        node_mix_emit2 = nodes.new('ShaderNodeMixRGB')
-        node_mix_emit2.label = "Mix: Add Self-Illumination"
-        node_mix_emit2.name = "mix_selfillum_add"
-        node_mix_emit2.blend_type = 'ADD'
-        node_mix_emit2.location = (-753, 98)
-        node_mix_emit2.use_clamp = True
-        node_mix_emit2.inputs['Fac'].default_value = 1.0
-        node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
-        node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
 
         # Emissive/selfillum texture (only from mtr, may not be present)
         node_tex_emit = None
@@ -896,13 +895,27 @@ class Materialnode(object):
             node_tex_emit.image = nvb_utils.create_image(texture_list[5], options.filepath, options.tex_search)
             node_tex_emit.image.colorspace_settings.name = 'sRGB'
             
-        # Link 1st mix node inputs
-        links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
-        if node_tex_emit:
-            links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
+            # 2nd mix node: Adds emissive texture to MDL selfillum color
+            node_mix_emit2 = nodes.new('ShaderNodeMixRGB')
+            node_mix_emit2.label = "Mix: Add Self-Illumination"
+            node_mix_emit2.name = "mix_selfillum_add"
+            node_mix_emit2.blend_type = 'ADD'
+            node_mix_emit2.location = (-753, 98)
+            node_mix_emit2.use_clamp = True
+            node_mix_emit2.inputs['Fac'].default_value = 1.0
+            node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
+            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
 
-        # Finally link to shader
-        links.new(node_shader.inputs['Emission'], node_mix_emit2.outputs[0])
+            # Link 1st mix node inputs
+            links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
+            if node_tex_emit:
+                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
+
+            # Finally link to shader
+            links.new(node_shader.inputs['Emission'], node_mix_emit2.outputs[0])
+        else:  # no emissive texture
+            # link directly to shader
+            links.new(node_shader.inputs['Emission'], node_mix_emit1.outputs[0])
 
         # Ambient color ad unconnected node for legacy reasons (may not be specified)
         if ambient:
@@ -943,7 +956,7 @@ class Materialnode(object):
         node_math_alpha = nodes.new('ShaderNodeMath')
         node_math_alpha.label = "Aurora Alpha"
         node_math_alpha.name = "math_aurora_alpha"
-        node_math_alpha.location = (-1513, -337)
+        node_math_alpha.location = (-1576, -337)
         node_math_alpha.operation = 'MULTIPLY'
         node_math_alpha.use_clamp = True
         node_math_alpha.inputs[1].default_value = alpha
@@ -953,9 +966,10 @@ class Materialnode(object):
 
         # Add texture maps
         # 0 = Diffuse
-        node_shader.inputs['Base Color'].default_value = color_list[0]
         node_tex_diff = None
         node_mix_diff = None
+        if color_list[0]:
+            node_shader.inputs['Base Color'].default_value = color_list[0]
         if texture_list[0]:
             # Setup: Image Texture (Color) => Principled BSDF
             # Setup: Image Texture (Alpha) => Mix Transparent (Factor)
@@ -965,23 +979,27 @@ class Materialnode(object):
             node_tex_diff.location = (-1956, 763)
             node_tex_diff.image = nvb_utils.create_image(texture_list[0], options.filepath, options.tex_search)
             node_tex_diff.image.colorspace_settings.name = 'sRGB'
-
             # node_tex_diff.color_space = 'COLOR'
+
+            # Link diffuse texture alpha to alpha node
             links.new(node_math_alpha.inputs['Value'], node_tex_diff.outputs['Alpha'])
-            links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])
 
             # Add an extra mix rgb node and link it
-            node_mix_diff = nodes.new('ShaderNodeMixRGB')
-            node_mix_diff.label = "Color: Diffuse"
-            node_mix_diff.name = "mix_diffuse"
-            node_mix_diff.blend_type = 'MULTIPLY'
-            node_mix_diff.location = (-1634, 881)
-            node_mix_diff.use_clamp = True
-            node_mix_diff.inputs['Fac'].default_value = 1.0
-            node_mix_diff.inputs['Color1'].default_value = color_list[0]
+            if color_list[0]:
+                node_mix_diff = nodes.new('ShaderNodeMixRGB')
+                node_mix_diff.label = "Color: Diffuse"
+                node_mix_diff.name = "mix_diffuse"
+                node_mix_diff.blend_type = 'MULTIPLY'
+                node_mix_diff.location = (-1634, 881)
+                node_mix_diff.use_clamp = True
+                node_mix_diff.inputs['Fac'].default_value = 1.0
+                node_mix_diff.inputs['Color1'].default_value = color_list[0]
 
-            links.new(node_mix_diff.inputs['Color2'], node_tex_diff.outputs['Color'])
-            links.new(node_shader.inputs['Base Color'], node_mix_diff.outputs['Color'])
+                links.new(node_mix_diff.inputs['Color2'], node_tex_diff.outputs['Color'])
+                links.new(node_shader.inputs['Base Color'], node_mix_diff.outputs['Color'])
+            else:  # no diffuse color
+                # link texture directly to shader
+                links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])            
 
         # 1 = Normal
         node_tex_norm = None
@@ -1150,17 +1168,6 @@ class Materialnode(object):
         else:
             node_mix_emit1.inputs['Color1'].default_value = (0.0, 0.0, 0.0, 1.0)
             
-        # 2nd mix node: Adds emissive texture to MDL selfillum color
-        node_mix_emit2 = nodes.new('ShaderNodeMixRGB')
-        node_mix_emit2.label = "Mix: Add Self-Illumination"
-        node_mix_emit2.name = "mix_selfillum_add"
-        node_mix_emit2.blend_type = 'ADD'
-        node_mix_emit2.location = (-753, 98)
-        node_mix_emit2.use_clamp = True
-        node_mix_emit2.inputs['Fac'].default_value = 1.0
-        node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
-        node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
-
         # Emissive/selfillum texture (only from mtr, may not be present)
         node_tex_emit = None
         if texture_list[5]:
@@ -1170,14 +1177,31 @@ class Materialnode(object):
             node_tex_emit.location = (-1192, -61)
             node_tex_emit.image = nvb_utils.create_image(texture_list[5], options.filepath, options.tex_search)
             node_tex_emit.image.colorspace_settings.name = 'sRGB'
-            
-        # Link 1st mix node inputs
-        links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
-        if node_tex_emit:
-            links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
 
-        # Finally link to shader
-        links.new(node_shader.inputs['Emissive Color'], node_mix_emit2.outputs[0])
+            # 2nd mix node: Adds emissive texture to MDL selfillum color
+            node_mix_emit2 = nodes.new('ShaderNodeMixRGB')
+            node_mix_emit2.label = "Mix: Add Self-Illumination"
+            node_mix_emit2.name = "mix_selfillum_add"
+            node_mix_emit2.blend_type = 'ADD'
+            node_mix_emit2.location = (-753, 98)
+            node_mix_emit2.use_clamp = True
+            node_mix_emit2.inputs['Fac'].default_value = 1.0
+            node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
+            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
+
+            # Link 1st mix node inputs
+            links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
+            if node_tex_emit:
+                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
+
+            # Finally link to shader
+            links.new(node_shader.inputs['Emissive Color'], node_mix_emit2.outputs[0])
+
+        else:  # no emissive texture
+            # link directly to shader
+            links.new(node_shader.inputs['Emission'], node_mix_emit1.outputs[0])
+
+
 
         # Ambient color ad unconnected node for legacy reasons (may not be specified)
         if ambient:

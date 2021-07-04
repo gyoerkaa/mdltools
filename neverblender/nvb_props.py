@@ -72,7 +72,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description="Turn on Blenders mesh validation for imported geometry. This will remove two sided faces")
     import_mat_mtr: bpy.props.BoolProperty(
         name="Import mtr files", default=True,
-        description="Ignore diffuse color MDL parameter when importing.")        
+        description="Import MTR files.")        
     import_ignore_mdl_diffuse_color: bpy.props.BoolProperty(
         name="Ignore diffuse color", default=False,
         description="Ignore diffuse color MDL parameter when importing.")
