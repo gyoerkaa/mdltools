@@ -1,14 +1,13 @@
 """TODO: DOC."""
 
-import glob
-import mathutils
-import bpy
 import os
 import math
 import re
 import collections
 import unicodedata
 
+import mathutils
+import bpy
 import bpy_extras.image_utils
 
 from . import nvb_def
@@ -238,7 +237,7 @@ def find_file_nocase(file_dir, file_name):
     if valid_name:
         return os.path.join(file_dir, valid_name)
     
-    return ""   
+    return ""
 
 
 def is_wkm_base(obj):

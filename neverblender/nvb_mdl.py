@@ -1,6 +1,9 @@
 """TODO: DOC."""
 
 import os
+import platform
+import tempfile
+import subprocess
 from datetime import datetime
 
 import bpy
@@ -150,34 +153,74 @@ class Mdl():
         if options.anim_import and (anim_start > 0):
             self.read_ascii_anims(ascii_block[anim_start:])
 
-    def read_binary_wkm(self, options):
-        """Parse a single walkmesh file."""
-        # TODO: Implement binary import or call external compiler
-        pass
+    @staticmethod
+    def is_binary(filepath):
+        """Check wether an mdl file is compiled/binary format"""
+        with open(os.fsencode(filepath), 'rb') as f:
+            return bytes(f.read(4)) == b'\x00\x00\x00\x00'
 
-    def read_binary_mdl(self, options):
-        """Parse a binary mdl file."""
-        # TODO: Implement binary import or call external compiler
-        pass
+    @staticmethod
+    def build_external_decompile_cmd(mdl_filepath, tmp_filepath, options):
+        """TODO: Doc"""
+        # Make sure these are lower case!
+        ref_cmd = "%command%"
+        ref_in = "%in%"
+        ref_out = "%out%"
+        
+        run_cmd = []
+        if options.decompiler_external_options:
+            # Lower case all references
+            run_options = [op.lower() if op.lower() in (ref_cmd, ref_in, ref_out) else op for op in options.decompiler_external_options.split()]
+            # Make sure command options are unique
+            run_cmd = list(dict.fromkeys(run_options))
+            # Replace the command references
+            run_cmd = [options.decompiler_external_path if ro == ref_cmd else ro for ro in run_cmd]
+            run_cmd = [mdl_filepath if ro == ref_in else ro for ro in run_cmd]
+            run_cmd = [tmp_filepath if ro == ref_out else ro for ro in run_cmd]
+        else:
+            # No options, set up for nwnmdlcomp by default
+            run_cmd = [options.decompiler_external_path, "-d", mdl_filepath, tmp_filepath]
+            # On Linux, wine is necessary if the path ends with exe
+            if (platform.system() == "Linux") and (os.path.splitext(options.decompiler_external_path)[1] == ".exe"):
+                run_cmd = ["wine"] + run_cmd
 
-    def parse_mdl(self, filepath, options):
+        return run_cmd
+
+    def parse_mdl(self, mdl_filepath, options):
         """Parse a single mdl file."""
-        with open(os.fsencode(filepath), 'rb') as f:
-            if bytes(f.read(2)) == b'\x00\x00':
-                self.read_binary_mdl(options)
-                print("Neverblender: ERROR - This is a binary model file. Please decompile before importing.")
-                return
-        with open(os.fsencode(filepath), 'r') as f:
-            self.read_ascii_mdl(f.read(), options)
+        if Mdl.is_binary(mdl_filepath):
+            # Binary modles have to be decompiled
+            if not options.decompiler_use_external:
+                print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
+            else:
+                # Write the output of the external decompiler to a temp file and feed it into the ascii parser
+                with tempfile.NamedTemporaryFile(mode="w+") as tf:
+                    run_cmd = Mdl.build_external_decompile_cmd(mdl_filepath, tf.name, options)
+                    result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
+                    if result.returncode == 0:
+                        self.read_ascii_mdl(tf.read(), options)                
+        else:
+            # ASCII model, parse directly
+            with open(os.fsencode(mdl_filepath), 'r') as f:
+                self.read_ascii_mdl(f.read(), options)
 
-    def parse_wkm(self, filepath, wkm_type, options):
+    def parse_wkm(self, wkm_filepath, wkm_type, options):
         """Parse a single walkmesh file."""
-        with open(os.fsencode(filepath), 'rb') as f:
-            if bytes(f.read(2)) == b'\x00\x00':
-                self.read_binary_wkm(options)
-                return
-        with open(os.fsencode(filepath), 'r') as f:
-            self.read_ascii_wkm(f.read(), wkm_type, options)
+        if Mdl.is_binary(wkm_filepath):
+            # Binary modles have to be decompiled
+            if not options.decompiler_use_external:
+                print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
+            else:
+                # Write the output of the external decompiler to a temp file and feed it into the ascii parser
+                with tempfile.NamedTemporaryFile(mode="w+") as tf:
+                    run_cmd = Mdl.build_external_decompile_cmd(wkm_filepath, tf.name, options)
+                    result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
+                    if result.returncode == 0:
+                        self.read_ascii_mdl(tf.read(), options)               
+        else:
+            # ASCII model, parse directly
+            with open(os.fsencode(wkm_filepath), 'r') as f:
+                self.read_ascii_wkm(f.read(), wkm_type, options)
 
     @staticmethod
     def generate_ascii_header(mdl_base, ascii_lines, options):

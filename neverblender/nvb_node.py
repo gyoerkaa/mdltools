@@ -473,7 +473,6 @@ class Trimesh(Node):
             blen_mesh.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
             blen_mesh.use_auto_smooth = True
         
-        #TODO: Add option to re-activate validation
         if options.geom_mesh_validation:
             blen_mesh.validate(verbose=True, clean_customdata=False)
 

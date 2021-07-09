@@ -58,7 +58,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description="Include export time and filedependancy in the mdl")      
     export_tileset_info: bpy.props.BoolProperty(
         name="Export Tileset Info", default=False,
-        description="Create a tileset NFO file which holds data for set files")        
+        description="Create a tileset NFO file which holds data for generating set files")        
 
     # Import preferences
     import_placement: bpy.props.EnumProperty(
@@ -66,22 +66,22 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description="Placement when importing multiple models",
         items=[('SPIRAL', "Spiral", "Spiral on a 10x10 Grid", 0),
                ('LINE', "Line", "Line with 10 units distance", 1) ],
-        default='SPIRAL')
+        default='SPIRAL')       
     import_mesh_validation: bpy.props.BoolProperty(
         name="Mesh Validation", default=False,
-        description="Turn on Blenders mesh validation for imported geometry. This will remove two sided faces")
+        description="Turn on Blenders mesh validation for imported geometry (Removes two sided faces)")
     import_mat_mtr: bpy.props.BoolProperty(
         name="Import mtr files", default=True,
         description="Import MTR files.")        
     import_ignore_mdl_diffuse_color: bpy.props.BoolProperty(
         name="Ignore diffuse color", default=False,
-        description="Ignore diffuse color MDL parameter when importing.")
+        description="Ignore diffuse color MDL parameter when importing")
     import_ignore_mdl_specular_color: bpy.props.BoolProperty(
         name="Ignore specular color", default=True,
-        description="Ignore specular color MDL parameter when importing.")
+        description="Ignore specular color MDL parameter when importing")
     import_ignore_mdl_ambient_color: bpy.props.BoolProperty(
         name="Ignore ambient color", default=True,
-        description="Ignore ambient color MDL parameter when importing.")
+        description="Ignore ambient color MDL parameter when importing")
 
     # General Preferences
     dummy_type: bpy.props.EnumProperty(
@@ -104,6 +104,19 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         items=[('BUMP', "Bump", "Bump node connected to the shaders normal Socket", 0),
                 ('DISPLACEMENT', "Displacement", "Displacement node connected to material output", 1), ],
         default='BUMP')
+    decompiler_use_external: bpy.props.BoolProperty(
+        name="External Decompiler", default=False,
+        description="Use external program for decompiling binary models")
+    decompiler_path: bpy.props.StringProperty(
+        name="Decompiler Path", default="",
+        description="Path to external decompiler",  
+        subtype='FILE_PATH',
+        options=set())
+    decompiler_options: bpy.props.StringProperty(
+        name="Decompiler Options", default="",
+        description="Additional options for external decompiler. If empty, will set up for nwnmdlcomp.exe",  
+        subtype='NONE',
+        options=set())
 
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
@@ -221,40 +234,61 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         default='AUTO')
 
     def draw(self, context):
+        """Draw the addon prefences."""
+        # Three colums: General, Import, Export
         layout = self.layout
-        #  layout.prop(self, 'compiler_path')
         split = layout.split(factor=0.33)
 
+        # General settings
         col = split.column()
         box = col.box()
         box.label(text='General')
-        box.prop(self, 'dummy_type')
-        box.prop(self, 'dummy_size')
         box.prop(self, 'mat_displacement_mode')
 
+        box = col.box()
+        box.label(text='Dummy Settings')
+        box.prop(self, 'dummy_type', text="Type")
+        box.prop(self, 'dummy_size', text="Size")
+
+        box = col.box()
+        box.prop(self, 'decompiler_use_external')
+        sub = box.column()
+        sub.active = self.decompiler_use_external
+        sub.prop(self, "decompiler_path", text="Path")
+        sub.prop(self, "decompiler_options", text="Options")
+        
+        # Import settings
         col = split.column()
         box = col.box()
         box.label(text='Import')
-        
         box.prop(self, 'import_placement')
         box.prop(self, 'import_mesh_validation')
-        box.prop(self, 'import_ignore_mdl_diffuse_color')
-        box.prop(self, 'import_ignore_mdl_specular_color')
-        box.prop(self, 'import_ignore_mdl_ambient_color') 
 
+        box = col.box()
+        box.label(text="Colors from MDL")        
+        box.prop(self, 'import_ignore_mdl_diffuse_color', text="Ignore Diffuse")
+        box.prop(self, 'import_ignore_mdl_specular_color', text="Ignore Specular")
+        box.prop(self, 'import_ignore_mdl_ambient_color', text="Ignore Ambient") 
+
+        # Export Settings
         col = split.column()
         box = col.box()
         box.label(text='Export')
-        box.prop(self, 'export_mat_mtr')
-        sub = box.column()
-        sub.prop(self, "export_mat_mtr_ref")
-        sub.active = self.export_mat_mtr
         box.prop(self, 'export_mat_diffuse_ref')
-        
         box.prop(self, 'export_wirecolor')
         box.prop(self, 'export_binary_smoothgroups')
         box.prop(self, 'export_metadata')
         box.prop(self, 'export_tileset_info')
+
+        box = col.box()
+        box.label(text='MTR Export')
+        box.prop(self, 'export_mat_mtr')
+        sub = box.column()
+        sub.active = self.export_mat_mtr
+        sub.prop(self, "export_mat_mtr_ref")
+        
+       
+
 
      
 

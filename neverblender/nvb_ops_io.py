@@ -2,6 +2,7 @@
 
 import os
 import math
+
 import bpy
 import bpy_extras
 
@@ -449,6 +450,10 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.hide_lights = self.hide_lights
         options.hide_fading = self.hide_fading
         options.mdl_location = self.mdl_location
+        # handling of binary mdls
+        options.decompiler_use_external = addon_prefs.decompiler_use_external
+        options.decompiler_external_path = addon_prefs.decompiler_path
+        options.decompiler_external_options = addon_prefs.decompiler_options
         # Geometry options
         options.geom_import = self.import_geometry
         options.geom_walkmesh = self.import_walkmesh
@@ -554,6 +559,7 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
         options = nvb_def.ImportOptions()
         options.scene = context.scene
 
+        options.anim_import = True
         options.anim_fps_use = self.anim_fps_use
         options.anim_fps = self.anim_fps
         options.anim_restpose = self.anim_restpose
