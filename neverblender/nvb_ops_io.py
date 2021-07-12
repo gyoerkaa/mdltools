@@ -438,7 +438,6 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         """TODO: DOC."""
         addon = context.preferences.addons[__package__]
         addon_prefs = addon.preferences
-
         options = nvb_def.ImportOptions()
         # Hidden settings for internal use
         options.filepath = self.filepath
@@ -451,9 +450,9 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         options.hide_fading = self.hide_fading
         options.mdl_location = self.mdl_location
         # handling of binary mdls
-        options.decompiler_use_external = addon_prefs.decompiler_use_external
-        options.decompiler_external_path = addon_prefs.decompiler_path
-        options.decompiler_external_options = addon_prefs.decompiler_options
+        options.compiler_use = addon_prefs.import_compiler_use
+        options.compiler_path = addon_prefs.import_compiler_path
+        options.compiler_command = addon_prefs.import_compiler_command
         # Geometry options
         options.geom_import = self.import_geometry
         options.geom_walkmesh = self.import_walkmesh
@@ -556,9 +555,19 @@ class NVB_OT_mdl_superimport(bpy.types.Operator,
         sub.prop(self, 'anim_fps')
 
     def execute(self, context):
+        addon = context.preferences.addons[__package__]
+        addon_prefs = addon.preferences
         options = nvb_def.ImportOptions()
+        # Hidden settings for internal use
         options.scene = context.scene
-
+        options.collection = context.collection
+        options.dummy_type = addon_prefs.dummy_type
+        options.dummy_size = addon_prefs.dummy_size
+        # handling of binary mdls
+        options.compiler_use = addon_prefs.import_compiler_use
+        options.compiler_path = addon_prefs.import_compiler_path
+        options.compiler_command = addon_prefs.import_compiler_command
+        # Animations (duh)
         options.anim_import = True
         options.anim_fps_use = self.anim_fps_use
         options.anim_fps = self.anim_fps

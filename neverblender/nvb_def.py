@@ -275,9 +275,9 @@ class ImportOptions():
         self.placement = 'SPIRAL'
         self.mdl_location = (0.0, 0.0, 0.0)
         # Handling of binary models
-        self.decompiler_use_external = False
-        self.decompiler_external_path = ""
-        self.decompiler_external_options = ""
+        self.compiler_use = False
+        self.compiler_path = ""
+        self.compiler_command = ""
         # Geometry
         self.geom_import = True
         self.geom_smoothgroups = True

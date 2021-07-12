@@ -4,6 +4,7 @@ import os
 import platform
 import tempfile
 import subprocess
+import shutil
 from datetime import datetime
 
 import bpy
@@ -160,29 +161,31 @@ class Mdl():
             return bytes(f.read(4)) == b'\x00\x00\x00\x00'
 
     @staticmethod
-    def build_external_decompile_cmd(mdl_filepath, tmp_filepath, options):
+    def build_external_decompile_cmd(mdl_path, compiler_path, compiler_command):
         """TODO: Doc"""
+        # References to customize the compile command
         # Make sure these are lower case!
-        ref_cmd = "%command%"
-        ref_in = "%in%"
-        ref_out = "%out%"
+        ref_compiler = "%compiler%"
+        ref_in_path = "%in_path%"
+        ref_in_dir = "%in_dir%"
+        ref_in_file = "%in_filename%"
+        ref_out_path = "%out_path%"
+        ref_out_dir = "%out_dir%"
+        ref_out_file = "%out_filename%"
         
         run_cmd = []
-        if options.decompiler_external_options:
+        if compiler_command:
+            mdl_dir, mdl_filename = os.path.split(mdl_path)
             # Lower case all references
-            run_options = [op.lower() if op.lower() in (ref_cmd, ref_in, ref_out) else op for op in options.decompiler_external_options.split()]
+            ref_all = (ref_compiler, ref_in_path, ref_in_dir, ref_in_file, ref_out_path, ref_out_dir, ref_out_file)
+            run_cmd = [op.lower() if op.lower() in ref_all else op for op in compiler_command.split()]
             # Make sure command options are unique
-            run_cmd = list(dict.fromkeys(run_options))
+            run_cmd = list(dict.fromkeys(run_cmd))
             # Replace the command references
-            run_cmd = [options.decompiler_external_path if ro == ref_cmd else ro for ro in run_cmd]
-            run_cmd = [mdl_filepath if ro == ref_in else ro for ro in run_cmd]
-            run_cmd = [tmp_filepath if ro == ref_out else ro for ro in run_cmd]
-        else:
-            # No options, set up for nwnmdlcomp by default
-            run_cmd = [options.decompiler_external_path, "-d", mdl_filepath, tmp_filepath]
-            # On Linux, wine is necessary if the path ends with exe
-            if (platform.system() == "Linux") and (os.path.splitext(options.decompiler_external_path)[1] == ".exe"):
-                run_cmd = ["wine"] + run_cmd
+            run_cmd = [compiler_path if ro == ref_compiler else ro for ro in run_cmd]
+            run_cmd = [mdl_path if ro in (ref_in_path, ref_out_path) else ro for ro in run_cmd]
+            run_cmd = [mdl_dir if ro in (ref_in_dir, ref_out_dir) else ro for ro in run_cmd]
+            run_cmd = [mdl_filename if ro in (ref_in_file, ref_out_file) else ro for ro in run_cmd]
 
         return run_cmd
 
@@ -190,15 +193,53 @@ class Mdl():
         """Parse a single mdl file."""
         if Mdl.is_binary(mdl_filepath):
             # Binary modles have to be decompiled
-            if not options.decompiler_use_external:
+            if not options.compiler_use:
                 print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
             else:
-                # Write the output of the external decompiler to a temp file and feed it into the ascii parser
+                # - Create named temporay file (named because we'll need full access for subprocesses)
+                # - Do NOT auto-delete, as it will make Windows lock the file before we're finished, making it inaccessible 
+                tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
+                try:
+                    tmp_filepath = tf.name
+                    # Try getting a decompile command based on user options, make it overwrite the input file
+                    run_cmd = Mdl.build_external_decompile_cmd(tmp_filepath, options.compiler_path, options.compiler_command)
+                    if run_cmd:
+                        # copy the file we want to import to tempfile
+                        shutil.copyfile(mdl_filepath, tmp_filepath)
+                        # Let the compiler do its work
+                        result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
+                        if result.returncode == 0:
+                            # If succesful pass the resulting file to the ascii parser
+                            self.read_ascii_mdl(tf.read(), options)
+                        else:
+                            print("Neverblender: ERROR - Could not decompile file.")
+                finally:
+                    tf.close()
+                    os.remove(tf.name)                
+                """
+                # Does only work with nwnmdlcomp, not cleanmodels
+                # We need to prevent auto-deletion and delete manually ourselves, 
+                # (on Windows access to the tempfile will be blocked after running the decompiler)
+                tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
+                try:
+                    run_cmd = Mdl.build_external_decompile_cmd(mdl_filepath, tf.name, options)
+                    result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
+                    if result.returncode == 0:
+                        self.read_ascii_mdl(tf.read(), options)
+                    else:
+                        print("Neverblender: ERROR - Could not decompile file.")
+                finally:
+                    tf.close()
+                    os.remove(tf.name)
+                """
+                """
+                # Does not work on Windows, auto deletion prevents access
                 with tempfile.NamedTemporaryFile(mode="w+") as tf:
                     run_cmd = Mdl.build_external_decompile_cmd(mdl_filepath, tf.name, options)
                     result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
                     if result.returncode == 0:
-                        self.read_ascii_mdl(tf.read(), options)                
+                        self.read_ascii_mdl(tf.read(), options)  
+                """              
         else:
             # ASCII model, parse directly
             with open(os.fsencode(mdl_filepath), 'r') as f:
@@ -212,11 +253,19 @@ class Mdl():
                 print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
             else:
                 # Write the output of the external decompiler to a temp file and feed it into the ascii parser
-                with tempfile.NamedTemporaryFile(mode="w+") as tf:
-                    run_cmd = Mdl.build_external_decompile_cmd(wkm_filepath, tf.name, options)
+                # We need to prevent auto-deletion and delete manually ourselves, 
+                # (on Windows access to the tempfile will be blocked after running the decompiler)
+                tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
+                try:
+                    run_cmd = Mdl.build_external_decompile_cmd(mdl_filepath, tf.name, options)
                     result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
                     if result.returncode == 0:
-                        self.read_ascii_mdl(tf.read(), options)               
+                        self.read_ascii_mdl(tf.read(), options)
+                    else:
+                        print("Neverblender: ERROR - Could not decompile file.")
+                finally:
+                    tf.close()
+                    os.remove(tf.name)             
         else:
             # ASCII model, parse directly
             with open(os.fsencode(wkm_filepath), 'r') as f:

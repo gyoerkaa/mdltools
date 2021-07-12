@@ -465,3 +465,4 @@ class NVB_OT_util_transform(bpy.types.Operator):
             context.scene.collection.objects.update()
             context.evaluated_depsgraph_get().update()
             return {'FINISHED'}
+

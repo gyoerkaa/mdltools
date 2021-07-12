@@ -1,5 +1,8 @@
 """TODO: DOC."""
 
+import os
+import platform
+
 from . import bpy
 from . import nvb_def
 from . import nvb_utils
@@ -20,6 +23,55 @@ def NVB_psb_anim_mode_update(self, context):
         addon.preferences.util_psb_insert_base = True
 
 
+class NVB_OT_decompile_detect_options(bpy.types.Operator):
+    """Reload set, update current data"""
+    bl_idname = 'nvb.decompile_detect_options'
+    bl_label = "Autodetect Command"
+
+    @classmethod
+    def poll(self, context):
+        """Always ok to run."""
+        return True
+
+    def execute(self, context):
+        """Reload the set file."""
+        addon = context.preferences.addons[__package__]
+        addon_prefs = addon.preferences
+        compiler_path = addon_prefs.import_compiler_path
+
+        print(compiler_path)
+        # Without a path we can't do anything
+        if not compiler_path:
+            self.report({'ERROR'}, "No compiler path")
+            return{'CANCELLED'}
+
+        compiler_dir, compiler_filename = os.path.split(compiler_path) 
+        print(compiler_dir)
+        print(compiler_filename)
+        
+        # Known compilers are: cleanmodels and nwnmdlcomp
+        compile_cmd = []
+        if "cleanmodels" in compiler_filename.lower():
+            compile_cmd = ["-d", "-i", "%in_dir%", "-o", "%out_dir%", "-p", "%in_filename%"] 
+        elif "nwnmdlcomp" in compiler_filename.lower():
+            compile_cmd = ["-d", "%in_path%", "%out_path%"]
+        else:
+            self.report({'ERROR'}, "Unknown compiler")
+            return{'CANCELLED'}
+
+        print(compile_cmd)
+
+        # If platform isn't windows and its an exe file add wine as a prefix
+        if (platform.system() != "Windows") and (os.path.splitext(compiler_path)[1] == ".exe"):
+            compile_cmd = ["wine", "%compiler%"] + compile_cmd
+
+        print(compile_cmd)
+
+        addon_prefs.import_compiler_command = " ".join(compile_cmd)
+        return {'FINISHED'}
+
+
+
 class NVB_addon_properties(bpy.types.AddonPreferences):
     # this must match the addon name, use '__package__'
     # when defining this in a submodule of a python package.
@@ -29,7 +81,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                                             subtype='FILE_PATH')
     # Export preferences
     export_mat_mtr: bpy.props.BoolProperty(
-        name="Use MTR files", default=True,
+        name="Export MTR files", default=True,
         description="Generate MTR files to hold materials data")  
     export_mat_mtr_ref: bpy.props.EnumProperty(
             name="MTR Reference",
@@ -66,7 +118,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         description="Placement when importing multiple models",
         items=[('SPIRAL', "Spiral", "Spiral on a 10x10 Grid", 0),
                ('LINE', "Line", "Line with 10 units distance", 1) ],
-        default='SPIRAL')       
+        default='SPIRAL')
     import_mesh_validation: bpy.props.BoolProperty(
         name="Mesh Validation", default=False,
         description="Turn on Blenders mesh validation for imported geometry (Removes two sided faces)")
@@ -82,6 +134,19 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     import_ignore_mdl_ambient_color: bpy.props.BoolProperty(
         name="Ignore ambient color", default=True,
         description="Ignore ambient color MDL parameter when importing")
+    import_compiler_use: bpy.props.BoolProperty(
+        name="External Decompiler", default=False,
+        description="Use external program for decompiling binary models")
+    import_compiler_path: bpy.props.StringProperty(
+        name="Decompiler Path", default="",
+        description="Path to external decompiler",  
+        subtype='FILE_PATH',
+        options=set())
+    import_compiler_command: bpy.props.StringProperty(
+        name="Decompile Command", default="",
+        description="Additional options for external (de)compiler",  
+        subtype='NONE',
+        options=set())
 
     # General Preferences
     dummy_type: bpy.props.EnumProperty(
@@ -104,19 +169,6 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         items=[('BUMP', "Bump", "Bump node connected to the shaders normal Socket", 0),
                 ('DISPLACEMENT', "Displacement", "Displacement node connected to material output", 1), ],
         default='BUMP')
-    decompiler_use_external: bpy.props.BoolProperty(
-        name="External Decompiler", default=False,
-        description="Use external program for decompiling binary models")
-    decompiler_path: bpy.props.StringProperty(
-        name="Decompiler Path", default="",
-        description="Path to external decompiler",  
-        subtype='FILE_PATH',
-        options=set())
-    decompiler_options: bpy.props.StringProperty(
-        name="Decompiler Options", default="",
-        description="Additional options for external decompiler. If empty, will set up for nwnmdlcomp.exe",  
-        subtype='NONE',
-        options=set())
 
     # Object & Dummy Helper
     util_nodes_type: bpy.props.EnumProperty(
@@ -250,12 +302,6 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'dummy_type', text="Type")
         box.prop(self, 'dummy_size', text="Size")
 
-        box = col.box()
-        box.prop(self, 'decompiler_use_external')
-        sub = box.column()
-        sub.active = self.decompiler_use_external
-        sub.prop(self, "decompiler_path", text="Path")
-        sub.prop(self, "decompiler_options", text="Options")
         
         # Import settings
         col = split.column()
@@ -268,7 +314,16 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.label(text="Colors from MDL")        
         box.prop(self, 'import_ignore_mdl_diffuse_color', text="Ignore Diffuse")
         box.prop(self, 'import_ignore_mdl_specular_color', text="Ignore Specular")
-        box.prop(self, 'import_ignore_mdl_ambient_color', text="Ignore Ambient") 
+        box.prop(self, 'import_ignore_mdl_ambient_color', text="Ignore Ambient")
+
+        box = col.box()
+        box.prop(self, 'import_compiler_use')
+        sub = box.column()
+        sub.active = self.import_compiler_use
+        sub.prop(self, "import_compiler_path", text="Path")
+        row = sub.row(align=True)
+        row.prop(self, "import_compiler_command", text="Command")
+        row.operator(NVB_OT_decompile_detect_options.bl_idname, icon='FILE_REFRESH', text='')
 
         # Export Settings
         col = split.column()
@@ -281,16 +336,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'export_tileset_info')
 
         box = col.box()
-        box.label(text='MTR Export')
         box.prop(self, 'export_mat_mtr')
         sub = box.column()
         sub.active = self.export_mat_mtr
         sub.prop(self, "export_mat_mtr_ref")
-        
-       
-
-
-     
 
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
