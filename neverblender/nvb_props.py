@@ -46,9 +46,7 @@ class NVB_OT_decompile_detect_options(bpy.types.Operator):
             return{'CANCELLED'}
 
         compiler_dir, compiler_filename = os.path.split(compiler_path) 
-        print(compiler_dir)
-        print(compiler_filename)
-        
+
         # Known compilers are: cleanmodels and nwnmdlcomp
         compile_cmd = []
         if "cleanmodels" in compiler_filename.lower():
@@ -59,13 +57,9 @@ class NVB_OT_decompile_detect_options(bpy.types.Operator):
             self.report({'ERROR'}, "Unknown compiler")
             return{'CANCELLED'}
 
-        print(compile_cmd)
-
-        # If platform isn't windows and its an exe file add wine as a prefix
+        # If platform isn't windows and its an exe file: Add wine as a prefix
         if (platform.system() != "Windows") and (os.path.splitext(compiler_path)[1] == ".exe"):
             compile_cmd = ["wine", "%compiler%"] + compile_cmd
-
-        print(compile_cmd)
 
         addon_prefs.import_compiler_command = " ".join(compile_cmd)
         return {'FINISHED'}

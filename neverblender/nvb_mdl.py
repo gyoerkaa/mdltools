@@ -1,7 +1,6 @@
 """TODO: DOC."""
 
 import os
-import platform
 import tempfile
 import subprocess
 import shutil
@@ -163,9 +162,8 @@ class Mdl():
     @staticmethod
     def build_external_decompile_cmd(mdl_path, compiler_path, compiler_command):
         """TODO: Doc"""
-        # References to customize the compile command
-        # Make sure these are lower case!
-        ref_compiler = "%compiler%"
+        # References to customize the compile command (Make sure these are lower case, just in case)
+        ref_compiler = "%compiler%" # optional, will prepend compiler path if missing
         ref_in_path = "%in_path%"
         ref_in_dir = "%in_dir%"
         ref_in_file = "%in_filename%"
@@ -178,14 +176,19 @@ class Mdl():
             mdl_dir, mdl_filename = os.path.split(mdl_path)
             # Lower case all references
             ref_all = (ref_compiler, ref_in_path, ref_in_dir, ref_in_file, ref_out_path, ref_out_dir, ref_out_file)
-            run_cmd = [op.lower() if op.lower() in ref_all else op for op in compiler_command.split()]
-            # Make sure command options are unique
-            run_cmd = list(dict.fromkeys(run_cmd))
-            # Replace the command references
-            run_cmd = [compiler_path if ro == ref_compiler else ro for ro in run_cmd]
-            run_cmd = [mdl_path if ro in (ref_in_path, ref_out_path) else ro for ro in run_cmd]
-            run_cmd = [mdl_dir if ro in (ref_in_dir, ref_out_dir) else ro for ro in run_cmd]
-            run_cmd = [mdl_filename if ro in (ref_in_file, ref_out_file) else ro for ro in run_cmd]
+            run_cmd[:] = [op.lower() if op.lower() in ref_all else op for op in compiler_command.split()]
+            # Make sure command options are unique (NO, not out problem)
+            #run_cmd[:] = list(dict.fromkeys(run_cmd))
+            # Replace the compiler path reference, prepend, if not present
+            if ref_compiler in run_cmd:
+                run_cmd[:] = [compiler_path if ro == ref_compiler else ro for ro in run_cmd]
+            else:
+                run_cmd[:] = [compiler_path] + run_cmd
+            # Replace compiler options. We do an in-place decompilation overwriting the old (temp) file
+            # Therefore input=output
+            run_cmd[:] = [mdl_path if ro in (ref_in_path, ref_out_path) else ro for ro in run_cmd]
+            run_cmd[:] = [mdl_dir if ro in (ref_in_dir, ref_out_dir) else ro for ro in run_cmd]
+            run_cmd[:] = [mdl_filename if ro in (ref_in_file, ref_out_file) else ro for ro in run_cmd]
 
         return run_cmd
 
@@ -194,20 +197,26 @@ class Mdl():
         if Mdl.is_binary(mdl_filepath):
             # Binary modles have to be decompiled
             if not options.compiler_use:
-                print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
+                print("Neverblender: WARNING - Detected binary MDL with disabled external compiler.")
+            elif not os.path.isfile(options.compiler_path):
+                print("Neverblender: WARNING - Detected binary MDL with invalid path to external compiler.")
             else:
                 # - Create named temporay file (named because we'll need full access for subprocesses)
-                # - Do NOT auto-delete, as it will make Windows lock the file before we're finished, making it inaccessible 
-                tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
+                # - Windows issue: Can't use auto-delete. It will lock the file when copyfile() closes it, making it inaccessible
+                # - Windows issue: Can't use Windows default tempfile directory as working dir, cleanmodels doesn't have permissions for wirting there 
+                #                  (nwnmdlcomp works fine though?). Use compiler dir as working dir instead.
+                working_dir = os.path.split(options.compiler_path)[0]
+                tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)  # dir=working_dir not necessary yet, only for subprocess
                 try:
                     tmp_filepath = tf.name
                     # Try getting a decompile command based on user options, make it overwrite the input file
                     run_cmd = Mdl.build_external_decompile_cmd(tmp_filepath, options.compiler_path, options.compiler_command)
+                    print(run_cmd)
                     if run_cmd:
                         # copy the file we want to import to tempfile
                         shutil.copyfile(mdl_filepath, tmp_filepath)
                         # Let the compiler do its work
-                        result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
+                        result = subprocess.run(run_cmd, stdout=subprocess.PIPE, cwd=working_dir)
                         if result.returncode == 0:
                             # If succesful pass the resulting file to the ascii parser
                             self.read_ascii_mdl(tf.read(), options)
@@ -215,7 +224,7 @@ class Mdl():
                             print("Neverblender: ERROR - Could not decompile file.")
                 finally:
                     tf.close()
-                    os.remove(tf.name)                
+                    os.remove(tf.name)
                 """
                 # Does only work with nwnmdlcomp, not cleanmodels
                 # We need to prevent auto-deletion and delete manually ourselves, 
