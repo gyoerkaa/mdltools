@@ -439,8 +439,8 @@ class Trimesh(Node):
 
         # Import smooth groups as sharp edges
         self.tmp_recommend_smoothgroup_setting = ''
+        blen_mesh.update()
         if options.geom_smoothgroups:
-            blen_mesh.update()
             # Count number of unique smooth groups
             sgr_list_unique = set([fd[3] for fd in self.facedef])
             # Single smooth group with id=0   =>   Non-smooth

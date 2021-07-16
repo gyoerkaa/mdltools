@@ -90,19 +90,26 @@ class NVB_OT_util_minimap(bpy.types.Operator):
 
     bl_idname = "nvb.util_minimap"
     bl_label = "Render Minimap"
-
-    batch_mode: bpy.props.BoolProperty(
-        name='Batch Mode',
-        description='Renders pictures directly to render_dir',
-        default=False)
+      
     render_dir: bpy.props.StringProperty(
         name='Render Directory',
         description='Directory to render images to',
-        default='')
-    force_lowercase: bpy.props.BoolProperty(
-        name='Force Lowercase',
-        description='All output images filenames will be converted to lowercase',
-        default=False)     
+        default='', 
+        options={'HIDDEN'})
+    render_filename: bpy.props.StringProperty(
+        name='Filename',
+        description='Filename of Minimap',
+        subtype='FILE_NAME',
+        default="",
+        options={'HIDDEN'}) 
+    render_resolution: bpy.props.IntProperty(
+        name='Minimap Size',
+        description='Size of Minimap',
+        default=32)
+    transparent_background: bpy.props.BoolProperty(
+        name='Transparent Background',
+        description='Transparent background',
+        default=False)        
     camera_height: bpy.props.FloatProperty(
         name='Camera Distance',
         description='Camera distance to ground',
@@ -114,11 +121,6 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         default=(1.0, 1.0, 1.0),
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
-    minimap_filename: bpy.props.StringProperty(
-        name='Filename',
-        description='Filename of Minimap',
-        subtype='FILE_NAME',
-        default="")
 
     @classmethod
     def poll(self, context):
@@ -135,11 +137,13 @@ class NVB_OT_util_minimap(bpy.types.Operator):
             light_data = bpy.data.lights.new(light_name, 'POINT')
             light_data.type = 'SUN'
             light_data.specular_factor = 0.0
-            light_data.energy = 5.0
+            light_data.energy = 10.0
             light_data.use_shadow = False
             light_data.color = self.light_color
 
             mm_light = bpy.data.objects.new(light_name, light_data)
+
+        mm_light.hide_render = False
 
         if mm_light.name not in collection.objects:
             collection.objects.link(mm_light)
@@ -168,46 +172,52 @@ class NVB_OT_util_minimap(bpy.types.Operator):
 
     def execute(self, context):
         """Create camera + lamp and Renders Minimap."""
+        if not context.object:
+            return {'CANCELLED'}   
+
+        # Get root from active mdl
+        aurora_base = nvb_utils.get_obj_mdl_base(context.object)
+        if not aurora_base:
+            return {'CANCELLED'}
+
         scene = bpy.context.scene
+        view_layer = scene.view_layers[0]
         collection = scene.collection
-        if self.batch_mode:
-            if not context.object:
-                return {'CANCELLED'}
 
-            aurora_base = nvb_utils.get_obj_mdl_base(context.object)
-            if self.minimap_filename:
-                img_name = self.minimap_filename
-            else:
-                img_name = 'mi_' + aurora_base.name
+        if 'minimap_world' in bpy.data.worlds:
+            scene.world = bpy.data.worlds['minimap_world']
+        else:
+            scene.world = bpy.data.worlds.new('minimap_world')
+            scene.world.use_nodes = False
+            scene.world.color = (0.0, 0.0, 0.0)
+        
+        if self.render_dir:
+            scene.render.engine = 'BLENDER_EEVEE'
+            scene.render.film_transparent = self.transparent_background
+            scene.render.resolution_y = self.render_resolution
+        scene.render.resolution_x = scene.render.resolution_y
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.color_mode = 'RGBA' if scene.render.film_transparent else 'RGB'
+        scene.render.image_settings.file_format = 'TARGA_RAW'
+        scene.render.use_compositing = False
+        scene.render.use_sequencer = False        
 
-            if self.force_lowercase:
-                img_name = img_name.lower()
-
+        mm_cam, mm_light = self.setup_objects(aurora_base, collection)
+        bpy.context.evaluated_depsgraph_get().update()
+        bpy.context.view_layer.update()
+        scene.camera = mm_cam
+        
+        if self.render_dir:
+            img_name = self.render_filename
             img_path = os.fsencode(os.path.join(self.render_dir, img_name))
             scene.render.filepath = img_path
-            
-            mm_cam, _ = self.setup_objects(aurora_base, collection)
-            scene.camera = mm_cam
+                    
             bpy.ops.render.render(animation=False, write_still=True)
         else:
-            # Get root from active mdl
-            if not context.object:
-                return {'CANCELLED'}
-            mdl_base = nvb_utils.get_obj_mdl_base(context.object)
-            if not mdl_base:
-                return {'CANCELLED'}
             # Setup Render
-            scene.render.resolution_x = scene.render.resolution_y 
-            scene.render.resolution_percentage = 100
-            scene.render.image_settings.color_mode = 'RGB'
-            scene.render.image_settings.file_format = 'TARGA_RAW'
-            mm_cam, _ = self.setup_objects(mdl_base, collection)
-            scene.camera = mm_cam
-
             bpy.ops.render.render(animation=False)
             bpy.ops.render.view_show('INVOKE_DEFAULT')
-            #self.report({'INFO'}, 'Ready to render')
-        return {'FINISHED'}
+        return {'FINISHED'} 
 
 
 class NVB_OT_util_transform(bpy.types.Operator):

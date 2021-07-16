@@ -211,7 +211,7 @@ class Mdl():
                     tmp_filepath = tf.name
                     # Try getting a decompile command based on user options, make it overwrite the input file
                     run_cmd = Mdl.build_external_decompile_cmd(tmp_filepath, options.compiler_path, options.compiler_command)
-                    print(run_cmd)
+                    #print(run_cmd)
                     if run_cmd:
                         # copy the file we want to import to tempfile
                         shutil.copyfile(mdl_filepath, tmp_filepath)

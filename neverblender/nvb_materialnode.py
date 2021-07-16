@@ -740,6 +740,7 @@ class Materialnode(object):
             links.new(node_shader.inputs['Normal'], node_norm.outputs['Normal'])
 
         # 2 = Specular
+        node_shader.inputs['Specular'].default_value = 0.0
         if color_list[2]:  # (specular color likely not present, ignored by the engine by default)
             node_shader.inputs['Specular'].default_value = color_list[2][0]
         if texture_list[2]:
@@ -1023,6 +1024,7 @@ class Materialnode(object):
             links.new(node_shader.inputs['Normal'], node_norm.outputs['Normal'])
 
         # 2 = Specular
+        node_shader.inputs['Specular'].default_value = (0.0, 0.0, 0.0)
         if color_list[2]:  # (specular color likely not present, ignored by the engine by default)
             node_shader.inputs['Specular'].default_value = color_list[2]
         if texture_list[2]:

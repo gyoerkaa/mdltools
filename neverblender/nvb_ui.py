@@ -781,9 +781,7 @@ class NVB_PT_utils(bpy.types.Panel):
             col.prop(render, 'resolution_y', text='')
 
             row = box.row(align=True)
-            #row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Setup Scene', icon='SCENE_DATA').batch_mode = False
-            #row.operator('render.render', text='Render', icon='RENDER_STILL')
-            row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL').batch_mode = False            
+            row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL')            
             layout.separator()
 
             # NFO Helper

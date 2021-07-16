@@ -1000,7 +1000,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
     group_origin: bpy.props.FloatVectorProperty(name="Origin",
                                                 description="Origin to start slicing at",
                                                 size=3,
-                                                subtype='COORDINATES',
+                                                subtype='TRANSLATION',
                                                 default=(0.0, 0.0, 0.0),
                                                 step=100)                                               
     tile_count: bpy.props.IntVectorProperty(name="Tiles",
