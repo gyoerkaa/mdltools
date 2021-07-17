@@ -450,7 +450,7 @@ class NVB_PG_material_mtr(bpy.types.PropertyGroup):
     # MTR Panel
     use: bpy.props.BoolProperty(name='Use MTR',
                                 description='Write date to MTR file',
-                                default=False, options=set())
+                                default=True, options=set())
     # For gui editing
     shader_vs: bpy.props.StringProperty(name='Vertex Shader',
                                         description='Specify Vertex shader',
