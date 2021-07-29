@@ -92,10 +92,13 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                 "bitmap", "Diffuse as 'bitmap'", 0),
                ('texture0',
                 "texture0", "Diffuse as 'texture0'", 1)],
-        default='bitmap')      
-    export_binary_smoothgroups: bpy.props.BoolProperty(
+        default='bitmap')
+    export_smoothgroups_binary: bpy.props.BoolProperty(
         name="Binary Smoothing groups", default=True,
-        description="Smoothing group IDs will be powers of two")         
+        description="Smoothing group IDs will be powers of two")
+    export_smoothgroups_distinct_verts: bpy.props.BoolProperty(
+        name="Distinct Smoothing groups", default=False,
+        description="Smoothing group will never share a vertex")          
     export_wirecolor: bpy.props.BoolProperty(
         name="Object Color as Wirecolor", default=True,
         description="Use Blender's Object Color property to hold Wirecolor")
@@ -325,7 +328,10 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.label(text='Export')
         box.prop(self, 'export_mat_diffuse_ref')
         box.prop(self, 'export_wirecolor')
-        box.prop(self, 'export_binary_smoothgroups')
+        box.prop(self, 'export_smoothgroups_binary')
+        sub = box.row()
+        sub.active = self.export_smoothgroups_binary
+        sub.prop(self, 'export_smoothgroups_distinct_verts')
         box.prop(self, 'export_metadata')
         box.prop(self, 'export_tileset_info')
 
