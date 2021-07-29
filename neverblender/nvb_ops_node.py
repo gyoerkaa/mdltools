@@ -192,29 +192,33 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
             bottom_face = bm.faces.new(bm_plane_vertices)
             # Remove duplicate (or close) vertices
-            bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.1)
-            # Extrude and translate
-            top_face = bmesh.ops.extrude_face_region(bm, geom=[bottom_face])
-            bmesh.ops.translate(
-                bm,
-                vec=mathutils.Vector((0, 0, max(0.1, height))),
-                verts=[v for v in top_face['geom']
-                       if isinstance(v, bmesh.types.BMVert)])
-            # scale top mesh dow a little to prevent overlap
-            bmesh.ops.scale(
-                bm,
-                vec=mathutils.Vector((0.9, 0.9, 1.0)),
-                space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
-                verts=[v for v in top_face['geom']
-                       if isinstance(v, bmesh.types.BMVert)])
-            bm.normal_update()
-            # Remove the bottom plane (face only, we don't actually need it)
-            bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
+            bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.07)
+            # There may not be anything left after removing doubles
+            if bm.faces:
+                # Extrude and translate
+                top_face = bmesh.ops.extrude_face_region(bm, geom=[bottom_face])
+                bmesh.ops.translate(
+                    bm,
+                    vec=mathutils.Vector((0, 0, max(0.1, height))),
+                    verts=[v for v in top_face['geom']
+                        if isinstance(v, bmesh.types.BMVert)])
+                # scale top mesh dow a little to prevent overlap
+                bmesh.ops.scale(
+                    bm,
+                    vec=mathutils.Vector((0.9, 0.9, 1.0)),
+                    space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
+                    verts=[v for v in top_face['geom']
+                        if isinstance(v, bmesh.types.BMVert)])
+                bm.normal_update()
+                # Remove the bottom plane (face only, we don't actually need it)
+                bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
 
-        # Create mesh from bmesh
-        me = bpy.data.meshes.new(mesh_name)
-        bm.to_mesh(me)
-        return me
+        # Create mesh from bmesh, if thera are any faces:
+        if bm.faces:
+            me = bpy.data.meshes.new(mesh_name)
+            bm.to_mesh(me)
+            return me
+        return None
 
     @staticmethod
     def get_mabr(vertex_list):
@@ -333,7 +337,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return island_list
 
     @staticmethod
-    def get_mdl_islands(mdl_base, min_height=0.1, max_height=2.0):
+    def get_mdl_islands(mdl_base, min_height=0.0, max_height=2.0):
         """Return the vertex islands of all visible objects in the mdl."""
         # Get visible objects for this mdl
         obj_list = []
@@ -386,7 +390,10 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             for isl in obj_islands:
                 isl_verts = [obj_mw @ v.co for v in isl]
                 # Determine height
-                isl_height = max(0.1, max([v.z for v in isl_verts]))
+                if isl_verts:
+                    isl_height = max(0.1, max([v.z for v in isl_verts]))
+                else:
+                    isl_height = 0.2
                 mdl_islands.append([isl_verts, isl_height])
             # mdl_islands.extend([[obj_mw @ v.co for v in isl]
             #                     for isl in obj_islands])
@@ -407,7 +414,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         mdl_mwi = mdl_base.matrix_world.inverted()
         # Collect vertices from all objects
         vertex_list = []
-        vertex_height = 0.1
+        vertex_height = 0.2
         for obj in obj_list:
             obj_mw = obj.matrix_world
             obj_mwi = obj_mw.inverted()
@@ -445,7 +452,9 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             # For Detecting islands
             obj_verts = [obj_mw @ v.co for v in bm.verts]
             vertex_list.extend(obj_verts)
-            vertex_height = max(vertex_height, max([v.z for v in obj_verts]))
+            if obj_verts:
+                vertex_height = max(vertex_height, max([v.z for v in obj_verts]))
+
         return [vertex_list, vertex_height]
 
     @staticmethod
@@ -598,11 +607,15 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 pwk_mode, detect_islands)
 
         # Object for PWK file
-        # The prefix for placeable PWK dummies are four abritratrily chose characters, but
+        # The prefix for placeable PWK dummies are four arbitratrily chosen characters, but
         # We'll use the last three character of the model name + an underscore
         name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-3:]+"_"
-        if name_prefix[0] in [" ", "_", "-", "."]:  # only for pretty
-            name_prefix[0] = "p"
+        # if not long enough: make something up
+        if len(name_prefix) < 4:
+            name_prefix = "plc_"
+        # First character should be a letter
+        if not str.isalpha(name_prefix[0]):
+            name_prefix = "p" + name_prefix[1:]
         # Create dummys or check existing - all parented to pwk base
         NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, layer, pwk_base, pwk_mesh)
         # Objects for mDL file
