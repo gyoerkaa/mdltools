@@ -206,7 +206,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
                ],
         default='aabr')
     util_nodes_pwk_detect_islands: bpy.props.BoolProperty(
-        name='Detect Islands', default=True,
+        name='Detect Islands', default=False,
         description='Detect vertex islands, create mutliple meshes')
 
     # Armature Helper
