@@ -548,8 +548,7 @@ class Trimesh(Node):
             else:
                 # Calculate smoothing groups from sharp edges or auto angle setting
                 # NWN seems to use bitflag groups (smoothing groups of standard model all have powers of 2)
-                use_distinct_verts = True
-                if use_distinct_verts:
+                if options.geom_smoothgroups_distinct_verts:
                     g = nvb_utils.AuroraSmoothgroupGraph()
                     group_ids = g.calc_smooth_groups(blen_mesh)
                 else:

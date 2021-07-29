@@ -326,6 +326,7 @@ class ExportOptions():
         self.geom_walkmesh = True
         self.geom_smoothgroups = True
         self.geom_smoothgroups_binary = True
+        self.geom_smoothgroups_distinct_verts = False
         self.geom_normals = False
         # Materials and textures
         self.mat_mtr_use = True

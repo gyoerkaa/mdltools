@@ -207,7 +207,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Geometry options
         options.geom_import = True
         options.geom_smoothgroups = self.export_smoothgroups
-        options.geom_smoothgroups_binary = addon_prefs.export_binary_smoothgroups
+        options.geom_smoothgroups_binary = addon_prefs.export_smoothgroups_binary
+        options.geom_smoothgroups_distinct_verts = addon_prefs.export_smoothgroups_distinct_verts
         options.geom_normals = self.export_normals
         options.geom_walkmesh = self.export_walkmesh
         # Misc Export Settings
