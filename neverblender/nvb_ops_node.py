@@ -180,7 +180,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return pwk_shapes
 
     @staticmethod
-    def build_pwk_mesh(pwk_data, mesh_name):
+    def build_pwk_mesh(pwk_data, mesh_name, min_vert_dist=0.1, min_area=0.5):
         """Extrudes planes to height in order to generate a mesh."""
         if not pwk_data:
             return None
@@ -190,28 +190,28 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             plane_vertices_3d = [mathutils.Vector((pv.x, pv.y, 0.0))
                                  for pv in plane_vertices]
             bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
-            bottom_face = bm.faces.new(bm_plane_vertices)
-            # Remove duplicate (or close) vertices
-            bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.07)
-            # There may not be anything left after removing doubles
-            if bm.faces:
-                # Extrude and translate
-                top_face = bmesh.ops.extrude_face_region(bm, geom=[bottom_face])
-                bmesh.ops.translate(
-                    bm,
-                    vec=mathutils.Vector((0, 0, max(0.1, height))),
-                    verts=[v for v in top_face['geom']
-                        if isinstance(v, bmesh.types.BMVert)])
-                # scale top mesh dow a little to prevent overlap
-                bmesh.ops.scale(
-                    bm,
-                    vec=mathutils.Vector((0.9, 0.9, 1.0)),
-                    space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
-                    verts=[v for v in top_face['geom']
-                        if isinstance(v, bmesh.types.BMVert)])
-                bm.normal_update()
-                # Remove the bottom plane (face only, we don't actually need it)
-                bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
+            if len(bm_plane_vertices) > 2:
+                # Create a single face 
+                bottom_face = bm.faces.new(bm_plane_vertices)
+                # Remove duplicate (or close) vertices
+                bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=min_vert_dist)
+                # There may not be anything left after removing doubles
+                if bottom_face and bottom_face.is_valid and bottom_face.calc_area() > min_area:
+                    # Extrude and translate
+                    top_face = bmesh.ops.extrude_face_region(bm, geom=[bottom_face])
+                    bmesh.ops.translate(
+                        bm,
+                        vec=mathutils.Vector((0, 0, max(0.1, height))),
+                        verts=[v for v in top_face['geom']
+                            if isinstance(v, bmesh.types.BMVert)])
+                    # scale top mesh dow a little to prevent overlap
+                    bmesh.ops.scale(bm,
+                                    vec=mathutils.Vector((0.9, 0.9, 1.0)),
+                                    space=mathutils.Matrix.Translation(-bottom_face.calc_center_median()),
+                                    verts=[v for v in top_face['geom']if isinstance(v, bmesh.types.BMVert)])
+                    bm.normal_update()
+                    # Remove the bottom plane (face only, we don't actually need it)
+                    bmesh.ops.delete(bm, geom=[bottom_face], context='FACES_ONLY')
 
         # Create mesh from bmesh, if thera are any faces:
         if bm.faces:
@@ -583,11 +583,13 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             pwk_base.location = (0.0, 0.0, 0.0)  # at mdl_base
             return pwk_base
 
+        mdl_base_name = nvb_utils.strip_trailing_numbers(mdl_base.name)
+        
         # Get a name prefix from the mdl base name
-        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-3:]
+        name_prefix = mdl_base_name[-3:]
 
         # Find or create walkmesh base
-        pwk_base_name = mdl_base.name + '_pwk'
+        pwk_base_name = mdl_base_name + '_pwk'
         pwk_base = get_pwk_base(mdl_base, pwk_base_name)
 
         # Find or create (pwk) walkmesh
@@ -609,7 +611,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         # Object for PWK file
         # The prefix for placeable PWK dummies are four arbitratrily chosen characters, but
         # We'll use the last three character of the model name + an underscore
-        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[-3:]+"_"
+        name_prefix = mdl_base_name[-3:]+"_"
         # if not long enough: make something up
         if len(name_prefix) < 4:
             name_prefix = "plc_"
@@ -620,7 +622,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         NVB_OT_util_nodes_pwk.create_pwk_dummys(mdl_base, name_prefix, layer, pwk_base, pwk_mesh)
         # Objects for mDL file
         # The prefix for placeable MODEL dummies the mdl base name with the first four characters cropped
-        name_prefix = nvb_utils.strip_trailing_numbers(mdl_base.name)[4:]
+        name_prefix = mdl_base_name[4:]
         # Create dummys or check existing - all parented to mdl base
         NVB_OT_util_nodes_pwk.create_mdl_dummys(mdl_base, name_prefix, layer)
 
