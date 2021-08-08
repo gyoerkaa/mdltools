@@ -1036,7 +1036,7 @@ class NVB_PG_object(bpy.types.PropertyGroup):
                        (nvb_def.Classification.ITEM,
                         'Item', 'Items or placeables', 6)
                        ],
-                default=nvb_def.Classification.UNKNOWN, options=set())
+                default=nvb_def.Classification.CHARACTER, options=set())
     supermodel: bpy.props.StringProperty(
         name='Supermodel',
         description='Name of the model to inherit animations from',
