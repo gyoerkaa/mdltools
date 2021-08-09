@@ -177,10 +177,11 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         else:  # Axis aligned bounding rectangle
             pwk_shapes = [(NVB_OT_util_nodes_pwk.get_aabr(isl), h)
                           for isl, h in merged_islands]
+        
         return pwk_shapes
 
     @staticmethod
-    def build_pwk_mesh(pwk_data, mesh_name, min_vert_dist=0.1, min_area=0.5):
+    def build_pwk_mesh(pwk_data, mesh_name, min_vert_dist=0.1, min_area=0.1):
         """Extrudes planes to height in order to generate a mesh."""
         if not pwk_data:
             return None
@@ -337,7 +338,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return island_list
 
     @staticmethod
-    def get_mdl_islands(mdl_base, min_height=0.0, max_height=2.0):
+    def get_mdl_islands(mdl_base, min_height=-0.1, max_height=2.0):
         """Return the vertex islands of all visible objects in the mdl."""
         # Get visible objects for this mdl
         obj_list = []
@@ -400,7 +401,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         return mdl_islands
 
     @staticmethod
-    def get_mdl_vertices(mdl_base, min_height=0.0, max_height=2.0):
+    def get_mdl_vertices(mdl_base, min_height=-0.1, max_height=2.0):
         """Get a list of relevant vertices for this mdl."""
         # Get visible objects for this mdl
         obj_list = []
@@ -418,7 +419,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         for obj in obj_list:
             obj_mw = obj.matrix_world
             obj_mwi = obj_mw.inverted()
-            # Bisecting planes in local coordinates
+            # Create bisecting planes in local coordinates
             plane_bot_co = obj_mwi @ mathutils.Vector((0.0, 0.0, min_height))
             plane_bot_no = mathutils.Vector((0.0, 0.0, -1.0))
             plane_bot_no.rotate(obj_mwi)
@@ -449,11 +450,11 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                 plane_no=plane_top_no,
                 clear_outer=True, dist=0.001)
             del res
-            # For Detecting islands
             obj_verts = [obj_mw @ v.co for v in bm.verts]
             vertex_list.extend(obj_verts)
-            if obj_verts:
-                vertex_height = max(vertex_height, max([v.z for v in obj_verts]))
+        
+        if vertex_list:
+            vertex_height = max([v.z for v in vertex_list])
 
         return [vertex_list, vertex_height]
 
