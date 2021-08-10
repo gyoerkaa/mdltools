@@ -329,7 +329,7 @@ class ExportOptions():
         self.geom_smoothgroups_distinct_verts = False
         self.geom_normals = False
         # Materials and textures
-        self.mat_mtr_use = True
+        self.mat_mtr_generate = True
         self.mat_mtr_ref = 'bitmap'
         self.mat_diffuse_ref = 'bitmap'
         # Misc options

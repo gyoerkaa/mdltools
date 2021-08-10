@@ -257,11 +257,13 @@ class Material(object):
                 fstr = '  alpha {: 3.2f}'
                 ascii_lines.append(fstr.format(alpha))
             # Write textures
-            if options.mat_mtr_use and blen_material.nvb.mtr.use:
+            if blen_material.nvb.mtr.use:
                 # MTRs are exported in a second pass
                 mtr_name = nvb_mtr.Mtr.get_mtr_name(blen_material)
                 ascii_lines.append('  ' + options.mat_mtr_ref + ' ' + mtr_name)
-                options.mtr_list.add((mtr_name, blen_material.name))
+                # AddOn options specify whether to actually write material data to mtr file
+                if options.mat_mtr_generate:
+                    options.mtr_list.add((mtr_name, blen_material.name))
             else:
                 # Write to MDL: Can only export the first three textures
                 # Also fix texture name to ascii     

@@ -201,7 +201,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.scene = context.scene
         options.depsgraph = context.evaluated_depsgraph_get()
         # Material settings
-        options.mat_mtr_use = addon_prefs.export_mat_mtr
+        options.mat_mtr_generate = addon_prefs.export_mat_mtr_generate
         options.mat_mtr_ref = addon_prefs.export_mat_mtr_ref
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Geometry options

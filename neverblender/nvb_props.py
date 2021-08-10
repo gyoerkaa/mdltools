@@ -74,8 +74,8 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
     compiler_path: bpy.props.StringProperty(name="Path to compiler",
                                             subtype='FILE_PATH')
     # Export preferences
-    export_mat_mtr: bpy.props.BoolProperty(
-        name="Export MTR files", default=True,
+    export_mat_mtr_generate: bpy.props.BoolProperty(
+        name="Generate MTR files", default=True,
         description="Generate MTR files to hold materials data")  
     export_mat_mtr_ref: bpy.props.EnumProperty(
             name="MTR Reference",
@@ -87,7 +87,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
             default='bitmap')
     export_mat_diffuse_ref: bpy.props.EnumProperty(
         name="Diffuse Reference",
-        description="Specify the way the diffuse textures are referenced in the MDL",
+        description="Specify the way the diffuse maps are referenced inside MDL files",
         items=[('bitmap',
                 "bitmap", "Diffuse as 'bitmap'", 0),
                ('texture0',
@@ -290,25 +290,25 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
         # General settings
         col = split.column()
-        box = col.box()
-        box.label(text='General')
-        box.prop(self, 'mat_displacement_mode')
+        col.label(text='General')
 
         box = col.box()
         box.label(text='Dummy Settings')
         box.prop(self, 'dummy_type', text="Type")
         box.prop(self, 'dummy_size', text="Size")
 
-        
         # Import settings
         col = split.column()
+        col.label(text='Import')
+
         box = col.box()
-        box.label(text='Import')
+        box.label(text='General')
         box.prop(self, 'import_placement')
         box.prop(self, 'import_mesh_validation')
 
         box = col.box()
-        box.label(text="Colors from MDL")        
+        box.label(text="Materials")
+        box.prop(self, 'mat_displacement_mode')
         box.prop(self, 'import_ignore_mdl_diffuse_color', text="Ignore Diffuse")
         box.prop(self, 'import_ignore_mdl_specular_color', text="Ignore Specular")
         box.prop(self, 'import_ignore_mdl_ambient_color', text="Ignore Ambient")
@@ -324,22 +324,26 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
 
         # Export Settings
         col = split.column()
-        box = col.box()
-        box.label(text='Export')
-        box.prop(self, 'export_mat_diffuse_ref')
-        box.prop(self, 'export_wirecolor')
-        box.prop(self, 'export_smoothgroups_binary')
-        sub = box.row()
-        sub.active = self.export_smoothgroups_binary
-        sub.prop(self, 'export_smoothgroups_distinct_verts')
-        box.prop(self, 'export_metadata')
-        box.prop(self, 'export_tileset_info')
+        col.label(text='Export')
 
         box = col.box()
-        box.prop(self, 'export_mat_mtr')
+        box.label(text='General')
+        box.prop(self, 'export_wirecolor')
+        box.prop(self, 'export_metadata')
+        box.prop(self, 'export_tileset_info')   
+
+        box = col.box()
+        box.prop(self, 'export_smoothgroups_binary')
         sub = box.column()
-        sub.active = self.export_mat_mtr
-        sub.prop(self, "export_mat_mtr_ref")
+        sub.active = self.export_smoothgroups_binary
+        sub.prop(self, 'export_smoothgroups_distinct_verts')
+
+        box = col.box()
+        box.label(text="Materials")  
+        box.prop(self, 'export_mat_diffuse_ref')
+        box.prop(self, "export_mat_mtr_ref")
+        box.prop(self, 'export_mat_mtr_generate')
+        
 
 
 class NVB_PG_animevent(bpy.types.PropertyGroup):
