@@ -1392,6 +1392,7 @@ class Light(Node):
         lamp.color = self.color
         lamp.energy = self.multiplier
         lamp.distance = self.radius
+        lamp.shadow_soft_size = self.radius
 
         return lamp
 
@@ -1472,7 +1473,7 @@ class Light(Node):
         asciiLines.append('  shadow ' + str(int(lamp.nvb.shadow)))
         asciiLines.append('  lightpriority ' + str(lamp.nvb.lightpriority))
         asciiLines.append('  fadingLight ' + str(int(lamp.nvb.fadinglight)))
-        asciiLines.append('  radius ' + str(round(lamp.distance, 1)))
+        asciiLines.append('  radius ' + str(round(lamp.shadow_soft_size, 1)))
         asciiLines.append('  multiplier ' + str(round(lamp.energy, 1)))
         fstr = '  color {:3.2f} {:3.2f} {:3.2f}'
         asciiLines.append(fstr.format(*lamp.color))
