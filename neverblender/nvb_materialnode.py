@@ -591,26 +591,28 @@ class Materialnode(object):
 
     @staticmethod
     def get_node_data(material):
-        """Get the list of texture names for this material."""
-        def get_data_tuple(input_node, default_color=(1.0, 1.0, 1.0, 1.0), max_depth=32, exclusive_link=False):
-            """Get texture and color from an input name."""
+        """Get a list of relevant textures and colors for this material."""
+        def get_connected_texture(input_socket, fail_value="", max_depth=32):
+            """Get texture from an input socket."""
             texture_node = Materialnode.get_texture_node_nearest(input_socket, max_depth)
-            texture = None
             if texture_node:
-                if not exclusive_link or (len(texture_node.outputs['Color'].links) <= 1):
-                    texture = Materialnode.get_texture_name(texture_node)
+                return Materialnode.get_texture_name(texture_node)
+            
+            return fail_value
 
+        def get_connected_color(input_socket, fail_value=(1.0, 1.0, 1.0, 1.0), max_depth=32):
+            """Get color from an input socket."""
             color_socket = Materialnode.get_color_socket_nearest(input_socket, max_depth)
-            color = default_color
             if color_socket:
-                # We don't actually know if we get a color (bpy array) or a scalar (float)
-                color = Materialnode.get_color_value(color_socket, default_color)
+                # We don't know if we get a color (bpy.array) or a scalar (float)
+                color = Materialnode.get_color_value(color_socket, fail_value)
                 # If its not iterable we can just place the single value into a list
                 try:
                     color = list(color)
                 except TypeError:
                     color = [color]
-            return texture, color
+                return color
+            return fail_value
 
         texture_list = [None] * 15
         color_list = [None] * 15
@@ -622,33 +624,37 @@ class Materialnode(object):
             # Alpha value
             input_socket = Materialnode.find_alpha_socket(node_out)
             alpha = Materialnode.get_alpha_value(input_socket)
+            # Ambient color is legacy (pre EE, or old shaders)
+            ambient = Materialnode.get_ambient_color(material)
 
             # Diffuse (0)
             input_socket = Materialnode.find_diffuse_socket(node_out)
-            texture_list[0], color_list[0] = get_data_tuple(input_socket, (1.0, 1.0, 1.0, 1.0))
+            texture_list[0] = get_connected_texture(input_socket)
+            color_list[0] = get_connected_color(input_socket, (1.0, 1.0, 1.0, 1.0))
 
             # Normal (1)
             input_socket = Materialnode.find_normal_socket(node_out)
-            texture_list[1], _ = get_data_tuple(input_socket, None)
+            texture_list[1] = get_connected_texture(input_socket)
 
             # Specular (2)
             input_socket = Materialnode.find_specular_socket(node_out)
-            texture_list[2], color_list[2] = get_data_tuple(input_socket, None)
+            texture_list[2] = get_connected_texture(input_socket)
+            color_list[2] = get_connected_color(input_socket, None)
 
             # Roughness (3)
             input_socket = Materialnode.find_roughness_socket(node_out)
-            texture_list[3], color_list[3] = get_data_tuple(input_socket, None)
+            texture_list[3] = get_connected_texture(input_socket)
+            color_list[3] = get_connected_color(input_socket, None)
 
             # Height/Ambient Occlusion (4)
             input_socket = Materialnode.find_height_socket(node_out)
-            texture_list[4], color_list[4] = get_data_tuple(input_socket, None)
+            texture_list[4] = get_connected_texture(input_socket)
+            color_list[4] = get_connected_color(input_socket, None)
 
             # Emissive/Illumination (5)
             input_socket = Materialnode.find_emissive_socket(node_out)
-            texture_list[5], color_list[5] = get_data_tuple(input_socket, (0.0, 0.0, 0.0, 1.0), 2, True)
-
-            # Ambient color for legacy reason (pre EE)
-            ambient = Materialnode.get_ambient_color(material)
+            texture_list[5] = get_connected_texture(input_socket, "", 1)
+            color_list[5] = get_connected_color(input_socket, (0.0, 0.0, 0.0, 1.0), 2)
 
         return texture_list, color_list, alpha, ambient
 

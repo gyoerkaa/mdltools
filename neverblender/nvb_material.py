@@ -54,7 +54,7 @@ class Material(object):
         def check_textures(texture_list1, texture_list2, ignore_case=True):
             """Check if the texture lists match."""
             if ignore_case:
-                return ([t.lower() if t else None for t in texture_list1] == [t.lower() if t else None for t in texture_list2])
+                return ([t1.lower() if t1 else None for t1 in texture_list1] == [t2.lower() if t2 else None for t2 in texture_list2])
             else:
                 return (texture_list1 == texture_list2)
 
