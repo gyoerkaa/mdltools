@@ -146,7 +146,7 @@ class Mtr(object):
         elif tex_list and (tex_list[:3].count(nvb_def.null) <= 1):
             # Add Renderhint
             ascii_lines.append("// Renderhint")
-            ascii_lines.append("renderhint NormalAndSpecMapped")
+            ascii_lines.append("renderhint " + blen_material.nvb.mtr.renderhint)
             ascii_lines.append("")
         # Add list of textures
         if len(tex_list) > 0:

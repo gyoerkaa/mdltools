@@ -458,9 +458,12 @@ class NVB_PG_material_mtr(bpy.types.PropertyGroup):
     format. It hold the properties for meshes, lamps and empties.
     """
     # MTR Panel
-    use: bpy.props.BoolProperty(name='Use MTR',
-                                description='Write date to MTR file',
+    use: bpy.props.BoolProperty(name="Use MTR",
+                                description="Write date to MTR file",
                                 default=True, options=set())
+    renderhint: bpy.props.StringProperty(name="Renderhint",
+                                        description="Specify Vertex shader",
+                                        default="NormalAndSpecMapped", options=set())                                
     # For gui editing
     shader_vs: bpy.props.StringProperty(name='Vertex Shader',
                                         description='Specify Vertex shader',
