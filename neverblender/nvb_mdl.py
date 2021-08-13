@@ -283,18 +283,18 @@ class Mdl():
     @staticmethod
     def generate_ascii_header(mdl_base, ascii_lines, options):
         """TODO: DOC."""
-        mdlname = mdl_base.name
-        mdlclass = mdl_base.nvb.classification.upper()
-        mdlsuper = mdl_base.nvb.supermodel
-        mdlanimscale = mdl_base.nvb.animscale
+        mdl_name = nvb_utils.generate_node_name(mdl_base, options.strip_trailing)
+        mdl_class = mdl_base.nvb.classification.upper()
+        mdl_supermodel = mdl_base.nvb.supermodel
+        mdl_animscale = mdl_base.nvb.animscale
 
-        ascii_lines.append('newmodel ' + mdlname)
-        if mdlsuper:
-            ascii_lines.append('setsupermodel ' + mdlname + ' ' + mdlsuper)
+        ascii_lines.append('newmodel ' + mdl_name)
+        if mdl_supermodel:
+            ascii_lines.append('setsupermodel ' + mdl_name + ' ' + mdl_supermodel)
         else:
-            ascii_lines.append('setsupermodel ' + mdlname + ' null')
-        ascii_lines.append('classification ' + mdlclass)
-        ascii_lines.append('setanimationscale ' + str(round(mdlanimscale, 2)))
+            ascii_lines.append('setsupermodel ' + mdl_name + ' null')
+        ascii_lines.append('classification ' + mdl_class)
+        ascii_lines.append('setanimationscale ' + str(round(mdl_animscale, 2)))
 
     @staticmethod
     def generate_ascii_geometry(obj, ascii_lines, options):
@@ -353,7 +353,7 @@ class Mdl():
     @staticmethod
     def generate_ascii(mdl_base, ascii_lines, options):
         """TODO: DOC."""
-        mdl_name = mdl_base.name
+        mdl_name = nvb_utils.generate_node_name(mdl_base, options.strip_trailing)
         # Creation time, etc
         Mdl.generate_ascii_meta(mdl_base, ascii_lines, options)
         # Header
