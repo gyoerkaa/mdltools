@@ -286,16 +286,7 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         """Draw the addon prefences."""
         # Three colums: General, Import, Export
         layout = self.layout
-        split = layout.split(factor=0.33)
-
-        # General settings
-        col = split.column()
-        col.label(text='General')
-
-        box = col.box()
-        box.label(text='Dummy Settings')
-        box.prop(self, 'dummy_type', text="Type")
-        box.prop(self, 'dummy_size', text="Size")
+        split = layout.split(factor=0.5)
 
         # Import settings
         col = split.column()
@@ -314,6 +305,11 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.prop(self, 'import_ignore_mdl_ambient_color', text="Ignore Ambient")
 
         box = col.box()
+        box.label(text='Dummy Settings')
+        box.prop(self, 'dummy_type', text="Type")
+        box.prop(self, 'dummy_size', text="Size")
+
+        box = col.box()
         box.prop(self, 'import_compiler_use')
         sub = box.column()
         sub.active = self.import_compiler_use
@@ -330,19 +326,22 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         box.label(text='General')
         box.prop(self, 'export_wirecolor')
         box.prop(self, 'export_metadata')
-        box.prop(self, 'export_tileset_info')   
-
-        box = col.box()
-        box.prop(self, 'export_smoothgroups_binary')
-        sub = box.column()
-        sub.active = self.export_smoothgroups_binary
-        sub.prop(self, 'export_smoothgroups_distinct_verts')
+        box.prop(self, 'export_tileset_info') 
 
         box = col.box()
         box.label(text="Materials")  
         box.prop(self, 'export_mat_diffuse_ref')
         box.prop(self, "export_mat_mtr_ref")
         box.prop(self, 'export_mat_mtr_generate')
+
+        box = col.box()
+        box.label(text="Smoothings Groups") 
+        box.prop(self, 'export_smoothgroups_binary')
+        sub = box.column()
+        sub.active = self.export_smoothgroups_binary
+        sub.prop(self, 'export_smoothgroups_distinct_verts')
+
+
         
 
 
