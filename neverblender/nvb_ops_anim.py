@@ -211,7 +211,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
         layout = self.layout
 
         row = layout.row()
-        row.label('Scaling: ')
+        row.label(text='Scaling: ')
         row = layout.row()
         row.prop(self, 'scaleFactor', text='Factor')
 
@@ -342,7 +342,7 @@ class NVB_OT_anim_crop(bpy.types.Operator):
         layout = self.layout
 
         row = layout.row()
-        row.label('Crop: ')
+        row.label(text='Crop: ')
         row = layout.row()
         split = row.split()
         col = split.column(align=True)
@@ -453,7 +453,7 @@ class NVB_OT_anim_pad(bpy.types.Operator):
         layout = self.layout
 
         row = layout.row()
-        row.label('Padding: ')
+        row.label(text='Padding: ')
         row = layout.row()
         split = row.split()
         col = split.column(align=True)
