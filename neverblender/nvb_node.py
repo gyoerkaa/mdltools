@@ -1349,36 +1349,39 @@ class Light(Node):
         return line
 
     def loadNumFlareValues(self, asciiLines):
-        """Get the number of values for flares."""
+        """Get the number of values for flares. There may not be a parameter specifying their number"""
         l_isNumber = nvb_utils.isNumber
         for idx, aline in enumerate(asciiLines):
             try:
                 label = aline[0].lower()
             except (IndexError, AttributeError):
                 return aline  # Probably empty line or comment
-            if not nvb_utils.isNumber(label):
-                if (label == 'texturenames'):
-                    # Can't do anything here
-                    pass
-                elif (label == 'flaresizes'):
-                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                if not l_isNumber(v[0])), -1)
-                    self.flareNumValues[1] = vcnt
-                elif (label == 'flarepositions'):
-                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                if not l_isNumber(v[0])), -1)
-                    self.flareNumValues[2] = vcnt
-                elif (label == 'flarecolorshifts'):
-                    vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
-                                if not l_isNumber(v[0])), -1)
-                    self.flareNumValues[3] = vcnt
-        self.flareNumValues[0] = min(self.flareNumValues[1:])
+            else:
+                if not nvb_utils.isNumber(label):
+                    if (label == 'texturenames'):
+                        # Can't do anything here (all strings, can't distinguish from keywords)
+                        pass
+                    elif (label == 'flaresizes'):
+                        vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                        self.flareNumValues[1] = vcnt
+                    elif (label == 'flarepositions'):
+                        vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                        self.flareNumValues[2] = vcnt
+                    elif (label == 'flarecolorshifts'):
+                        vcnt = next((i for i, v in enumerate(asciiLines[idx+1:])
+                                    if not l_isNumber(v[0])), -1)
+                        self.flareNumValues[3] = vcnt
+                # We still need to set number of textures
+                self.flareNumValues[0] = min(self.flareNumValues[1:])
+        
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
         self.nodeidx = nodeidx
         #  Need to do two passes. First one is to find the number of flares
-        aline = self.loadNumFlareValues(asciiLines)
+        self.loadNumFlareValues(asciiLines)
         # Second pass to get the values
         iterable = iter(asciiLines)
         aline = True
