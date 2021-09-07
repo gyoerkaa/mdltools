@@ -969,8 +969,8 @@ class NVB_PT_emitter(bpy.types.Panel):
             sub.prop(part_settings.nvb, "drag")
             sub.prop(part_settings.nvb, "threshold")
         else:  # Bezier type p2p
-            sub.prop(part_settings.nvb, "p2p_bezier2")
-            sub.prop(part_settings.nvb, "p2p_bezier3")
+            sub.prop(part_settings.nvb, "p2p_src")
+            sub.prop(part_settings.nvb, "p2p_target")
             sub.prop(part_settings.nvb, "combinetime")
         layout.separator()
 

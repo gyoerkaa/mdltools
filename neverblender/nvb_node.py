@@ -1043,8 +1043,10 @@ class Emitter(Node):
          # Point to Point Properties
          'p2p': ('nvb.p2p', 1, nvb_utils.str2bool, ' {:1d}'),
          'p2p_sel': ('nvb.p2p_sel', 1, nvb_utils.str2identifier, ' {:s}'),
-         'bezier2': ('nvb.bezier2', 1, float, ' {:>4.2f}'),
-         'bezier3': ('nvb.bezier2', 1, float, ' {:>4.2f}'),
+         'p2p_bezier2': ('nvb.p2p_bezier2', 1, float, ' {:>4.2f}'),
+         'p2p_bezier3': ('nvb.p2p_bezier3', 1, float, ' {:>4.2f}'),
+         'src': ('nvb.p2p_src', 1, float, ' {:>4.2f}'),
+         'target': ('nvb.p2p_target', 1, float, ' {:>4.2f}'),         
          'combinetime': ('nvb.combinetime', 1, float, ' {:>4.2f}'),
          'grav': ('nvb.grav', 1, float, ' {:>4.2f}'),
          'drag': ('nvb.drag', 1, float, ' {:>4.2f}'),
@@ -1227,8 +1229,10 @@ class Emitter(Node):
         if part_set.nvb.p2p:
             ascii_lines.append(form_prop('p2p_sel', part_set.nvb.p2p_sel))
             if part_set.nvb.p2p_sel == '1':  # Bezier
-                ascii_lines.append(form_prop('bezier2', part_set.nvb.bezier2))
-                ascii_lines.append(form_prop('bezier3', part_set.nvb.bezier3))
+                ascii_lines.append(form_prop('p2p_bezier2', part_set.nvb.p2p_bezier2))
+                ascii_lines.append(form_prop('p2p_bezier3', part_set.nvb.p2p_bezier3))
+                ascii_lines.append(form_prop('src', part_set.nvb.p2p_src))
+                ascii_lines.append(form_prop('target', part_set.nvb.p2p_target))                
                 ascii_lines.append(form_prop('combinetime',
                                              part_set.nvb.combinetime))
             elif part_set.nvb.p2p_sel == '2':  # Gravity

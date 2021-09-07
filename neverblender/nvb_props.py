@@ -715,10 +715,16 @@ class NVB_PG_emitter(bpy.types.PropertyGroup):
                ],
         default='1', options=set())
     p2p_bezier2: bpy.props.FloatProperty(
+        name='Bezier2', description='Bezier2 ???',
+        default=0.0, min=0.0)  # Bezier type p2p
+    p2p_bezier3: bpy.props.FloatProperty(
+        name='Bezier3', description='Bezier3 ????',
+        default=0.0, min=0.0)  # Bezier type p2p        
+    p2p_src: bpy.props.FloatProperty(
         name='Source', subtype='DISTANCE',
         description='Source Bezier Handle',
         default=0.0, min=0.0)  # Bezier type p2p
-    p2p_bezier3: bpy.props.FloatProperty(
+    p2p_target: bpy.props.FloatProperty(
         name='Target', subtype='DISTANCE',
         description='Target Bezier Handle',
         default=0.0, min=0.0)  # Bezier type p2p
