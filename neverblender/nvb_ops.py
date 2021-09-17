@@ -105,7 +105,7 @@ class NVB_OT_util_minimap(bpy.types.Operator):
     render_resolution: bpy.props.IntProperty(
         name='Minimap Size',
         description='Size of Minimap',
-        default=32)
+        default=32)       
     transparent_background: bpy.props.BoolProperty(
         name='Transparent Background',
         description='Transparent background',
@@ -121,6 +121,14 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         default=(1.0, 1.0, 1.0),
         min=0.0, max=1.0,
         soft_min=0.0, soft_max=1.0)
+    render_compositing: bpy.props.BoolProperty(
+        name='Use Compositing',
+        description='Use Compositing',
+        default=False)           
+    render_dither: bpy.props.FloatProperty(
+        name='Dither Intensity',
+        description='Dither Intensity',
+        default=1.0)
 
     @classmethod
     def poll(self, context):
@@ -199,7 +207,8 @@ class NVB_OT_util_minimap(bpy.types.Operator):
         scene.render.resolution_percentage = 100
         scene.render.image_settings.color_mode = 'RGBA' if scene.render.film_transparent else 'RGB'
         scene.render.image_settings.file_format = 'TARGA_RAW'
-        scene.render.use_compositing = False
+        scene.render.use_compositing = self.render_compositing
+        scene.render.dither_intensity = self.render_dither
         scene.render.use_sequencer = False        
 
         mm_cam, mm_light = self.setup_objects(aurora_base, collection)
