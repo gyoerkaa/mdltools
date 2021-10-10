@@ -403,8 +403,8 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
 
         self.scene = context.scene
         self.collection = context.collection
-        self.dummy_type = addon_prefs.import_dummy_type
-        self.dummy_size = addon_prefs.import_dummy_size
+        self.dummy_type = addon_prefs.dummy_type
+        self.dummy_size = addon_prefs.dummy_size
 
         self.amb_psb_pairs = []
         self.mats_edit_bone = dict()
