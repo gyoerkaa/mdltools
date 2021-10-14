@@ -649,6 +649,9 @@ class Animnode():
 
         eval_times = [k.co[1] for k in fcu.keyframe_points
                       if anim_start <= round(k.co[0], 5) <= anim_end]
+        if not eval_times:
+            return -1
+            
         # rel_kb = [(kb.frame, kb.data) for kb in key_blocks if not kb.mute]
         anim_verts = []
         for et in eval_times:
@@ -664,6 +667,9 @@ class Animnode():
             anim_verts.append(values)
 
         # Misc data for export
+        if not anim_verts:
+            return -1 
+
         num_samples = len(eval_times)
         num_verts = len(anim_verts[0])
         if required_samples > 0:
@@ -671,7 +677,7 @@ class Animnode():
             # BUT: Sanity check
             if required_samples != num_samples:
                 print("Neverblender: " +
-                      "WARNING - anim verts/tverts mismatch: " + obj.name)
+                    "WARNING - anim verts/tverts mismatch: " + obj.name)
                 return -1
         else:
             # Add meta data
@@ -683,7 +689,7 @@ class Animnode():
             anim_length = (anim_end - anim_start) / fps
             sample_period = anim_length / (num_samples - 1)
             ascii_lines.append('    sampleperiod ' +
-                               str(round(sample_period, 3)))
+                            str(round(sample_period, 3)))
         # Create ascii representation and add it to the output
         ascii_lines.append('    animverts ' + str(num_samples * num_verts))
         fstr = '     ' + 3 * ' {: 8.5f}'
