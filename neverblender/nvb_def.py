@@ -328,6 +328,8 @@ class ExportOptions():
         self.geom_smoothgroups_binary = True
         self.geom_smoothgroups_distinct_verts = False
         self.geom_normals = False
+        self.geom_smoothing_split = False
+        self.geom_smoothing_group = False
         # Materials and textures
         self.mat_mtr_generate = True
         self.mat_mtr_ref = 'bitmap'

@@ -41,6 +41,16 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
             name='Export Normals and Tangents',
             description='Add normals and tangents to MDL',
             default=False)
+    export_smoothing_mode: bpy.props.EnumProperty(
+            name='Smoothing',
+            description='Smoothing method',
+            items=(('GROUP', 'Groups',
+                    'Generate smoothing groups from sharp edges and auto smooth setting'),
+                   ('SPLIT', 'Split',
+                    'Split meshes along sharp edges and auto smooth setting'),
+                   ('NONE', 'None',
+                    'No smoothing')),
+            default='GROUP')
     # UV Map Export settings
     uv_merge: bpy.props.BoolProperty(
             name='Merge UVs',
@@ -64,7 +74,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                    ('AL1', 'Alphabetical (Active First)',
                     'Alphabetical ordering, active UVMap will be first'),
                    ('ACT', 'Active Only',
-                    'Export active UVMap only')),
+                    'Export only the active UVMap')),
             default='ACT')
     # Blender Setting to use
     apply_modifiers: bpy.props.BoolProperty(
@@ -172,8 +182,9 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box = layout.box()
         box.prop(self, 'export_animations')
         box.prop(self, 'export_walkmesh')
-        box.prop(self, 'export_smoothgroups')
+        #box.prop(self, 'export_smoothgroups')
         box.prop(self, 'export_normals')
+        box.prop(self, 'export_smoothing_mode')
         # UV Map settings
         box = layout.box()
         box.label(text='UV Map Settings')
@@ -210,6 +221,8 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.geom_smoothgroups_binary = addon_prefs.export_smoothgroups_binary
         options.geom_smoothgroups_distinct_verts = addon_prefs.export_smoothgroups_distinct_verts
         options.geom_normals = self.export_normals
+        options.geom_smoothing_split = (self.export_smoothing_mode == 'SPLIT')
+        options.geom_smoothing_group = (self.export_smoothing_mode == 'GROUP')
         options.geom_walkmesh = self.export_walkmesh
         # Misc Export Settings
         options.anim_export = self.export_animations

@@ -523,15 +523,21 @@ class Trimesh(Node):
     def generateAsciiMesh(obj, ascii_lines, options):
         """TODO: Doc."""
 
-        def mesh_triangulate(mesh):
+        def mesh_triangulate(mesh, do_split=True, do_split_angle=3.14):
             """Triangulate using bmesh to retain sharp edges."""
             bm = bmesh.new()
             bm.from_mesh(mesh)
+            bm.edges.ensure_lookup_table()
+            if do_split:
+                bmesh.ops.split_edges(bm, edges = [e for e in bm.edges if not all(f.smooth for f in e.link_faces) or not e.smooth or e.calc_face_angle(0.0) > do_split_angle])
+
             bmesh.ops.triangulate(bm, faces=bm.faces)
             bm.to_mesh(mesh)
+
+            bm.clear()
             bm.free()
             del bm
-        
+
         def mesh_get_smoothgroups(blen_mesh, obj, options):
             """Get the smoothing group for each face."""
 
@@ -637,18 +643,22 @@ class Trimesh(Node):
             per_loop_data = {lp.vertex_index: vc.color[:3]
                              for lp, vc in zip(mesh.loops, vcolor_data)}
             return per_loop_data.values()
-
+      
         obj_to_export = None
         if options.apply_modifiers:
             obj_to_export = obj.evaluated_get(options.depsgraph)
         else:
             obj_to_export = obj.original
-        me = obj_to_export.to_mesh(preserve_all_data_layers=True,
-                                   depsgraph=options.depsgraph)
-        # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
 
-        # Triangulate
-        mesh_triangulate(me)
+        me = obj_to_export.to_mesh(preserve_all_data_layers=True, depsgraph=options.depsgraph)
+
+        # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
+        
+        # Triangulate and split
+        if obj.data.use_auto_smooth:
+            mesh_triangulate(me, options.geom_smoothing_split, obj.data.auto_smooth_angle)
+        else:
+            mesh_triangulate(me, options.geom_smoothing_split, 3.14)
 
         # Add vertices
         me_vertices = me.vertices
@@ -712,7 +722,11 @@ class Trimesh(Node):
                     del me_tangents
 
         # Generate Smoothgroups
-        me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
+        if options.geom_smoothing_groups:
+            me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
+        else:
+            me_face_grp = [1] * len(me.polygons)
+
         if me_face_grp:
             dig_g = max(1, len(str(max(me_face_grp))))  # req digits for format
         else:
