@@ -324,12 +324,11 @@ class ExportOptions():
         self.classification = Classification.UNKNOWN
         # Geometry
         self.geom_walkmesh = True
-        self.geom_smoothgroups = True
-        self.geom_smoothgroups_binary = True
-        self.geom_smoothgroups_distinct_verts = False
         self.geom_normals = False
         self.geom_smoothing_split = False
         self.geom_smoothing_group = False
+        self.geom_smoothing_group_binary = False
+        self.geom_smoothing_group_distinct = False
         # Materials and textures
         self.mat_mtr_generate = True
         self.mat_mtr_ref = 'bitmap'

@@ -342,9 +342,6 @@ class NVB_addon_properties(bpy.types.AddonPreferences):
         sub.prop(self, 'export_smoothgroups_distinct_verts')
 
 
-        
-
-
 class NVB_PG_animevent(bpy.types.PropertyGroup):
     """Properties for a single event in the even list."""
 

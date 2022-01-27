@@ -217,12 +217,11 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         options.mat_diffuse_ref = addon_prefs.export_mat_diffuse_ref
         # Geometry options
         options.geom_import = True
-        options.geom_smoothgroups = self.export_smoothgroups
-        options.geom_smoothgroups_binary = addon_prefs.export_smoothgroups_binary
-        options.geom_smoothgroups_distinct_verts = addon_prefs.export_smoothgroups_distinct_verts
         options.geom_normals = self.export_normals
         options.geom_smoothing_split = (self.export_smoothing_mode == 'SPLIT')
         options.geom_smoothing_group = (self.export_smoothing_mode == 'GROUP')
+        options.geom_smoothing_group_binary = addon_prefs.export_smoothgroups_binary
+        options.geom_smoothing_group_distinct = addon_prefs.export_smoothgroups_distinct_verts
         options.geom_walkmesh = self.export_walkmesh
         # Misc Export Settings
         options.anim_export = self.export_animations
