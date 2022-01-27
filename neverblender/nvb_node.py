@@ -544,7 +544,7 @@ class Trimesh(Node):
             group_ids = []
             if (obj.nvb.smoothgroup == 'SEPR') or \
                (obj.nvb.meshtype == nvb_def.Meshtype.AABB) or \
-               (not options.geom_smoothgroups):
+               (not options.geom_smoothing_group):
                 # All faces belong to group 0 (every edge is sharp)
                 group_ids = [0] * len(blen_mesh.polygons)
             elif (obj.nvb.smoothgroup == 'SING') or \
@@ -554,11 +554,11 @@ class Trimesh(Node):
             else:
                 # Calculate smoothing groups from sharp edges or auto angle setting
                 # NWN seems to use bitflag groups (smoothing groups of standard model all have powers of 2)
-                if options.geom_smoothgroups_distinct_verts:
+                if options.geom_smoothing_group_distinct:
                     g = nvb_utils.AuroraSmoothgroupGraph()
                     group_ids = g.calc_smooth_groups(blen_mesh)
                 else:
-                    group_ids, _ = blen_mesh.calc_smooth_groups(use_bitflags=options.geom_smoothgroups_binary)
+                    group_ids, _ = blen_mesh.calc_smooth_groups(use_bitflags=options.geom_smoothing_group_binary)
             return group_ids
 
         def mesh_get_normals(mesh, uvl_name):
@@ -640,9 +640,8 @@ class Trimesh(Node):
             if not vcolors:
                 return []
             vcolor_data = vcolors.data
-            per_loop_data = {lp.vertex_index: vc.color[:3]
-                             for lp, vc in zip(mesh.loops, vcolor_data)}
-            return per_loop_data.values()
+            per_loop_data = {lp.vertex_index: vc.color[:3] for lp, vc in zip(mesh.loops, vcolor_data)}
+            return [e[1] for e in sorted(per_loop_data.items())]
       
         obj_to_export = None
         if options.apply_modifiers:
@@ -655,10 +654,9 @@ class Trimesh(Node):
         # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
         
         # Triangulate and split
-        if obj.data.use_auto_smooth:
-            mesh_triangulate(me, options.geom_smoothing_split, obj.data.auto_smooth_angle)
-        else:
-            mesh_triangulate(me, options.geom_smoothing_split, 3.14)
+        do_split = options.geom_smoothing_split and (obj.nvb.meshtype != nvb_def.Meshtype.AABB)
+        do_split_angle = obj.data.auto_smooth_angle if obj.data.use_auto_smooth else 3.14
+        mesh_triangulate(me, do_split, do_split_angle)
 
         # Add vertices
         me_vertices = me.vertices
@@ -677,8 +675,7 @@ class Trimesh(Node):
             uv_layer_list = mesh_get_uvs_to_export(me, options.uv_order)
 
             # Check if we can merge uvs
-            merge_uvs = ((obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) and
-                         options.uv_merge)
+            merge_uvs = options.uv_merge and (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) 
 
             # Generate the tverts
             me_uv_coord_list = []
@@ -722,7 +719,7 @@ class Trimesh(Node):
                     del me_tangents
 
         # Generate Smoothgroups
-        if options.geom_smoothing_groups:
+        if options.geom_smoothing_group:
             me_face_grp = mesh_get_smoothgroups(me, obj_to_export, options)
         else:
             me_face_grp = [1] * len(me.polygons)
@@ -744,7 +741,7 @@ class Trimesh(Node):
         me_vert_colors = mesh_get_vertex_colors(me)
         if me_vert_colors:
             ascii_lines.append('  colors ' + str(len(me_vert_colors)))
-            fstr = '   ' + 3 * ' {:3.2f}'
+            fstr = '   ' + 3 * ' {:3.4f}'
             ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
 
         # Write faces to file
@@ -773,9 +770,9 @@ class Trimesh(Node):
             # Shininess
             asciiLines.append('  shininess ' + str(obj.nvb.shininess))
             # Render and Shadow
-            if not obj.nvb.shadow or not obj.nvb.render:  # Skip default value (both are 1)
-                asciiLines.append('  render ' + str(int(obj.nvb.render)))
-                asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
+            #if not obj.nvb.shadow or not obj.nvb.render:  # Skip default value (both are 1)
+            asciiLines.append('  render ' + str(int(obj.nvb.render)))
+            asciiLines.append('  shadow ' + str(int(obj.nvb.shadow)))
             # Beaming
             val = int(obj.nvb.beaming)
             if val > 0:  # Skip default value
