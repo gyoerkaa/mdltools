@@ -969,8 +969,7 @@ class Skinmesh(Trimesh):
         """TODO: Doc."""
         def clean_weights(weight_list):
             # Sort by weight, largest first
-            cleaned_list = sorted(weight_list, reverse=True,
-                                  key=lambda x: x[1])
+            cleaned_list = sorted(weight_list, reverse=True, key=lambda x: x[1])
             # Discard zero weights (< 0.001 will do)
             cleaned_list = [[w[0], round(w[1], 3)] for w in cleaned_list]
             cleaned_list = [w for w in cleaned_list if w[1] >= 0.001]
@@ -980,9 +979,9 @@ class Skinmesh(Trimesh):
             s = sum([w[1] for w in cleaned_list])
             cleaned_list = [[w[0], w[1]/s] for w in cleaned_list]
             return cleaned_list
-        # Only vertex groups with names matching an object qualify
-        skingroups = {vg.index: vg.name for vg in obj.vertex_groups
-                      if vg.name in bpy.data.objects}
+        # NO necessray in the EE! Only vertex groups with names matching an object qualify
+        # skingroups = {vg.index: vg.name for vg in obj.vertex_groups if vg.name in bpy.data.objects}
+        skingroups = {vg.index: vg.name for vg in obj.vertex_groups}
         ascii_lines.append('  weights ' + str(len(obj.data.vertices)))
         fstr = '{} {:5.3f}'
         for v in obj.data.vertices:
