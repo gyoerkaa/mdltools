@@ -425,7 +425,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= round(k.co[0], 5) <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end + 0.04]
                       for i in range(dp_dim)]))
                 keyed_frames.sort()
                 aur_values = [[fcu[i].evaluate(f) for i in range(dp_dim)]
@@ -485,7 +485,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= round(k.co[0], 5) <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end + 0.04]
                       for i in range(dp_dim)]))
                 keyed_frames.sort()
                 aur_values = [[fcu[i].evaluate(f) if fcu[i] else default_val[i]
@@ -577,7 +577,7 @@ class Animnode():
             if fcu.count(None) < dp_dim:  # ignore empty fcurves
                 keyed_frames = list(set().union(
                     *[[k.co[0] for k in fcu[i].keyframe_points
-                       if anim_start <= round(k.co[0], 5) <= anim_end]
+                       if anim_start <= round(k.co[0], 5) <= anim_end+0.04]
                       for i in range(dp_dim) if fcu[i]]))
                 keyed_frames.sort()
                 # Get values at keyed frames and convert
@@ -648,7 +648,7 @@ class Animnode():
         fps = options.scene.render.fps
 
         eval_times = [k.co[1] for k in fcu.keyframe_points
-                      if anim_start <= round(k.co[0], 5) <= anim_end]
+                      if anim_start <= round(k.co[0], 5) <= anim_end + 0.04]
         if not eval_times:
             return -1
             
