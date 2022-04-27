@@ -1106,6 +1106,7 @@ class Emitter(Node):
                     if dim > 1:
                         value = tuple(list(map(convert, line[1:dim+1])))
                     else:
+                        print(line)
                         value = convert(line[1].lower())
                     self.blender_data.append((data_path, value))
         return line
