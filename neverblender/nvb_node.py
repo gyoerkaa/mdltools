@@ -727,6 +727,7 @@ class Trimesh(Node):
         if me_face_grp:
             dig_g = max(1, len(str(max(me_face_grp))))  # req digits for format
         else:
+            dig_g = 1
             print('Neverblender: ERROR - Could not create smoothgroups for ' + obj.name)
 
         # Face vertex indices
@@ -735,7 +736,10 @@ class Trimesh(Node):
 
         # Face material indices
         me_face_mat = [p.material_index for p in me.polygons]
-        dig_m = max(1, len(str(max(me_face_mat))))  # req digits for format
+        if me_face_mat:
+            dig_m = max(1, len(str(max(me_face_mat))))  # req digits for format
+        else:
+            dig_m = 1
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
