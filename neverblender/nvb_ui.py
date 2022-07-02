@@ -709,8 +709,9 @@ class NVB_PT_utils(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         """Draw only if part of a valid mdl is selected."""
-        aurora_base = nvb_utils.get_obj_mdl_base(context.object)
-        return aurora_base is not None
+        return True
+        # aurora_base = nvb_utils.get_obj_mdl_base(context.object)
+        # return aurora_base is not None
 
     def draw(self, context):
         """Draw the panel."""
@@ -785,20 +786,20 @@ class NVB_PT_utils(bpy.types.Panel):
             row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL')            
             layout.separator()
 
-            # Tileslicer
-            box = layout.box()
-            box.label(text='Tileslicer')
-
-            box.operator('nvb.util_tileslicer', icon='SORTSIZE')
-            layout.separator()
-
-            layout.separator()  
-
             # NFO Helper
             box = layout.box()
             box.label(text='Setfile Helper')
 
-            layout.separator()            
+            layout.separator()    
+
+       # Tileslicer
+        box = layout.box()
+        box.label(text='Tileslicer')
+
+        box.operator('nvb.util_tileslicer', icon='SORTSIZE')
+        layout.separator()
+
+        layout.separator()                      
 
 
 class NVB_PT_emitter(bpy.types.Panel):
