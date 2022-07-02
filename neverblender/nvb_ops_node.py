@@ -1005,7 +1005,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         description="Operate on walkmeshes only")     
     optimize_splits: bpy.props.BoolProperty(
         name="Optimize Splits", default=False,
-        description="Try to add whole objects to a tile if the overlap is small")
+        description="Try to add object to a tile if the overlap is small")
     adjust_origins: bpy.props.BoolProperty(
         name="Adjust Origins", default=True,
         description="Moves object x-y location to mdl base")
@@ -1102,7 +1102,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
             optimize_ratio = 0.1
         else:
             optimize_ratio = 0.0
-            
+
         tile_affinities = [get_tile_affinity(obj, aabb_min, aabb_max, depsgraph, optimize_ratio) for obj in potential_targets]
         return [[obj, aff] for obj, aff in zip(potential_targets, tile_affinities) if aff > 0]
     

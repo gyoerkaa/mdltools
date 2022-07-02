@@ -785,6 +785,15 @@ class NVB_PT_utils(bpy.types.Panel):
             row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL')            
             layout.separator()
 
+            # Tileslicer
+            box = layout.box()
+            box.label(text='Tileslicer')
+
+            box.operator('nvb.util_tileslicer', icon='SORTSIZE')
+            layout.separator()
+
+            layout.separator()  
+
             # NFO Helper
             box = layout.box()
             box.label(text='Setfile Helper')

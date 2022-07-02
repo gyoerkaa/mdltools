@@ -41,7 +41,7 @@ class NVB_OT_lensflare_delete(bpy.types.Operator):
         obj = context.object
         flareList = obj.data.nvb.flareList
         flareIdx = obj.data.nvb.flareListIdx
-
+        
         flareList.remove(flareIdx)
         if flareIdx > 0:
             flareIdx = flareIdx - 1

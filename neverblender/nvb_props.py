@@ -474,7 +474,7 @@ class NVB_PG_material_mtr(bpy.types.PropertyGroup):
     param_list_idx: bpy.props.IntProperty(name='MTR parameter list index',
                                           default=0, options=set())
 
-                                      
+
 class NVB_PG_material(bpy.types.PropertyGroup):
     """Holds additional properties needed for the mdl file format.
 
