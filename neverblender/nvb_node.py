@@ -790,11 +790,13 @@ class Trimesh(Node):
             if val > 0:  # Skip default value
                 asciiLines.append('  transparencyhint ' + str(val))
             # These two are for tiles only
+            if options.classification in {nvb_def.Classification.TILE,
+                                          nvb_def.Classification.UNKNOWN, 
+                                          nvb_def.Classification.CHARACTER}:
+                asciiLines.append('  tilefade ' + obj.nvb.tilefade)
             if options.classification == nvb_def.Classification.TILE:
                 asciiLines.append('  rotatetexture ' +
                                   str(int(obj.nvb.rotatetexture)))
-                asciiLines.append('  tilefade ' + obj.nvb.tilefade)
-
         if len(obj.data.vertices) > 0:
             Trimesh.generateAsciiMesh(obj, asciiLines, options)
 
