@@ -1078,7 +1078,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         # Valid object depend on target mode
         if self.target_mode == 'COLLECTION':
             potential_targets = nvb_utils.get_active_collection(context)
-        elif self.target_mode == 'SELECTION':
+        elif self.target_mode == 'SELECTED':
             potential_targets = context.selected_objects
         else:  # Current Scene
             potential_targets = context.scene.collection.all_objects
