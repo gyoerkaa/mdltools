@@ -388,7 +388,7 @@ class Trimesh(Node):
 
         # Create faces
         face_vert_ids = [v[0:3] for v in self.facedef]
-        face_cnt = len(face_vert_ids)    
+        face_cnt = len(face_vert_ids)
         # Loops
         blen_mesh.loops.add(face_cnt * 3)
         blen_mesh.loops.foreach_set('vertex_index', unpack_list(face_vert_ids))
@@ -399,7 +399,7 @@ class Trimesh(Node):
 
         num_blen_polygons = len(blen_mesh.polygons)
         if not blen_mesh.polygons:
-            return  
+            return
 
         # Set everything to smooth
         blen_mesh.polygons.foreach_set('use_smooth',
@@ -472,7 +472,7 @@ class Trimesh(Node):
             blen_mesh.loops.foreach_get("normal", clnors)
             blen_mesh.normals_split_custom_set(tuple(zip(*(iter(clnors),) * 3)))
             blen_mesh.use_auto_smooth = True
-        
+
         if options.geom_mesh_validation:
             blen_mesh.validate(verbose=True, clean_customdata=False)
 
@@ -514,8 +514,8 @@ class Trimesh(Node):
 
     def createObject(self, options):
         """TODO: Doc."""
-        mesh = self.create_blender_mesh(self.name, options)       
-        obj = bpy.data.objects.new(self.name, mesh)                
+        mesh = self.create_blender_mesh(self.name, options)
+        obj = bpy.data.objects.new(self.name, mesh)
         self.createObjectData(obj, options)
         return obj
 
@@ -642,7 +642,7 @@ class Trimesh(Node):
             vcolor_data = vcolors.data
             per_loop_data = {lp.vertex_index: vc.color[:3] for lp, vc in zip(mesh.loops, vcolor_data)}
             return [e[1] for e in sorted(per_loop_data.items())]
-      
+
         obj_to_export = None
         if options.apply_modifiers:
             obj_to_export = obj.evaluated_get(options.depsgraph)
@@ -652,7 +652,7 @@ class Trimesh(Node):
         me = obj_to_export.to_mesh(preserve_all_data_layers=True, depsgraph=options.depsgraph)
 
         # me.polygons.foreach_set("use_smooth", [True]*len(me.polygons))
-        
+
         # Triangulate and split
         do_split = options.geom_smoothing_split and (obj.nvb.meshtype != nvb_def.Meshtype.AABB)
         do_split_angle = obj.data.auto_smooth_angle if obj.data.use_auto_smooth else 3.14
@@ -675,7 +675,7 @@ class Trimesh(Node):
             uv_layer_list = mesh_get_uvs_to_export(me, options.uv_order)
 
             # Check if we can merge uvs
-            merge_uvs = options.uv_merge and (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH) 
+            merge_uvs = options.uv_merge and (obj.nvb.meshtype != nvb_def.Meshtype.ANIMMESH)
 
             # Generate the tverts
             me_uv_coord_list = []
@@ -743,7 +743,7 @@ class Trimesh(Node):
 
         # Vertex color
         me_vert_colors = mesh_get_vertex_colors(me)
-        if me_vert_colors:
+        if me_vert_colors and len(me_vert_colors) == len(me_vertices):
             ascii_lines.append('  colors ' + str(len(me_vert_colors)))
             fstr = '   ' + 3 * ' {:3.4f}'
             ascii_lines.extend([fstr.format(*vc) for vc in me_vert_colors])
@@ -791,7 +791,7 @@ class Trimesh(Node):
                 asciiLines.append('  transparencyhint ' + str(val))
             # These two are for tiles only
             if options.classification in {nvb_def.Classification.TILE,
-                                          nvb_def.Classification.UNKNOWN, 
+                                          nvb_def.Classification.UNKNOWN,
                                           nvb_def.Classification.CHARACTER}:
                 asciiLines.append('  tilefade ' + obj.nvb.tilefade)
             if options.classification == nvb_def.Classification.TILE:
@@ -1062,7 +1062,7 @@ class Emitter(Node):
          'p2p_bezier2': ('nvb.p2p_bezier2', 1, float, ' {:>4.2f}'),
          'p2p_bezier3': ('nvb.p2p_bezier3', 1, float, ' {:>4.2f}'),
          'src': ('nvb.p2p_src', 1, float, ' {:>4.2f}'),
-         'target': ('nvb.p2p_target', 1, float, ' {:>4.2f}'),         
+         'target': ('nvb.p2p_target', 1, float, ' {:>4.2f}'),
          'combinetime': ('nvb.combinetime', 1, float, ' {:>4.2f}'),
          'grav': ('nvb.grav', 1, float, ' {:>4.2f}'),
          'drag': ('nvb.drag', 1, float, ' {:>4.2f}'),
@@ -1249,7 +1249,7 @@ class Emitter(Node):
                 ascii_lines.append(form_prop('p2p_bezier2', part_set.nvb.p2p_bezier2))
                 ascii_lines.append(form_prop('p2p_bezier3', part_set.nvb.p2p_bezier3))
                 ascii_lines.append(form_prop('src', part_set.nvb.p2p_src))
-                ascii_lines.append(form_prop('target', part_set.nvb.p2p_target))                
+                ascii_lines.append(form_prop('target', part_set.nvb.p2p_target))
                 ascii_lines.append(form_prop('combinetime',
                                              part_set.nvb.combinetime))
             elif part_set.nvb.p2p_sel == '2':  # Gravity
@@ -1396,7 +1396,7 @@ class Light(Node):
                         self.flareNumValues[3] = vcnt
                 # We still need to set number of textures
                 self.flareNumValues[0] = min(self.flareNumValues[1:])
-        
+
 
     def loadAscii(self, asciiLines, nodeidx=-1):
         """TODO: DOC."""
