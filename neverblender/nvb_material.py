@@ -125,6 +125,8 @@ class Material(object):
             self.renderhints.add(nvb_parse.ascii_identifier(line[1]))
         elif label == 'bitmap':
             self.bitmap = nvb_parse.ascii_texture(line[1])
+            if self.texture_list[0] == None:
+                self.texture_list[0] = self.bitmap
         elif label.startswith('texture'):
             if label[7:]:  # 'texture' is followed by a number
                 idx = int(label[7:])
@@ -140,9 +142,6 @@ class Material(object):
         # if an mtr_name has been specified try opening it
         # but don't do anything else!
         if self.mtr_name:
-            # Copy bitmp to texture0, if there is a "materialname" parameter
-            if self.texture_list[0] is None:
-                self.texture_list[0] = self.bitmap
             if self.mtr_name in options.mtrdb:
                 self.mtr_data = options.mtrdb[self.mtr_name]
             else:
@@ -198,11 +197,6 @@ class Material(object):
         if options.mat_use_mtr:
             self.mtr_read(options)
             self.mtr_merge()
-        else:
-            # ONLY if there is no mtr:
-            # bitmap as texture0, texture0 takes precedence
-            if self.texture_list[0] is None:
-                self.texture_list[0] = self.bitmap
         # Sometimes, we don't want self illumination at all (e.g. interfering with rendering minimaps)
         if options.mat_ignore_selfillum_color:
             self.color_list[5] = (0.0, 0.0, 0.0, 1.0)
