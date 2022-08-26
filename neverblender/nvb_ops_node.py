@@ -177,7 +177,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
         else:  # Axis aligned bounding rectangle
             pwk_shapes = [(NVB_OT_util_nodes_pwk.get_aabr(isl), h)
                           for isl, h in merged_islands]
-        
+
         return pwk_shapes
 
     @staticmethod
@@ -192,7 +192,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
                                  for pv in plane_vertices]
             bm_plane_vertices = [bm.verts.new(pv) for pv in plane_vertices_3d]
             if len(bm_plane_vertices) > 2:
-                # Create a single face 
+                # Create a single face
                 bottom_face = bm.faces.new(bm_plane_vertices)
                 # Remove duplicate (or close) vertices
                 bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=min_vert_dist)
@@ -452,7 +452,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             del res
             obj_verts = [obj_mw @ v.co for v in bm.verts]
             vertex_list.extend(obj_verts)
-        
+
         if vertex_list:
             vertex_height = max([v.z for v in vertex_list])
 
@@ -585,7 +585,7 @@ class NVB_OT_util_nodes_pwk(bpy.types.Operator):
             return pwk_base
 
         mdl_base_name = nvb_utils.strip_trailing_numbers(mdl_base.name)
-        
+
         # Get a name prefix from the mdl base name
         name_prefix = mdl_base_name[-3:]
 
@@ -989,11 +989,11 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
     target_mode: bpy.props.EnumProperty(
         name="Target Mode",
         description="Select the objects to slice",
-        items=[('SCENE', "Scene", 
+        items=[('SCENE', "Scene",
                 "All Objects in current scene", 0),
                ('COLLECTION', "Active Collection",
                 "All Objects in active collection", 1),
-               ('SELECTED', "Selected", 
+               ('SELECTED', "Selected",
                 "All selected objects", 2),
                ],
         default='SCENE')
@@ -1002,7 +1002,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         description="Modify target object directly instead of creating new ones")
     walkmesh_only: bpy.props.BoolProperty(
         name="Walkmesh Only", default=False,
-        description="Operate on walkmeshes only")     
+        description="Operate on walkmeshes only")
     optimize_splits: bpy.props.BoolProperty(
         name="Optimize Splits", default=False,
         description="Try to add object to a tile if the overlap is small")
@@ -1011,19 +1011,19 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         description="Moves object x-y location to mdl base")
     add_tile_features: bpy.props.BoolProperty(
         name="Add Tile Features", default=False,
-        description="Add walkmesh and tile lights if missing")           
-               
+        description="Add walkmesh and tile lights if missing")
+
     group_origin: bpy.props.FloatVectorProperty(name="Origin",
                                                 description="Origin to start slicing at",
                                                 size=3,
                                                 subtype='TRANSLATION',
                                                 default=(0.0, 0.0, 0.0),
-                                                step=100)                                               
+                                                step=100)
     tile_count: bpy.props.IntVectorProperty(name="Tiles",
                                              description="Number of Tiles in X and Y direction",
-                                             default = (2,2), min=1, soft_max=16, step=1, 
+                                             default = (2,2), min=1, soft_max=16, step=1,
                                              size=2, options=set())
-    tile_prefix: bpy.props.StringProperty(name="Prefix", 
+    tile_prefix: bpy.props.StringProperty(name="Prefix",
                                           description="Prefix for the generated tiles.",
                                           default="test",
                                           options=set())
@@ -1047,7 +1047,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                 obj_mw = obj.matrix_world
                 verts_to_test = [obj_mw @ v.co for v in mesh.vertices]
                 # Only check the lower parts of a mesh
-                if optimize_ratio > 0.0: 
+                if optimize_ratio > 0.0:
                     vert_max_z = min(v.z for v in verts_to_test) + 2.0
                     verts_to_test = [v for v in verts_to_test if v.z <= vert_max_z]
                     # Check how many verts are inside and outside
@@ -1068,13 +1068,13 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                     return 1
                 else:
                     return 0
-        
+
         def add_children(obj, obj_list):
             if obj not in self.ignore_objects:
                 obj_list.append(obj)
             for child in obj.children:
                 add_children(child, obj_list)
-        
+
         # Valid object depend on target mode
         if self.target_mode == 'COLLECTION':
             potential_targets = nvb_utils.get_active_collection(context)
@@ -1082,7 +1082,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
             potential_targets = context.selected_objects
         else:  # Current Scene
             potential_targets = context.scene.collection.all_objects
-            
+
         if self.walkmesh_only:
             # In this case we don't care about parenting
             potential_targets = [obj for obj in potential_targets if obj.nvb.meshtype == nvb_def.Meshtype.AABB]
@@ -1094,7 +1094,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                     add_children(obj, tmp_list)
             potential_targets = tmp_list
             del tmp_list
-                    
+
         # Check wether we need to split at all
         depsgraph = context.evaluated_depsgraph_get()
         # Only keep object that are at least partially within the tile
@@ -1105,14 +1105,14 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
 
         tile_affinities = [get_tile_affinity(obj, aabb_min, aabb_max, depsgraph, optimize_ratio) for obj in potential_targets]
         return [[obj, aff] for obj, aff in zip(potential_targets, tile_affinities) if aff > 0]
-    
+
     def box_bisect(self, context, obj, aabb_min, aabb_max):
         # We can only slice meshes
         if (obj.type != "MESH"):
-            new_obj = obj.copy() 
+            new_obj = obj.copy()
             context.collection.objects.link(new_obj)
             return new_obj
-        
+
         # Get a mesh with all applied modifiers
         depsgraph = context.evaluated_depsgraph_get()
         old_mesh = obj.evaluated_get(depsgraph).to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
@@ -1125,16 +1125,16 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         # Need this to transform to onject local space
         obj_mwi = obj.matrix_world.inverted()
         obj_mwi_rot = obj_mwi.to_quaternion().to_matrix().to_4x4()  # slice plane normals only
-            
+
         # Normals and coordinates for slicing planes
         slice_planes = [[aabb_max, mathutils.Vector(( 0,  1, 0))],
-                        [aabb_max, mathutils.Vector(( 1,  0, 0))],  
-                        [aabb_min, mathutils.Vector(( 0, -1, 0))], 
+                        [aabb_max, mathutils.Vector(( 1,  0, 0))],
+                        [aabb_min, mathutils.Vector(( 0, -1, 0))],
                         [aabb_min, mathutils.Vector((-1,  0, 0))] ]
-        
+
         # Transform planes to object local coordinates
         slice_planes = [[obj_mwi @ co, obj_mwi_rot @ no] for co, no in slice_planes]
-        
+
         # Perform the slice
         for coord, norm in slice_planes:
             _ = bmesh.ops.bisect_plane(bm,
@@ -1142,7 +1142,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                                        plane_co=coord,
                                        plane_no=norm,
                                        clear_outer=True, dist=0.01)
-        
+
         # Check if any geometry remains
         if bm.verts and bm.faces:
             # Use the bmesh to create a new mesh
@@ -1150,7 +1150,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
             bm.to_mesh(new_mesh)
             bm.free()
             new_mesh.update()
-                    
+
             # Create the newly sliced object at old location
             new_obj = bpy.data.objects.new(obj.name, new_mesh)
             new_obj.matrix_world = obj.matrix_world
@@ -1164,7 +1164,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
 
         # Empty slice, nothing remains of the old mesh
         return None
-    
+
     @classmethod
     def poll(self, context):
         """Can always be executed."""
@@ -1174,14 +1174,14 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         self.ignore_objects = []
         origin = mathutils.Vector(self.group_origin)
         tile_count = self.tile_count[0] * self.tile_count[1]
-        
+
         # Get List of valid targets for each tile
         tile_idx = 0
         valid_targets = [[] for _ in range(tile_count)]
         for y in range(0, self.tile_count[1]):
             for x in range(0, self.tile_count[0]):
                 aabb_min = origin + mathutils.Vector((x*10, y*10, 0))
-                aabb_max = origin + mathutils.Vector(((x+1)*10, (y+1)*10, 0))        
+                aabb_max = origin + mathutils.Vector(((x+1)*10, (y+1)*10, 0))
                 valid_targets[tile_idx] = self.find_targets(context, aabb_min, aabb_max, tile_count)
                 # object fully belonging to a tile should not be processed again
                 self.ignore_objects.extend(obj for obj, aff in valid_targets[tile_idx] if aff == 2)
@@ -1209,13 +1209,13 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                             tile_part = self.box_bisect(context, obj, aabb_min, aabb_max)
                     else:
                          tile_part = obj.copy()
-                        
+
                     if tile_part:
                         context.collection.objects.link(tile_part)
                         context.view_layer.update()
                         # Save for re-parenting
                         copied_targets[obj.name] = tile_part
-                    
+
                         # Create mdl base on demand
                         if not mdl_base:
                             mdl_base = self.create_mdl_base(context, origin + mathutils.Vector((5+x*10, 5+y*10, 0)), tile_idx)
@@ -1223,7 +1223,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                             mdl_base_list.append(mdl_base)
                             mdl_base.nvb.classification = nvb_def.Classification.TILE
                             tile_idx += 1
-                        
+
                         if self.adjust_origins:
                             # Adjust location to be within the tile bounds
                             new_origin = mdl_base.location
@@ -1232,7 +1232,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                                 tile_part.data.transform(mathutils.Matrix.Translation(-local_origin))
                                 tile_part.matrix_world.translation += (new_origin - tile_part.matrix_world.translation)
                             context.view_layer.update()
-                                                    
+
                         # Restore parent-child relation if the parent was also copied
                         if obj.parent and obj.parent.name in copied_targets:
                             tile_part.parent = copied_targets[obj.parent.name]
@@ -1248,7 +1248,7 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                 mb.select_set(True)
                 bpy.ops.nvb.util_nodes_tile()
                 mb.select_set(False)
-        
+
         return {'FINISHED'}
 
     def invoke(self, context, event):
