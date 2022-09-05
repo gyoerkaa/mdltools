@@ -22,9 +22,9 @@ class Mtr(object):
         self.parameters = dict()
         self.alpha = None
         self.metallicness = None
-        self.customVS = ''  # Vertex shader
-        self.customGS = ''  # Geometry shader
-        self.customFS = ''  # Fragment shader
+        self.customshaderVS = ''  # Vertex shader
+        self.customshaderGS = ''  # Geometry shader
+        self.customshaderFS = ''  # Fragment shader
 
     @staticmethod
     def parse_ascii_param_value(str_values):
@@ -109,7 +109,7 @@ class Mtr(object):
                 elif param_name.lower() == "roughness":
                     self.color_list[3] = nvb_parse.ascii_float(param_value[0])
                 elif param_name.lower() == "displacementoffset":
-                    self.color_list[4] = nvb_parse.ascii_float(param_value[0])                   
+                    self.color_list[4] = nvb_parse.ascii_float(param_value[0])
                 else:  # Unknown parameter
                     self.parameters[param_name] = (param_type, param_value)
         elif label == 'customshadervs':
@@ -141,7 +141,7 @@ class Mtr(object):
             if blen_material.nvb.shaderfs:
                 ascii_lines.append("customshaderFS " + blen_material.nvb.mtr.shader_fs)
             if blen_material.nvb.shadergs:
-                ascii_lines.append("customshaderGS " + blen_material.nvb.mtr.shader_gs)                
+                ascii_lines.append("customshaderGS " + blen_material.nvb.mtr.shader_gs)
             ascii_lines.append("")
         elif tex_list and (tex_list[:3].count(nvb_def.null) <= 1):
             # Add Renderhint
@@ -166,7 +166,7 @@ class Mtr(object):
             param_dict[param_id] = [param_name, param_type, param_values]
         # Manually add known paramters from Blenders shader node tree (overwrite manually added ones)
         if col_list[2] and (col_list[2][0] > 0.00001):
-            param_dict['specularity'] = ['Specularity', 'float', [str(col_list[2][0])]]        
+            param_dict['specularity'] = ['Specularity', 'float', [str(col_list[2][0])]]
         if col_list[3] and (col_list[3][0] > 0.00001):
             param_dict['roughness'] = ['Roughness', 'float', [str(col_list[3][0])]]
         if col_list[4] and (col_list[4][0] > 0.00001):

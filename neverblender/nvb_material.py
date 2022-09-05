@@ -215,7 +215,11 @@ class Material(object):
             blender_mat.use_backface_culling = True
 
             blender_mat.nvb.mtr.use = bool(self.mtr_name) or self.mtr_data is not None
-
+            if blender_mat.nvb.mtr.use:
+                blender_mat.nvb.mtr.renderhint = next(iter(self.mtr_data.renderhints or []), "")
+                blender_mat.nvb.mtr.shader_vs = self.mtr_data.customshaderVS
+                blender_mat.nvb.mtr.shader_gs = self.mtr_data.customshaderGS
+                blender_mat.nvb.mtr.shader_fs = self.mtr_data.customshaderFS
             blender_mat.use_nodes = True
             blender_mat.node_tree.nodes.clear()
             Materialnode.add_node_data(blender_mat, new_name,
@@ -282,7 +286,6 @@ class Material(object):
                 fstr_list = [fstr_tex0, '  texture1 {:s}', '  texture2 {:s}']
                 for i, tex in enumerate(tex_list):
                     ascii_lines.append(fstr_list[i].format(tex))
-
         else:
             ascii_lines.append(fstr_col.format('ambient', *[1.0] * 3))
             ascii_lines.append(fstr_col.format('diffuse', *[1.0] * 3))
