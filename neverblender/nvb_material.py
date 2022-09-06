@@ -181,7 +181,7 @@ class Material(object):
             #     [c2 if c2 else c1 for c1, c2 in
             #      zip(self.color_list, self.mtr_data.color_list)]
 
-    def create_blender_material(self, options, reuse_existing=True):
+    def create_blender_material(self, options, always_create_new=True):
         """Returns a blender material with the stored values."""
         # Ignore ambient color parameter (ignored with the new PBR shaders in the EE)
         if options.mat_ignore_mdl_ambient_color:
@@ -204,8 +204,14 @@ class Material(object):
              self.texture_list[5] = None
         # Look for similar materials to avoid duplicates
         blender_mat = None
-        if reuse_existing:
+        print("#####")
+        print(options.mat_automerge)
+        print(always_create_new)
+        if options.mat_automerge and not always_create_new:
+            print("find existing")
             blender_mat = self.find_blender_material(options)
+        else:
+            print("create new")
         # Create new material if necessary
         if not blender_mat:
             new_name = self.generate_material_name()

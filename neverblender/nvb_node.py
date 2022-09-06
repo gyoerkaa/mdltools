@@ -407,9 +407,9 @@ class Trimesh(Node):
 
         # Create material
         if self.render and options.mat_import:
-            reuse_existing = (self.nodetype != nvb_def.Nodetype.ANIMMESH)
+            always_create_new = (self.nodetype == nvb_def.Nodetype.ANIMMESH)
             material = self.material.create_blender_material(
-                options, reuse_existing)
+                options, always_create_new)
             if material:
                 blen_mesh.materials.append(material)
                 # Set material idx (always 0, only a single material)
