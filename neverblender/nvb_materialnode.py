@@ -41,7 +41,7 @@ class Materialnode(object):
                     return None  # No unconnected sockets
             elif node.type == 'VALUE':
                 # Return the output socket
-                return node.outputs[0]                  
+                return node.outputs[0]
             elif node.type == 'EEVEE_SPECULAR':
                 # This will need to be inverted
                 sock = node.inputs['Transparency']
@@ -71,10 +71,10 @@ class Materialnode(object):
             elif node.type in ['EEVEE_SPECULAR', 'BSDF_PRINCIPLED']:
                 return node.inputs['Base Color']
             elif node.type == 'MIX_SHADER':
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 sock = node.inputs[1]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_diffuse_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_diffuse_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -82,14 +82,14 @@ class Materialnode(object):
                 sock = node.inputs[2]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_diffuse_socket(sock.links[0].from_node) 
+                    return Materialnode.find_diffuse_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
                 # Try socket 0
                 sock = node.inputs[0]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_diffuse_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_diffuse_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -97,7 +97,7 @@ class Materialnode(object):
                 sock = node.inputs[1]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_diffuse_socket(sock.links[0].from_node) 
+                    return Materialnode.find_diffuse_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
 
@@ -112,35 +112,35 @@ class Materialnode(object):
                 if sock.is_linked:
                     return Materialnode.find_emissive_socket(sock.links[0].from_node)
             elif node.type == 'EMISSION':
-                return node.inputs['Color']                 
+                return node.inputs['Color']
             elif node.type == 'EEVEE_SPECULAR':
-                return node.inputs['Emissive Color']                
+                return node.inputs['Emissive Color']
             elif node.type == 'BSDF_PRINCIPLED':
                 return node.inputs['Emission']
             elif node.type == 'MIX_SHADER':
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 if node.inputs[1].is_linked:
-                    child_node = Materialnode.find_emissive_socket(node.inputs[1].links[0].from_node) 
+                    child_node = Materialnode.find_emissive_socket(node.inputs[1].links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if child_node:
                         return child_node
                 # Socket 1 doesn't contain anything, try 2
                 if node.inputs[2].is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_emissive_socket(node.inputs[2].links[0].from_node) 
+                    return Materialnode.find_emissive_socket(node.inputs[2].links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
                 # Try socket 0
                 if node.inputs[0].is_linked:
-                    child_node = Materialnode.find_emissive_socket(node.inputs[0].links[0].from_node) 
+                    child_node = Materialnode.find_emissive_socket(node.inputs[0].links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if child_node:
                         return child_node
                 # Socket 0 doesn't contain anything, try 1
                 if node.inputs[1].is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_emissive_socket(node.inputs[1].links[0].from_node) 
+                    return Materialnode.find_emissive_socket(node.inputs[1].links[0].from_node)
                 # Nothing here
                 return None
 
@@ -175,10 +175,10 @@ class Materialnode(object):
             elif node.type == 'BUMP':
                 return node.inputs['Height']
             elif node.type == 'MIX_SHADER':
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 socket = node.inputs[1]
                 if socket.is_linked:
-                    sub_node = Materialnode.find_height_socket(socket.links[0].from_node) 
+                    sub_node = Materialnode.find_height_socket(socket.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -186,14 +186,14 @@ class Materialnode(object):
                 socket = node.inputs[2]
                 if socket.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_height_socket(socket.links[0].from_node) 
+                    return Materialnode.find_height_socket(socket.links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
                 # Try socket 0
                 socket = node.inputs[0]
                 if socket.is_linked:
-                    sub_node = Materialnode.find_height_socket(socket.links[0].from_node) 
+                    sub_node = Materialnode.find_height_socket(socket.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -201,7 +201,7 @@ class Materialnode(object):
                 socket = node.inputs[1]
                 if socket.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_height_socket(socket.links[0].from_node) 
+                    return Materialnode.find_height_socket(socket.links[0].from_node)
                 # Nothing here
                 return None
 
@@ -218,7 +218,7 @@ class Materialnode(object):
                     sock_surface = Materialnode.find_normal_socket(sock_surface.links[0].from_node)
                      # Might not be present
                     if sock_surface:
-                        return sock_surface  
+                        return sock_surface
                 # Try going down the diplacement socket first
                 sock_displacement = node.inputs['Displacement']
                 if sock_displacement.is_linked:
@@ -237,10 +237,10 @@ class Materialnode(object):
                     return Materialnode.find_normal_socket(socket.links[0].from_node)
             elif node.type == 'MIX_SHADER':
                 # Can't go by socket name here, both input sockets are named the same!
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 socket = node.inputs[1]
                 if socket.is_linked:
-                    sub_node = Materialnode.find_normal_socket(socket.links[0].from_node) 
+                    sub_node = Materialnode.find_normal_socket(socket.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -248,7 +248,7 @@ class Materialnode(object):
                 socket = node.inputs[2]
                 if socket.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_normal_socket(socket.links[0].from_node) 
+                    return Materialnode.find_normal_socket(socket.links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
@@ -256,7 +256,7 @@ class Materialnode(object):
                 # Try socket 0
                 socket = node.inputs[0]
                 if socket.is_linked:
-                    sub_node = Materialnode.find_normal_socket(socket.links[0].from_node) 
+                    sub_node = Materialnode.find_normal_socket(socket.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -264,7 +264,7 @@ class Materialnode(object):
                 socket = node.inputs[1]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_normal_socket(socket.links[0].from_node) 
+                    return Materialnode.find_normal_socket(socket.links[0].from_node)
                 # Nothing here
                 return None
 
@@ -281,10 +281,10 @@ class Materialnode(object):
             elif node.type in ['EEVEE_SPECULAR', 'BSDF_PRINCIPLED']:
                 return node.inputs['Roughness']
             elif node.type == 'MIX_SHADER':
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 sock = node.inputs[1]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_roughness_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_roughness_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -292,14 +292,14 @@ class Materialnode(object):
                 sock = node.inputs[2]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_roughness_socket(sock.links[0].from_node) 
+                    return Materialnode.find_roughness_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
                 # Try socket 0
                 sock = node.inputs[0]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_roughness_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_roughness_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -307,7 +307,7 @@ class Materialnode(object):
                 sock = node.inputs[1]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_roughness_socket(sock.links[0].from_node) 
+                    return Materialnode.find_roughness_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
 
@@ -324,10 +324,10 @@ class Materialnode(object):
             elif node.type in ['EEVEE_SPECULAR', 'BSDF_PRINCIPLED']:
                 return node.inputs['Specular']
             elif node.type == 'MIX_SHADER':
-                # Try socket 1 (socket 0 is a factor) 
+                # Try socket 1 (socket 0 is a factor)
                 sock = node.inputs[1]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_specular_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_specular_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -335,14 +335,14 @@ class Materialnode(object):
                 sock = node.inputs[2]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_specular_socket(sock.links[0].from_node) 
+                    return Materialnode.find_specular_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
             elif node.type == 'ADD_SHADER':
                 # Try socket 0
                 sock = node.inputs[0]
                 if sock.is_linked:
-                    sub_node = Materialnode.find_specular_socket(sock.links[0].from_node) 
+                    sub_node = Materialnode.find_specular_socket(sock.links[0].from_node)
                     # Can't return None yet, we need to try the other socket
                     if sub_node:
                         return sub_node
@@ -350,7 +350,7 @@ class Materialnode(object):
                 sock = node.inputs[1]
                 if sock.is_linked:
                      # Can safely return None, nothing left to try
-                    return Materialnode.find_specular_socket(sock.links[0].from_node) 
+                    return Materialnode.find_specular_socket(sock.links[0].from_node)
                 # Nothing here
                 return None
 
@@ -382,7 +382,14 @@ class Materialnode(object):
         return output_nodes[0]
 
     @staticmethod
-    def get_texture_node_nearest(socket, max_depth=32):
+    def get_num_links(socket):
+        """Get number of outgoing links."""
+        if socket.is_linked:
+            return len(socket.links)
+        return 0
+
+    @staticmethod
+    def get_texture_node_nearest(socket, max_depth=32, exclusive=False):
         """Get the nearest texture node using BFS. May be none."""
         if not socket or not socket.is_linked:
             return None
@@ -401,8 +408,9 @@ class Materialnode(object):
                 visited.add(node)
                 depth += 1
                 # Return texture node
-                if Materialnode.is_texture_node(node):  
-                    return node
+                if Materialnode.is_texture_node(node):
+                    if not exclusive or (Materialnode.get_num_links(node.outputs['Color']) <= 1):
+                        return node
                 # Mix RGB node
                 # Two color sockets (1 and 2), always add to queue
                 elif node.type == 'MIX_RGB':
@@ -423,7 +431,7 @@ class Materialnode(object):
                 elif node.type == 'CLAMP':
                     if node.inputs['Value'].is_linked:
                         neighbour_node = node.inputs['Value'].links[0].from_node
-                        queue.append((neighbour_node, depth))                      
+                        queue.append((neighbour_node, depth))
                 # Math node
                 #  2 value inputs (0 and 1, not refrenceable by name), may be grayscale
                 elif node.type == 'MATH':
@@ -440,9 +448,9 @@ class Materialnode(object):
                         neighbour_node = node.inputs['Color'].links[0].from_node
                         queue.append((neighbour_node, depth))
         return None
-    
+
     @staticmethod
-    def get_color_socket_nearest(socket, max_depth=32):
+    def get_color_socket_nearest(socket, max_depth=32, exclusive=False):
         """Get the nearest color socket connected to this socket using BFS. May be none or the socket itself."""
         if not socket:
             return None
@@ -451,16 +459,15 @@ class Materialnode(object):
             if socket.type == 'RGBA':
                 # Unlinked color socket, return it directly
                 return socket
-            else: 
+            else:
                 # Unlinked an not a color socket, can't use this one
                 return None
-        
+
         # The socket is valid and linked to anther node, we need to follow it
         # Since its an input socket only one node is connected
         depth = 0
         root_node = socket.links[0].from_node
         visited, queue = set(), collections.deque([(root_node, depth)])
-        
 
         # BFS over connected nodes
         while queue:
@@ -538,10 +545,10 @@ class Materialnode(object):
                     # Nothing useable, continue search
                     queue.append((neighbour_node, depth))
                 # Input RGB node, should not be able to reach this, but return the output socket
-                elif node.type == 'RGB':  
+                elif node.type == 'RGB':
                     return node.outputs[0]
         return None
-   
+
     @staticmethod
     def get_alpha_value(socket, fail_value=1.0):
         """Get tha alpha value from the socket."""
@@ -549,7 +556,7 @@ class Materialnode(object):
             # Transparency needs to be inverted
             if socket.name == 'Transparency':
                 return (1.0 - socket.default_value)
-            else:  
+            else:
                 return socket.default_value
         return fail_value
 
@@ -592,17 +599,17 @@ class Materialnode(object):
     @staticmethod
     def get_node_data(material):
         """Get a list of relevant textures and colors for this material."""
-        def get_connected_texture(input_socket, fail_value="", max_depth=32):
+        def get_connected_texture(input_socket, fail_value="", max_depth=32, exclusive=False):
             """Get texture from an input socket."""
-            texture_node = Materialnode.get_texture_node_nearest(input_socket, max_depth)
+            texture_node = Materialnode.get_texture_node_nearest(input_socket, max_depth, exclusive)
             if texture_node:
                 return Materialnode.get_texture_name(texture_node)
-            
+
             return fail_value
 
-        def get_connected_color(input_socket, fail_value=(1.0, 1.0, 1.0, 1.0), max_depth=32):
+        def get_connected_color(input_socket, fail_value=(1.0, 1.0, 1.0, 1.0), max_depth=32, exclusive=False):
             """Get color from an input socket."""
-            color_socket = Materialnode.get_color_socket_nearest(input_socket, max_depth)
+            color_socket = Materialnode.get_color_socket_nearest(input_socket, max_depth, exclusive)
             if color_socket:
                 # We don't know if we get a color (bpy.array) or a scalar (float)
                 color = Materialnode.get_color_value(color_socket, fail_value)
@@ -617,7 +624,7 @@ class Materialnode(object):
         texture_list = [None] * 15
         color_list = [None] * 15
         alpha = 1.0
-        ambient = None  # For legacy reasons
+        ambient = None  # Seperate for compatibility (unsupported by blender)
 
         node_out = Materialnode.get_output_node(material)
         if node_out:
@@ -653,7 +660,7 @@ class Materialnode(object):
 
             # Emissive/Illumination (5)
             input_socket = Materialnode.find_emissive_socket(node_out)
-            texture_list[5] = get_connected_texture(input_socket, "", 1)
+            texture_list[5] = get_connected_texture(input_socket, "", 1, True)
             color_list[5] = get_connected_color(input_socket, (0.0, 0.0, 0.0, 1.0), 2)
 
         return texture_list, color_list, alpha, ambient
@@ -790,7 +797,7 @@ class Materialnode(object):
 
         # 4 = Height/AO/Parallax/Displacement
         if texture_list[4]:
-            # Setup, 2 options: 
+            # Setup, 2 options:
             if options.mat_displacement_mode == 'DISPLACEMENT':
                 # 1. Image Texture => Displacement => Material Output
                 node_tex_height = nodes.new('ShaderNodeTexImage')
@@ -839,11 +846,11 @@ class Materialnode(object):
                 node_displ_offset.inputs[0].default_value = 0.0
                 if color_list[4]:
                     node_displ_offset.inputs[0].default_value = color_list[4][0]
-                node_displ_offset.inputs[1].default_value = 0.0 
+                node_displ_offset.inputs[1].default_value = 0.0
 
                 node_bump = nodes.new('ShaderNodeBump')
                 node_bump.name = "vector_bump"
-                node_bump.location = (-384, -232)                       
+                node_bump.location = (-384, -232)
 
                 # Links: height texture => displacement offset (1) => bump (Height) => Shader (Normal)
                 links.new(node_displ_offset.inputs[1], node_tex_height.outputs['Color'])
@@ -888,7 +895,7 @@ class Materialnode(object):
         elif node_tex_diff:
             links.new(node_mix_emit1.inputs['Color1'], node_tex_diff.outputs['Color'])
         elif color_list[0]:
-            node_mix_emit1.inputs['Color1'].default_value = color_list[0]  
+            node_mix_emit1.inputs['Color1'].default_value = color_list[0]
         else:
             node_mix_emit1.inputs['Color1'].default_value = (0.0, 0.0, 0.0, 1.0)
 
@@ -901,7 +908,7 @@ class Materialnode(object):
             node_tex_emit.location = (-1192, -61)
             node_tex_emit.image = nvb_utils.create_image(texture_list[5], options.filepath, options.tex_search)
             node_tex_emit.image.colorspace_settings.name = 'sRGB'
-            
+
             # 2nd mix node: Adds emissive texture to MDL selfillum color
             node_mix_emit2 = nodes.new('ShaderNodeMixRGB')
             node_mix_emit2.label = "Mix: Add Self-Illumination"
@@ -910,13 +917,13 @@ class Materialnode(object):
             node_mix_emit2.location = (-753, 98)
             node_mix_emit2.use_clamp = True
             node_mix_emit2.inputs['Fac'].default_value = 1.0
-            node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
-            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
+            node_mix_emit2.inputs['Color1'].default_value = color_list[5]
+            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0)
 
             # Link 1st mix node inputs
             links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
             if node_tex_emit:
-                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
+                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color'])
 
             # Finally link to shader
             links.new(node_shader.inputs['Emission'], node_mix_emit2.outputs[0])
@@ -933,9 +940,9 @@ class Materialnode(object):
             node_color_ambient.width = 220
             if (len(ambient) > 3):
                 node_color_ambient.outputs[0].default_value = ambient[:4]
-            else: 
-                node_color_ambient.outputs[0].default_value = ambient[:3] + [1.0]         
-        
+            else:
+                node_color_ambient.outputs[0].default_value = ambient[:3] + [1.0]
+
     @staticmethod
     def add_node_data_spec(material, output_label, texture_list, color_list, alpha, ambient, options):
         """Setup up material nodes for Principled BSDF Shader."""
@@ -1006,7 +1013,7 @@ class Materialnode(object):
                 links.new(node_shader.inputs['Base Color'], node_mix_diff.outputs['Color'])
             else:  # no diffuse color
                 # link texture directly to shader
-                links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])            
+                links.new(node_shader.inputs['Base Color'], node_tex_diff.outputs['Color'])
 
         # 1 = Normal
         node_tex_norm = None
@@ -1074,7 +1081,7 @@ class Materialnode(object):
 
         # 4 = Height/AO/Parallax/Displacement
         if texture_list[4]:
-            # Setup, 2 options: 
+            # Setup, 2 options:
             if options.mat_displacement_mode == 'DISPLACEMENT':
                 # 1. Image Texture => Displacement => Material Output
                 node_tex_height = nodes.new('ShaderNodeTexImage')
@@ -1123,11 +1130,11 @@ class Materialnode(object):
                 node_displ_offset.inputs[0].default_value = 0.0
                 if color_list[4]:
                     node_displ_offset.inputs[0].default_value = color_list[4][0]
-                node_displ_offset.inputs[1].default_value = 0.0 
+                node_displ_offset.inputs[1].default_value = 0.0
 
                 node_bump = nodes.new('ShaderNodeBump')
                 node_bump.name = "vector_bump"
-                node_bump.location = (-384, -232)                       
+                node_bump.location = (-384, -232)
 
                 # Links: height texture => displacement offset (1) => bump (Height) => Shader (Normal)
                 links.new(node_displ_offset.inputs[1], node_tex_height.outputs['Color'])
@@ -1172,10 +1179,10 @@ class Materialnode(object):
         elif node_tex_diff:
             links.new(node_mix_emit1.inputs['Color1'], node_tex_diff.outputs['Color'])
         elif color_list[0]:
-            node_mix_emit1.inputs['Color1'].default_value = color_list[0]  
+            node_mix_emit1.inputs['Color1'].default_value = color_list[0]
         else:
             node_mix_emit1.inputs['Color1'].default_value = (0.0, 0.0, 0.0, 1.0)
-            
+
         # Emissive/selfillum texture (only from mtr, may not be present)
         node_tex_emit = None
         if texture_list[5]:
@@ -1194,13 +1201,13 @@ class Materialnode(object):
             node_mix_emit2.location = (-753, 98)
             node_mix_emit2.use_clamp = True
             node_mix_emit2.inputs['Fac'].default_value = 1.0
-            node_mix_emit2.inputs['Color1'].default_value = color_list[5] 
-            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0) 
+            node_mix_emit2.inputs['Color1'].default_value = color_list[5]
+            node_mix_emit2.inputs['Color2'].default_value = (0.0, 0.0, 0.0, 1.0)
 
             # Link 1st mix node inputs
             links.new(node_mix_emit2.inputs['Color1'], node_mix_emit1.outputs['Color'])
             if node_tex_emit:
-                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color']) 
+                links.new(node_mix_emit2.inputs['Color2'], node_tex_emit.outputs['Color'])
 
             # Finally link to shader
             links.new(node_shader.inputs['Emissive Color'], node_mix_emit2.outputs[0])
@@ -1208,8 +1215,6 @@ class Materialnode(object):
         else:  # no emissive texture
             # link directly to shader
             links.new(node_shader.inputs['Emission'], node_mix_emit1.outputs[0])
-
-
 
         # Ambient color ad unconnected node for legacy reasons (may not be specified)
         if ambient:
@@ -1220,9 +1225,9 @@ class Materialnode(object):
             node_color_ambient.width = 220
             if (len(ambient) > 3):
                 node_color_ambient.outputs[0].default_value = ambient[:4]
-            else: 
-                node_color_ambient.outputs[0].default_value = ambient[:3] + [1.0]         
-    
+            else:
+                node_color_ambient.outputs[0].default_value = ambient[:3] + [1.0]
+
     @staticmethod
     def add_node_data(material, output_name, texture_list, color_list, alpha, ambient, options):
         """Select shader nodes based on options."""

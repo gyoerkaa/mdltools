@@ -51,8 +51,14 @@ class Material(object):
 
     def find_blender_material(self, options):
         """Finds a material in blender with the same settings as this one."""
-        def check_colors(color_list1, color_list2):
-            return Material.colorisclose(color_list1[5], color_list2[5])
+        def check_colors(color_list1, color_list2, ambient1=None, ambient2=None):
+            # Always check selfillumination
+            same_colors = Material.colorisclose(color_list1[5], color_list2[5])
+            if not options.mat_ignore_mdl_diffuse_color:
+                same_colors = same_colors and Material.colorisclose(color_list1[0], color_list2[0])
+            if not options.mat_ignore_mdl_ambient_color:
+                same_colors = same_colors and Material.colorisclose(ambient1, ambient2)
+            return same_colors
 
         def check_textures(texture_list1, texture_list2, ignore_case=True):
             """Check if the texture lists match."""
@@ -72,25 +78,26 @@ class Material(object):
             shader2_vs = ""
             shader2_fs = ""
             if mtr_data:
-                shader2_vs = mtr_data.customVS
-                shader2_fs = mtr_data.customFS
+                shader2_vs = mtr_data.customshaderVS
+                shader2_fs = mtr_data.customshaderFS
             return (shader1_vs == shader2_vs) and (shader1_fs == shader2_fs)
 
         #print("####################")
         #print("looking for: ")
         #print(self.texture_list)
-        #print(self.color_list[5])
+        #print(self.color_list)
         #print(self.alpha)
         for blen_mat in bpy.data.materials:
-            #print("#")
-            #print("Checking: " + blen_mat.name)
-            tex_list, col_list, alpha, ambient = Materialnode.get_node_data(blen_mat)
-            #print(tex_list)
-            #print(col_list[5])
-            #print(alpha)
-            # Compare textures, emissive color(5) and alpha
+            if not blen_mat.name.startswith("wok_"):
+                #print("#")
+                #print("Checking: " + blen_mat.name)
+                tex_list, col_list, alpha, ambient = Materialnode.get_node_data(blen_mat)
+                #print(tex_list)
+                #print(col_list)
+                #print(alpha)
+            # Compare textures, colors and alpha
             if (check_textures(tex_list, self.texture_list, True) and
-                check_colors(col_list, self.color_list) and
+                check_colors(col_list, self.color_list, ambient, self.ambient) and
                 check_shaders(blen_mat, self.mtr_data) and
                 math.isclose(alpha, self.alpha)):
                 #print("MATCH!")
@@ -204,14 +211,8 @@ class Material(object):
              self.texture_list[5] = None
         # Look for similar materials to avoid duplicates
         blender_mat = None
-        print("#####")
-        print(options.mat_automerge)
-        print(always_create_new)
         if options.mat_automerge and not always_create_new:
-            print("find existing")
             blender_mat = self.find_blender_material(options)
-        else:
-            print("create new")
         # Create new material if necessary
         if not blender_mat:
             new_name = self.generate_material_name()
