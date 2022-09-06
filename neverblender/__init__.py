@@ -79,7 +79,7 @@ if 'bpy' in locals():
 bl_info = {
     "name": "Neverblender",
     "author": "Attila Gyoerkoes",
-    'version': (2, 8, 39),
+    'version': (2, 8, 40),
     "blender": (2, 93, 0),
     "location": "File > Import-Export, Object Properties",
     "description": "Import, export and edit Aurora mdl format",
@@ -113,7 +113,7 @@ neverblender_classes = (
     nvb_props.NVB_PG_emitter,
 
     nvb_props.NVB_OT_decompile_detect_options,
-    
+
     nvb_ops_io.NVB_OT_mdlexport,
     nvb_ops_io.NVB_OT_mdlimport,
     nvb_ops_io.NVB_OT_mdl_superimport,
