@@ -75,54 +75,54 @@ class AuroraSmoothgroupGraph():
     is sufficient
     """
     max_colours = 31  # NWN may only use 32 groups max
-    
+
     def __init__(self):
         pass
-    
-    
+
+
     def is_colour_valid(self, v, colour, c):
         """Check if a color assignment is valid."""
         for i in range(self.V):
             if self.graph[v][i] == 1 and colour[i] == c:
                 return False
         return True
-     
-     
+
+
     def create_colourization(self, colour, v):
         """Find a valid colourization of the graph."""
         if v == self.V:
             return True
- 
+
         for c in range(1, self.max_colours + 1):
             if self.is_colour_valid(v, colour, c) == True:
                 colour[v] = c
                 if self.create_colourization(colour, v + 1) == True:
                     return True
                 colour[v] = 0
-    
-    
+
+
     def calc_smooth_groups(self, blen_mesh):
         """Get a valid number of """
         group_ids, group_cnt = blen_mesh.calc_smooth_groups(use_bitflags=False)
-        group_polys = [[fid for fid, g in enumerate(group_ids) if g==gid] for gid in range(1,group_cnt+1)]   
+        group_polys = [[fid for fid, g in enumerate(group_ids) if g==gid] for gid in range(1,group_cnt+1)]
         group_verts = [set([v for vl in [p.vertices[:] for pid, p in enumerate(blen_mesh.polygons) if pid in pid_list] for v in vl]) for pid_list in group_polys]
-        
+
         self.graph = [[not g1.isdisjoint(g2) for g1 in group_verts] for g2 in group_verts]
-        self.V = group_cnt     
-                
+        self.V = group_cnt
+
         # Get a graph colorization
         colour_list = [0] * self.V
         if self.create_colourization(colour_list, 0) == None:
             return []
-        
+
         # Map colourization to faces
         #colour_list = [2**c for c in colour_list]
-        smoothgroups = list([(face_idx, 2**(colour-1)) for face_idx in goup_face] for goup_face, colour in zip(group_polys, colour_list))     
+        smoothgroups = list([(face_idx, 2**(colour-1)) for face_idx in goup_face] for goup_face, colour in zip(group_polys, colour_list))
         smoothgroups = [item for sublist in smoothgroups for item in sublist]
         smoothgroups.sort(key=lambda x: x[0])
         smoothgroups = [sgi for (fi, sgi) in smoothgroups]
-        
-        return smoothgroups 
+
+        return smoothgroups
 
 
 def is_mdl_base(obj):
@@ -226,7 +226,7 @@ def find_file_nocase(file_dir, file_name):
         file_list = os.listdir(file_dir)
     except OSError:
         return
-    
+
     # Try to match filename in the directory
     search_name = file_name.lower()
     try:
@@ -236,7 +236,7 @@ def find_file_nocase(file_dir, file_name):
 
     if valid_name:
         return os.path.join(file_dir, valid_name)
-    
+
     return ""
 
 
@@ -369,11 +369,14 @@ def isNumber(s):
 
 
 def str2bool(s):
-    """Custom bool conversion. Only numbers >= 1 are True."""
+    """Custom bool conversion: Integers != 0 and "true" are True."""
     try:
-        b = (int(s) >= 1)
-    except ValueError:
-        b = False
+        b = (int(s) != 0)
+    except ValueError:  # string literal
+        try:
+            b = (s.lower() == "true")
+        except AttributeError:
+            b = false
     return b
 
 
