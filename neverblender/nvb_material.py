@@ -96,7 +96,7 @@ class Material(object):
                 #print(col_list)
                 #print(alpha)
             # Compare textures, colors and alpha
-            if (check_textures(tex_list, self.texture_list, True) and
+            if (check_textures(tex_list[:5], self.texture_list[:5], True) and
                 check_colors(col_list, self.color_list, ambient, self.ambient) and
                 check_shaders(blen_mat, self.mtr_data) and
                 math.isclose(alpha, self.alpha)):
