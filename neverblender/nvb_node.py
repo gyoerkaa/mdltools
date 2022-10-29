@@ -713,10 +713,11 @@ class Trimesh(Node):
                     ascii_lines.extend([fstr.format(*n) for n in me_normals])
                     del me_normals
 
-                    ascii_lines.append('  tangents ' + str(len(me_tangents)))
-                    fstr = '   ' + 3 * ' {: 8.5f}' + ' {: 3.1f}'
-                    ascii_lines.extend([fstr.format(*t) for t in me_tangents])
-                    del me_tangents
+                    if options.geom_tangents and me_tangents:
+                        ascii_lines.append('  tangents ' + str(len(me_tangents)))
+                        fstr = '   ' + 3 * ' {: 8.5f}' + ' {: 3.1f}'
+                        ascii_lines.extend([fstr.format(*t) for t in me_tangents])
+                        del me_tangents
 
         # Generate Smoothgroups
         if options.geom_smoothing_group:
