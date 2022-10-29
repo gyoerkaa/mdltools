@@ -38,8 +38,12 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
                         '(When disabled every face belongs to the same group)',
             default=True)
     export_normals: bpy.props.BoolProperty(
-            name='Export Normals and Tangents',
-            description='Add normals and tangents to MDL',
+            name='Export Normals',
+            description='Add normals to MDL',
+            default=True)
+    export_tangents: bpy.props.BoolProperty(
+            name='Export Tangents',
+            description='Add tangents to MDL',
             default=False)
     export_smoothing_mode: bpy.props.EnumProperty(
             name='Smoothing',
@@ -184,6 +188,9 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         box.prop(self, 'export_walkmesh')
         #box.prop(self, 'export_smoothgroups')
         box.prop(self, 'export_normals')
+        sub = box.column()  # only enable if normals are enabled
+        sub.enabled = self.export_normals
+        sub.prop(self, 'export_tangents')
         box.prop(self, 'export_smoothing_mode')
         # UV Map settings
         box = layout.box()
@@ -218,6 +225,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         # Geometry options
         options.geom_import = True
         options.geom_normals = self.export_normals
+        options.geom_tangents = self.export_tangents and self.export_normals
         options.geom_smoothing_split = (self.export_smoothing_mode == 'SPLIT')
         options.geom_smoothing_group = (self.export_smoothing_mode == 'GROUP')
         options.geom_smoothing_group_binary = addon_prefs.export_smoothgroups_binary
@@ -325,7 +333,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     collections_use: bpy.props.BoolProperty(
         name='Use Collections',
         description='Create a collection for each imported mdl',
-        default=False)      
+        default=False)
     fix_uvs: bpy.props.BoolProperty(
         name='Fix degenerated UVs',
         description='Fix degenerated UV coordinates (tverts)',
@@ -351,7 +359,7 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
     ignore_selfillum: bpy.props.BoolProperty(
         name='Ignore Self-Illumination',
         description='Ignore Self-Illumnination',
-        default=False, options={'HIDDEN'})  
+        default=False, options={'HIDDEN'})
 
     def mdl_import(self, context, options):
         def load_file(context, mdl_filepath, options):
@@ -389,22 +397,22 @@ class NVB_OT_mdlimport(bpy.types.Operator, bpy_extras.io_utils.ImportHelper):
         def generate_import_loc(i, placement='SPIRAL', spacing=10.0):
             """Generate a location for the imported model"""
             if placement == 'LINE':
-                return (spacing * i, 0.0, 0.0)     
+                return (spacing * i, 0.0, 0.0)
             else:  # 'SPIRAL' is default
                 k = math.floor(math.floor(math.sqrt(i)-1)/2)+1
                 return (spacing * min(k, max(-k, -2*k + abs(i-(4*k*k)-k))),
-                        spacing * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)                  
+                        spacing * min(k, max(-k, -2*k + abs(i-(4*k*k)+k))), 0.0)
 
         # Build list of files
         path_list = [os.path.join(self.directory, f.name) for f in self.files]
         if path_list:
-            # Potentially multiple files => Always generate+overwrite locations 
+            # Potentially multiple files => Always generate+overwrite locations
             loc_list = [generate_import_loc(i, options.placement) for i in range(len(path_list))]
             for loc, path in zip(loc_list, path_list):
                 options.mdl_location = loc
                 load_file(context, path, options)
         else:
-            # Single file => NEVER overwrite locations 
+            # Single file => NEVER overwrite locations
             if self.filepath:
                 load_file(context, self.filepath, options)
 
