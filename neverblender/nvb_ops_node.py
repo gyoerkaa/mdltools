@@ -1160,6 +1160,8 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                 else:
                     new_obj.data.materials.append(None)
 
+            new_obj.nvb.meshtype = obj.nvb.meshtype
+
             return new_obj
 
         # Empty slice, nothing remains of the old mesh
