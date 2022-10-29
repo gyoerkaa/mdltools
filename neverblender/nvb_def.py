@@ -207,7 +207,7 @@ class Classification():
     GUI = 'gui'
     ITEM = 'item'
     OTHER = 'other'
-    
+
     ALL = {UNKNOWN, TILE, CHARACTER, DOOR, EFFECT, GUI, ITEM, OTHER}
 
 
@@ -325,6 +325,7 @@ class ExportOptions():
         # Geometry
         self.geom_walkmesh = True
         self.geom_normals = False
+        self.geom_tangents = False
         self.geom_smoothing_split = False
         self.geom_smoothing_group = False
         self.geom_smoothing_group_binary = False
@@ -334,7 +335,7 @@ class ExportOptions():
         self.mat_mtr_ref = 'bitmap'
         self.mat_diffuse_ref = 'bitmap'
         # Misc options
-        self.anim_export = True        
+        self.anim_export = True
         # UV Map  settings
         self.uv_merge = True
         self.uv_level = 'REN'
