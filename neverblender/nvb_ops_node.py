@@ -893,7 +893,8 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
         reg_name = re.compile(r'[\w\-\.]+(ml[0-9]+)', re.IGNORECASE)
         existing = [(o, reg_name.match(o.name).group(1))
                     for o in existing_objects
-                    if o.type == 'LAMP' and reg_name.match(o.name)]
+                    if o.type == 'LIGHT' and reg_name.match(o.name)]
+
         if existing:
             for obj, suffix in existing:
                 obj.name = name_prefix + suffix
@@ -932,6 +933,7 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
         existing = [(o, reg_name.match(o.name).group(1))
                     for o in existing_objects
                     if o.type == 'EMPTY' and reg_name.match(o.name)]
+
         if existing:
             for obj, suffix in existing:
                 obj.name = name_prefix + suffix
@@ -1065,7 +1067,6 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
         """Returns a list of target objects to operate on, parents before children."""
         def get_tile_affinity(obj, aabb_min, aabb_max, depsgraph, optimize_ratio = 0.0):
             """Determines how tje object belongt to tile, 0 = outside, 1 partial, 2 = inside."""
-            print("  " + obj.name)
             if obj.type == 'MESH':
                  # For meshes we need to check vertices
                 mesh = obj.evaluated_get(depsgraph).to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
