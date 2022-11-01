@@ -847,6 +847,12 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
     bl_label = "Setup Tile"
     bl_options = {'UNDO'}
 
+    direct_target: bpy.props.StringProperty(
+        name='Target',
+        description="Override target",
+        options={'HIDDEN'},
+        default="")
+
     @staticmethod
     def create_wok_mesh(mdl_base, layer, existing_objects, name_prefix,
                         wok_mode=None):
@@ -969,7 +975,18 @@ class NVB_OT_util_nodes_tile(bpy.types.Operator):
 
     def execute(self, context):
         """Create Walkmesh root and objects."""
-        mdl_base = nvb_utils.get_obj_mdl_base(context.object)
+
+        # Need to do it that way for cross compatibility (2.8-3.3)
+        if self.direct_target:
+            target = bpy.data.objects[self.direct_target]
+        else:
+            target = context.object
+
+        if not target:
+            self.report({'ERROR'}, 'No target')
+            return {'CANCELLED'}
+
+        mdl_base = nvb_utils.get_obj_mdl_base(target)
         layer = context.view_layer
         if not mdl_base:
             self.report({'ERROR'}, 'No MDL root')
@@ -1039,10 +1056,10 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
             next_idx = next_idx + 1
             tile_name = self.tile_prefix+"{0:02d}".format(next_idx)
 
-        obj = bpy.data.objects.new(tile_name, None)
-        obj.location = location
-        context.collection.objects.link(obj)
-        return obj
+        new_empty = bpy.data.objects.new(tile_name, None)
+        new_empty.location = location
+        context.collection.objects.link(new_empty)
+        return new_empty
 
     def find_targets(self, context, aabb_min, aabb_max, tile_count):
         """Returns a list of target objects to operate on, parents before children."""
@@ -1230,8 +1247,9 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                         if not mdl_base:
                             mdl_base = self.create_mdl_base(context, origin + mathutils.Vector((5+x*10, 5+y*10, 0)), tile_idx)
                             context.view_layer.update()
-                            mdl_base_list.append(mdl_base)
-                            mdl_base.nvb.classification = nvb_def.Classification.TILE
+                            if mdl_base:
+                                mdl_base_list.append(mdl_base)
+                                mdl_base.nvb.classification = nvb_def.Classification.TILE
                             tile_idx += 1
 
                         if self.adjust_origins:
@@ -1254,10 +1272,8 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
 
         if self.add_tile_features:
             for mb in mdl_base_list:
-                context.view_layer.objects.active = mb
-                mb.select_set(True)
-                bpy.ops.nvb.util_nodes_tile()
-                mb.select_set(False)
+                if mb:
+                    bpy.ops.nvb.util_nodes_tile(direct_target=mb.name)
 
         return {'FINISHED'}
 
