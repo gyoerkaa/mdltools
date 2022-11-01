@@ -1031,7 +1031,15 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
     ignore_objects = []  # don't proccess these objects
 
     def create_mdl_base(self, context, location, tile_idx):
-        obj = bpy.data.objects.new(self.tile_prefix+str(tile_idx), None)
+        """Create the mdl base for a tile."""
+        # Generate the name
+        next_idx = max(1, tile_idx)
+        tile_name = self.tile_prefix+"{0:02d}".format(next_idx)
+        while tile_name in bpy.data.objects:
+            next_idx = next_idx + 1
+            tile_name = self.tile_prefix+"{0:02d}".format(next_idx)
+
+        obj = bpy.data.objects.new(tile_name, None)
         obj.location = location
         context.collection.objects.link(obj)
         return obj
