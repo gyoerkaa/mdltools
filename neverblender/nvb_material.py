@@ -222,7 +222,7 @@ class Material(object):
             blender_mat.use_backface_culling = True
 
             blender_mat.nvb.mtr.use = bool(self.mtr_name) or self.mtr_data is not None
-            if blender_mat.nvb.mtr.use:
+            if blender_mat.nvb.mtr.use and self.mtr_data:
                 blender_mat.nvb.mtr.renderhint = next(iter(self.mtr_data.renderhints or []), "")
                 blender_mat.nvb.mtr.shader_vs = self.mtr_data.customshaderVS
                 blender_mat.nvb.mtr.shader_gs = self.mtr_data.customshaderGS
