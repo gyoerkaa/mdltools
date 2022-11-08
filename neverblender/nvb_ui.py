@@ -264,6 +264,7 @@ class NVB_PT_armature(bpy.types.Panel):
         box.label(text='Animation Transfer')
         box.prop(addon.preferences, 'util_psb_anim_mode')
         box.prop(obj.nvb, 'util_psb_anim_target')
+        box.prop(obj.nvb, 'util_psb_anim_overwrite_anims')
         box.operator('nvb.amt_amt2psb', text='Copy Animations',
                      icon='UV_DATA').use_existing = True
         layout.separator()
@@ -347,7 +348,7 @@ class NVB_PT_mtr(bpy.types.Panel):
         mat = context.material
 
         layout.enabled = mat.nvb.mtr.use
-        
+
         layout.separator()
         box = layout.box()
         box.prop(mat.nvb.mtr, 'renderhint')
@@ -783,14 +784,14 @@ class NVB_PT_utils(bpy.types.Panel):
             col.prop(render, 'resolution_y', text='')
 
             row = box.row(align=True)
-            row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL')            
+            row.operator(nvb_ops.NVB_OT_util_minimap.bl_idname,text='Render Minimap', icon='RENDER_STILL')
             layout.separator()
 
             # NFO Helper
             box = layout.box()
             box.label(text='Setfile Helper')
 
-            layout.separator()    
+            layout.separator()
 
        # Tileslicer
         box = layout.box()
@@ -799,7 +800,7 @@ class NVB_PT_utils(bpy.types.Panel):
         box.operator('nvb.util_tileslicer', icon='SORTSIZE')
         layout.separator()
 
-        layout.separator()                      
+        layout.separator()
 
 
 class NVB_PT_emitter(bpy.types.Panel):
