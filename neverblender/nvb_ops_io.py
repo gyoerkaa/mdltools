@@ -40,7 +40,7 @@ class NVB_OT_mdlexport(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
     export_normals: bpy.props.BoolProperty(
             name='Export Normals',
             description='Add normals to MDL',
-            default=True)
+            default=False)
     export_tangents: bpy.props.BoolProperty(
             name='Export Tangents',
             description='Add tangents to MDL',
