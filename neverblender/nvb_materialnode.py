@@ -420,6 +420,13 @@ class Materialnode(object):
                     if node.inputs['Color2'].is_linked:
                         neighbour_node = node.inputs['Color2'].links[0].from_node
                         queue.append((neighbour_node, depth))
+                elif node.type == 'MIX':
+                    if node.inputs['A'].is_linked:
+                        neighbour_node = node.inputs['A'].links[0].from_node
+                        queue.append((neighbour_node, depth))
+                    if node.inputs['B'].is_linked:
+                        neighbour_node = node.inputs['B'].links[0].from_node
+                        queue.append((neighbour_node, depth))
                 # Separate RGB nodew
                 # Single image socket (0), always add to queue
                 elif node.type == 'SEPRGB':
@@ -490,6 +497,23 @@ class Materialnode(object):
                     if not node.inputs['Color2'].is_linked:
                         return node.inputs['Color2']
                     neighbour_node = node.inputs["Color2"].links[0].from_node
+                    if neighbour_node.type == 'RGB':
+                        return neighbour_node.outputs[0]
+                    # Nothing useable, continue search
+                    queue.append((neighbour_node, depth))
+                elif node.type == 'MIX':
+                    # Color2: Check for unlinked socket or directly linked color socket
+                    if not node.inputs['A'].is_linked:
+                        return node.inputs['A']
+                    neighbour_node = node.inputs["A"].links[0].from_node
+                    if neighbour_node.type == 'RGB':
+                        return neighbour_node.outputs[0]
+                    # Nothing useable, continue search
+                    queue.append((neighbour_node, depth))
+                    # Color2: Check for unlinked socket or directly linked color socket
+                    if not node.inputs['B'].is_linked:
+                        return node.inputs['B']
+                    neighbour_node = node.inputs["B"].links[0].from_node
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
