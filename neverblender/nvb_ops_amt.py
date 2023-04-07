@@ -187,12 +187,19 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         for c in amt_bone.children:
             self.create_psd_bones(c, psb)
 
-    def get_psd_bones(self, amt_bone, psd_bone_root):
+    def get_psd_bones(self, amt_bone, psd_bone_root, strip_trailing=False):
         """Creates a list of pseudobones for this armature."""
         psd_bone_list = [psd_bone_root]
         nvb_utils.get_children_recursive(psd_bone_root, psd_bone_list)
-        if amt_bone.name in [n.name for n in psd_bone_list]:
-            psd_bone_name = amt_bone.name
+
+        if strip_trailing:
+            match_name = [b.name for b in psd_bone_list
+                          if b.name.startswith(amt_bone.name)]
+        else:
+            match_name = [b.name for b in psd_bone_list
+                          if b.name == amt_bone.name]
+        if match_name:
+            psd_bone_name = match_name[0]
             # Adjust pseudo bones location (remove "leftover" location)
             psd_bone_loc = amt_bone.head_local
             if amt_bone.parent:
@@ -202,8 +209,8 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             # Add to list and copy matrix for animation conversion
             self.amb_psb_pairs.append([amt_bone.name, psd_bone_name])
             self.mats_edit_bone[amt_bone.name] = amt_bone.matrix_local.copy()
-        for c in amt_bone.children:
-            self.get_psd_bones(c, psd_bone_root)
+        for child in amt_bone.children:
+            self.get_psd_bones(child, psd_bone_root, strip_trailing)
 
     def copy_keyframes(self, amt, amt_action, amb_name, psb_name,
                        frame_offset=0, copy_rotmode=True):
@@ -335,7 +342,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                 # Add keyframes to fcurves
                 insert_kfp(psb_fcu, frames, values, psd_dp, dp_dim)
 
-    def copy_events(self, amt, amt_action_list, mdl_anim):
+    def copy_events(self, amt, amt_action_list, mdl_anim, frame_offset=0):
         """Creates animation events from keyframes armature events."""
         event_names = [ev.name for ev in amt.nvb.amt_event_list]
         event_data = []
@@ -352,56 +359,71 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         for ev_frame, ev_name in event_data:
             new_event = mdl_anim.eventList.add()
             new_event.name = ev_name
-            new_event.frame = int(start_frame + ev_frame)
+            new_event.frame = int(start_frame + ev_frame + frame_offset)
 
+    def copy_animations(self, mdl_base, armature, anim_list, overwrite=True):
+        """Take care of events, keyframes and nwn anims."""
+        # overwrite => clear old data first
+        if len(anim_list) < 1:
+            return
 
-    def copy_animations(self, mdl_base, armature, animation_list,
-                        overwrite_existig=True, create_meta_data=True):
-        # overwrite => clear old ata first
-        if overwrite_existig:
+        last_keyframe = 0
+        if overwrite:
             # Clear all objects animation data (if any)
-            old_animblock_end = 0
             for _, psd_bone_name in self.amb_psb_pairs:
                 psd_bone = bpy.data.objects[psd_bone_name]
                 if psd_bone.animation_data:
                     psd_bone.animation_data_clear()
-            # Clear existing meta data, if we are to create new ones
-            if create_meta_data:
-                # Clear the animation list in the mdl base
-                for _ in range(len(mdl_base.nvb.animList)):
-                    mdl_base.nvb.animList.remove(0)
-                mdl_base.nvb.animListIdx = 0
-            frame_offset = 0
+            # Clear the animation list in the mdl base
+            for _ in range(len(mdl_base.nvb.animList)):
+                mdl_base.nvb.animList.remove(0)
+            mdl_base.nvb.animListIdx = 0
         # Keep existing animations => need to append
         else:
-            # Find the last keyed frame
-            old_animblock_end = 0
+            # Find the last keyed frame, we want to append the new anims
             for _, psd_bone_name in self.amb_psb_pairs:
                 psd_bone = bpy.data.objects[psd_bone_name]
-                if psd_bone.animation_data and psd_bone.animation_data.action:
-                    last_kfp = max([fcu.keyframe_points[-1].co[0] for fcu in psd_bone.animation_data.action.fcurves])
-                    old_animblock_end = max(old_animblock_end, last_kfp)
-            frame_offset = old_animblock_end + 100
+                if psd_bone.animation_data and psd_bone.animation_data.action and psd_bone.animation_data.action.fcurves:
+                    max_frame = max([fcu.keyframe_points[-1].co[0] for fcu in psd_bone.animation_data.action.fcurves])
+                    last_keyframe = max(last_keyframe, max_frame)
+
+        # insert 70 frames after existing anims end
+        if last_keyframe > 0:
+            last_keyframe = last_keyframe + 70
 
         # Create new animation data
-        for anim_name, anim_length, action_list, transtime in animation_list:
-            if create_meta_data:
-                new_anim = nvb_utils.create_anim_list_item(mdl_base)
-                new_anim.name = anim_name
-                new_anim.root_obj = mdl_base
-                new_anim.transtime = transtime
-                new_anim.frameStart = max(new_anim.frameStart, old_animblock_end)
-                new_anim.frameEnd = int(new_anim.frameStart + anim_length)
-                frame_offset = new_anim.frameStart
-                self.copy_events(armature, action_list, new_anim)
-            else:
-                frame_offset = frame_offset + anim_length
+        if len(anim_list) == 1:
+            # We'll try to align frames
+            anim_name, anim_length, action_list, transtime = anim_list[0]
+            new_anim = nvb_utils.create_anim_list_item(mdl_base)
+            new_anim.name = anim_name
+            new_anim.root_obj = mdl_base
+            new_anim.transtime = transtime
+            new_anim.frameStart = int(math.floor(last_keyframe))
+            new_anim.frameEnd = int(math.ceil(new_anim.frameStart + anim_length))
+            self.copy_events(armature, action_list, new_anim)
             # Add new animation data
             for action in action_list:
                 for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
                     self.copy_keyframes(armature, action,
                                         amt_bone_name, psd_bone_name,
-                                        frame_offset)
+                                        new_anim.frameStart)
+        else:
+            # No chance/need of aligning frames, let the system take care of
+            for anim_name, anim_length, action_list, transtime in anim_list:
+                new_anim = nvb_utils.create_anim_list_item(mdl_base)
+                new_anim.name = anim_name
+                new_anim.root_obj = mdl_base
+                new_anim.transtime = transtime
+                new_anim.frameStart = max(new_anim.frameStart, last_keyframe)
+                new_anim.frameEnd = int(new_anim.frameStart + anim_length)
+                self.copy_events(armature, action_list, new_anim)
+                # Add new animation data
+                for action in action_list:
+                    for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
+                        self.copy_keyframes(armature, action,
+                                            amt_bone_name, psd_bone_name,
+                                            new_anim.frameStart)
 
     def create_constraints(self, amt):
         """Apply transform constraint to pseudo bone from armature bone."""
@@ -446,6 +468,8 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         self.mats_edit_bone = dict()
 
         bpy.ops.object.mode_set(mode='EDIT')
+        # Whether to use existing mesh bones (transfer animations) or
+        # generate new ones from the armature
         if self.use_existing:
             mdl_base = armature.nvb.util_psb_anim_target
             overwrite_anims = armature.nvb.util_psb_anim_overwrite_anims
@@ -455,13 +479,14 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             # Get pseudo bones
             for amt_bone in armature.data.bones:
                 if not amt_bone.parent:
-                    self.get_psd_bones(amt_bone, mdl_base)
+                    self.get_psd_bones(amt_bone, mdl_base, True)
         else:
+            # Since we crate new bones we always overwrite anims
+            overwrite_anims = True
             # Create helper objects for grouping and holding animation data
-            overwrite_anims = False
             mdl_base, psd_bone_root = self.create_parent_objects(
                 context, armature, anim_mode, create_base, create_root)
-            # Save some date (somehow we can't access them properly otherwise)
+            # Save some data (somehow we can't access them properly otherwise)
             # Create pseudo bones
             for amt_bone in armature.data.bones:
                 if not amt_bone.parent:
@@ -474,16 +499,10 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
             anim_list = []
             if armature.animation_data and armature.animation_data.action:
                 action = armature.animation_data.action
-                if overwrite_anims:
-                    # no metadata => name and farme range doesn't matter
-                    anim_list.append(['unnamed', 1, [action], 7.5])
-                    self.copy_animations(mdl_base, armature, anim_list, overwrite_anims, False)
-                else:
-                    # frame range = full frame range of action
-                    #first_kfp = min([fcu.keyframe_points[-1].co[0] for fcu in action.fcurves])
-                    last_kfp = math.ceil(max([fcu.keyframe_points[-1].co[0] for fcu in action.fcurves]))
-                    anim_list.append(['copied_anim', last_kfp, [action], 7.5])
-                    self.copy_animations(mdl_base, armature, anim_list, overwrite_anims, True)
+                first_kfp = math.floor(min([fcu.keyframe_points[0].co[0] for fcu in action.fcurves]))
+                last_kfp = math.ceil(max([fcu.keyframe_points[-1].co[0] for fcu in action.fcurves]))
+                anim_list.append(['copied_anim', last_kfp-first_kfp, [action], 7.5])
+                self.copy_animations(mdl_base, armature, anim_list, overwrite_anims)
         elif anim_mode == 'NLA_TRACKS':
             anim_list = []
             for nla_track in armature.animation_data.nla_tracks:
@@ -497,7 +516,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                     transtime = nla_track.strips[0].blend_in
                     anim_list.append([anim_name, anim_length, action_list,
                                       transtime])
-            self.copy_animations(mdl_base, armature, anim_list, overwrite_anims, True)
+            self.copy_animations(mdl_base, armature, anim_list, overwrite_anims)
         elif anim_mode == 'NLA_STRIPS':
             anim_list = []
             nla_track = armature.animation_data.nla_tracks.active
@@ -510,7 +529,7 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                     transtime = nla_strip.blend_in
                     anim_list.append([anim_name, anim_length, action_list,
                                      transtime])
-            self.copy_animations(mdl_base, armature, anim_list, overwrite_anims, True)
+            self.copy_animations(mdl_base, armature, anim_list, overwrite_anims)
 
         context.evaluated_depsgraph_get().update()
         context.view_layer.update()
