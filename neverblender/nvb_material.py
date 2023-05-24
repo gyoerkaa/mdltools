@@ -271,8 +271,8 @@ class Material(object):
             if col_list[5]:
                 ascii_lines.append(fstr_col.format('selfillumcolor', *col_list[5][:3]))
             # Write Alpha
-            if alpha and not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
-                fstr = '  alpha {: 3.2f}'
+            if alpha is not None and not math.isclose(alpha, 1.0, rel_tol=0.01):  # Omit 1.0
+                fstr = '  alpha {:3.2f}'
                 ascii_lines.append(fstr.format(alpha))
             # Write textures
             if blen_material.nvb.mtr.use:
