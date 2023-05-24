@@ -943,7 +943,7 @@ class NVB_PT_emitter(bpy.types.Panel):
             col = split.column()
             col.label(text="Chunk:")
             col = split.column()
-            col.prop(part_settings.nvb, "chunk", text="")
+            col.prop(part_settings.nvb, "chunkname", text="")
         else:
             split = box.split(factor=0.25)
             col = split.column()
