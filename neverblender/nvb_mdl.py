@@ -170,7 +170,7 @@ class Mdl():
         ref_out_path = "%out_path%"
         ref_out_dir = "%out_dir%"
         ref_out_file = "%out_filename%"
-        
+
         run_cmd = []
         if compiler_command:
             mdl_dir, mdl_filename = os.path.split(mdl_path)
@@ -203,7 +203,7 @@ class Mdl():
             else:
                 # - Create named temporay file (named because we'll need full access for subprocesses)
                 # - Windows issue: Can't use auto-delete. It will lock the file when copyfile() closes it, making it inaccessible
-                # - Windows issue: Can't use Windows default tempfile directory as working dir, cleanmodels doesn't have permissions for wirting there 
+                # - Windows issue: Can't use Windows default tempfile directory as working dir, cleanmodels doesn't have permissions for wirting there
                 #                  (nwnmdlcomp works fine though?). Use compiler dir as working dir instead.
                 working_dir = os.path.split(options.compiler_path)[0]
                 tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)  # dir=working_dir not necessary yet, only for subprocess
@@ -227,7 +227,7 @@ class Mdl():
                     os.remove(tf.name)
                 """
                 # Does only work with nwnmdlcomp, not cleanmodels
-                # We need to prevent auto-deletion and delete manually ourselves, 
+                # We need to prevent auto-deletion and delete manually ourselves,
                 # (on Windows access to the tempfile will be blocked after running the decompiler)
                 tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
                 try:
@@ -247,8 +247,8 @@ class Mdl():
                     run_cmd = Mdl.build_external_decompile_cmd(mdl_filepath, tf.name, options)
                     result = subprocess.run(run_cmd, stdout=subprocess.PIPE)
                     if result.returncode == 0:
-                        self.read_ascii_mdl(tf.read(), options)  
-                """              
+                        self.read_ascii_mdl(tf.read(), options)
+                """
         else:
             # ASCII model, parse directly
             with open(os.fsencode(mdl_filepath), 'r') as f:
@@ -262,7 +262,7 @@ class Mdl():
                 print("Neverblender: WARNING - Detected binary MDL with no decompiler avaible.")
             else:
                 # Write the output of the external decompiler to a temp file and feed it into the ascii parser
-                # We need to prevent auto-deletion and delete manually ourselves, 
+                # We need to prevent auto-deletion and delete manually ourselves,
                 # (on Windows access to the tempfile will be blocked after running the decompiler)
                 tf = tempfile.NamedTemporaryFile(mode="r+", delete=False)
                 try:
@@ -274,7 +274,7 @@ class Mdl():
                         print("Neverblender: ERROR - Could not decompile file.")
                 finally:
                     tf.close()
-                    os.remove(tf.name)             
+                    os.remove(tf.name)
         else:
             # ASCII model, parse directly
             with open(os.fsencode(wkm_filepath), 'r') as f:
@@ -334,7 +334,7 @@ class Mdl():
         if options.export_metadata:
             # Add current date
             ct = datetime.now()
-            time_str = ct.strftime(" - %A, %Y-%m-%d")
+            time_str = ct.strftime("|%Y-%m-%d")
             # filedependancy (blend file name)
             blend_file = os.path.basename(bpy.data.filepath)
             if not blend_file:
@@ -347,7 +347,7 @@ class Mdl():
         except (KeyError, ValueError):
             nvbVersion = "-1"
 
-        ascii_lines.append("# Exported from NeverBlender " + nvbVersion + time_str)
+        ascii_lines.append("# NeverBlender " + nvbVersion + "|Blender " + bpy.app.version_string + time_str)
         ascii_lines.append("filedependancy " + blend_file)
 
     @staticmethod
