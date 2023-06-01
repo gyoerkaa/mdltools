@@ -1225,20 +1225,17 @@ class Emitter(Node):
         ascii_lines.append(form_prop('deadspace', part_set.nvb.deadspace))
 
         # Chunk Properties
-        if part_set.nvb.chunkname:
+        if part_set.nvb.chunkname and part_set.nvb.chunkname.lower() != "null":
             ascii_lines.append(form_prop('chunkName', part_set.nvb.chunkname))
         # Texture Properties
         if part_set.nvb.texture:
             ascii_lines.append(form_prop('texture', part_set.nvb.texture))
-            ascii_lines.append(form_prop('twosidedtex',
-                                            part_set.nvb.twosidedtex))
-            ascii_lines.append(form_prop('m_istinted',
-                                            part_set.nvb.m_istinted))
+            ascii_lines.append(form_prop('twosidedtex', part_set.nvb.twosidedtex))
+            ascii_lines.append(form_prop('m_istinted', part_set.nvb.m_istinted))
             ascii_lines.append(form_prop('xgrid', part_set.nvb.xgrid))
             ascii_lines.append(form_prop('ygrid', part_set.nvb.ygrid))
             ascii_lines.append(form_prop('fps', part_set.nvb.fps))
-            ascii_lines.append(form_prop('framestart',
-                                            part_set.nvb.framestart))
+            ascii_lines.append(form_prop('framestart', part_set.nvb.framestart))
             ascii_lines.append(form_prop('frameend', part_set.nvb.frameend))
             ascii_lines.append(form_prop('random', part_set.nvb.random))
 
