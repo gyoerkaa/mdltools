@@ -1258,7 +1258,8 @@ class NVB_OT_util_tileslicer(bpy.types.Operator):
                             new_origin = mdl_base.location
                             local_origin = tile_part.matrix_world.inverted() @ new_origin
                             if tile_part.data:
-                                tile_part.data.transform(mathutils.Matrix.Translation(-local_origin))
+                                if tile_part.type == "MESH":
+                                    tile_part.data.transform(mathutils.Matrix.Translation(-local_origin))
                                 tile_part.matrix_world.translation += (new_origin - tile_part.matrix_world.translation)
                             context.view_layer.update()
 
