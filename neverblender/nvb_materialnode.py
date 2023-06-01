@@ -485,18 +485,18 @@ class Materialnode(object):
                 depth += 1
                 # MixRGB node
                 if node.type == 'MIX_RGB':
-                    # Color1: Check for unlinked socket or directly linked color socket
-                    if not node.inputs['Color1'].is_linked:
-                        return node.inputs['Color1']
-                    neighbour_node = node.inputs['Color1'].links[0].from_node
-                    if neighbour_node.type == 'RGB':
-                        return neighbour_node.outputs[0]
-                    # Nothing useable, continue search
-                    queue.append((neighbour_node, depth))
                     # Color2: Check for unlinked socket or directly linked color socket
                     if not node.inputs['Color2'].is_linked:
                         return node.inputs['Color2']
                     neighbour_node = node.inputs["Color2"].links[0].from_node
+                    if neighbour_node.type == 'RGB':
+                        return neighbour_node.outputs[0]
+                    # Nothing useable, continue search
+                    queue.append((neighbour_node, depth))
+                    # Color1: Check for unlinked socket or directly linked color socket
+                    if not node.inputs['Color1'].is_linked:
+                        return node.inputs['Color1']
+                    neighbour_node = node.inputs['Color1'].links[0].from_node
                     if neighbour_node.type == 'RGB':
                         return neighbour_node.outputs[0]
                     # Nothing useable, continue search
