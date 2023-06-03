@@ -40,9 +40,10 @@ class Mtr(object):
     def get_mtr_name(blen_material, from_out_node=False, strip_trailing=False):
         """Parses parameter values from list of strings."""
         mtr_name = ""
-        if from_out_node:  # Read from output node first
-            out_node = Materialnode.get_output_node(blen_material)
-            mtr_name = Materialnode.get_node_identifier(out_node, False)
+        # bad idea, might be multiple object with the same name
+        #if from_out_node:  # Read from output node first
+        #    out_node = Materialnode.get_output_node(blen_material)
+        #    mtr_name = Materialnode.get_node_identifier(out_node, False)
         if not mtr_name:  # Read from material name if no output node
             mtr_name = blen_material.name
         if strip_trailing:  # Strip trailing numbers
