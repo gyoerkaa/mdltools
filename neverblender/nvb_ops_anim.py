@@ -198,7 +198,7 @@ class NVB_OT_anim_scale(bpy.types.Operator):
                     for e in a.eventList:
                         e.frame += padding
         # Adjust the target (scaled) animation itself
-        anim.frameEnd += padding
+        anim.frameEnd = int(anim.frameEnd + padding)
         for e in anim.eventList:
             e.frame = (e.frame - anim.frameStart) * \
                 self.scaleFactor + anim.frameStart
@@ -332,7 +332,7 @@ class NVB_OT_anim_crop(bpy.types.Operator):
                 anim.eventListIdx = 0
             else:
                 e.frame -= totalCrop
-        anim.frameEnd -= totalCrop
+        anim.frameEnd = int(anim.frameEnd-totalCrop)
         # Re-adjust the timeline to the new bounds
         nvb_utils.toggle_anim_focus(context.scene, mdl_base)
         return {'FINISHED'}
