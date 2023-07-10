@@ -680,16 +680,16 @@ class NVB_OT_util_nodes_dwk(bpy.types.Operator):
         # Create (walk)meshes
         if dwk_mode == 'gen_swing1':
             dimensions = mathutils.Vector((0.1, 2.0, 3.0))
-            mesh_data = [['_DWK_wg_closed', (0.0, 0.0, 0.0),
+            mesh_data = [['DWK_wg_closed', (0.0, 0.0, 0.0),
                           dimensions],
-                         ['_DWK_wg_open1', (0.0, 0.0, -1.3962633609771729),
+                         ['DWK_wg_open1', (0.0, 0.0, -1.3962633609771729),
                           dimensions],
-                         ['_DWK_wg_open2', (0.0, 0.0, 1.3962633609771729),
+                         ['DWK_wg_open2', (0.0, 0.0, 1.3962633609771729),
                           dimensions]]
         elif dwk_mode == 'gen_slide1':
-            mesh_data = [['_DWK_wg_closed', (0.0, 0.0, 0.0),
+            mesh_data = [['DWK_wg_closed', (0.0, 0.0, 0.0),
                           mathutils.Vector((0.1, 2.0, 3.0))],
-                         ['_DWK_wg_open1', (0.0, 0.0, 0.0),
+                         ['DWK_wg_open1', (0.0, 0.0, 0.0),
                           mathutils.Vector((0.15, 0.05, 3.0))]]
         for suffix, rotation, dimensions in mesh_data:
             newname = name_prefix + suffix  # the correct name
