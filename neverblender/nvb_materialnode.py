@@ -627,7 +627,8 @@ class Materialnode(object):
             """Get texture from an input socket."""
             texture_node = Materialnode.get_texture_node_nearest(input_socket, max_depth, exclusive)
             if texture_node:
-                return Materialnode.get_texture_name(texture_node)
+                tex_name = os.path.splitext(Materialnode.get_texture_name(texture_node))[0]
+                return tex_name
 
             return fail_value
 
