@@ -375,9 +375,10 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                 if psd_bone.animation_data:
                     psd_bone.animation_data_clear()
             # Clear the animation list in the mdl base
-            for _ in range(len(mdl_base.nvb.animList)):
-                mdl_base.nvb.animList.remove(0)
-            mdl_base.nvb.animListIdx = 0
+            if mdl_base:
+                for _ in range(len(mdl_base.nvb.animList)):
+                    mdl_base.nvb.animList.remove(0)
+                mdl_base.nvb.animListIdx = 0
         # Keep existing animations => need to append
         else:
             # Find the last keyed frame, we want to append the new anims
@@ -395,28 +396,13 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
         if len(anim_list) == 1:
             # We'll try to align frames
             anim_name, anim_length, action_list, transtime = anim_list[0]
-            new_anim = nvb_utils.create_anim_list_item(mdl_base)
-            new_anim.name = anim_name
-            new_anim.root_obj = mdl_base
-            new_anim.transtime = transtime
-            new_anim.frameStart = int(math.floor(last_keyframe))
-            new_anim.frameEnd = int(math.ceil(new_anim.frameStart + anim_length))
-            self.copy_events(armature, action_list, new_anim)
-            # Add new animation data
-            for action in action_list:
-                for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
-                    self.copy_keyframes(armature, action,
-                                        amt_bone_name, psd_bone_name,
-                                        new_anim.frameStart)
-        else:
-            # No chance/need of aligning frames, let the system take care of
-            for anim_name, anim_length, action_list, transtime in anim_list:
+            if mdl_base:
                 new_anim = nvb_utils.create_anim_list_item(mdl_base)
                 new_anim.name = anim_name
                 new_anim.root_obj = mdl_base
                 new_anim.transtime = transtime
-                new_anim.frameStart = max(new_anim.frameStart, last_keyframe)
-                new_anim.frameEnd = int(new_anim.frameStart + anim_length)
+                new_anim.frameStart = int(math.floor(last_keyframe))
+                new_anim.frameEnd = int(math.ceil(new_anim.frameStart + anim_length))
                 self.copy_events(armature, action_list, new_anim)
                 # Add new animation data
                 for action in action_list:
@@ -424,6 +410,37 @@ class NVB_OT_amt_amt2psb(bpy.types.Operator):
                         self.copy_keyframes(armature, action,
                                             amt_bone_name, psd_bone_name,
                                             new_anim.frameStart)
+            else:
+                # No mdl base means just dumpin the keyframes in, dangerous, but no choice
+                for action in action_list:
+                    for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
+                        self.copy_keyframes(armature, action,
+                                            amt_bone_name, psd_bone_name,
+                                            int(math.floor(last_keyframe)))
+        else:
+            # No chance/need of aligning frames, let the system take care of
+            if mdl_base:
+                for anim_name, anim_length, action_list, transtime in anim_list:
+                    new_anim = nvb_utils.create_anim_list_item(mdl_base)
+                    new_anim.name = anim_name
+                    new_anim.root_obj = mdl_base
+                    new_anim.transtime = transtime
+                    new_anim.frameStart = max(new_anim.frameStart, last_keyframe)
+                    new_anim.frameEnd = int(new_anim.frameStart + anim_length)
+                    self.copy_events(armature, action_list, new_anim)
+                    # Add new animation data
+                    for action in action_list:
+                        for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
+                            self.copy_keyframes(armature, action,
+                                                amt_bone_name, psd_bone_name,
+                                                new_anim.frameStart)
+            else:
+                # No mdl base means just dumpin the keyframes in, dangerous, but no choice
+                for action in action_list:
+                    for amt_bone_name, psd_bone_name in self.amb_psb_pairs:
+                        self.copy_keyframes(armature, action,
+                                            amt_bone_name, psd_bone_name,
+                                            int(math.floor(last_keyframe)))
 
     def create_constraints(self, amt):
         """Apply transform constraint to pseudo bone from armature bone."""
