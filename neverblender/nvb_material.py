@@ -95,13 +95,13 @@ class Material(object):
                 #print(tex_list)
                 #print(col_list)
                 #print(alpha)
-            # Compare textures, colors and alpha
-            if (check_textures(tex_list[:5], self.texture_list[:5], True) and
-                check_colors(col_list, self.color_list, ambient, self.ambient) and
-                check_shaders(blen_mat, self.mtr_data) and
-                math.isclose(alpha, self.alpha)):
-                #print("MATCH!")
-                return blen_mat
+                # Compare textures, colors and alpha
+                if ((tex_list and len(tex_list) >= 5) and check_textures(tex_list[:5], self.texture_list[:5], True) and
+                    check_colors(col_list, self.color_list, ambient, self.ambient) and
+                    check_shaders(blen_mat, self.mtr_data) and
+                    math.isclose(alpha, self.alpha)):
+                    #print("MATCH!")
+                    return blen_mat
         return None
 
     def isdefault(self):
